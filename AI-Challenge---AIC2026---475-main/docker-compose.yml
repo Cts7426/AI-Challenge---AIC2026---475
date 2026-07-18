@@ -1,0 +1,63 @@
+# docker-compose.yml — Hạ tầng indexing (Tầng 1): Milvus + Elasticsearch
+#
+# Vì sao chỉ 2 container?
+# - Milvus bình thường cần 3 container (milvus + etcd + minio).
+#   Ở đây dùng chế độ STANDALONE EMBEDDED: etcd nhúng sẵn + lưu trữ local
+#   → 1 container duy nhất, nhẹ hơn nhiều cho máy dev 16GB RAM.
+# - Elasticsearch chạy single-node, tắt security (chỉ dùng dev local).
+#
+# Chạy:  docker compose up -d
+# Dừng:  docker compose down        (giữ data)
+#        docker compose down -v     (xoá sạch data)
+
+services:
+  milvus:
+    image: milvusdb/milvus:v2.4.17
+    container_name: milvus-standalone
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      # Bật etcd nhúng — không cần container etcd riêng
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      ETCD_CONFIG_PATH: /milvus/configs/embedEtcd.yaml
+      # Lưu file local thay vì MinIO — không cần container minio riêng
+      COMMON_STORAGETYPE: local
+    volumes:
+      - milvus_data:/var/lib/milvus
+      - ./embedEtcd.yaml:/milvus/configs/embedEtcd.yaml
+    ports:
+      - "19530:19530"   # gRPC — pymilvus kết nối vào đây
+      - "9091:9091"     # HTTP health/metrics
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s   # Milvus khởi động chậm, cho 90s trước khi tính health
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node        # 1 node, không cần cluster
+      - xpack.security.enabled=false      # dev local, khỏi lo user/password/TLS
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g        # giới hạn heap 1GB cho máy 16GB RAM
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"     # REST API
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      start_period: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+# Named volumes: Docker tự quản lý, tránh lỗi permission khi bind-mount thư mục
+volumes:
+  milvus_data:
+  es_data:

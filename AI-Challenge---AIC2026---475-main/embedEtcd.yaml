@@ -1,0 +1,8 @@
+# Config cho etcd NHÚNG bên trong container Milvus standalone.
+# File này được mount vào /milvus/configs/embedEtcd.yaml (xem docker-compose.yml).
+# etcd = kho lưu metadata nội bộ của Milvus (thông tin collection, index...).
+listen-client-urls: http://0.0.0.0:2379
+advertise-client-urls: http://0.0.0.0:2379
+quota-backend-bytes: 4294967296
+auto-compaction-mode: revision
+auto-compaction-retention: '1000'

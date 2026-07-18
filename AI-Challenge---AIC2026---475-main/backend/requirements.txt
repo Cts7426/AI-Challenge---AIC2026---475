@@ -1,0 +1,11 @@
+# Dependencies của backend. Cài: pip install -r backend/requirements.txt
+fastapi>=0.110
+uvicorn[standard]>=0.29
+anthropic>=0.40   # chỉ cần khi LLM_BACKEND=api
+elasticsearch>=8.13,<9   # client ES — giữ major 8 khớp server trong docker-compose
+pymilvus>=2.4    # client Milvus
+numpy>=1.26      # đọc file .npy CLIP features
+# 2 gói dưới nặng (~vài trăm MB) — chỉ cần cho query encoder (Task 2.1+)
+# torch bản CPU: pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.0
+open_clip_torch>=2.24   # CLIP — model/pretrained đọc từ data/config/clip_model.py

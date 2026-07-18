@@ -9,3 +9,7 @@ numpy>=1.26      # đọc file .npy CLIP features
 # torch bản CPU: pip install torch --index-url https://download.pytorch.org/whl/cpu
 torch>=2.0
 open_clip_torch>=2.24   # CLIP — model/pretrained đọc từ data/config/clip_model.py
+
+# CHỈ CÀI TRÊN COLAB/KAGGLE (job preprocessing — KHÔNG cài máy dev 16GB):
+#   paddlepaddle-gpu + paddleocr   → preprocessing/ocr_job.py  (Task 4.1)
+#   faster-whisper                 → preprocessing/asr_job.py  (Task 4.2)

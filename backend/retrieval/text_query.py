@@ -42,7 +42,10 @@ def _get_model():
         )
         _model.eval()  # tắt dropout/batchnorm-update — chỉ suy luận, không train
         _tokenizer = open_clip.get_tokenizer(CLIP_MODEL_NAME)
-        torch.set_grad_enabled(False)  # không train → khỏi tốn RAM giữ gradient
+        # KHÔNG dùng torch.set_grad_enabled(False) ở đây: cờ đó là thread-local.
+        # FastAPI load model ở thread khởi động nhưng phục vụ request ở thread
+        # khác → grad vẫn bật ở đó → .numpy() gãy. Thay bằng torch.no_grad()
+        # ngay tại chỗ encode (xem encode_text) — đúng ở mọi thread.
     return _model, _tokenizer
 
 
@@ -63,10 +66,13 @@ def translate_to_english(query_vi: str) -> str:
 
 def encode_text(text_en: str) -> np.ndarray:
     """Encode câu tiếng Anh thành vector CLIP chuẩn hoá L2, shape (dim,)."""
+    import torch
+
     model, tokenizer = _get_model()
     tokens = tokenizer([text_en])
-    features = model.encode_text(tokens)
-    features = features / features.norm(dim=-1, keepdim=True)  # L2 — khớp COSINE bên Milvus
+    with torch.no_grad():  # suy luận thuần — không giữ gradient, an toàn mọi thread
+        features = model.encode_text(tokens)
+        features = features / features.norm(dim=-1, keepdim=True)  # L2 — khớp COSINE bên Milvus
     vec = features[0].cpu().numpy().astype(np.float32)
     assert vec.shape == (CLIP_EMBEDDING_DIM,), (
         f"Model trả dim {vec.shape[0]} nhưng config ghi {CLIP_EMBEDDING_DIM} — "

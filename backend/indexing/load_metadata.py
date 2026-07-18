@@ -21,7 +21,7 @@ from pathlib import Path
 
 from elasticsearch import Elasticsearch, helpers
 
-from backend.indexing.es_client import connect
+from backend.indexing.es_client import VI_FOLDED_ANALYSIS, connect, searchable_text
 
 INDEX_NAME = "metadata"
 
@@ -29,30 +29,15 @@ INDEX_NAME = "metadata"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_FILE = REPO_ROOT / "data" / "sample" / "metadata.json"
 
-# Một field text tìm kiếm được: mặc định bỏ dấu, subfield .vi giữ dấu
-_SEARCHABLE_TEXT = {
-    "type": "text",
-    "analyzer": "vi_folded",
-    "fields": {"vi": {"type": "text", "analyzer": "standard"}},
-}
-
+# Analyzer + mapping text VI định nghĩa chung ở es_client.py (index ocr dùng cùng bộ)
 INDEX_BODY = {
-    "settings": {
-        "analysis": {
-            "analyzer": {
-                "vi_folded": {
-                    "tokenizer": "standard",
-                    "filter": ["lowercase", "asciifolding"],
-                }
-            }
-        }
-    },
+    "settings": VI_FOLDED_ANALYSIS,
     "mappings": {
         "properties": {
             "video_id": {"type": "keyword"},          # lọc chính xác, không phân tích
-            "title": _SEARCHABLE_TEXT,
-            "description": _SEARCHABLE_TEXT,
-            "keywords": _SEARCHABLE_TEXT,             # ES tự hiểu mảng string
+            "title": searchable_text(),
+            "description": searchable_text(),
+            "keywords": searchable_text(),            # ES tự hiểu mảng string
             "publish_date": {                          # field lọc theo ngày
                 "type": "date",
                 "format": "yyyy-MM-dd||dd/MM/yyyy||epoch_millis",  # phòng BTC đổi format

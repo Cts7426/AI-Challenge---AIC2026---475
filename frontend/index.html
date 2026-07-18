@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- frontend/index.html — UI search-and-browse (Task 3.1)
+     Vì sao HTML/JS thuần, không React? Không build step = load tức thì,
+     không toolchain hỏng giữa cuộc thi. UI này chỉ có 1 màn hình.
+     Điều hướng 100% được bằng bàn phím (phím tắt ở footer). -->
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HCMAIC 2026 — Moment Search</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>⚡ Moment Search</h1>
+    <form id="search-form">
+      <input id="q" type="text" placeholder="Mô tả khoảnh khắc… (phím / để focus)"
+             autocomplete="off" autofocus>
+      <input id="q-en" type="text" placeholder="EN (tạm — khi chưa có API key dịch)"
+             autocomplete="off">
+      <button type="submit">Tìm (Enter)</button>
+    </form>
+    <!-- Chế độ nộp: KIS = đúng 1 khoảnh khắc, AVS = nhiều. Đổi bằng phím m -->
+    <button type="button" id="mode-btn" title="Đổi chế độ KIS/AVS (phím m)">KIS</button>
+    <button type="button" id="submit-btn" title="Nộp các ô đã đánh dấu (phím s)">Nộp (0)</button>
+    <div id="status"></div>
+  </header>
+
+  <main id="grid" tabindex="-1"></main>
+
+  <!-- Lightbox phóng to: ẩn mặc định, mở bằng Enter/click trên thumbnail -->
+  <div id="lightbox" hidden>
+    <img id="lightbox-img" alt="">
+    <div id="lightbox-info"></div>
+  </div>
+
+  <footer>
+    <kbd>/</kbd> tìm &nbsp; <kbd>↑↓←→</kbd> chọn &nbsp; <kbd>Enter</kbd> phóng to
+    &nbsp; <kbd>Space</kbd> đánh dấu &nbsp; <kbd>m</kbd> KIS/AVS &nbsp; <kbd>s</kbd> nộp
+    &nbsp; <kbd>Esc</kbd> đóng &nbsp; <kbd>c</kbd> copy id
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

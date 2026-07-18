@@ -40,8 +40,16 @@ INDEX_BODY = {
         "properties": {
             "keyframe_id": {"type": "keyword"},
             "video_id": {"type": "keyword"},
-            # Dạng 1: mảng phẳng — lọc nhanh "có object X hay không"
-            "labels": {"type": "keyword", "normalizer": "lowercase"},
+            # Dạng 1: mảng phẳng — lọc nhanh "có object X hay không".
+            # Subfield .txt (analyzer english): cho câu query tự do chạm được
+            # nhãn nhiều từ — "an airplane at the airport" match "Airplane",
+            # "wearing a hat" match "Sun hat" (english analyzer còn stem:
+            # airplanes→airplane). Fusion (Task 2.2) search trên labels.txt.
+            "labels": {
+                "type": "keyword",
+                "normalizer": "lowercase",
+                "fields": {"txt": {"type": "text", "analyzer": "english"}},
+            },
             # Dạng 2: nested — giữ đúng cặp (label, score) để lọc theo ngưỡng
             "detections": {
                 "type": "nested",

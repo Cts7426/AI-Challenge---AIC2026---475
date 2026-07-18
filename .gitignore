@@ -1,0 +1,32 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Data cuc bo (khong day len git)
+data/sample/*
+!data/sample/.gitkeep
+*.npy
+
+# Docker volumes neu lo bind-mount
+volumes/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code (khong push len repo)
+.claude/
+CLAUDE.md
+CLAUDE.md*Zone*
+BUILD_TASKS.md
+
+# Zone.Identifier (Windows downloaded files)
+*Zone.Identifier
+
+# Old nested folder (da flatten)
+AI-Challenge---AIC2026---475-main/

@@ -370,11 +370,12 @@ Task B0.1 (Data Foundation) đã hoàn tất. Toàn bộ nền tảng dữ liệ
 
 | File | Vai trò |
 |:-----|:--------|
+| **`data/derived/frame_map.parquet`** | **SẢN PHẨM CHÍNH — Bảng ánh xạ frame đã sửa xong. TẤT CẢ module downstream PHẢI đọc file này.** |
 | `preprocessing/b01_full_verification.py` | Quét offset [-3,+3] cho mọi keyframe |
 | `preprocessing/b01_merge_verification.py` | Gộp kết quả part |
 | `preprocessing/b01_update_frame_map.py` | Ghi kf_offset vào frame_map |
-| `preprocessing/b01_recover_missing_frameidx.py` | **Khôi phục frame bị mất** (core) |
+| `preprocessing/b01_recover_missing_frameidx.py` | Khôi phục frame bị mất (MSE < 20, first-match) |
 | `preprocessing/rolling_ingest.py` | Pipeline tự động (đã tích hợp recovery) |
 | `reports/data_audit.md` | Báo cáo kiểm toán dữ liệu |
-| `docs/B01_HANDOFF.md` | Tài liệu bàn giao cho team |
-| `data/derived/frame_map.parquet` | **Sản phẩm cuối cùng** |
+| `reports/B01_TECHNICAL_REPORT.md` | Báo cáo kỹ thuật chi tiết (file này) |
+| `docs/B01_HANDOFF.md` | Tài liệu bàn giao schema cho team |

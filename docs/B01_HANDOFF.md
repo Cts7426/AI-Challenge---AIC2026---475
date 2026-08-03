@@ -87,13 +87,17 @@ Chứa thông tin metadata vật lý thực sự (quét bằng ffprobe, không �
 ### B. `frame_map.parquet`
 Ánh xạ trung tâm giữa Keyframe của BTC và Chỉ số Frame thật trong MP4.
 - `video_id` (str): Khóa ngoại.
-- `btc_kf_ordinal` (int): Số thứ tự keyframe (bắt đầu từ 0). KHÔNG PHẢI chỉ số frame.
-- `frame_idx` (int): Chỉ số frame GỐC do BTC cung cấp (có thể bị lệch).
-- `pts_time` (float): Thời gian hiển thị (giây).
+- `btc_kf_ordinal` (int): Số thứ tự keyframe (bắt đầu từ 1). ĐÂY LÀ KHÓA JOIN CHÍNH, KHÔNG DÙNG frame_idx ĐỂ JOIN!
+- `frame_idx_raw` (int): Chỉ số frame GỐC do BTC cung cấp (thường bị lệch offset, hoặc bằng 0 nếu bị lỗi mất giá trị).
+- `pts_time` (float): Thời gian hiển thị (giây) do BTC cung cấp (không chính xác).
 - `fps` (float): FPS xấp xỉ dạng float.
-- `frame_offset` (float): Độ lệch frame đo được (+1, 0, -1). Nếu chưa đo hoặc ambiguous thì = 0.
-- `offset_verified` (bool): `True` nếu đã xác thực độ lệch thành công.
-- `frame_idx_corrected` (float): Chỉ số frame THỰC TẾ (bằng `frame_idx + frame_offset`).
+- `kf_offset` (int): Độ lệch frame đo được (+1, 0, -1). Nếu chưa đo thì bằng NaN/0.
+- `frame_idx_recovered` (int): Chỉ số frame tìm lại được (nếu `frame_idx_raw` bị lỗi duplicate / giá trị 0).
+- `frame_idx_status` (str): Trạng thái khôi phục (`"ok"`, `"recovered"`, `"unrecoverable"`, `"unverified"`).
+- `match_run_length` (int): Số frame liên tiếp khớp mãnh liệt (`MSE < 20`) khi khôi phục cảnh tĩnh.
+- `recovery_confidence` (str): Độ tin cậy khôi phục (`"high"`, `"medium"`, `"low"`).
+- `cosine` (float): Trị số similarity với CLIP (mặc định để `null`, dự phòng).
+- `frame_idx_corrected` (int): Chỉ số frame THỰC TẾ (ưu tiên: `recovered` > `raw + kf_offset` > `raw`). **TẤT CẢ MODULE PHẢI DÙNG CỘT NÀY**. Đã được kiểm chứng là hàm tăng đơn điệu ngặt.
 
 ### C. `video_offset.parquet`
 Kết quả chạy thuật toán Trọng Tài cho từng video.

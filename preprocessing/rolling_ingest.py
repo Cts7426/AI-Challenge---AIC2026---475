@@ -151,6 +151,12 @@ def main():
                             df_res = pd.DataFrame(results)
                             df_res["has_duplicate_frames"] = has_dup
                             
+                            if has_dup:
+                                from b01_recover_missing_frameidx import recover_video
+                                print(f"Phát hiện frame lỗi (delta=0), tiến hành khôi phục...")
+                                df_res, rc, uc, uv = recover_video(video_id, df_res, str(v_path))
+                                print(f"Khôi phục: {rc} thành công, {uc} thất bại.")
+                                
                             PARTS_DIR = DATA_DIR / "derived" / "full_verification_parts"
                             PARTS_DIR.mkdir(parents=True, exist_ok=True)
                             

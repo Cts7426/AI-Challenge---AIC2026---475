@@ -50,16 +50,6 @@ data/sample/     # fixtures test local (gitignore — không push)
 docs/contest.md  # thể thức thi chi tiết
 ```
 
-## Quy ước định danh
-
-- `video_id`: "L01_V001" — trùng tên file .mp4, không đuôi.
-- `frame_idx`: số nguyên, CHỈ SỐ FRAME GỐC trong video, đếm từ 0.
-  Đây là thứ nộp cho ban tổ chức.
-- `shot_id`: "L01_V001#s0042" — video_id + số thứ tự shot, pad 4 chữ số.
-- `kf_id` / `keyframe_id`: "L01_V001#k0042" — video_id + btc_kf_ordinal, pad 4 chữ số.
-  ĐÂY LÀ KHÓA JOIN XUYÊN SUỐT MỌI BẢNG (Milvus ↔ Elasticsearch ↔ frame_map).
-- fps luôn lưu dạng phân số (`fps_num`, `fps_den`). KHÔNG BAO GIỜ làm tròn.
-  Video 29.97 fps thực chất là 30000/1001.
 
 ## Bất biến — vi phạm gây lỗi IM LẶNG (chạy được nhưng kết quả sai)
 
@@ -85,17 +75,6 @@ docs/contest.md  # thể thức thi chi tiết
    online của /search.
 9. Mọi tham số đọc từ `data/config/`. Không hardcode đường dẫn, ngưỡng, tên model.
 
-## Kỷ luật job dài (preprocessing)
-
-Mọi job xử lý dữ liệu phải:
-- Chia lô, ghi checkpoint sau mỗi lô
-- Đọc `data/manifests/<job>.json` lúc khởi động, bỏ qua phần đã xong
-- Chạy lại được sau khi bị ngắt giữa chừng mà không làm lại từ đầu
-- Nhận tham số `--shard i --num-shards n` để chia việc.
-  + Ingest (tải ZIP): chia theo `int(md5(zip_name).hexdigest(), 16) % num_shards`
-  + Job Kaggle (ASR, OCR): chia theo `int(md5(video_id).hexdigest(), 16) % num_shards`
-  + Hai kiểu shard này CỐ Ý khác nhau.
-- In tiến độ và thời gian còn lại ước tính
 
 ## Coding convention
 
@@ -112,10 +91,8 @@ Mọi job xử lý dữ liệu phải:
 
 ## Ngăn xếp
 
-- **Online (backend/)**: Python 3.14, FastAPI, Milvus, Elasticsearch, open_clip.
+- Python 3.14, FastAPI, Milvus, Elasticsearch, open_clip.
   Windows 11, 16GB RAM, torch CPU.
-- **Preprocessing**: Python 3.10+, pandas, pyarrow, ffmpeg.
-  Chạy trên Colab/Kaggle (GPU). KHÔNG dùng Milvus/ES/Docker cho preprocessing.
 
 ## Quy trình làm việc
 

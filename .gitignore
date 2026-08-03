@@ -4,11 +4,16 @@ __pycache__/
 *.pyo
 .venv/
 *.egg-info/
+.pytest_cache/
 
 # Data cuc bo (khong day len git)
 data/sample/*
 !data/sample/.gitkeep
 *.npy
+data/raw/
+data/derived/keyframes/
+data/derived/audio/
+data/derived/verify_frames/*_pair.jpg
 
 # Docker volumes neu lo bind-mount
 volumes/
@@ -18,6 +23,7 @@ volumes/
 .idea/
 .DS_Store
 Thumbs.db
+*.log
 
 # Claude Code — chi push file dung chung cho team
 CLAUDE.local.md

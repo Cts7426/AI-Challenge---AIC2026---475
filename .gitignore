@@ -13,7 +13,14 @@ data/sample/*
 data/raw/
 data/derived/keyframes/
 data/derived/audio/
-data/derived/verify_frames/*_pair.jpg
+data/derived/verify_frames/
+data/derived/full_verification.parquet
+data/derived/full_verification_test.parquet
+data/derived/full_verification_parts/
+reports/recovered_frames/
+reports/black_frames_list.txt
+cleanup_inventory.md
+scratch/
 
 # Docker volumes neu lo bind-mount
 volumes/

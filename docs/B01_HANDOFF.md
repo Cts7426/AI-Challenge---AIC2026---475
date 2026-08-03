@@ -99,14 +99,8 @@ Chứa thông tin metadata vật lý thực sự (quét bằng ffprobe, không �
 - `cosine` (float): Trị số similarity với CLIP (mặc định để `null`, dự phòng).
 - `frame_idx_corrected` (int): Chỉ số frame THỰC TẾ (ưu tiên: `recovered` > `raw + kf_offset` > `raw`). **TẤT CẢ MODULE PHẢI DÙNG CỘT NÀY**. Đã được kiểm chứng là hàm tăng đơn điệu ngặt.
 
-### C. `video_offset.parquet`
-Kết quả chạy thuật toán Trọng Tài cho từng video.
-- `video_id` (str): Khóa ngoại.
-- `fps_num`, `fps_den` (int): FPS.
-- `n_samples_used` (int): Số lượng keyframe động đã dùng để xác thực.
-- `offset` (int): Độ lệch tính toán.
-- `offset_status` (str): `ok`, `ok_8` (đồng thuận cao), hoặc `ambiguous`.
-- `offset_confidence` (float): Chênh lệch MSE (càng cao càng chắc chắn).
+### C. [BỊ XÓA] `video_offset.parquet`
+*(File này đã bị xóa do thông tin offset chi tiết đã được gộp trực tiếp vào `frame_map.parquet` và `full_verification.parquet` để tránh dư thừa).*
 
 ### D. `clip_row_index.parquet`
 Sổ xố / Danh mục (Index) của các file `.npy` vector nhúng (CLIP).
@@ -127,6 +121,6 @@ Hiện tại, chúng tôi đã chạy kiểm tra bù lệch (offset) đợt 1 tr
 - **Mập mờ (Ambiguous):** 8/873 video. (Mặc định giữ nguyên offset = 0 để an toàn).
 - **Chưa quét:** Phần còn lại (~745 video) tạm thời giả định `offset = 0`.
 
-Quá trình chạy thuật toán `detect_frame_offset.py` để verify các video còn lại sẽ được tích hợp và chạy ngầm song song vào hệ thống **Rolling Ingest** trong các đợt tải ZIP tiếp theo. Hệ thống hiện tại đã hoàn toàn Robust và không sợ lỗi lệch frame làm hỏng dữ liệu huấn luyện. 
+Quá trình chạy thuật toán `b01_full_verification.py` để verify các video còn lại sẽ được tích hợp và chạy ngầm song song vào hệ thống **Rolling Ingest** trong các đợt tải ZIP tiếp theo. Hệ thống hiện tại đã hoàn toàn Robust và không sợ lỗi lệch frame làm hỏng dữ liệu huấn luyện. 
 
 Chúc các bạn code vui vẻ! 🚀

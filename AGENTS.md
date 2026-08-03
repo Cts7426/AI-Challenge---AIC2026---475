@@ -3,8 +3,8 @@
 - frame_idx: số nguyên, CHỈ SỐ FRAME GỐC trong video, đếm từ 0.
   Đây là thứ nộp cho ban tổ chức.
 - shot_id: "L01_V001#s0042" — video_id + số thứ tự shot, pad 4 chữ số
-- kf_id: "L01_V001#f0001234" — video_id + frame_idx, pad 7 chữ số.
-  ĐÂY LÀ KHÓA JOIN XUYÊN SUỐT MỌI BẢNG.
+- kf_id: "L01_V001#k0042" — video_id + btc_kf_ordinal, pad 4 chữ số.
+  ĐÂY LÀ KHÓA JOIN XUYÊN SUỐT MỌI BẢNG (thay thế cho frame_idx).
 
 ## Quy tắc tuyệt đối
 - KHÔNG BAO GIỜ dùng số thứ tự file keyframe của BTC (0000.jpg, 0001.jpg)

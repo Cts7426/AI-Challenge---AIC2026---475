@@ -10,7 +10,7 @@ from common.manifest import ManifestManager
 from common.ffmpeg import get_video_header, extract_audio
 from common.decode import extract_keyframes_and_count, sample_keyframes_from_shots
 import pandas as pd
-from detect_frame_offset import detect_video_offset, update_frame_map_parquet
+from b01_full_verification import process_video
 
 # SCENEDETECT
 from scenedetect import ContentDetector, SceneManager, open_video
@@ -127,62 +127,49 @@ def main():
                 print(f"[ERROR] Thiếu keyframe: có {len(kf_files)}, yêu cầu tối thiểu {2 * len(shots)}")
                 is_valid = False
                 
-            # 6. Chạy detect_frame_offset TRƯỚC KHI xóa
+            # 6. Chạy FULL verification TRƯỚC KHI xóa
             keep_mp4_due_to_offset = False
             if is_valid:
-                print(f"Bắt đầu đo offset cho {video_id}...")
+                print(f"Bắt đầu FULL verification cho {video_id}...")
                 try:
                     df_map = pd.read_parquet(DATA_DIR / "derived" / "frame_map.parquet")
+                    if "frame_idx_raw" not in df_map.columns and "frame_idx" in df_map.columns:
+                        df_map = df_map.rename(columns={"frame_idx": "frame_idx_raw"})
+                        
                     df_vid = df_map[df_map["video_id"] == video_id]
                     if len(df_vid) > 0:
-                        res = detect_video_offset(video_id, v_path, df_vid)
-                        print(f"Offset đo được: {res['offset']:+2d} (Status: {res['offset_status']}, Confidence: {res['offset_confidence']:.1f})")
-                        
-                        if res['offset_status'] != 'ok':
-                            print(f"[CẢNH BÁO] Offset status = '{res['offset_status']}'. GIỮ LẠI .mp4 để kiểm tra tay.")
-                            keep_mp4_due_to_offset = True
-                            
-                        df_offset_single = pd.DataFrame([res])
-                        
-                        # Append to video_offset.parquet
-                        offset_parquet_path = DATA_DIR / "derived" / "video_offset.parquet"
-                        if offset_parquet_path.exists():
-                            df_exist = pd.read_parquet(offset_parquet_path)
-                            # Remove old entry if exists, then append
-                            df_exist = df_exist[df_exist["video_id"] != video_id]
-                            df_new = pd.concat([df_exist, df_offset_single], ignore_index=True)
+                        df_info_path = DATA_DIR / "derived" / "video_info.parquet"
+                        if df_info_path.exists():
+                            df_info = pd.read_parquet(df_info_path)
+                            n_frames_total = df_info[df_info["video_id"] == video_id]["n_frames"].iloc[0] if video_id in df_info["video_id"].values else 999999
                         else:
-                            df_new = df_offset_single
-                        df_new.to_parquet(offset_parquet_path, index=False)
+                            n_frames_total = 999999
+                            
+                        results, has_dup = process_video(video_id, df_vid, n_frames_total)
                         
-                        # Cập nhật frame_map.parquet
-                        update_frame_map_parquet(df_offset_single)
+                        if results:
+                            df_res = pd.DataFrame(results)
+                            df_res["has_duplicate_frames"] = has_dup
+                            
+                            PARTS_DIR = DATA_DIR / "derived" / "full_verification_parts"
+                            PARTS_DIR.mkdir(parents=True, exist_ok=True)
+                            
+                            df_res.to_parquet(PARTS_DIR / f"{video_id}.parquet", index=False)
+                            print(f"Hoàn tất verification cho {video_id}. Lưu checkpoint part thành công.")
+                            
+                            # Decide if we need to keep mp4
+                            num_shifted = len(df_res[df_res["verdict"] == "shifted"])
+                            num_nomatch = len(df_res[df_res["verdict"] == "no_match"])
+                            if num_nomatch > 0 or (num_shifted / len(df_res)) > 0.5:
+                                print(f"[CẢNH BÁO] Phát hiện lỗi nghiêm trọng (no_match hoặc shift > 50%). GIỮ LẠI .mp4 để kiểm tra tay.")
+                                keep_mp4_due_to_offset = True
                     else:
-                        print(f"Không tìm thấy {video_id} trong frame_map.parquet, bỏ qua đo offset.")
+                        print(f"Không có dữ liệu keyframe nào trong frame_map.parquet cho {video_id}")
                 except Exception as e:
-                    print(f"[LỖI NGHIÊM TRỌNG] Lỗi khi đo offset cho {video_id}: {e}")
-                    print(f"Đánh dấu 'detect_failed' và GIỮ LẠI .mp4.")
+                    import traceback
+                    traceback.print_exc()
+                    print(f"[LỖI] Lỗi khi chạy verification: {e}. GIỮ LẠI .mp4.")
                     keep_mp4_due_to_offset = True
-                    # Ghi nhận thất bại
-                    res_fail = {
-                        "video_id": video_id,
-                        "fps_num": header.get("fps_num", 30),
-                        "fps_den": header.get("fps_den", 1),
-                        "offset": 0,
-                        "offset_confidence": 9999.0,
-                        "offset_status": "detect_failed",
-                        "n_samples_used": 0
-                    }
-                    df_offset_single = pd.DataFrame([res_fail])
-                    offset_parquet_path = DATA_DIR / "derived" / "video_offset.parquet"
-                    if offset_parquet_path.exists():
-                        df_exist = pd.read_parquet(offset_parquet_path)
-                        df_exist = df_exist[df_exist["video_id"] != video_id]
-                        df_new = pd.concat([df_exist, df_offset_single], ignore_index=True)
-                    else:
-                        df_new = df_offset_single
-                    df_new.to_parquet(offset_parquet_path, index=False)
-                    update_frame_map_parquet(df_offset_single)
                     
             # 7. Ghi manifest và Xóa (nếu is_valid)
             if is_valid:

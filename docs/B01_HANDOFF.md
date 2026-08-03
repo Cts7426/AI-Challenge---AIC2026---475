@@ -110,7 +110,7 @@ Sổ xố / Danh mục (Index) của các file `.npy` vector nhúng (CLIP).
 - `video_id` (str): Khóa ngoại.
 - `btc_kf_ordinal` (int): Số thứ tự keyframe.
 - `frame_idx` (int): Chỉ số frame lúc trích xuất.
-- `kf_id` (str): Khóa join xuyên suốt mọi hệ thống (VD: `L01_V001#f0001234`).
+- `kf_id`: STRING (vd: "L01_V001#k0042") - KHÓA CHÍNH (Đã đổi định dạng từ f<frame_idx> sang k<ordinal> để tránh trùng lặp).
 - `npy_file` (str): Tên file npy chứa vector tương ứng.
 - `local_row` (int): Số thứ tự hàng bên trong file `.npy`.
 

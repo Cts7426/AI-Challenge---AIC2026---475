@@ -35,7 +35,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 
 from backend.indexing.es_client import connect as es_connect
-from backend.indexing.load_clip import COLLECTION_NAME, connect as milvus_connect
+from backend.indexing.milvus_client import COLLECTION_NAME, connect as milvus_connect
 from backend.indexing.load_metadata import INDEX_NAME as METADATA_INDEX
 from backend.indexing.load_objects import INDEX_NAME as OBJECTS_INDEX
 from data.config.search_weights import (

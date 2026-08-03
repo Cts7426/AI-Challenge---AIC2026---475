@@ -22,6 +22,7 @@ Thumbs.db
 # Claude Code (khong push len repo)
 .claude/
 CLAUDE.md
+CLAUDE.local.md
 CLAUDE.md*Zone*
 BUILD_TASKS.md
 

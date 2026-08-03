@@ -28,33 +28,17 @@
 
 import argparse
 import json
-import os
 from pathlib import Path
 
 import numpy as np
 from pymilvus import DataType, MilvusClient
 
+from backend.indexing.milvus_client import COLLECTION_NAME, connect
 from data.config.clip_model import CLIP_EMBEDDING_DIM
-
-# Không hardcode địa chỉ (CLAUDE.md mục 7)
-MILVUS_URL = os.environ.get("MILVUS_URL", "http://localhost:19530")
-COLLECTION_NAME = "keyframes"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_KEYFRAMES_FILE = REPO_ROOT / "data" / "sample" / "keyframes.json"
 DEFAULT_FEATURES_DIR = REPO_ROOT / "data" / "sample" / "clip_features"
-
-
-def connect() -> MilvusClient:
-    try:
-        client = MilvusClient(uri=MILVUS_URL)
-        client.list_collections()  # ép 1 request thật để biết server sống hay chết
-        return client
-    except Exception as e:
-        raise ConnectionError(
-            f"Không kết nối được Milvus tại {MILVUS_URL}. "
-            "Đã chạy `docker compose up -d milvus` chưa? (Milvus cần ~60-90s để lên)"
-        ) from e
 
 
 def create_collection(client: MilvusClient, recreate: bool = False) -> None:

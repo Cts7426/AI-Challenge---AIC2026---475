@@ -33,6 +33,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from backend.indexing.frame_map import load_frame_map
 from backend.retrieval.search import search as fused_search
 from data.config.submit_format import build_submission
 
@@ -135,7 +136,15 @@ def post_submit(req: SubmitRequest) -> dict:
     if req.task_type == "KIS" and len(req.items) != 1:
         raise HTTPException(400, detail=f"KIS phải nộp đúng 1 keyframe (đang gửi {len(req.items)}).")
 
-    submission = build_submission(req.task_type, [it.model_dump() for it in req.items])
+    # W0.2: frame_id nộp bài PHẢI tra từ frame_map (frame index trong video) —
+    # thiếu map thì trả lỗi rõ, không bao giờ sinh file với số đoán
+    try:
+        frame_map = load_frame_map()
+        submission = build_submission(
+            req.task_type, [it.model_dump() for it in req.items], frame_map=frame_map
+        )
+    except (FileNotFoundError, RuntimeError, KeyError) as e:
+        raise HTTPException(status_code=503, detail=f"Không sinh được file nộp: {e}")
 
     out_dir = REPO_ROOT / "submissions"
     out_dir.mkdir(exist_ok=True)

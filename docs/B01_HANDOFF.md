@@ -19,55 +19,48 @@ Trong quá trình điều tra, chúng tôi đã phát hiện **lỗi giải mã 
 
 ---
 
-## 3. Code Mẫu Cho Thạch (Feature Extraction)
+## 3. API Tra Cứu Khung Hình (Frame Map) & Dữ Liệu Fixture
 
-Để biết hàng thứ `i` của file `.npy` tương ứng với frame nào (đã bù trừ offset), hãy load `frame_map` bằng API chuẩn và join với `clip_row_index`.
+Thay vì đọc trực tiếp file parquet (rất dễ nhầm lẫn giữa `frame_idx` gốc bị lệch và `frame_idx_corrected`), hãy LUÔN SỬ DỤNG 5 API chuẩn được cung cấp trong `preprocessing.common.frame_map`:
+
+- `load_frame_map(require_verified=False) -> pd.DataFrame`: Tải bảng frame_map. Tự động đổi tên cột `frame_idx_corrected` thành `frame_idx` (để dùng an toàn) và đẩy cột gốc thành `frame_idx_raw`. 
+- `get_frame_idx(video_id: str, btc_kf_ordinal: int) -> int`: Lấy chỉ số frame chính xác (đã bù trừ offset). Ném `KeyError` nếu không tìm thấy, không bao giờ trả về 0 hay None.
+- `get_kf_id(video_id: str, btc_kf_ordinal: int) -> str`: Sinh ra mã kf_id chuẩn (VD: `L26_V022#k0121`).
+- `parse_kf_id(kf_id: str) -> tuple[str, int]`: Bóc tách ID (VD: `'L26_V022#k0121'` -> `('L26_V022', 121)`).
+- `is_verified(video_id: str) -> bool`: Trả về `True` nếu video đã được tính toán bù trừ offset MSE.
+
+> **💡 Dành cho team Test:** Mọi người có thể vào mục `data/derived/samples/` để xem nhanh 50 dòng của các file dữ liệu (dạng CSV). File `frame_map_sample.parquet` (200 dòng) chứa đủ các ca đặc biệt (bị lệch frame, duplicate, khác FPS...) để viết Test Case mà không phải copy file 39GB!
+
+---
+
+## 4. Code Mẫu Cho Team
+
+### Cho Thạch (Feature Extraction)
+Cách join chuẩn xác `clip_row_index` với `frame_map` để lấy frame_idx (5 dòng):
 
 ```python
 import pandas as pd
 from preprocessing.common.frame_map import load_frame_map
 
-# 1. Load frame map an toàn (đã tự động map frame_idx_corrected -> frame_idx)
-df_map = load_frame_map(require_verified=False)
-
-# 2. Load clip_row_index
+df_map = load_frame_map() # frame_idx lúc này LÀ CỘT ĐÃ ĐƯỢC CHUẨN HÓA (CORRECTED)
 df_clip = pd.read_parquet("data/derived/clip_row_index.parquet")
-
-# 3. Join để lấy frame_idx chính xác
-# Lưu ý: frame_idx trong df_map lúc này CHÍNH LÀ frame_idx_corrected.
-# Cột frame_idx gốc của BTC đã bị đổi tên thành frame_idx_raw.
-df_final = df_clip.merge(df_map[["video_id", "btc_kf_ordinal", "frame_idx", "offset_verified"]], 
-                         on=["video_id", "btc_kf_ordinal"], 
-                         how="left")
-
-# df_final hiện tại chứa frame_idx_y (chuẩn) tương ứng với local_row trong file .npy
+# Bắt buộc join qua btc_kf_ordinal (ordinal 1-indexed do BTC cấp)
+df_final = df_clip.merge(df_map[["video_id", "btc_kf_ordinal", "frame_idx", "kf_id"]], 
+                         on=["video_id", "btc_kf_ordinal"], how="left")
 ```
 
----
-
-## 4. Code Mẫu Cho Minh Hoàng (Training & Retrieval)
-
-Khi mô hình trả về một `(video_id, btc_kf_ordinal)` và bạn cần hiển thị bức ảnh gốc đó cho UI hoặc verify.
+### Cho Minh Hoàng (Training & Retrieval)
+Cách lấy chính xác 1 bức ảnh (đã trừ offset) từ video để hiển thị UI (5 dòng):
 
 ```python
-from preprocessing.common.frame_map import get_frame_idx
+from preprocessing.common.frame_map import get_frame_idx, parse_kf_id
 from preprocessing.common.decode import extract_frame_exact
 
-video_id = "L21_V022"
-btc_kf_ordinal = 42
+video_id, kf_ordinal = parse_kf_id("L21_V022#k0042")
+frame_idx = get_frame_idx(video_id, kf_ordinal)
+
 mp4_path = f"data/raw/videos/{video_id}.mp4"
-
-# 1. Tra cứu frame_idx CHUẨN (đã bù offset tự động)
-idx = get_frame_idx(video_id, btc_kf_ordinal)
-
-# 2. Trích xuất ảnh chính xác 100% (không dùng cv2.set!)
-img_rgb = extract_frame_exact(mp4_path, idx)
-
-if img_rgb is not None:
-    # Hiển thị hoặc lưu ảnh
-    import matplotlib.pyplot as plt
-    plt.imshow(img_rgb)
-    plt.show()
+img_rgb = extract_frame_exact(mp4_path, frame_idx) # TUYỆT ĐỐI KHÔNG DÙNG cv2.set(POS_FRAMES)
 ```
 
 ---

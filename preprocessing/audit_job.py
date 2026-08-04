@@ -75,7 +75,7 @@ def process_one_video(mp4: Path):
         "fps_num": fps_num,
         "fps_den": fps_den,
         "n_frames": n_frames,
-        "path": str(mp4)
+        "path": str(mp4.relative_to(ROOT_DIR))
     }
 
 def main():

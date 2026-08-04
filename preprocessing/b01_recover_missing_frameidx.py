@@ -65,13 +65,19 @@ def recover_video(vid, vid_df, mp4_path):
         
         lo = 0
         if first_err > 0:
-            lo_val = vid_df.iloc[first_err - 1]["frame_idx_corrected"]
-            lo = lo_val if pd.notna(lo_val) else vid_df.iloc[first_err - 1]["frame_idx_raw"]
+            row = vid_df.iloc[first_err - 1]
+            lo_val = row.get("frame_idx_corrected", pd.NA)
+            if pd.isna(lo_val) and "frame_idx_used" in vid_df.columns:
+                lo_val = row["frame_idx_used"] if row["frame_idx_used"] != -1 else pd.NA
+            lo = lo_val if pd.notna(lo_val) else row["frame_idx_raw"]
             
         hi = n_frames - 1
         if last_err < len(vid_df) - 1:
-            hi_val = vid_df.iloc[last_err + 1]["frame_idx_corrected"]
-            hi = hi_val if pd.notna(hi_val) else vid_df.iloc[last_err + 1]["frame_idx_raw"]
+            row = vid_df.iloc[last_err + 1]
+            hi_val = row.get("frame_idx_corrected", pd.NA)
+            if pd.isna(hi_val) and "frame_idx_used" in vid_df.columns:
+                hi_val = row["frame_idx_used"] if row["frame_idx_used"] != -1 else pd.NA
+            hi = hi_val if pd.notna(hi_val) else row["frame_idx_raw"]
             
         start_f = int(lo) + 1
         end_f = int(hi) - 1

@@ -74,7 +74,7 @@ if img_rgb is not None:
 
 ## 5. Schema Các Bảng Dữ Liệu (Parquet)
 
-Dữ liệu được lưu tại `data/derived/`.
+Dữ liệu được lưu tại `data/derived/`. Các file sample (20 dòng đầu) định dạng CSV đã được xuất ra thư mục `data/derived/samples/` để các bạn xem nhanh mà không cần code.
 
 ### A. `video_info.parquet`
 Chứa thông tin metadata vật lý thực sự (quét bằng ffprobe, không ước lượng).

@@ -1,6 +1,4 @@
 import os
-import av
-
 def extract_keyframes_and_count(video_path: str, target_frames: set, out_dir: str) -> int:
     """
     Decode video tuần tự (sequential) bằng PyAV.
@@ -8,6 +6,7 @@ def extract_keyframes_and_count(video_path: str, target_frames: set, out_dir: st
     - Nếu frame_idx nằm trong target_frames, lưu ảnh ra đĩa dưới tên f<frame_idx>.jpg (zero-pad 7).
     Trả về tổng số frame đếm được.
     """
+    import av
     os.makedirs(out_dir, exist_ok=True)
     
     container = av.open(video_path)

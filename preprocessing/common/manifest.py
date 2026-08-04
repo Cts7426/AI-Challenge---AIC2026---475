@@ -1,10 +1,12 @@
 import json
 import os
+import threading
 from typing import Dict, Any, List
 
 class ManifestManager:
     def __init__(self, manifest_path: str):
         self.manifest_path = manifest_path
+        self.lock = threading.Lock()
         self.data = self._load()
 
     def _load(self) -> Dict[str, Any]:
@@ -22,22 +24,26 @@ class ManifestManager:
             json.dump(self.data, f, indent=2)
 
     def is_zip_processed(self, zip_name: str) -> bool:
-        return zip_name in self.data.get("processed_zips", [])
+        with self.lock:
+            return zip_name in self.data.get("processed_zips", [])
 
     def mark_zip_processed(self, zip_name: str):
-        if zip_name not in self.data["processed_zips"]:
-            self.data["processed_zips"].append(zip_name)
-            self.save()
+        with self.lock:
+            if zip_name not in self.data["processed_zips"]:
+                self.data["processed_zips"].append(zip_name)
+                self.save()
 
     def is_video_processed(self, video_id: str) -> bool:
-        return video_id in self.data.get("processed_videos", {})
+        with self.lock:
+            return video_id in self.data.get("processed_videos", {})
 
     def mark_video_processed(self, video_id: str, file_size: int, file_md5: str):
-        if "processed_videos" not in self.data:
-            self.data["processed_videos"] = {}
-        
-        self.data["processed_videos"][video_id] = {
-            "size": file_size,
-            "md5": file_md5
-        }
-        self.save()
+        with self.lock:
+            if "processed_videos" not in self.data:
+                self.data["processed_videos"] = {}
+            
+            self.data["processed_videos"][video_id] = {
+                "size": file_size,
+                "md5": file_md5
+            }
+            self.save()

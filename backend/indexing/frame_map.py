@@ -28,8 +28,18 @@ def load_frame_map() -> dict[str, int]:
         if 'kf_id' not in df.columns or 'frame_idx' not in df.columns:
             raise KeyError("Bảng frame_map.parquet thiếu cột kf_id hoặc frame_idx")
             
-        # Chuyển đổi DataFrame thành dictionary
-        return df.set_index('kf_id')['frame_idx'].to_dict()
+        # Chuyển đổi DataFrame thành dictionary với định dạng gốc (#k)
+        res_dict = df.set_index('kf_id')['frame_idx'].to_dict()
+        
+        # Bổ sung key format cũ (L21_V001_0001) để tương thích ngược với Thạch và Frontend
+        compat_dict = {}
+        for k, v in res_dict.items():
+            compat_dict[k] = v
+            if "#k" in k:
+                old_key = k.replace("#k", "_")
+                compat_dict[old_key] = v
+                
+        return compat_dict
         
     except FileNotFoundError:
         raise FileNotFoundError(

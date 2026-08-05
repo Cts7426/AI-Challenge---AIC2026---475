@@ -1,85 +1,45 @@
-# preprocessing/asr_job.py — Task 4.2: ASR tiếng Việt trên audio video
+# preprocessing/asr_job.py — Task B1.3: ASR tiếng Việt trên audio
 #
 # ⚠️⚠️ JOB RẤT NẶNG — CHẠY TRÊN COLAB/KAGGLE (GPU free), KHÔNG CHẠY MÁY DEV 16GB.
-# Whisper medium chiếm ~5GB, transcribe 1000h video trên CPU là bất khả thi.
 #
-# Cách chạy trên Colab (Runtime → GPU T4):
-#   !git clone <repo_url> aic && %cd aic
-#   !pip install faster-whisper
-#   # mount/upload thư mục video (mỗi file <video_id>.mp4)
-#   !python preprocessing/asr_job.py --videos /content/videos --out data/asr/asr_results.jsonl
-#   # model tiếng Việt tốt hơn (PhoWhisper convert sang CT2) nếu có:
-#   !python preprocessing/asr_job.py --videos ... --model <path-hoặc-repo-CT2>
-#
-# Vì sao faster-whisper (không phải openai-whisper gốc)?
-# → Cùng model, chạy bằng CTranslate2 nhanh ~4x và ít VRAM hơn — quan trọng
-#   khi GPU free có hạn ngạch. TODO: thử PhoWhisper (VinAI finetune tiếng Việt)
-#   bản CT2 khi tìm được repo chuyển đổi tin cậy — chất lượng VI tốt hơn.
-#
-# Vì sao GỘP các segment Whisper (~2-8s) thành đoạn ~20s?
-# → Segment quá ngắn thì BM25 gần như không có ngữ cảnh để match query dài;
-#   đoạn quá dài thì định vị thời gian kém (nhảy tới đâu trong video?).
-#   ~20s là điểm cân bằng: đủ chữ để match, đủ hẹp để nhảy đúng khoảnh khắc.
-#   Chỉ gộp khi im lặng giữa 2 segment <= 2s — qua khoảng nghỉ dài là đoạn mới
-#   (thường đổi chủ đề/cảnh).
-#
-# Resume THEO VIDEO: kết quả ghi trọn gói từng video + flush. Colab rớt giữa
-# video nào chỉ mất video đó; chạy lại lệnh cũ tự bỏ qua video đã xong.
-#
-# Output mỗi dòng: {"video_id", "start_ms", "end_ms", "text"}
+# Cách chạy trên Kaggle:
+#   python preprocessing/asr_job.py --videos data/derived/audio --shard 0 --num-shards 5
 
 import argparse
-import json
+import os
+import hashlib
 from pathlib import Path
+import pandas as pd
+from tqdm import tqdm
 
-MEDIA_EXTS = {".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4a", ".mp3", ".wav"}
 MERGE_TARGET_S = 20.0   # độ dài tối đa 1 đoạn sau khi gộp
 MERGE_MAX_GAP_S = 2.0   # im lặng dài hơn ngưỡng này → cắt đoạn mới
 
+def get_video_fps_map(info_path: Path):
+    if not info_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy {info_path}")
+    df_info = pd.read_parquet(info_path)
+    fps_map = {}
+    for _, row in df_info.iterrows():
+        vid = row['video_id']
+        num = row['fps_num']
+        den = row.get('fps_den', 1)
+        fps_map[vid] = (num, den)
+    return fps_map
 
-def iter_videos(videos_dir: Path):
-    """<videos_dir>/<video_id>.mp4 → (video_id, path). TODO: BTC — cấu trúc thật."""
-    for p in sorted(videos_dir.rglob("*")):
-        if p.suffix.lower() in MEDIA_EXTS:
-            yield p.stem, p
-
-
-def load_done(out_path: Path) -> set[str]:
-    """Tập video_id đã transcribe xong (resume theo video)."""
-    done = set()
-    if out_path.exists():
-        for line in out_path.read_text(encoding="utf-8").splitlines():
-            try:
-                done.add(json.loads(line)["video_id"])
-            except (json.JSONDecodeError, KeyError):
-                pass
-    return done
-
-
-def merge_segments(segments: list[dict],
-                   target_s: float = MERGE_TARGET_S,
-                   max_gap_s: float = MERGE_MAX_GAP_S) -> list[dict]:
-    """Gộp segment Whisper liền kề thành đoạn ~target_s giây.
-
-    segments: [{"start": s, "end": s, "text": str}] (giây, đã theo thứ tự).
-    Hàm thuần — test được không cần model/GPU.
-    """
+def merge_segments(segments: list[dict], target_s: float = MERGE_TARGET_S, max_gap_s: float = MERGE_MAX_GAP_S) -> list[dict]:
     merged: list[dict] = []
     cur: dict | None = None
     for seg in segments:
         text = seg["text"].strip()
         if not text:
-            # Segment trắng (rác VAD) — không được làm GÃY chuỗi gộp: nếu đang
-            # gộp và liền kề thì nới end làm cầu nối thời gian, không thêm chữ
-            if (cur is not None
-                    and seg["start"] - cur["end"] <= max_gap_s
-                    and seg["end"] - cur["start"] <= target_s):
+            if (cur is not None and seg["start"] - cur["end"] <= max_gap_s and seg["end"] - cur["start"] <= target_s):
                 cur["end"] = seg["end"]
             continue
         can_join = (
             cur is not None
-            and seg["start"] - cur["end"] <= max_gap_s   # không có khoảng lặng dài
-            and seg["end"] - cur["start"] <= target_s    # gộp xong vẫn <= target
+            and seg["start"] - cur["end"] <= max_gap_s
+            and seg["end"] - cur["start"] <= target_s
         )
         if can_join:
             cur["end"] = seg["end"]
@@ -92,65 +52,106 @@ def merge_segments(segments: list[dict],
         merged.append(cur)
     return merged
 
-
 def make_model(model_name: str):
-    """Khởi tạo faster-whisper. Import lười — máy không cài vẫn test được phần logic."""
     from faster_whisper import WhisperModel
-
-    # device="auto": Colab có GPU thì dùng, không thì CPU (chậm — chỉ để thử 1 video)
-    # compute_type int8_float16: giảm nửa VRAM trên T4, chất lượng gần như nguyên
     return WhisperModel(model_name, device="auto", compute_type="int8_float16")
 
-
 def transcribe_video(model, path: Path) -> list[dict]:
-    """1 video → list segment thô (giây). faster-whisper tự rút audio từ mp4."""
+    # YÊU CẦU 3: Ép language="vi"
     segments, _info = model.transcribe(
         str(path),
         language="vi",
-        vad_filter=True,   # bỏ đoạn im lặng/nhạc nền — nhanh hơn hẳn với video tin tức
+        vad_filter=True,
         beam_size=5,
     )
     return [{"start": s.start, "end": s.end, "text": s.text} for s in segments]
 
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="ASR tiếng Việt theo đoạn (chạy Colab/Kaggle)")
-    parser.add_argument("--videos", type=Path, required=True, help="thư mục file video/audio")
-    parser.add_argument("--out", type=Path, default=Path("data/asr/asr_results.jsonl"))
-    parser.add_argument("--model", default="medium",
-                        help='model faster-whisper ("medium", "large-v3", hoặc path CT2 PhoWhisper)')
+    parser.add_argument("--videos", type=Path, default=Path("data/derived/audio"), help="thư mục file audio (.wav)")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/derived/asr_parts"), help="thư mục chứa asr_parts")
+    parser.add_argument("--info-path", type=Path, default=Path("data/derived/video_info.parquet"))
+    parser.add_argument("--model", default="medium", help="model faster-whisper")
+    parser.add_argument("--shard", type=int, default=0, help="Shard ID hiện tại")
+    parser.add_argument("--num-shards", type=int, default=5, help="Tổng số shards")
+    parser.add_argument("--batch-size", type=int, default=10, help="Số video mỗi lô")
     args = parser.parse_args()
 
-    done = load_done(args.out)
-    todo = [(v, p) for v, p in iter_videos(args.videos) if v not in done]
-    print(f"Video cần ASR: {len(todo)} (đã xong: {len(done)})")
-    if not todo:
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    fps_map = get_video_fps_map(args.info_path)
+
+    all_audio = sorted([p for p in args.videos.rglob("*") if p.suffix.lower() in {".wav", ".mp4", ".m4a"}])
+    
+    # Lọc theo shard
+    shard_files = []
+    for p in all_audio:
+        vid = p.stem
+        h = int(hashlib.md5(vid.encode()).hexdigest(), 16)
+        if h % args.num_shards == args.shard:
+            shard_files.append((vid, p))
+            
+    print(f"Shard {args.shard}: Có {len(shard_files)} video cần xử lý ASR.")
+    if not shard_files:
         return
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
+    # Khởi tạo model
     model = make_model(args.model)
 
-    with args.out.open("a", encoding="utf-8") as f:
-        for idx, (video_id, path) in enumerate(todo, 1):
-            print(f"[{idx}/{len(todo)}] {video_id} …")
-            try:
-                raw = transcribe_video(model, path)
-            except Exception as e:
-                # 1 file hỏng (codec lạ, tải thiếu) không được giết cả job qua đêm
-                print(f"  [cảnh báo] bỏ qua {video_id}: {e}")
+    # Chia lô
+    batches = [shard_files[i:i + args.batch_size] for i in range(0, len(shard_files), args.batch_size)]
+
+    for batch_idx, batch_items in enumerate(batches):
+        # YÊU CẦU 2: Ghi part riêng từng lô
+        part_filename = f"shard{args.shard}_batch{batch_idx:04d}.parquet"
+        part_path = args.out_dir / part_filename
+        
+        if part_path.exists():
+            print(f"Bỏ qua lô {batch_idx+1}/{len(batches)}: Đã tồn tại {part_filename}")
+            continue
+            
+        print(f"\n=> Xử lý lô {batch_idx+1}/{len(batches)} (gồm {len(batch_items)} video)")
+        batch_results = []
+        
+        for vid, path in tqdm(batch_items, desc=f"Lô {batch_idx+1}"):
+            if vid not in fps_map:
+                print(f"  [cảnh báo] Bỏ qua {vid}: không có trong video_info.parquet")
                 continue
-            for seg in merge_segments(raw):
-                f.write(json.dumps({
-                    "video_id": video_id,
-                    "start_ms": int(seg["start"] * 1000),
-                    "end_ms": int(seg["end"] * 1000),
-                    "text": seg["text"],
-                }, ensure_ascii=False) + "\n")
-            f.flush()  # trọn gói từng video xuống đĩa — rớt Colab chỉ mất video dở dang
+                
+            fps_num, fps_den = fps_map[vid]
+            
+            try:
+                raw_segments = transcribe_video(model, path)
+            except Exception as e:
+                print(f"  [lỗi] {vid}: {e}")
+                continue
+                
+            merged = merge_segments(raw_segments)
+            for seg_id, seg in enumerate(merged):
+                start_s = seg["start"]
+                end_s = seg["end"]
+                
+                # YÊU CẦU 1: Quy đổi start_frame / end_frame bằng fps phân số
+                start_frame = int(start_s * (fps_num / fps_den))
+                end_frame = int(end_s * (fps_num / fps_den))
+                
+                batch_results.append({
+                    "video_id": vid,
+                    "seg_id": seg_id,
+                    "start_s": round(start_s, 3),
+                    "end_s": round(end_s, 3),
+                    "start_frame": start_frame,
+                    "end_frame": end_frame,
+                    "text_vi": seg["text"].strip()
+                })
+                
+        # Ghi lô ra file
+        df_part = pd.DataFrame(batch_results)
+        if df_part.empty:
+            df_part = pd.DataFrame(columns=["video_id", "seg_id", "start_s", "end_s", "start_frame", "end_frame", "text_vi"])
+        df_part.to_parquet(part_path, index=False)
+        print(f"Đã lưu lô {batch_idx+1} vào {part_path} ({len(df_part)} dòng)")
 
-    print(f"Xong. Kết quả: {args.out} — nạp vào ES bằng:")
-    print("  python -m backend.indexing.load_asr --file", args.out)
-
+    print(f"\n[OK] Shard {args.shard} hoàn tất!")
 
 if __name__ == "__main__":
     main()

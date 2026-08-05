@@ -17,14 +17,25 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > Đổi tên `preprocessinga/` thành `preprocessing/` cho khớp `CLAUDE.md` mục 9.
 > Sửa mọi import trỏ tới nó. Kiểm bằng `grep -rn "preprocessinga" .` → phải rỗng.
 
-**W0.2 [Thạch] — 🔴 Sửa bug frame_id trong submit_format.py**
-> `_answer_value()` hiện đang lấy hậu tố sau dấu `_` cuối của `keyframe_id`
-> (vd `L03_V001_0007` → `0007`). **Đây là số thứ tự keyframe, KHÔNG phải frame index
-> trong video** mà BTC chấm.
+**W0.2 [Minh Hoàng] — 🔴 Gỡ bug frame_id khỏi tầng format**
+> `submit_format.py` hiện có `_answer_value()` tự suy `frame_id` bằng cách cắt hậu
+> tố sau dấu `_` cuối của `keyframe_id` (`L03_V001_0007` → `0007`). Đó là **số thứ
+> tự keyframe**, không phải **frame index trong video** mà BTC chấm.
 >
-> Sửa: thêm tham số `frame_map` (dict `keyframe_id → frame_idx`), `_answer_value()`
-> tra bảng này thay vì cắt chuỗi. Nếu chưa có `frame_map` thì raise lỗi rõ ràng,
-> **đừng im lặng trả về số sai**. Giải thích cho tôi vì sao lỗi cũ nguy hiểm.
+> **Không vá bằng cách truyền `frame_map` vào.** Thay vào đó: **xoá hẳn mọi phép
+> tính khỏi tầng format.** `submit_format.py` chỉ được ghi ra đúng thứ nó nhận,
+> không tự suy ra gì cả.
+>
+> Trách nhiệm cấp `frame_idx` thật chuyển lên slot allocator (D3.1) — nơi đã có
+> `frame_map`. Làm vậy thì lỗi này không thể tái diễn về mặt cấu trúc, chứ không
+> phải vá một lần rồi người sau viết lại y như cũ.
+>
+> Nếu `Answer` thiếu `frame_idx` → raise lỗi rõ ràng, **tuyệt đối không đoán**.
+> - Trách nhiệm tra `keyframe_id → frame_idx` chuyển lên slot allocator (D3.1)
+>
+> Lý do làm vậy thay vì vá: sau khi tầng format không còn khả năng tự tính, bug này
+> **không thể tái diễn về mặt cấu trúc** — kể cả khi sau này có người viết lại module.
+> Giải thích cho tôi vì sao lỗi cũ nguy hiểm (nó không crash, chỉ trả về số sai).
 
 **W0.3 [Thạch] — /health thành deep check**
 > `/health` hiện chỉ trả `{"status":"ok"}` — chứng minh FastAPI sống, không chứng minh
@@ -110,19 +121,52 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > Validator kiểm: đúng 100 dòng/query · `video_id` tồn tại · `frame_id ∈ [0, n_frames)` ·
 > không dòng trùng lặp hoàn toàn · TRAKE có đúng N frame và **thứ tự tăng dần** ·
 > Q&A có `answer` không rỗng · UTF-8 không BOM.
+> **Gộp thêm từ W0.2** — interface mới của `build_submission()`:
+> ```python
+> build_submission(query_id, task_type, answers: list[Answer])
+>
+> @dataclass
+> class Answer:
+>     video_id: str
+>     frame_ids: list[int]      # TRAKE có N phần tử; KIS/Q&A có 1
+>     answer_text: str | None   # chỉ Q&A
+>     keyframe_id: str          # giữ để debug + map lại nếu BTC đổi format
+> ```
+> - **Thứ hạng = thứ tự phần tử trong list.** Không truyền `rank` riêng (dễ lệch với
+>   thứ tự thật). Việc file có cột `rank` hay không là quyết định của tầng format.
+> - Một hàm chung cho cả 3 dạng bài, không tách 3 hàm.
+>
+> **Validator chia hai tầng:**
+> - *Format* (đúng cột, đúng kiểu, đúng encoding) → cạnh `submit_format.py`
+> - *Ngữ nghĩa* (đủ 100 dòng · `frame_id ∈ [0, n_frames)` · không trùng · TRAKE tăng
+>   dần · Q&A có `answer`) → trong `export.py`, vì cần đọc `video_info.parquet`
 
 ### D3.1 [Minh Hoàng] — Slot allocator v1 · 06→09/08
 > `backend/slot/allocator.py` — nhận top-K shot + `query_type`, trả **đúng 100 dòng đã xếp hạng**.
 >
 > KIS (bảng khởi điểm, để trong config): 3 shot×8 frame + 7×5 + 10×3 + 11×1 = 100
-> - ⚠️ **Thứ tự nộp XEN KẼ theo shot, KHÔNG gom theo shot.** Slot 1 = frame tốt nhất
->   shot 1, slot 2 = shot 2, slot 3 = shot 3, slot 4 = frame thứ hai shot 1...
->   Lý do: R@1+R@5 = 40% điểm; 8 slot đầu cùng một shot mà shot sai là mất trắng.
-> - ⚠️ `frame_idx` phát ra **không cần là keyframe đã index** — chỉ cần số nguyên
->   trong `[0, n_frames)` thuộc shot đó. Độ sâu là miễn phí.
+>
+> **Thứ tự nộp:**
+> - ⚠️ **XEN KẼ theo shot, KHÔNG gom theo shot.** Slot 1 = frame tốt nhất shot 1,
+>   slot 2 = shot 2, slot 3 = shot 3, slot 4 = frame thứ hai shot 1...
+>   Lý do: R@1+R@5 = 40% điểm; 8 slot đầu cùng một shot mà shot đó sai là mất trắng.
+>
+> **Chọn frame trong mỗi shot:**
+> - ⚠️ **`frame_idx` không cần là keyframe đã index** — chỉ cần số nguyên trong
+>   `[0, n_frames)` thuộc shot đó. Độ sâu là miễn phí.
+> - **Frame ĐẦU TIÊN của mỗi shot = keyframe có điểm cao nhất** (frame mình thực sự
+>   có bằng chứng), KHÔNG phải điểm giữa tính toán ra.
+> - Các frame tiếp theo: rải đều phần còn lại của shot, **thụt vào 10% mỗi đầu** để
+>   tránh frame chuyển cảnh (mờ, lẫn hai cảnh). Ép về `int`, khử trùng lặp.
+> - ⚠️ **Slot allocator chịu trách nhiệm cấp `frame_idx` THẬT.** Tra qua `frame_map`
+>   của B0.1, hoặc tính từ `start_frame`/`end_frame` của shot. Tầng format không tra
+>   bảng, không suy luận — nó chỉ ghi ra con số nhận được.
+>
+> **Bất biến:**
 > - ⚠️ **KHÔNG BAO GIỜ trả < 100 dòng**, kể cả khi chỉ tìm được 3 shot. Bù bằng cách
 >   rải thêm frame trong các shot đã có.
-> - Unit test cho cả ba dạng bài.
+> - Unit test cả ba dạng bài, gồm case biên: shot chỉ được 1 slot, shot ngắn hơn số
+>   slot được cấp, và trường hợp chỉ có 3 shot ứng viên.
 
 ### A2.1 + A2.2 [Thạch] — Search + RRF · 06→09/08
 > `backend/retrieval/search.py`:

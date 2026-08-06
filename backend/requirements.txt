@@ -5,6 +5,12 @@ anthropic>=0.40   # chỉ cần khi LLM_BACKEND=api
 elasticsearch>=8.13,<9   # client ES — giữ major 8 khớp server trong docker-compose
 pymilvus>=2.4    # client Milvus
 numpy>=1.26      # đọc file .npy CLIP features
+# D0.2 export/validator: đọc frame_map.parquet + video_info.parquet
+pandas>=2.2
+pyarrow>=15.0
+
+# Test (D0.2, D3.1 đều yêu cầu unit test)
+pytest>=8.0
 # 2 gói dưới nặng (~vài trăm MB) — chỉ cần cho query encoder (Task 2.1+)
 # torch bản CPU: pip install torch --index-url https://download.pytorch.org/whl/cpu
 torch>=2.0

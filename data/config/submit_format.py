@@ -1,66 +1,226 @@
-# TODO: BTC — format submit chưa chốt (xem CLAUDE.md bảng cuối).
-# Chưa rõ nộp theo frame_id hay timestamp ms — chờ buổi tập huấn.
+# data/config/submit_format.py — W0.2 + D0.2: TẦNG ĐỊNH DẠNG của bài nộp
 #
-# TOÀN BỘ cấu trúc file nộp nằm ở đây: BTC công bố format thật thì sửa
-# build_submission() + SUBMIT_FORMAT, backend/frontend không phải đổi dòng nào.
+# TOÀN BỘ hiểu biết về "file nộp trông như thế nào" nằm trong file này.
+# BTC công bố format thật → sửa file này, backend/export.py không thay đổi.
 #
-# ⚠️ W0.2 — BÀI HỌC về bug frame_id (đã sửa, giữ lại để không tái phạm):
-# Bản cũ lấy frame_id bằng cách cắt hậu tố keyframe_id ("L03_V001_0007" → "0007").
-# Đó là SỐ THỨ TỰ FILE KEYFRAME, không phải FRAME INDEX TRONG VIDEO mà BTC chấm
-# (keyframe 0007 có thể là frame 175 của video). Lỗi thuộc loại IM LẶNG nguy hiểm
-# nhất: file nộp nhìn hợp lệ, không crash, nhưng LỆCH HỆ THỐNG mọi câu → 0 điểm
-# toàn giải dù tìm đúng video đúng khoảnh khắc. Vì vậy: frame_id CHỈ được tra từ
-# frame_map; thiếu map thì RAISE, tuyệt đối không đoán.
+# ĐỊNH DẠNG MỘT CÂU TRẢ LỜI :
+#     Textual KIS : <video_id>, <frame_id>
+#     Q&A         : <video_id>, <frame_id>, <answer>
+#     TRAKE       : <video_id>, <frame_id_1>, ..., <frame_id_N>
+#
+# Thứ hạng = THỨ TỰ dòng, mỗi truy vấn là 1 file riêng.
+#
+# TODO: BTC — chưa công bố: CSV hay JSON · có header không · frame_id đếm từ 0 hay 1 ·
+# quy ước đặt tên file · có gộp zip không. Ba format dưới là PHỎNG ĐOÁN (hậu tố _v0).
 
-from datetime import datetime, timezone
+from __future__ import annotations
 
-SUBMIT_FORMAT = "frame_id"  # TODO: BTC — hoặc "timestamp_ms"
+import csv
+import io
+import json
+import operator
+from collections.abc import Callable
+from dataclasses import dataclass
+
+# Format đang dùng. BTC chốt thì đổi ĐÚNG DÒNG NÀY, không chỗ nào khác.
+#
+# Cố ý KHÔNG cho chọn format bằng tham số: lúc thi chỉ có một định dạng đúng.
+# Để nó thành tuỳ chọn là mở đường cho việc nộp nhầm format mà không ai biết.
+SUBMIT_FORMAT = "csv_v0"
+
+TASK_TYPES = ("KIS", "QA", "TRAKE")
 
 
-def _answer_value(item: dict, frame_map: dict[str, int] | None) -> str | int:
-    """1 keyframe → giá trị nộp theo SUBMIT_FORMAT.
+@dataclass(frozen=True)
+class Answer:
+    """Một câu trả lời cho một truy vấn. Thứ tự trong list là thứ hạng.
 
-    frame_map: dict keyframe_id → frame index TRONG VIDEO (nguồn:
-    backend/indexing/frame_map.py — file map-keyframes của BTC khi có).
+    - KIS   : frame_ids đúng 1 phần tử, answer_text = None
+    - Q&A   : frame_ids đúng 1 phần tử, answer_text khác rỗng
+    - TRAKE : frame_ids N phần tử tăng dần ngặt, answer_text = None
+
+    `keyframe_id` chỉ để truy vết khi debug và để map lại nếu BTC đổi format.
+
+    frozen=True → hashable → tầng ngữ nghĩa kiểm trùng lặp chỉ cần set().
     """
-    if SUBMIT_FORMAT == "frame_id":
-        kf = item["keyframe_id"]
-        if kf not in frame_map:
-            # Thiếu 1 keyframe cũng phải gãy to: nộp số bịa cho riêng câu này
-            # là mất điểm câu này mà không ai biết
-            raise KeyError(
-                f"keyframe '{kf}' không có trong frame_map — "
-                "kiểm tra loader frame_map đã phủ đủ video này chưa."
-            )
-        return frame_map[kf]
-    return item["timestamp_ms"]
+
+    video_id: str
+    frame_ids: tuple[int, ...]
+    answer_text: str | None = None
+    keyframe_id: str | None = None
+
+    def __post_init__(self) -> None:
+        """Chuẩn hoá frame_ids về tuple[int].
+
+        Vì sao cần: `BUILD_TASKS` viết kiểu là `list[int]`, mà list thì KHÔNG hashable
+        → luật kiểm trùng lặp sẽ ném TypeError thay vì trả Issue. Và slot allocator
+        (D3.1) tính frame từ parquet nên sẽ đưa xuống `numpy.int64`, không phải `int`
+        thuần → validator sẽ báo nhầm "không phải số nguyên".
+
+        Dùng `operator.index()` chứ KHÔNG dùng `int()`: nó chỉ nhận thứ chuyển sang
+        số nguyên mà không mất mát. `numpy.int64(100)` được nhận, còn `100.7` bị từ
+        chối chứ không âm thầm cắt thành 100 — tầng format vẫn không tự tính gì.
+        """
+        try:
+            chuan = tuple(operator.index(f) for f in self.frame_ids)
+        except TypeError as e:
+            raise TypeError(
+                f"frame_ids của video '{self.video_id}' phải là các số nguyên "
+                f"(nhận: {self.frame_ids!r}). Tầng format không làm tròn hộ."
+            ) from e
+        object.__setattr__(self, "frame_ids", chuan)
 
 
-def build_submission(
-    task_type: str, items: list[dict], frame_map: dict[str, int] | None = None
-) -> dict:
-    """Dựng nội dung file nộp. items: [{keyframe_id, video_id, timestamp_ms}].
+# ------------------------------------------------------- ô dữ liệu của một dòng
 
-    Cấu trúc GIẢ ĐỊNH trong lúc chờ BTC — giữ cả keyframe_id gốc để truy vết.
+def answer_to_cells(task_type: str, a: Answer) -> list:
+    """Một Answer → danh sách ô, đúng thứ tự cột quy định.
+
+    Input: task_type + Answer. Output: list các ô. Không serialize.
+    Không tính toán, không tra bảng — chỉ sắp xếp lại thứ tự.
     """
-    if SUBMIT_FORMAT == "frame_id" and frame_map is None:
-        raise RuntimeError(
-            "SUBMIT_FORMAT='frame_id' nhưng chưa có frame_map "
-            "(keyframe_id → frame index trong video). "
-            "KHÔNG được sinh file nộp với số tự đoán — nhầm chỗ này là 0 điểm "
-            "dù đúng video (CLAUDE.md bất biến 5). "
-            "Nạp map qua backend/indexing/frame_map.load_frame_map() trước."
+    cells: list = [a.video_id, *a.frame_ids]
+    if task_type == "QA":
+        cells.append(a.answer_text)
+    return cells
+
+
+def _header_for(task_type: str, n_frames_per_row: int) -> list[str]:
+    """Tên cột — chỉ dùng cho format có header. TODO: BTC xác nhận tên thật."""
+    cols = ["video_id"]
+    cols += ["frame_id"] if n_frames_per_row == 1 else [
+        f"frame_id_{i}" for i in range(1, n_frames_per_row + 1)
+    ]
+    if task_type == "QA":
+        cols.append("answer")
+    return cols
+
+
+# ---------------------------------------------------------------- kho định dạng
+
+FORMATS: dict[str, Callable[[str, list[list], int], str]] = {}
+
+
+def register(name: str) -> Callable:
+    """Đăng ký một bộ ghi. Thêm format mới = thêm 1 hàm + 1 dòng decorator."""
+
+    def deco(fn: Callable) -> Callable:
+        FORMATS[name] = fn
+        return fn
+
+    return deco
+
+
+def _csv_text(rows: list[list], header: list[str] | None) -> str:
+    buf = io.StringIO()
+    # lineterminator="\n": mặc định của csv là "\r\n" → trên Windows thành \r\r\n
+    w = csv.writer(buf, lineterminator="\n")
+    if header:
+        w.writerow(header)
+    w.writerows(rows)
+    return buf.getvalue()
+
+
+@register("csv_v0")
+def _fmt_csv_v0(task_type: str, rows: list[list], n_frames_per_row: int) -> str:
+    """CSV không header — sát nhất với mục 2.1 của BTC."""
+    return _csv_text(rows, None)
+
+
+@register("csv_header_v0")
+def _fmt_csv_header_v0(task_type: str, rows: list[list], n_frames_per_row: int) -> str:
+    """CSV có header, phòng khi BTC yêu cầu tên cột."""
+    return _csv_text(rows, _header_for(task_type, n_frames_per_row))
+
+
+@register("json_v0")
+def _fmt_json_v0(task_type: str, rows: list[list], n_frames_per_row: int) -> str:
+    """JSON — giữ frame_ids dạng list, dễ đọc lại khi debug."""
+    out = []
+    for r in rows:
+        item: dict = {"video_id": r[0], "frame_ids": r[1 : 1 + n_frames_per_row]}
+        if task_type == "QA":
+            item["answer"] = r[-1]
+        out.append(item)
+    return json.dumps(out, ensure_ascii=False, indent=2) + "\n"
+
+
+# -------------------------------------------------------------------- API chính
+
+def build_submission(query_id: str, task_type: str, answers: list[Answer]) -> str:
+    """Dựng NỘI DUNG file nộp cho MỘT truy vấn.
+
+    Input:
+      query_id  — chỉ để báo lỗi cho dễ truy; KHÔNG xuất hiện trong file.
+      task_type — "KIS" | "QA" | "TRAKE"
+      answers   — thứ tự CHÍNH LÀ thứ hạng, phần tử đầu = hạng 1
+    Output: chuỗi nội dung file, theo SUBMIT_FORMAT.
+    Bất biến: không tra bảng, không suy diễn — mọi frame_id phải do tầng trên đưa xuống.
+
+    ⚠️ KHÔNG nhận `frame_map`, và sẽ không bao giờ nhận. Tra keyframe_id → frame_idx
+    là việc của slot allocator (D3.1), nơi vốn đã mở frame_map để chọn frame trong shot.
+    Cho tầng này tra bảng = trả lại đúng cái bug W0.2 vừa xoá.
+    """
+    if task_type not in TASK_TYPES:
+        raise ValueError(f"[{query_id}] task_type '{task_type}' không hợp lệ, phải là {TASK_TYPES}")
+    fmt = SUBMIT_FORMAT
+    if fmt not in FORMATS:
+        raise ValueError(
+            f"SUBMIT_FORMAT='{fmt}' chưa đăng ký. Đang có: {sorted(FORMATS)}. "
+            "Thêm bằng @register('ten') trong data/config/submit_format.py."
         )
-    return {
-        "task_type": task_type,          # "KIS" | "AVS"
-        "format": SUBMIT_FORMAT,         # TODO: BTC
-        "submitted_at": datetime.now(timezone.utc).isoformat(),
-        "answers": [
-            {
-                "video_id": it["video_id"],
-                "value": _answer_value(it, frame_map),
-                "keyframe_id": it["keyframe_id"],  # để truy vết, có thể bỏ khi BTC chốt
-            }
-            for it in items
-        ],
-    }
+    if not answers:
+        raise ValueError(f"[{query_id}] không có câu trả lời nào để nộp")
+
+    rows = [answer_to_cells(task_type, a) for a in answers]
+    loi = validate_format(task_type, rows)
+    if loi:
+        raise ValueError(f"[{query_id}] sai định dạng: " + " · ".join(loi[:3]))
+
+    return FORMATS[fmt](task_type, rows, len(answers[0].frame_ids))
+
+
+def suggest_filename(query_id: str) -> str:
+    """Tên file nộp cho một truy vấn. Đuôi file suy từ SUBMIT_FORMAT.
+
+    TODO: BTC — quy ước đặt tên chưa công bố. Tạm dùng "<query_id>.<đuôi>".
+    """
+    duoi = "json" if SUBMIT_FORMAT.startswith("json") else "csv"
+    return f"{query_id}.{duoi}"
+
+
+# ----------------------------------------------------- validator TẦNG ĐỊNH DẠNG
+# Chỉ kiểm CẤU TRÚC: đúng số cột, đúng kiểu dữ liệu.
+# Kiểm NGỮ NGHĨA (đủ 100 dòng, frame trong [0,n_frames), trùng lặp, TRAKE tăng dần)
+# nằm ở backend/export.py — vì chỗ đó mới cần đọc video_info.parquet.
+
+def validate_format(task_type: str, rows: list[list]) -> list[str]:
+    """Kiểm cấu trúc các dòng trước khi serialize.
+
+    Input: task_type + rows (list các ô). Output: list mô tả lỗi, rỗng = đúng cấu trúc.
+    """
+    loi: list[str] = []
+    if not rows:
+        return ["không có dòng nào"]
+
+    so_frame = len(rows[0]) - (2 if task_type == "QA" else 1)
+    if task_type in ("KIS", "QA") and so_frame != 1:
+        loi.append(f"{task_type} phải đúng 1 frame mỗi dòng, đang có {so_frame}")
+    if task_type == "TRAKE" and so_frame < 2:
+        loi.append(f"TRAKE phải có ít nhất 2 frame mỗi dòng, đang có {so_frame}")
+
+    so_cot = len(rows[0])
+    for i, r in enumerate(rows):
+        if len(r) != so_cot:
+            loi.append(f"dòng {i + 1}: có {len(r)} ô, các dòng khác có {so_cot}")
+            continue
+        if not isinstance(r[0], str) or not r[0]:
+            loi.append(f"dòng {i + 1}: video_id phải là chuỗi khác rỗng")
+        het = so_cot - 1 if task_type == "QA" else so_cot
+        for f in r[1:het]:
+            if not isinstance(f, int) or isinstance(f, bool):
+                loi.append(f"dòng {i + 1}: frame_id phải là số nguyên, đang là {type(f).__name__}")
+                break
+        if task_type == "QA" and not isinstance(r[-1], str):
+            loi.append(f"dòng {i + 1}: Q&A phải có cột answer dạng chuỗi")
+    return loi

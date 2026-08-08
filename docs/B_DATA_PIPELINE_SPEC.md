@@ -1,4 +1,4 @@
-# SPEC-B01: ĐẶC TẢ KỸ THUẬT VÀ TOÀN THƯ KIẾN TRÚC DỮ LIỆU PHASE B (DATA PIPELINE)
+# ĐẶC TẢ KỸ THUẬT VÀ TOÀN THƯ KIẾN TRÚC DỮ LIỆU PHASE B (DATA PIPELINE SPECIFICATION)
 
 > **Tài liệu Bàn giao Kỹ thuật Cấp độ Hệ thống (System-Level Handoff Specification)**  
 > **Tác giả:** Kỹ sư Dữ liệu (Công Lý - Data Engineer)  
@@ -64,7 +64,7 @@ flowchart TD
     end
 
     subgraph PREPROC["2. TIỀN XỬ LÝ (PREPROCESSING JOBS)"]
-        B1[b01_update_frame_map.py<br/>Hiệu chỉnh Frame Map & Parity]
+        B1[update_frame_map.py<br/>Hiệu chỉnh Frame Map & Parity]
         B2[shot_job.py<br/>TransNetV2 & Force Split 30s]
         B3[keyframe_job.py<br/>Trích xuất 1 FPS Uniform Sampling]
         B4[asr_job.py<br/>Whisper Speech-to-Text]

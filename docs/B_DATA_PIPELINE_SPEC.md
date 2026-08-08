@@ -16,7 +16,7 @@
    - [3.1 `video_info.parquet` (873 dòng)](#31-video_infoparquet-873-dòng)
    - [3.2 `frame_map.parquet` (177,321 dòng)](#32-frame_mapparquet-177321-dòng)
    - [3.3 `shots.parquet` (100,810 dòng)](#33-shotsparquet-100810-dòng)
-   - [3.4 `keyframes.parquet` (343,996 dòng)](#34-keyframesparquet-343996-dòng)
+   - [3.4 `keyframes.parquet` (371,633 dòng)](#34-keyframesparquet-371633-dòng)
    - [3.5 `asr.parquet` (13,415 dòng)](#35-asrparquet-13415-dòng)
    - [3.6 `ocr.parquet` (160,393 dòng)](#36-ocrparquet-160393-dòng)
    - [3.7 `docs_bm25.parquet` (343,996 dòng)](#37-docs_bm25parquet-343996-dòng)

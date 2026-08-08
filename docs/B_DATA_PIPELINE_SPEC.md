@@ -261,22 +261,24 @@ Dữ liệu nhận diện chữ xuất hiện trên màn hình video (Optical Ch
   1. Sử dụng OpenCV / FFmpeg giải mã trực tiếp toàn bộ luồng video stream để ghi nhận chỉ số `frame_idx` thực tế và timestamp `pts_time` tương ứng.
   2. Xây dựng bảng tra cứu `frame_map.parquet`.
   3. Áp dụng thuật toán kiểm tra tính đơn điệu tăng (Strictly Monotonic Check):
-     $$\text{frame\_idx\_corrected}_i = \text{frame\_idx\_raw}_i + \text{kf\_offset}_i$$
-     Bắt buộc thỏa mãn: $\text{frame\_idx\_corrected}_i > \text{frame\_idx\_corrected}_{i-1}$ trên toàn bộ 873 video.
+     ```text
+     frame_idx_corrected[i] = frame_idx_raw[i] + kf_offset[i]
+     ```
+     Bắt buộc thỏa mãn: `frame_idx_corrected[i] > frame_idx_corrected[i-1]` trên toàn bộ 873 video.
   4. Chạy script nghiệm thu `preprocessing/test_opencv_parity.py` kiểm tra Parity 20 mẫu ngẫu nhiên để khẳng định sai số frame bằng 0.
 
 ### 4.2 Task B1.1: Shot Segmentation & Force-Split Strategy
 - **Thuật toán Phân cảnh**: Sử dụng mạng nơ-ron TransNetV2 (hoặc PySceneDetect với ngưỡng `threshold = 27.0`) quét qua sự thay đổi màu sắc và tần số không gian giữa các frame liên tiếp để xác định biên giới chuyển cảnh.
 - **Chiến lược Ép Cắt (Force-Split Strategy)**:
-  - Nếu một Shot dài quá 60 giây ($> 60 \times \text{fps}$ frames), thuật toán tự động chia nhỏ cưỡng bức thành các sub-shot dài tối đa 30 giây.
+  - Nếu một Shot dài quá 60 giây (`> 60 * fps` frames), thuật toán tự động chia nhỏ cưỡng bức thành các sub-shot dài tối đa 30 giây.
   - Lý do: Một Shot quá dài sẽ làm loãng thông tin đại diện (`rep_kf`), làm giảm độ chính xác khi vector hóa hoặc làm sai lệch cửa sổ ASR.
   - Các sub-shot bị cắt cưỡng bức sẽ được đánh dấu cờ `is_force_split = True` và ghi rõ `split_reason = "force_split"`.
 
 ### 4.3 Task B1.2: Keyframe Extraction (1 FPS Sampling Strategy)
 - **Tần suất Lấy mẫu**: 1 FPS (Đúng 1 giây lấy 1 khung hình).
 - **Thuật toán Bằng chứng Boundary**:
-  - Đối với mỗi Shot trong `shots.parquet`, tính số lượng keyframe lý thuyết: $N = \text{round}(\text{duration\_s})$.
-  - Áp dụng giới hạn biên (Bounding Constraints): $\min(N) = 2$, $\max(N) = 20$.
+  - Đối với mỗi Shot trong `shots.parquet`, tính số lượng keyframe lý thuyết: `N = round(duration_s)`.
+  - Áp dụng giới hạn biên (Bounding Constraints): `min(N) = 2`, `max(N) = 20`.
   - Mọi khung hình chốt được đặt tên `kf_id` chuẩn hóa dưới dạng string zero-padded 7 chữ số: `{video_id}_{frame_idx:07d}`.
 - **Thông số Kỹ thuật Ảnh**:
   - Định dạng: JPEG Quality 90 (`q90`).
@@ -290,8 +292,10 @@ Dữ liệu nhận diện chữ xuất hiện trên màn hình video (Optical Ch
   - Trục Apple Silicon M5: Chạy thư viện `mlx_whisper` tối ưu hóa trên Neural Engine với mô hình `mlx-community/whisper-large-v3-turbo`.
   - Trục Kaggle / GPU: Chạy `faster-whisper` hoặc PhoWhisper.
 - **Công thức Quy đổi Thời gian -> Frame Index**:
-  $$\text{start\_frame} = \lfloor \text{start\_s} \times \frac{\text{fps\_num}}{\text{fps\_den}} \rfloor$$
-  $$\text{end\_frame} = \lfloor \text{end\_s} \times \frac{\text{fps\_num}}{\text{fps\_den}} \rfloor$$
+  ```python
+  start_frame = int(start_s * (fps_num / fps_den))
+  end_frame = int(end_s * (fps_num / fps_den))
+  ```
 
 ### 4.5 Task B1.4: Optical Character Recognition (PaddleOCR / Vision Pipeline)
 - **Động cơ OCR**:
@@ -332,10 +336,10 @@ Job quan trọng nhất trong việc hợp nhất đa nguồn dữ liệu vào `
    - Thuật toán tìm `shot_id` có `start_frame` nhỏ hơn hoặc bằng `ocr.frame_idx` gần nhất trong cùng `video_id`.
    - Gom toàn bộ `text_clean` của OCR theo `shot_id` vừa tìm được, sau đó join ngược vào `keyframes.parquet` theo `shot_id`. Kết quả: Toàn bộ keyframe con trong Shot đều thừa hưởng chữ OCR của Shot đó.
 4. **Gộp ASR theo Cửa sổ Thời gian Động (Dynamic Time-Window ±3s)**:
-   - Với mỗi Keyframe thứ $i$ có chỉ số frame $\text{kf\_frame}$, tính độ rộng cửa sổ thời gian 3 giây theo frame:
-     $$\text{window} = 3.0 \times \text{fps}$$
+   - Với mỗi Keyframe thứ `i` có chỉ số frame `kf_frame`, tính độ rộng cửa sổ thời gian 3 giây theo frame:
+     `window = 3.0 * (fps_num / fps_den)`
    - Lọc tất cả các phân đoạn thoại ASR của video đó thỏa mãn điều kiện giao nhau (Overlap condition):
-     $$\text{start\_frame}_{\text{asr}} \le \text{kf\_frame} + \text{window} \quad \text{AND} \quad \text{end\_frame}_{\text{asr}} \ge \text{kf\_frame} - \text{window}$$
+     `(start_frame_asr <= kf_frame + window) AND (end_frame_asr >= kf_frame - window)`
    - Nối toàn bộ văn bản `text_vi` của các phân đoạn ASR thỏa mãn thành một chuỗi duy nhất `asr_text`.
 5. **Đóng gói Cấu trúc Document & Lowercase Normalization**:
    - Định dạng khối văn bản `doc_text` theo cú pháp chuẩn:
@@ -365,7 +369,7 @@ Job quan trọng nhất trong việc hợp nhất đa nguồn dữ liệu vào `
 3. **CHUẨN VECTOR TRONG MILVUS (VECTOR NORMALIZATION)**:
    - Mọi feature vector (CLIP / OpenCLIP) bắt buộc phải được **L2-Normalize** trước khi đưa vào index Milvus và trước khi query.
    - Metric đo lường khoảng cách cấu hình trong Milvus **BẮT BUỘC** là `COSINE`.
-   - Đảm bảo độ dài Vector norm: $\|v\|_2 \approx 1.0$.
+   - Đảm bảo độ dài Vector norm: `||v||_2 ≈ 1.0`.
 
 4. **ĐIỂM NẠP LLM DUY NHẤT (LLM ADAPTER ENFORCEMENT)**:
    - Mọi thao tác gọi LLM (OpenAI, Anthropic, Ollama local) trong toàn bộ mã nguồn hệ thống **BẮT BUỘC** phải thông qua hàm `llm()` tại file `backend/llm/adapter.py`.

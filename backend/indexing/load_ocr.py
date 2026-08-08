@@ -53,17 +53,28 @@ def create_index(es: Elasticsearch, recreate: bool = False) -> None:
 
 
 def load(es: Elasticsearch, data_file: Path) -> int:
-    records = []
-    for line in data_file.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
+    import pandas as pd
+    df = pd.read_parquet(data_file)
+    records = df.to_dict(orient="records")
+    
+    actions = []
+    for r in records:
+        text = str(r.get("text_clean", "")).strip()
+        if not text:
             continue
-        r = json.loads(line)
-        if r.get("text", "").strip():  # frame không chữ — khỏi nạp
-            records.append(r)
-
-    actions = (
-        {"_index": INDEX_NAME, "_id": r["keyframe_id"], "_source": r} for r in records
-    )
+            
+        doc = {
+            "keyframe_id": r["kf_id"],
+            "video_id": r["video_id"],
+            "text": text,
+            "raw_text": str(r.get("text_raw", ""))
+        }
+        actions.append({
+            "_index": INDEX_NAME, 
+            "_id": r["kf_id"], 
+            "_source": doc
+        })
+        
     ok, _ = helpers.bulk(es, actions)
     es.indices.refresh(index=INDEX_NAME)
     print(f"Đã nạp {ok}/{len(records)} bản ghi OCR từ {data_file.name}.")

@@ -9,7 +9,8 @@ import os
 from elasticsearch import Elasticsearch
 
 # Không hardcode địa chỉ (CLAUDE.md mục 7) — đổi máy/port chỉ cần set env ES_URL
-ES_URL = os.environ.get("ES_URL", "http://localhost:9200")
+# Fix cho Mac: Dùng 127.0.0.1 thay vì localhost để tránh lỗi IPv6 ::1 của urllib3
+ES_URL = os.environ.get("ES_URL", "http://127.0.0.1:9200")
 
 # Bộ phân tích tiếng Việt dùng chung cho mọi index có text VI (metadata, ocr):
 # asciifolding đưa văn bản lẫn query về không dấu → gõ vội thiếu dấu vẫn match;
@@ -38,6 +39,11 @@ def searchable_text() -> dict:
 def connect() -> Elasticsearch:
     es = Elasticsearch(ES_URL, request_timeout=30)
     if not es.ping():
+        try:
+            es.info()
+        except Exception as e:
+            print(f"Chi tiết lỗi kết nối: {type(e).__name__}: {e}")
+            
         raise ConnectionError(
             f"Không kết nối được Elasticsearch tại {ES_URL}. "
             "Đã chạy `docker compose up -d` chưa? (container cần ~30s để lên)"

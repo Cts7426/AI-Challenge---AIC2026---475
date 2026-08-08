@@ -50,21 +50,31 @@ def create_index(es: Elasticsearch, recreate: bool = False) -> None:
 
 
 def load(es: Elasticsearch, data_file: Path) -> int:
-    records = [
-        json.loads(line)
-        for line in data_file.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    records = [r for r in records if r.get("text", "").strip()]
-    actions = (
-        {
-            "_index": INDEX_NAME,
-            # _id = video + mốc bắt đầu → nạp lại là ghi đè, không trùng đoạn
-            "_id": f'{r["video_id"]}_{r["start_ms"]}',
-            "_source": r,
+    import pandas as pd
+    df = pd.read_parquet(data_file)
+    records = df.to_dict(orient="records")
+    
+    actions = []
+    for r in records:
+        text = str(r.get("text_vi", "")).strip()
+        if not text:
+            continue
+        # Convert start_s and end_s to milliseconds for ES
+        start_ms = int(r["start_s"] * 1000)
+        end_ms = int(r["end_s"] * 1000)
+        
+        doc = {
+            "video_id": r["video_id"],
+            "start_ms": start_ms,
+            "end_ms": end_ms,
+            "text": text
         }
-        for r in records
-    )
+        actions.append({
+            "_index": INDEX_NAME,
+            "_id": f'{r["video_id"]}_{start_ms}',
+            "_source": doc,
+        })
+        
     ok, _ = helpers.bulk(es, actions)
     es.indices.refresh(index=INDEX_NAME)
     print(f"Đã nạp {ok}/{len(records)} đoạn ASR từ {data_file.name}.")

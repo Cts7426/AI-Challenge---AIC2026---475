@@ -62,7 +62,22 @@ def create_index(es: Elasticsearch, recreate: bool = False) -> None:
 
 
 def load(es: Elasticsearch, data_file: Path) -> int:
-    records = json.loads(data_file.read_text(encoding="utf-8"))
+    # Nếu truyền vào là một thư mục (ví dụ data/raw/btc/metadata/media-info), ta sẽ quét toàn bộ file .json
+    if data_file.is_dir():
+        json_files = list(data_file.glob("*.json"))
+    else:
+        json_files = [data_file]
+        
+    records = []
+    for f in json_files:
+        try:
+            record = json.loads(f.read_text(encoding="utf-8"))
+            # Tự động gán video_id từ tên file (ví dụ L21_V001.json -> L21_V001)
+            record["video_id"] = f.stem
+            records.append(record)
+        except Exception:
+            continue
+            
     # helpers.bulk: gộp mọi document vào 1 request thay vì N request lẻ —
     # với data thật (hàng nghìn video) nhanh hơn nhiều lần
     actions = (
@@ -70,7 +85,7 @@ def load(es: Elasticsearch, data_file: Path) -> int:
     )
     ok, _ = helpers.bulk(es, actions)
     es.indices.refresh(index=INDEX_NAME)  # ép ES cập nhật ngay để search thấy liền
-    print(f"Đã nạp {ok}/{len(records)} document từ {data_file.name}.")
+    print(f"Đã nạp {ok}/{len(records)} video metadata từ {data_file}.")
     return ok
 
 

@@ -1,0 +1,18 @@
+{
+  "file_name": "docs_bm25.parquet",
+  "row_count": 371702,
+  "columns": [
+    "kf_id",
+    "video_id",
+    "shot_id",
+    "frame_idx",
+    "doc_text"
+  ],
+  "dtypes": {
+    "kf_id": "string",
+    "video_id": "object",
+    "shot_id": "object",
+    "frame_idx": "int64",
+    "doc_text": "object"
+  }
+}

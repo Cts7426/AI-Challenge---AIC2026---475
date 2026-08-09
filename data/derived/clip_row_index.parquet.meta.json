@@ -1,0 +1,24 @@
+{
+  "file_name": "clip_row_index.parquet",
+  "row_count": 177321,
+  "columns": [
+    "row_id",
+    "video_id",
+    "btc_kf_ordinal",
+    "frame_idx_raw",
+    "kf_id",
+    "npy_file",
+    "local_row",
+    "frame_idx"
+  ],
+  "dtypes": {
+    "row_id": "int64",
+    "video_id": "object",
+    "btc_kf_ordinal": "int64",
+    "frame_idx_raw": "int64",
+    "kf_id": "object",
+    "npy_file": "object",
+    "local_row": "int64",
+    "frame_idx": "int64"
+  }
+}

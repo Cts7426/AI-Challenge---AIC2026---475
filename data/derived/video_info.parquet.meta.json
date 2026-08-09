@@ -1,0 +1,24 @@
+{
+  "file_name": "video_info.parquet",
+  "row_count": 873,
+  "columns": [
+    "video_id",
+    "fps_num",
+    "fps_den",
+    "nb_frames_decoded",
+    "path",
+    "duration_sec",
+    "has_audio",
+    "is_vfr"
+  ],
+  "dtypes": {
+    "video_id": "object",
+    "fps_num": "int64",
+    "fps_den": "int64",
+    "nb_frames_decoded": "int64",
+    "path": "object",
+    "duration_sec": "float64",
+    "has_audio": "bool",
+    "is_vfr": "bool"
+  }
+}

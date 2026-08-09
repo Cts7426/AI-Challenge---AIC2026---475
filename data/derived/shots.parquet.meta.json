@@ -1,0 +1,42 @@
+{
+  "file_name": "shots.parquet",
+  "row_count": 100810,
+  "columns": [
+    "shot_id",
+    "video_id",
+    "shot_seq",
+    "start_frame",
+    "end_frame",
+    "n_frames",
+    "duration_s",
+    "is_force_split",
+    "n_raw_shots_merged",
+    "detector_confidence",
+    "detector",
+    "config_hash",
+    "split_reason",
+    "rep_kf_id",
+    "rep_source",
+    "rep_offset",
+    "keyframes_config_hash"
+  ],
+  "dtypes": {
+    "shot_id": "object",
+    "video_id": "object",
+    "shot_seq": "int32",
+    "start_frame": "int64",
+    "end_frame": "int64",
+    "n_frames": "int32",
+    "duration_s": "float64",
+    "is_force_split": "bool",
+    "n_raw_shots_merged": "int32",
+    "detector_confidence": "float32",
+    "detector": "object",
+    "config_hash": "object",
+    "split_reason": "object",
+    "rep_kf_id": "object",
+    "rep_source": "object",
+    "rep_offset": "float64",
+    "keyframes_config_hash": "object"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "file_name": "full_verification_test.parquet",
+  "row_count": 855,
+  "columns": [
+    "kf_id",
+    "video_id",
+    "btc_kf_ordinal",
+    "frame_idx_raw",
+    "frame_idx_used",
+    "mse_at_minus1",
+    "mse_at_0",
+    "mse_at_plus1",
+    "best_offset",
+    "mse_best",
+    "mse_ratio",
+    "verdict"
+  ],
+  "dtypes": {
+    "kf_id": "object",
+    "video_id": "object",
+    "btc_kf_ordinal": "int64",
+    "frame_idx_raw": "int64",
+    "frame_idx_used": "int64",
+    "mse_at_minus1": "float64",
+    "mse_at_0": "float64",
+    "mse_at_plus1": "float64",
+    "best_offset": "int64",
+    "mse_best": "float64",
+    "mse_ratio": "float64",
+    "verdict": "object"
+  }
+}

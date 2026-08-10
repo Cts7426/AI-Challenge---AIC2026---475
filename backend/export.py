@@ -85,10 +85,25 @@ def _video_frames() -> dict[str, int]:
     if not VIDEO_INFO_PATH.exists():
         raise FileNotFoundError(
             f"Không tìm thấy {VIDEO_INFO_PATH} — cần video_info.parquet "
-            "(video_id, n_frames) để kiểm frame_id hợp lệ."
+            "(video_id, số frame) để kiểm frame_id hợp lệ."
         )
-    df = pd.read_parquet(VIDEO_INFO_PATH, columns=["video_id", "n_frames"])
-    return {str(v): int(n) for v, n in zip(df["video_id"], df["n_frames"])}
+
+    # Vì sao dò tên cột thay vì hardcode "n_frames":
+    # BUILD_TASKS B0.1a đặt tên cột là `n_frames`, nhưng build_video_info thực tế
+    # sinh ra `nb_frames_decoded` (số frame ĐẾM THẬT bằng ffprobe, đúng tinh thần
+    # B0.1a: không lấy từ metadata container). Hardcode một tên → ArrowInvalid,
+    # validator gãy trên data thật dù test fixture vẫn xanh.
+    # Ưu tiên nb_frames_decoded vì nó là số đếm thật; n_frames giữ lại cho fixture.
+    df = pd.read_parquet(VIDEO_INFO_PATH)
+    for cot in ("nb_frames_decoded", "n_frames"):
+        if cot in df.columns:
+            return {str(v): int(n) for v, n in zip(df["video_id"], df[cot])}
+
+    raise KeyError(
+        f"{VIDEO_INFO_PATH} không có cột số frame nào trong "
+        f"('nb_frames_decoded', 'n_frames'). Cột đang có: {list(df.columns)}. "
+        "Đây là khoá kiểm frame_id ∈ [0, n_frames) — không có thì không validate được."
+    )
 
 
 def all_video_ids() -> list[str]:

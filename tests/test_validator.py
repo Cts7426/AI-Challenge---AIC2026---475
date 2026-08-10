@@ -212,10 +212,12 @@ def test_moi_keyframe_that_deu_qua_duoc_luat_bien():
     thieu = df[df.n_frames.isna()]
     assert thieu.empty, f"{thieu.video_id.nunique()} video có trong frame_map mà thiếu ở video_info"
 
-    tran = df[(df.frame_idx_corrected < 0) | (df.frame_idx_corrected >= df.n_frames)]
+    # _frame_map() đã chuẩn hoá tên cột về btc_ordinal / frame_idx (frame_idx ở
+    # đây LÀ frame_idx_corrected — đã bù offset, xem preprocessing/common/frame_map.py)
+    tran = df[(df.frame_idx < 0) | (df.frame_idx >= df.n_frames)]
     assert tran.empty, (
         f"{len(tran)} keyframe vượt biên, ví dụ:\n"
-        f"{tran.head(5)[['video_id', 'btc_kf_ordinal', 'frame_idx_corrected', 'n_frames']]}"
+        f"{tran.head(5)[['video_id', 'btc_ordinal', 'frame_idx', 'n_frames']]}"
     )
 
 

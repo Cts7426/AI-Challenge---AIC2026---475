@@ -23,20 +23,32 @@ def _frame_map():
     duong_dan = REPO_ROOT / "data" / "derived" / "frame_map.parquet"
     if not duong_dan.exists():
         pytest.skip(f"Chưa có {duong_dan} — cần Data Factory giao frame_map trước")
-    return pd.read_parquet(
-        duong_dan, columns=["video_id", "btc_kf_ordinal", "frame_idx_corrected"]
-    )
+
+    # Vì sao dò tên cột: BUILD_TASKS đặt tên `btc_kf_ordinal` / `frame_idx_corrected`,
+    # còn frame_map.parquet thực tế sinh ra `btc_ordinal` / `frame_idx` (đã bù offset).
+    # Hardcode tên theo spec → ArrowInvalid, cả bộ test đỏ trên data thật.
+    df = pd.read_parquet(duong_dan)
+    doi_ten = {}
+    for chuan, ung_vien in (
+        ("btc_ordinal", ("btc_ordinal", "btc_kf_ordinal")),
+        ("frame_idx", ("frame_idx", "frame_idx_corrected")),
+    ):
+        thay = next((c for c in ung_vien if c in df.columns), None)
+        if thay is None:
+            pytest.skip(f"frame_map.parquet thiếu cột {ung_vien} (đang có: {list(df.columns)})")
+        doi_ten[thay] = chuan
+    return df.rename(columns=doi_ten)[["video_id", "btc_ordinal", "frame_idx"]]
 
 
 @lru_cache(maxsize=8)
 def frames_of(video_id: str) -> tuple[int, ...]:
     """Mọi frame_idx THẬT của một video, sắp tăng dần.
 
-    Input: video_id. Output: tuple frame_idx_corrected theo thứ tự keyframe.
+    Input: video_id. Output: tuple frame_idx (đã bù offset) theo thứ tự keyframe.
     """
     df = _frame_map()
-    s = df[df.video_id == video_id].sort_values("btc_kf_ordinal")
-    return tuple(int(x) for x in s.frame_idx_corrected)
+    s = df[df.video_id == video_id].sort_values("btc_ordinal")
+    return tuple(int(x) for x in s.frame_idx)
 
 
 @pytest.fixture(scope="session")

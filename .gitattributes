@@ -1,0 +1,20 @@
+# .gitattributes — chuẩn hoá line-ending sau khi move repo OneDrive -> C:\dev\aic2026
+#
+# Vì sao cần: lúc move, toàn bộ 30 file text bị ghi lại thành CRLF. `git status`
+# báo 5035 dòng thêm / 5035 dòng xoá, trong khi `git diff --ignore-all-space` RỖNG
+# — tức không có thay đổi nội dung nào. Nếu commit đè lên, mọi sửa đổi thật sau
+# này sẽ chìm trong nhiễu và review diff thành vô nghĩa.
+#
+# Quy ước: repo lưu LF, Windows tự đổi khi checkout (core.autocrlf=true).
+* text=auto eol=lf
+
+# File nhị phân — tuyệt đối không đụng vào byte
+*.parquet   binary
+*.npy       binary
+*.jpg       binary
+*.jpeg      binary
+*.png       binary
+*.webp      binary
+*.mp4       binary
+*.wav       binary
+*.zip       binary

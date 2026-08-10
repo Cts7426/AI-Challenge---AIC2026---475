@@ -9,7 +9,8 @@
     "path",
     "duration_sec",
     "has_audio",
-    "is_vfr"
+    "is_vfr",
+    "n_frames"
   ],
   "dtypes": {
     "video_id": "object",
@@ -19,6 +20,7 @@
     "path": "object",
     "duration_sec": "float64",
     "has_audio": "bool",
-    "is_vfr": "bool"
+    "is_vfr": "bool",
+    "n_frames": "int64"
   }
 }

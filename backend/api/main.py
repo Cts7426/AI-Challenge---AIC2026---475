@@ -22,7 +22,6 @@
 #          -d '{"query": "máy bay ở sân bay", "query_en": "an airplane at the airport", "top_k": 5}'
 # Docs tự sinh: http://localhost:8000/docs
 
-import json
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -33,9 +32,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from backend.export import QuerySubmission, write_submissions
 from backend.indexing.frame_map import load_frame_map
 from backend.retrieval.search import search as fused_search
-from data.config.submit_format import build_submission
+from data.config.submit_format import Answer
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Thư mục ảnh keyframe BTC cấp (chưa có → mount tự tắt, URL trả 404 nhưng
@@ -45,6 +45,8 @@ KEYFRAMES_DIR = Path(os.environ.get("KEYFRAMES_DIR", str(REPO_ROOT / "data" / "k
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Trả giá khởi động lúc rảnh, không bắt người thao tác gánh giữa lúc thi:
+    # nạp CLIP ~16s và bảng shot ~1s đều là chi phí MỘT LẦN.
     try:
         from backend.retrieval.text_query import _get_model
         _get_model()
@@ -52,6 +54,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         # Thiếu torch/open_clip thì /health và các nguồn ES vẫn phải sống
         print(f"[cảnh báo] Không preload được CLIP (search vector sẽ lỗi): {e}")
+    try:
+        from backend.retrieval.search import _shot_map
+        print(f"Đã preload bảng shot: {len(_shot_map())} keyframe.")
+    except Exception as e:
+        print(f"[cảnh báo] Không preload được bảng shot: {e}")
     yield
 
 
@@ -82,8 +89,14 @@ class SearchRequest(BaseModel):
 class SearchHit(BaseModel):
     keyframe_id: str
     video_id: str
-    timestamp_ms: int | None  # None nếu keyframe chưa có trong Milvus
-    score: float
+    frame_idx: int | None       # thứ BTC chấm (A1.0a) — None nếu chưa có trong Milvus
+    timestamp_ms: int | None
+    shot_id: str | None         # cùng shot = cùng cảnh, để UI/TRAKE gom
+    score: float                # tổng RRF, KHÔNG so sánh được giữa hai truy vấn khác nhau
+    # Thứ hạng của kết quả này ở TỪNG nhánh — bắt buộc phải lộ ra ngoài
+    # (CLAUDE.md bất biến 7): câu trượt mà không có số này thì phân tích lỗi
+    # thành đoán mò. Nhánh không xếp hạng kết quả này thì vắng mặt trong dict.
+    ranks: dict[str, int]
     thumbnail_url: str
 
 
@@ -105,6 +118,9 @@ def post_search(req: SearchRequest) -> list[SearchHit]:
         SearchHit(
             keyframe_id=r["keyframe_id"],
             video_id=r["video_id"],
+            frame_idx=r.get("frame_idx"),
+            shot_id=r.get("shot_id"),
+            ranks=r.get("ranks", {}),
             timestamp_ms=r["timestamp_ms"],
             score=r["score"],
             # Quy ước đường dẫn ảnh: <video_id>/<keyframe_id>.jpg trong KEYFRAMES_DIR.
@@ -122,38 +138,88 @@ class SubmitItem(BaseModel):
 
 
 class SubmitRequest(BaseModel):
-    task_type: Literal["KIS", "AVS"]
+    # 3 dạng bài SƠ TUYỂN (docs/contest.md) — AVS không có ở sơ tuyển, đã bỏ
+    task_type: Literal["KIS", "QA", "TRAKE"]
+    # Thứ tự items CHÍNH LÀ thứ hạng nộp (phần tử đầu = hạng 1)
     items: list[SubmitItem] = Field(..., min_length=1)
+    # Q&A bắt buộc; các dạng khác phải để trống
+    answer_text: str | None = None
+    # Không truyền → tự sinh theo mốc giờ (đường UI là đường thử tay)
+    query_id: str | None = None
 
 
 @app.post("/submit")
 def post_submit(req: SubmitRequest) -> dict:
-    """Task 3.2: ghi file submit JSON (format tạm — TODO BTC trong submit_format.py).
+    """Ghi file nộp qua tầng export (D0.2) — mỗi truy vấn một file.
 
-    Ràng buộc theo thể thức: KIS nộp ĐÚNG 1 khoảnh khắc; AVS nộp >=1.
-    Kiểm ở server chứ không chỉ ở UI — phòng lỗi UI gửi nhầm lúc thi.
+    Vai trò của endpoint này: DỊCH keyframe_id (UI đang cầm) → frame index thật
+    (tra frame_map) rồi đưa xuống export. Tầng format không tra bảng — đó là
+    thiết kế chống tái diễn bug W0.2, mapping phải xảy ra Ở ĐÂY, tầng gọi.
+
+    Đường UI này là đường THỬ TAY (vài dòng đã đánh dấu) — nên số câu trả lời
+    được phép < 100. Đường nộp thật (batch runner + slot allocator) mới ép đủ 100.
     """
-    if req.task_type == "KIS" and len(req.items) != 1:
-        raise HTTPException(400, detail=f"KIS phải nộp đúng 1 keyframe (đang gửi {len(req.items)}).")
-
-    # W0.2: frame_id nộp bài PHẢI tra từ frame_map (frame index trong video) —
-    # thiếu map thì trả lỗi rõ, không bao giờ sinh file với số đoán
     try:
         frame_map = load_frame_map()
-        submission = build_submission(
-            req.task_type, [it.model_dump() for it in req.items], frame_map=frame_map
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=f"Chưa có frame_map: {e}")
+
+    def to_frame(kf_id: str) -> int:
+        if kf_id not in frame_map:
+            raise HTTPException(
+                status_code=400,
+                detail=f"keyframe '{kf_id}' không có trong frame_map — id lạ hoặc map chưa phủ video này.",
+            )
+        return frame_map[kf_id]
+
+    if req.task_type == "TRAKE":
+        # TRAKE: N khoảnh khắc của CÙNG MỘT video → 1 dòng duy nhất
+        videos = {it.video_id for it in req.items}
+        if len(videos) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"TRAKE yêu cầu mọi khoảnh khắc cùng 1 video, đang có {sorted(videos)}.",
+            )
+        if len(req.items) < 2:
+            raise HTTPException(status_code=400, detail="TRAKE cần ít nhất 2 khoảnh khắc.")
+        # Khoảnh khắc theo thời gian trong video = frame index tăng dần
+        frames = tuple(sorted(to_frame(it.keyframe_id) for it in req.items))
+        answers = [Answer(video_id=req.items[0].video_id, frame_ids=frames,
+                          keyframe_id=req.items[0].keyframe_id)]
+    else:
+        # KIS/QA: mỗi item là một ứng viên đã xếp hạng, mỗi dòng 1 frame
+        answers = [
+            Answer(
+                video_id=it.video_id,
+                frame_ids=(to_frame(it.keyframe_id),),
+                answer_text=req.answer_text if req.task_type == "QA" else None,
+                keyframe_id=it.keyframe_id,
+            )
+            for it in req.items
+        ]
+
+    query_id = req.query_id or f"ui_{datetime.now():%Y%m%d_%H%M%S}_{req.task_type.lower()}"
+    sub = QuerySubmission(query_id=query_id, task_type=req.task_type, answers=tuple(answers))
+
+    try:
+        # expect_answers=len(answers): đường thử tay không ép đủ 100 —
+        # các luật còn lại (video tồn tại, frame trong biên, TRAKE tăng dần,
+        # QA có answer, không trùng) vẫn kiểm đầy đủ, sai là KHÔNG ghi file
+        files, file_issues = write_submissions(
+            [sub], REPO_ROOT / "submissions", expect_answers=len(answers)
         )
-    except (FileNotFoundError, RuntimeError, KeyError) as e:
-        raise HTTPException(status_code=503, detail=f"Không sinh được file nộp: {e}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        # thiếu video_info.parquet — hạ tầng dữ liệu, không phải lỗi người dùng
+        raise HTTPException(status_code=503, detail=str(e))
 
-    out_dir = REPO_ROOT / "submissions"
-    out_dir.mkdir(exist_ok=True)
-    # Tên file có mốc giờ — không bao giờ ghi đè bài nộp trước (còn truy lại được)
-    fname = f"submit_{datetime.now():%Y%m%d_%H%M%S}_{req.task_type}.json"
-    path = out_dir / fname
-    path.write_text(json.dumps(submission, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    return {"file": f"submissions/{fname}", "submission": submission}
+    return {
+        "files": [str(p.relative_to(REPO_ROOT)) for p in files],
+        "query_id": query_id,
+        "n_answers": len(answers),
+        "file_issues": [str(i) for i in file_issues],  # rỗng = file sạch (UTF-8, không BOM)
+    }
 
 
 # Frontend (Task 3.1) serve chung server với API — khỏi CORS, khỏi server thứ hai.

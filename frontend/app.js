@@ -14,10 +14,12 @@ let sel = -1;          // index ô đang chọn (con trỏ duyệt — xanh dư�
 let lightboxOpen = false;
 
 // Đánh dấu để NỘP (xanh lá) — tách khỏi con trỏ duyệt.
-// KIS: tối đa 1; AVS: nhiều, GIỮ THỨ TỰ đánh dấu (thứ tự nộp có thể tính điểm).
+// THỨ TỰ đánh dấu = THỨ HẠNG nộp (R@k: hạng 1 giá trị nhất).
+// KIS/QA: mỗi dấu là một ứng viên xếp hạng. TRAKE: N khoảnh khắc CÙNG video → 1 dòng.
+const MODES = ["KIS", "QA", "TRAKE"];  // 3 dạng bài sơ tuyển — AVS đã bỏ
 let mode = "KIS";
 let marked = [];       // list keyframe_id theo thứ tự đánh dấu
-const modeBtn = $("mode-btn"), submitBtn = $("submit-btn");
+const modeBtn = $("mode-btn"), submitBtn = $("submit-btn"), answerEl = $("q-answer");
 
 // ---------------------------------------------------------------- placeholder
 // Chưa có ảnh keyframe thật của BTC → thumbnail 404. Thay vì ô vỡ xấu xí,
@@ -101,13 +103,18 @@ function render() {
 function toggleMark(i) {
   if (i < 0) return;
   const kf = hits[i].keyframe_id;
-  if (mode === "KIS") {
-    // KIS chỉ nộp 1: dấu mới THAY dấu cũ (bấm lại chính nó = bỏ dấu)
-    marked = marked[0] === kf ? [] : [kf];
-  } else {
-    const at = marked.indexOf(kf);
-    at >= 0 ? marked.splice(at, 1) : marked.push(kf);
+  const at = marked.indexOf(kf);
+  if (at >= 0) { marked.splice(at, 1); updateMarkUI(); return; }
+  // TRAKE: mọi khoảnh khắc phải CÙNG MỘT video — chặn ngay lúc đánh dấu,
+  // đừng đợi tới lúc nộp mới báo (người thao tác cần biết liền tay)
+  if (mode === "TRAKE" && marked.length) {
+    const v0 = hits.find((x) => x.keyframe_id === marked[0]).video_id;
+    if (hits[i].video_id !== v0) {
+      toast(`TRAKE cần cùng video (đang chọn ${v0})`);
+      return;
+    }
   }
+  marked.push(kf);
   updateMarkUI();
 }
 
@@ -115,24 +122,35 @@ function updateMarkUI() {
   [...grid.children].forEach((card, i) => {
     const at = marked.indexOf(hits[i].keyframe_id);
     card.classList.toggle("marked", at >= 0);
-    // AVS: badge đánh số thứ tự nộp; KIS: dấu ✓
-    card.querySelector(".badge").textContent = mode === "AVS" ? at + 1 : "✓";
+    // Badge = thứ hạng nộp (mọi dạng bài — thứ tự đánh dấu là thứ hạng)
+    card.querySelector(".badge").textContent = at + 1;
   });
   submitBtn.textContent = `Nộp (${marked.length})`;
   submitBtn.disabled = marked.length === 0;
   modeBtn.textContent = mode;
-  modeBtn.classList.toggle("avs", mode === "AVS");
+  modeBtn.classList.toggle("avs", mode !== "KIS");  // đổi màu khi khác KIS
+  answerEl.hidden = mode !== "QA";                  // ô answer chỉ hiện ở QA
 }
 
 function toggleMode() {
-  mode = mode === "KIS" ? "AVS" : "KIS";
-  if (mode === "KIS" && marked.length > 1) marked = [marked[0]]; // KIS chỉ giữ dấu đầu
+  mode = MODES[(MODES.indexOf(mode) + 1) % MODES.length];
+  // Vào TRAKE mà dấu cũ trải nhiều video → dấu không dùng được, xoá cho sạch
+  if (mode === "TRAKE" && marked.length) {
+    const vids = new Set(marked.map((kf) => hits.find((x) => x.keyframe_id === kf)?.video_id));
+    if (vids.size > 1) { marked = []; toast("TRAKE cần cùng video — đã xoá dấu cũ"); }
+  }
   updateMarkUI();
 }
 modeBtn.onclick = toggleMode;
 
 async function submit() {
   if (!marked.length) { toast("Chưa đánh dấu keyframe nào (phím Space)"); return; }
+  if (mode === "QA" && !answerEl.value.trim()) {
+    toast("QA bắt buộc có answer — điền ô Answer trước"); answerEl.focus(); return;
+  }
+  if (mode === "TRAKE" && marked.length < 2) {
+    toast("TRAKE cần ít nhất 2 khoảnh khắc"); return;
+  }
   const items = marked.map((kf) => {
     const h = hits.find((x) => x.keyframe_id === kf);
     return { keyframe_id: h.keyframe_id, video_id: h.video_id, timestamp_ms: h.timestamp_ms };
@@ -141,11 +159,15 @@ async function submit() {
     const res = await fetch("/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task_type: mode, items }),
+      body: JSON.stringify({
+        task_type: mode,
+        items,
+        answer_text: mode === "QA" ? answerEl.value.trim() : null,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    toast(`Đã nộp ${items.length} → ${data.file}`);
+    toast(`Đã nộp ${data.n_answers} dòng → ${data.files[0]}`);
   } catch (e) {
     toast(`Lỗi nộp: ${e.message}`);
   }
@@ -199,7 +221,7 @@ function toast(msg) {
 $("search-form").onsubmit = (e) => { e.preventDefault(); search(); };
 
 document.addEventListener("keydown", (e) => {
-  const typing = e.target === q || e.target === qEn;
+  const typing = e.target === q || e.target === qEn || e.target === answerEl;
 
   if (e.key === "Escape") {
     if (lightboxOpen) closeLightbox();
@@ -209,6 +231,10 @@ document.addEventListener("keydown", (e) => {
   if (typing) return;               // đang gõ query — nhường phím cho ô input
 
   if (e.key === "/") { e.preventDefault(); q.focus(); q.select(); return; }
+  // m/s phải sống ĐỘC LẬP với lưới kết quả — người thao tác đổi dạng bài
+  // trước khi search là chuyện bình thường (đọc đề xong là biết dạng ngay)
+  if (e.key === "m") { toggleMode(); return; }
+  if (e.key === "s") { submit(); return; }
   if (!hits.length) return;
 
   const col = columns();
@@ -222,10 +248,6 @@ document.addEventListener("keydown", (e) => {
   } else if (e.key === " ") {
     e.preventDefault();               // chặn page-scroll mặc định của Space
     toggleMark(sel);
-  } else if (e.key === "m") {
-    toggleMode();
-  } else if (e.key === "s") {
-    submit();
   } else if (e.key === "c" && sel >= 0) {
     navigator.clipboard.writeText(hits[sel].keyframe_id)
       .then(() => toast(`Đã copy ${hits[sel].keyframe_id}`));

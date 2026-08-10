@@ -1,30 +1,44 @@
-# data/config/search_weights.py — trọng số hợp nhất điểm khi search (Task 2.2)
+# data/config/search_weights.py — tham số hợp nhất kết quả search (A2.2)
 #
-# TODO: tune — các số dưới là điểm khởi đầu hợp lý, CHƯA tune trên data thật.
-# Chỉnh ở đây, không sửa logic trong backend/retrieval/search.py.
+# ⚠️ KHÔNG còn trọng số cộng điểm. Từ A2.2 fusion dùng RRF:
+#       score(d) = Σ_nhánh 1 / (RRF_K + rank_nhánh(d))
 #
-# Trực giác đằng sau giá trị khởi đầu:
-#   - vector (CLIP) là tín hiệu chính: hiểu ngữ nghĩa ảnh, phủ mọi query → 1.0
-#   - objects chính xác khi query nhắc vật thể cụ thể, nhưng chỉ ~600 loại → 0.7
-#   - ocr (khi có, Task 4.1): chữ trên màn hình cực đặc trưng (tên, tỉ số) → 0.6
-#   - metadata mô tả CẢ video, không trỏ đúng khoảnh khắc → thấp nhất 0.4
+# Vì sao bỏ weighted-sum (cách cũ) để đổi sang RRF?
+#   Weighted-sum cộng ĐIỂM, mà điểm mỗi nhánh khác thang hoàn toàn (COSINE
+#   [-1,1] vs BM25 không chặn trên) → phải chuẩn hoá, mà chuẩn hoá lại phụ
+#   thuộc phân bố của đúng lần query đó. RRF chỉ cộng THỨ HẠNG nên miễn nhiễm:
+#   nhánh nào cũng chỉ nói được "cái này tôi xếp thứ mấy", không cãi nhau về thang.
+#   Hệ quả thực tế: hết cần tune trọng số — thứ mà nhóm nhỏ không có thời gian làm.
+#
+# RRF_K = 60 là giá trị chuẩn trong bài báo gốc (Cormack 2009) và cũng là mặc
+# định của Elasticsearch/Milvus. K lớn → làm phẳng khác biệt giữa các hạng đầu
+# (an toàn hơn khi một nhánh hay sai); K nhỏ → tin hạng 1 mạnh hơn.
 
-FUSION_WEIGHTS = {
-    "vector": 1.0,
-    "objects": 0.7,
-    "ocr": 0.6,
-    "asr": 0.6,     # lời nói cực đặc trưng (bình luận, thuyết minh) — ngang ocr
-    "metadata": 0.4,
+RRF_K = 60
+
+# Bật/tắt từng nhánh. Tắt = nhánh đó không chạy và không đóng góp hạng nào.
+# Dùng để đo đóng góp thật của mỗi nhánh (tắt đi, xem điểm rớt bao nhiêu).
+BRANCHES = {
+    "vector": True,     # CLIP trên Milvus — nhánh lõi
+    "metadata": True,   # BM25 title/description/keywords (mức VIDEO)
+    "objects": True,    # nhãn OpenImages (mức KEYFRAME)
+    "ocr": True,        # chữ trên hình (mức KEYFRAME)
+    "asr": True,        # lời nói (mức ĐOẠN THỜI GIAN)
 }
 
-# Mỗi nguồn lấy top_k * hệ số này làm ứng viên trước khi hợp nhất —
-# rộng hơn top_k để keyframe mạnh ở nguồn phụ vẫn có cửa vào bảng cuối
-CANDIDATE_MULTIPLIER = 3
+# Mỗi nhánh lấy top_k * hệ số này làm ứng viên. Rộng hơn top_k để keyframe mạnh
+# ở nhánh phụ vẫn lọt vào bảng hợp nhất; rộng quá thì tốn thời gian vô ích.
+CANDIDATE_MULTIPLIER = 5
 
-# ASR join theo thời gian: đoạn nói [start, end] nới thêm ± pad này khi so với
-# timestamp keyframe — lời bình thường lệch vài giây so với hình ảnh
+# Gom kết quả về SHOT, mỗi shot giữ 1 keyframe điểm cao nhất.
+# Vì sao: 3–4 keyframe liền nhau trong cùng một shot là cùng một cảnh — chiếm
+# chỗ của nhau trên màn hình mà không thêm thông tin gì cho người duyệt.
+GROUP_BY_SHOT = True
+
+# ASR join theo thời gian: đoạn nói [start, end] nới ± ngần này khi so với
+# timestamp keyframe — lời bình thường lệch hình vài giây.
 ASR_TIME_PAD_MS = 2000
 
-# Số đoạn ASR khớp nhất được quyền ĐỀ CỬ keyframe (tra Milvus theo khoảng
-# thời gian). Cap lại để 1 query Milvus không phình filter vô hạn.
+# Số đoạn ASR khớp nhất được quyền ĐỀ CỬ keyframe (tra Milvus theo khoảng thời
+# gian). Cap lại để 1 query Milvus không phình filter vô hạn.
 ASR_NOMINATE_SEGMENTS = 5

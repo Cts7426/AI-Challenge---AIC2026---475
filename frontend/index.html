@@ -20,8 +20,10 @@
              autocomplete="off">
       <button type="submit">Tìm (Enter)</button>
     </form>
-    <!-- Chế độ nộp: KIS = đúng 1 khoảnh khắc, AVS = nhiều. Đổi bằng phím m -->
-    <button type="button" id="mode-btn" title="Đổi chế độ KIS/AVS (phím m)">KIS</button>
+    <!-- 3 dạng bài SƠ TUYỂN: KIS (ứng viên xếp hạng) / QA (kèm answer) /
+         TRAKE (N khoảnh khắc cùng video). Đổi vòng tròn bằng phím m -->
+    <button type="button" id="mode-btn" title="Đổi dạng bài KIS/QA/TRAKE (phím m)">KIS</button>
+    <input id="q-answer" type="text" placeholder="Answer (bắt buộc cho QA)" autocomplete="off" hidden>
     <button type="button" id="submit-btn" title="Nộp các ô đã đánh dấu (phím s)">Nộp (0)</button>
     <div id="status"></div>
   </header>
@@ -36,7 +38,7 @@
 
   <footer>
     <kbd>/</kbd> tìm &nbsp; <kbd>↑↓←→</kbd> chọn &nbsp; <kbd>Enter</kbd> phóng to
-    &nbsp; <kbd>Space</kbd> đánh dấu &nbsp; <kbd>m</kbd> KIS/AVS &nbsp; <kbd>s</kbd> nộp
+    &nbsp; <kbd>Space</kbd> đánh dấu (thứ tự = hạng) &nbsp; <kbd>m</kbd> KIS/QA/TRAKE &nbsp; <kbd>s</kbd> nộp
     &nbsp; <kbd>Esc</kbd> đóng &nbsp; <kbd>c</kbd> copy id
   </footer>
 

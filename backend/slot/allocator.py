@@ -236,6 +236,20 @@ def allocate(
     """
     if not hits:
         raise ValueError("Không có shot ứng viên nào — tầng search phải trả ít nhất 1 shot")
+    # NaN làm `sorted()` trả thứ tự TUỲ Ý mà không báo gì: NaN so sánh với mọi số
+    # đều False, nên phép sắp xếp mất tính bắc cầu và thứ hạng shot thành ngẫu
+    # nhiên. Bài nộp vẫn đủ 100 dòng, validator vẫn xanh — chỉ là xếp hạng vô
+    # nghĩa. Đúng loại lỗi im lặng cả dự án đang phòng.
+    #
+    # Rủi ro có thật từ khi A2.2 dùng RRF: `1/(K + rank)` sinh NaN nếu rank hỏng.
+    # Không dùng math.isnan() để khỏi vỡ khi score là kiểu số khác của numpy.
+    nan = [h.shot_id for h in hits if h.score != h.score]
+    if nan:
+        raise ValueError(
+            f"{len(nan)} shot có score = NaN (ví dụ: {nan[:3]}). Sắp xếp với NaN cho "
+            "thứ tự tuỳ ý → thứ hạng shot thành ngẫu nhiên mà không có dấu hiệu gì. "
+            "Tầng search phải lọc hoặc thay NaN trước khi đưa xuống."
+        )
     if total < 1:
         # BUILD_TASKS D3.1: "KHÔNG BAO GIỜ trả < 100 dòng". Trả rỗng lặng lẽ khi tầng
         # trên truyền total sai (biến chưa gán, đọc config hỏng) là biến một bug nhỏ

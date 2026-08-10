@@ -66,10 +66,19 @@ class Issue:
     position: int | None = None  # vị trí trong list = thứ hạng, đếm từ 1
 
     def __str__(self) -> str:
-        vt = ""
+        """Dựng từng mảnh vị trí độc lập nhau.
+
+        Bản cũ lồng `position` bên trong nhánh `query_id is not None` → một Issue
+        có `position` mà thiếu `query_id` sẽ in ra mất luôn số thứ hạng, im lặng.
+        Chưa nổ vì mọi luật hiện tại đều đặt cả hai, nhưng đó là bẫy cho người
+        thêm luật sau — và luật mới thì D6.1 sắp thêm.
+        """
+        phan = []
         if self.query_id is not None:
-            vt = f" [query={self.query_id}"
-            vt += f", hạng {self.position}]" if self.position is not None else "]"
+            phan.append(f"query={self.query_id}")
+        if self.position is not None:
+            phan.append(f"hạng {self.position}")
+        vt = f" [{', '.join(phan)}]" if phan else ""
         return f"{self.rule}{vt}: {self.message}"
 
 
@@ -317,10 +326,18 @@ def _check_video_and_frames(sub: QuerySubmission) -> list[Issue]:
 # ------------------------------------------------------------- kiểm file đã ghi
 
 def validate_file(path: str | Path) -> list[Issue]:
-    """File nộp phải là UTF-8 và KHÔNG có BOM.
+    """File nộp phải là UTF-8, KHÔNG BOM, KHÔNG CRLF.
+
+    Vào: đường dẫn file đã ghi. Ra: list[Issue], rỗng = file sạch.
+    Bốn slug: `file_missing` · `bom` · `not_utf8` · `crlf` · `file_empty`.
 
     Ghi bằng PowerShell (Out-File / Set-Content) trên Windows chèn 3 byte BOM
     \\xef\\xbb\\xbf. Mở bằng mắt không thấy, nhưng bộ chấm đọc cột đầu ra rác.
+
+    Vì sao kiểm CRLF Ở ĐÂY chứ không chỉ tin test: `write_submissions()` ghi
+    đúng (newline="") nên test đi qua — nhưng D6.1 chạy hàm này lên file CUỐI
+    CÙNG trước khi nộp, mà file đó có thể do UI, script tay, hoặc một lần copy
+    qua PowerShell ghi ra. Không có luật này thì CRLF lọt im lặng.
     """
     path = Path(path)
     if not path.exists():
@@ -334,6 +351,20 @@ def validate_file(path: str | Path) -> list[Issue]:
         raw.decode("utf-8")
     except UnicodeDecodeError as e:
         out.append(Issue("not_utf8", f"{path.name} không phải UTF-8 hợp lệ: {e}"))
+
+    # Đếm để báo được mức độ: 1 dòng lẻ dính CRLF khác hẳn cả file sai newline.
+    so_crlf = raw.count(b"\r\n")
+    so_cr = raw.count(b"\r")
+    if so_crlf:
+        out.append(Issue(
+            "crlf",
+            f"{path.name} có {so_crlf} dòng kết thúc bằng CRLF (\\r\\n) — phải ghi LF. "
+            "Ghi bằng open(..., newline='') hoặc Path.write_text(..., newline='').",
+        ))
+    elif so_cr:
+        # \r đơn lẻ: newline kiểu Mac cổ, hoặc file bị sửa bằng công cụ lạ
+        out.append(Issue("crlf", f"{path.name} có {so_cr} ký tự \\r đơn lẻ — phải ghi LF"))
+
     if not raw.strip():
         out.append(Issue("file_empty", f"{path.name} rỗng"))
     return out
@@ -408,28 +439,46 @@ def write_submissions(
 # ------------------------------------------------------------------------- demo
 
 def _demo_subs(n_answers: int = ANSWERS_PER_QUERY) -> list[QuerySubmission]:
-    """Sinh bài nộp giả HỢP LỆ từ video có thật, đủ ba dạng bài.
+    """Sinh bài nộp mẫu đủ ba dạng bài, frame do CHÍNH slot allocator (D3.1) cấp.
 
-    Dùng video_id và n_frames thật để dòng sinh ra qua được luật video/biên frame —
-    demo bằng video bịa thì không chứng minh được gì.
+    Vào: số câu trả lời mỗi truy vấn. Ra: 3 QuerySubmission (KIS · QA · TRAKE).
+    Bất biến: không tự tính frame nào — mọi con số đi qua `allocate()`.
+
+    Vì sao đổi khỏi công thức cũ: bản trước sinh frame bằng `(i+1)*bước`, đo lại
+    thì 0/100 frame trùng với keyframe thật của video. Không sai (demo chỉ để xem
+    file trông ra sao), nhưng phí: gọi thẳng allocator thì demo vừa bớt một chỗ
+    sinh dữ liệu giả, vừa thành phép thử ĐẦU-CUỐI thật giữa D3.1 và D0.2 —
+    allocator đẻ ra thứ mà chính validator của mình từ chối thì lộ ngay tại đây.
+
+    Import trong hàm: `backend.slot.allocator` import ngược lại module này
+    (`REPO_ROOT`, `n_frames_of`), để ở đầu file là vòng import.
     """
-    vids = [v for v in all_video_ids() if n_frames_of(v) > 1000][:3]
-    subs: list[QuerySubmission] = []
+    import pandas as pd
 
-    for task, vid in zip(("KIS", "QA", "TRAKE"), vids):
-        n = n_frames_of(vid)
-        buoc = max(1, (n - 20) // (n_answers + 1))
-        answers = []
-        for i in range(n_answers):
-            base = (i + 1) * buoc
-            frames = tuple(base + k * 3 for k in range(4)) if task == "TRAKE" else (base,)
-            answers.append(Answer(
-                video_id=vid,
-                frame_ids=frames,
+    from backend.slot import ShotHit, allocate
+    from backend.slot.allocator import SHOTS_PATH
+
+    # Vài shot của nhiều video khác nhau — giống kết quả search thật hơn là lấy
+    # liền một mạch các shot đầu của cùng một video.
+    df = pd.read_parquet(SHOTS_PATH, columns=["shot_id", "video_id"])
+    df = df.groupby("video_id", sort=True).head(3).head(31)
+    hits = [
+        ShotHit(r.shot_id, 1.0 - i * 0.01)
+        for i, r in enumerate(df.itertuples(index=False))
+    ]
+
+    return [
+        QuerySubmission(
+            f"{task.lower()}_001",
+            task,
+            tuple(allocate(
+                hits, task,
                 answer_text="5" if task == "QA" else None,
-            ))
-        subs.append(QuerySubmission(f"{task.lower()}_001", task, tuple(answers)))
-    return subs
+                total=n_answers,
+            )),
+        )
+        for task in ("KIS", "QA", "TRAKE")
+    ]
 
 
 def main() -> int:

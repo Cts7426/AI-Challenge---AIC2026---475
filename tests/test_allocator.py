@@ -80,6 +80,25 @@ def test_trake_duoi_2_khoanh_khac_bi_tu_choi(real_videos, n):
         allocate(hits, "TRAKE", n_trake=n)
 
 
+def test_score_nan_bi_chan_o_cua_vao(real_videos):
+    """score = NaN → gãy to, KHÔNG được lặng lẽ xếp hạng bừa.
+
+    NaN so sánh với mọi số đều False nên `sorted()` mất tính bắc cầu: thứ hạng
+    shot thành tuỳ ý mà bài nộp vẫn đủ 100 dòng và validator vẫn xanh. Rủi ro
+    có thật từ khi A2.2 dùng RRF — `1/(K + rank)` sinh NaN nếu rank hỏng.
+    """
+    hits = hits_of([real_videos[0][0]], 3)
+    hong = [ShotHit(hits[1].shot_id, float("nan"))] + hits
+    with pytest.raises(ValueError, match="NaN"):
+        allocate(hong, "KIS")
+
+
+def test_score_binh_thuong_khong_bi_bao_nham(real_videos):
+    """Đối chứng: score âm hoặc 0 là hợp lệ, chỉ NaN mới bị chặn."""
+    hits = [ShotHit(h.shot_id, d) for h, d in zip(hits_of([real_videos[0][0]], 3), (0.0, -1.5, 2.0))]
+    assert len(allocate(hits, "KIS")) == ANSWERS_PER_QUERY
+
+
 def test_shot_id_la_bao_loi_ro_rang():
     """shot_id không có trong shots.parquet → nói thẳng là hai bên lệch bản dữ liệu."""
     with pytest.raises(KeyError, match="shots.parquet"):

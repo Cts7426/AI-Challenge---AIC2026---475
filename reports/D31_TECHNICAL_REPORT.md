@@ -1,19 +1,14 @@
 # 📋 Báo Cáo Kỹ Thuật — Task D3.1: Slot Allocator
 
-> **Ngày:** 07/08/2026 · **Hạn:** 09/08/2026
+> **Ngày:** 07/08/2026 · **rà lại 10/08/2026** · **Hạn:** 09/08/2026
 >
 > **Người thực hiện:** Minh Hoàng
 >
 > **Phạm vi:** `backend/slot/` + `data/config/slot_budget.py` + `tests/test_allocator.py`
 >
 > ⚠️ **Đọc mục 10 trước khi tin bất cứ con số nào ở đây.** Task này làm sớm hơn tiến độ
-> chung, nên một số đầu vào còn là giả lập — mục 10 nói rõ chỗ nào.
->
-> 🔄 **Cập nhật 07/08 (chiều):** Data Factory giao bản dữ liệu mới và **đổi schema**
-> (`video_info.n_frames` → `nb_frames_decoded`; `frame_map.btc_kf_ordinal` → `btc_ordinal`,
-> `frame_idx_corrected` → `frame_idx`). Code đã sửa theo và thêm `_doc_cot()` — assert
-> cột lúc nạp, để lần đổi sau báo được tên cột thiếu thay vì ném `ArrowInvalid`.
-> Chi tiết ở mục 10.3 · phần mới `rep_kf_id` ở mục 10.5.
+> chung, nên một số đầu vào còn là giả lập và một phụ thuộc đang gãy — mục 10 nói rõ
+> chỗ nào.
 
 ---
 
@@ -27,7 +22,7 @@
 7. [Chi tiết từng hàm](#7-chi-tiết-từng-hàm)
 8. [Kết quả chạy thực tế](#8-kết-quả-chạy-thực-tế)
 9. [Đo độ trễ](#9-đo-độ-trễ)
-10. [⚠️ Phần TREO và phần có thể LỆCH](#10-️-phần-treo-và-phần-có-thể-lệch) — kèm [10.5 `rep_kf_id`](#105--rep_kf_id-đã-có--phao-dự-phòng-cho-rủi-ro-số-2) · [**10.6 vấn đề còn trong code**](#106--vấn-đề-còn-trong-code--rà-lại-0708) · [**10.7 hậu quả lần pull**](#107--hậu-quả-của-lần-pull-0708-chiều--chưa-sửa)
+10. [⚠️ Phần TREO và phần có thể LỆCH](#10-️-phần-treo-và-phần-có-thể-lệch) — kèm [10.1 hợp đồng với search](#101-hợp-đồng-với-tầng-search--khớp-nhưng-chưa-ai-nối-dây) · [**10.5 phụ thuộc đang gãy**](#105--phụ-thuộc-đang-gãy--backendindexingframe_mappy)
 11. [🧪 Code chỉ để thử nghiệm — bỏ khi vào thi](#11--code-chỉ-để-thử-nghiệm--bỏ-khi-vào-thi)
 12. [Đối chiếu với yêu cầu](#12-đối-chiếu-với-yêu-cầu)
 13. [Kết luận](#13-kết-luận)
@@ -251,6 +246,30 @@ còn hơn nộp dòng bị validator loại vì không tăng dần ngặt.
 Trả về thẳng `list[Answer]` (class của `submit_format.py`) → cắm vào `QuerySubmission`
 là nộp được, không cần tầng dịch ở giữa.
 
+### 7.3. Bốn chốt chặn ở cửa vào `allocate()`
+
+Cả bốn đều **raise**, không cái nào âm thầm sửa dữ liệu hộ. Lý do chung: file này là nơi
+cuối cùng còn biết `frame_idx` thật, nên mọi thứ nó nuốt trôi sẽ không còn ai bắt được.
+
+| Đầu vào sai | Phản ứng | Nếu KHÔNG chặn thì sao |
+|:---|:---|:---|
+| `hits` rỗng | `ValueError` | không có gì để cấp phát |
+| `total < 1` | `ValueError` | trả `[]` lặng lẽ → **bài nộp TRẮNG**. Một biến chưa gán ở tầng trên là đủ |
+| `n_trake < 2` | `ValueError` | allocator đẻ ra dòng mà chính validator D0.2 từ chối (`frame_count`) |
+| `score` là `NaN` | `ValueError`, in kèm shot nào | `sorted()` cho thứ tự **tuỳ ý** → thứ hạng shot ngẫu nhiên, mà vẫn đủ 100 dòng và validator vẫn xanh |
+
+Ba cái sau đều là **lỗi im lặng**: chương trình chạy xong, file sinh ra, không ai biết
+gì. Riêng NaN là rủi ro có thật từ khi A2.2 dùng RRF — `1/(K + rank)` sinh NaN nếu
+`rank` hỏng.
+
+> [!NOTE]
+> `n = TRAKE_DEFAULT_N if n_trake is None else n_trake` — cố ý **không** dùng `or`.
+> `n_trake=0` là số 0 falsy, `or` sẽ âm thầm thay bằng 4 thay vì báo lỗi. Đúng kiểu
+> thay số lặng lẽ mà W0.2 cấm. Có test riêng cho ca `n=0`.
+>
+> Ngược lại, `score` âm hoặc bằng 0 là **hợp lệ** và không bị chặn — chỉ NaN mới phá
+> được phép sắp xếp. Có test đối chứng cho điều này.
+
 ---
 
 ## 8. Kết quả chạy thực tế
@@ -258,10 +277,10 @@ là nộp được, không cần tầng dịch ở giữa.
 ### 8.1. Bộ test
 
 ```
-99 test · 96 xanh — 3 đỏ do lỗi import NGOÀI (mục 10.7.A), không phải logic allocator
-  tests/test_validator.py : 34 test   (D0.2, +2 canh schema)
-  tests/test_export.py    : 28 test   (D0.2)
-  tests/test_allocator.py : 37 test   (D3.1, +4 canh guard 09/08)
+106 test · 103 xanh — 3 đỏ do lỗi import NGOÀI (mục 10.5), không phải logic allocator
+  tests/test_validator.py : 34 test   (D0.2)
+  tests/test_export.py    : 32 test   (D0.2)
+  tests/test_allocator.py : 40 test   (D3.1, 6 test canh bốn chốt chặn ở mục 7.3)
 ```
 
 **Không mock.** Shot lấy từ `shots.parquet`, keyframe từ `frame_map.parquet`, độ dài
@@ -273,6 +292,7 @@ video từ `video_info.parquet` — đều là dữ liệu Data Factory đã gia
 | Bất biến 2 — xen kẽ | 5 slot đầu = 5 shot khác nhau · slot 1 là shot điểm cao nhất (test cố tình đảo thứ tự truyền vào) |
 | Bất biến 3 — frame thật | frame ∈ `[0, n_frames)` · frame đầu mỗi shot = đúng `frame_map[best_keyframe_id]` · không frame nào rơi vào 10% mép |
 | Ba dạng bài | KIS 1 frame · Q&A **từ chối khi thiếu answer** · TRAKE N=3/4/5 tăng dần ngặt · TRAKE 5 dòng đầu = 5 video |
+| Bốn chốt chặn (mục 7.3) | `hits` rỗng · `total=0/-5` · `n_trake=0/1` · `score=NaN` — đều raise; kèm ca đối chứng `score` âm/bằng 0 vẫn chạy |
 | Chốt cuối | output cắm thẳng vào `validate_submission()` của D0.2 → phải rỗng |
 
 ### 8.2. Kiểm chứng bằng cách phá code
@@ -284,7 +304,7 @@ video từ `video_info.parquet` — đều là dữ liệu Data Factory đã gia
 | Bỏ mức ④ (không nới ra ngoài shot) | 2 đỏ |
 | Bỏ thụt biên 10% | 1 đỏ |
 | Bỏ bù slot khi ít shot hơn bảng | 2 đỏ |
-| Phục hồi | **96 xanh** (3 đỏ là lỗi ngoài, mục 10.7.A) |
+| Phục hồi | **103 xanh** (3 đỏ là lỗi ngoài, mục 10.5) |
 
 ### 8.3. Quét ngẫu nhiên 120 kịch bản
 
@@ -339,156 +359,75 @@ cache _shots: misses=1, hits=39.999 · cùng một object trong RAM
 > Task này làm **trước** tiến độ chung. Bảng dưới là những chỗ đang chạy trên giả định,
 > sẽ phải sửa khi người khác giao hàng. **Đọc kỹ trước khi tin kết quả.**
 
-### 10.1. 🔴 CHẶN — chưa nối được vào pipeline
+### 10.1. Hợp đồng với tầng search — khớp, nhưng chưa ai nối dây
 
-| # | Việc | Chờ ai | Ảnh hưởng |
-|:---:|:---|:---|:---|
-| 1 | **`search()` trả về KEYFRAME, allocator nhận SHOT.** `BUILD_TASKS` A2.1 giao Thạch *"gom về shot, lấy điểm max mỗi shot"* — chưa làm. `backend/retrieval/search.py:288` đang trả `{keyframe_id, video_id, score}` | **Thạch** | Allocator chạy đúng nhưng **chưa cắm được vào search thật**. G2 (09/08) cần cả ống thông |
+`search()` (A2.1+A2.2) trả mỗi kết quả gồm:
 
-Hàm gom `keyframe_id → shot_id` qua `shots.parquet` khoảng 20 dòng. Tôi **không viết** vì
-đó là phần A2.1 của Thạch — nhưng nếu 09/08 chưa có thì phải quyết ai làm.
+```python
+{keyframe_id, video_id, frame_idx, timestamp_ms, shot_id, score, ranks, contrib}
+```
+
+Nó **gom về shot bằng cách giữ keyframe điểm cao nhất mỗi shot**, nên ba thứ allocator
+cần đều có sẵn. Đã kiểm trên dữ liệu thật:
+
+| Điều kiện | Kết quả |
+|:---|:---|
+| `shot_id` của search phải có trong `shots.parquet` | **94.386/94.386 khớp, 0 lệch** |
+| `keyframe_id` của Milvus phải tra được `frame_map` | **khớp** — cùng dạng `L21_V001#k0001` |
+| Mỗi shot phải có keyframe điểm cao nhất → mức ① | **có** — chính là `keyframe_id` trả về |
+
+Còn thiếu **đúng một mẩu keo dán**, chưa nằm trong file nào:
+
+```python
+hits = [ShotHit(r["shot_id"], r["score"], r["keyframe_id"]) for r in search(...)]
+```
+
+Nó thuộc `run_minimal.py` (A6.2-early của Thạch). Không viết vào allocator vì đó là việc
+của tầng điều phối, không phải của tầng cấp phát.
 
 ### 10.2. 🟡 CHẠY ĐƯỢC nhưng đang giả định — sẽ phải sửa
 
 | # | Chỗ | Đang giả định gì | Chờ ai | Nếu sai thì sao |
 |:---:|:---|:---|:---|:---|
-| 2 | `ShotHit.best_keyframe_id` | Tầng search sẽ đưa xuống keyframe điểm cao nhất mỗi shot | **Thạch** | Không có → **mức ① không bao giờ chạy**, frame đầu mỗi shot thành điểm giữa tính ra thay vì frame có bằng chứng. Vẫn ra 100 dòng, nhưng **chất lượng R@1 kém hẳn** |
-| 3 | Định dạng `keyframe_id` | Milvus dùng cùng format với `kf_id` của `frame_map` | **Thạch + Công Lý** | `load_frame_map()` của Lý đã trả **cả hai** format (`L21_V001#k0001` và `L21_V001_0001`) nên khả năng cao là khớp. Nhưng chưa có `keyframes.json` thật để xác nhận |
-| 4 | `SLOT_BUDGET = [(3,8),(7,5),(10,3),(11,1)]` | Cửa sổ `[s,e]` của BTC vừa phải | **Linh → BTC** | CLAUDE.md v3 mục *Điều CHƯA chốt* liệt đây là thứ BTC phải trả lời. Cửa sổ rộng → nên rải rộng; hẹp → nên đào sâu. **D4.1 (17/08) là task tune bảng này** |
-| 5 | `TRAKE_DEFAULT_N = 4` | Đề TRAKE không công bố N | **Linh → BTC** | Sai N → validator bắt được (`trake_n_mismatch`), không phải lỗi im lặng |
-| 6 | `SHOT_EDGE_INSET = 0.10` | 10% mỗi đầu là đủ tránh frame chuyển cảnh | tôi | Con số cảm tính, chưa đo. D4.1 tune cùng bảng ngân sách |
+| 1 | `SLOT_BUDGET = [(3,8),(7,5),(10,3),(11,1)]` | Cửa sổ `[s,e]` của BTC vừa phải | **Linh → BTC** | CLAUDE.md mục *Điều CHƯA chốt* liệt đây là thứ BTC phải trả lời. Cửa sổ rộng → nên rải rộng; hẹp → nên đào sâu. **D4.1 (17/08) là task tune bảng này** |
+| 2 | `TRAKE_DEFAULT_N = 4` | Đề TRAKE không công bố N | **Linh → BTC** | Sai N → validator bắt được (`trake_n_mismatch`), không phải lỗi im lặng |
+| 3 | `SHOT_EDGE_INSET = 0.10` | 10% mỗi đầu là đủ tránh frame chuyển cảnh | tôi | Con số cảm tính, chưa đo. D4.1 tune cùng bảng ngân sách |
+
+Cả ba đều nằm trong `data/config/slot_budget.py` — chốt lại là **sửa một dòng số**, không
+đụng tới cơ chế cấp phát.
 
 ### 10.3. 🟠 RỦI RO DỮ LIỆU — đã đo, biên độ nhỏ
 
 | # | Vấn đề | Số thật | Chờ ai | Đánh giá |
 |:---:|:---|:---|:---|:---|
-| 7 | **Không còn cách nào biết frame nào đã kiểm chứng.** Bản `frame_map` 07/08 **xoá** hai cột `offset_verified` và `frame_idx_status` | `frame_map` từ 14 cột còn 6 | **Công Lý** | Giá trị `frame_idx` vẫn là bản đã bù offset (kiểm: 19.380/177.321 dòng bằng `floor(pts×fps)+1`, nhiều hơn bản cũ 81 dòng → Lý sửa thêm chứ không bớt). Mất **hồ sơ**, không mất **dữ liệu**. Nhưng sau đợt thi, soi một câu trượt sẽ không trả lời được "số này đã so pixel hay đang giả định" |
-| 8 | `path` trong `video_info` chết **873/873** | trỏ `data/raw/videos/...` không tồn tại | **Công Lý** | Không ảnh hưởng allocator (không đọc video). Nhưng `scripts/verify_frame_map.py` sẽ gãy |
+| 4 | **Không còn cách nào biết frame nào đã kiểm chứng.** Bản `frame_map` 07/08 **xoá** hai cột `offset_verified` và `frame_idx_status` | `frame_map` từ 14 cột còn 6 | **Công Lý** | Giá trị `frame_idx` vẫn là bản đã bù offset (kiểm: 19.380/177.321 dòng bằng `floor(pts×fps)+1`, nhiều hơn bản cũ 81 dòng → Lý sửa thêm chứ không bớt). Mất **hồ sơ**, không mất **dữ liệu**. Nhưng sau đợt thi, soi một câu trượt sẽ không trả lời được "số này đã so pixel hay đang giả định" |
+| 5 | `path` trong `video_info` chết **873/873** | trỏ `data/raw/videos/...` không tồn tại | **Công Lý** | Không ảnh hưởng allocator (không đọc video). Nhưng `scripts/verify_frame_map.py` sẽ gãy |
 
 ### 10.4. 🔵 CHỦ Ý ĐỂ SAU
 
 | # | Việc | Khi nào |
 |:---:|:---|:---|
-| 9 | **TRAKE mới là v1** — xếp hạng theo video + N shot cao điểm nhất. Chưa có DP theo trình tự thời gian (khoảnh khắc 1 phải trước khoảnh khắc 2 về mặt *ngữ nghĩa*, không chỉ về số frame) | CLAUDE.md xếp "TRAKE DP" vào danh sách cắt, có đường quay lại **sau đợt 1** |
-| 10 | **`rep_kf_id` đã có (07/08) nhưng allocator CHƯA dùng** | Xem mục 10.5 — đây là phao dự phòng cho rủi ro số 2, nên cân nhắc lại |
+| 6 | **TRAKE mới là v1** — xếp hạng theo video + N shot cao điểm nhất. Chưa có DP theo trình tự thời gian (khoảnh khắc 1 phải trước khoảnh khắc 2 về mặt *ngữ nghĩa*, không chỉ về số frame) | CLAUDE.md xếp "TRAKE DP" vào danh sách cắt, có đường quay lại **sau đợt 1** |
 
 ---
 
-### 10.5. 🎁 `rep_kf_id` đã có — phao dự phòng cho rủi ro số 2
+### 10.5. 🔴 Phụ thuộc đang GÃY — `backend/indexing/frame_map.py`
 
-Bản `shots.parquet` 07/08 có thêm cột `rep_kf_id`. Nó **giải đúng** rủi ro số 2 ở trên.
+Allocator tra `keyframe_id → frame_idx` qua `load_frame_map()` của Công Lý, **không tự
+đọc parquet** — bảng đó có bù offset, tự đọc lại là mở đường cho hai nguồn sự thật.
+Cái giá của lựa chọn đó: module ấy hỏng thì mức ① chết theo.
 
-**Nhắc lại rủi ro số 2:** slot đầu của mỗi shot lấy từ mức ① — frame của keyframe mà
-CLIP thực sự chấm điểm cao nhất. Nếu tầng search không đưa `best_keyframe_id` xuống,
-mức ① bị bỏ qua và slot đầu rơi xuống mức ② — một điểm rải đều **tính ra**.
-
-Đo xem "điểm tính ra" lệch bao xa so với keyframe thật:
-
-| | frame |
-|:---|---:|
-| median | **22** |
-| p75 | 35 |
-| p95 | 58 |
-| lệch > 10 frame | **79%** số shot |
-| lệch > 30 frame | 32% số shot |
-
-(shot median chỉ dài 69 frame)
-
-Nguy ở chỗ **không có dấu hiệu gì**: vẫn đủ 100 dòng, validator vẫn xanh, file vẫn hợp
-lệ — chỉ là R@1 thấp hơn đáng lẽ được mà không ai biết tại sao.
-
-**Chất lượng của `rep_kf_id`:**
-
-```
-(cập nhật sau pull 812a555 — Data Factory đã lấp hết NULL)
-
-100.810/100.810 shot có rep_kf_id   ← trước đó còn hổng 6.713
-  89.718  rep_source='btc'             → tra qua frame_map
-  11.092  own_1fps / video_fallback /  → tra qua keyframes.parquet
-          exact_shot_center
-       0  không tra được ở đâu cả
-
-rep_kf_id nằm ngoài biên shot của nó: 0/89.718
-```
-
-→ Phao này giờ **phủ 100% shot**, không còn lỗ 6,7% như bản sáng.
-
-**Thứ tự ưu tiên đề xuất cho mức ①:**
-
-| | Nguồn | Vì sao xếp ở đó |
-|:---:|:---|:---|
-| 1 | `best_keyframe_id` từ search | frame thật **và** biết query |
-| 2 | `rep_kf_id` của Data Factory | frame thật, nhưng chọn tĩnh — không biết query |
-| 3 | điểm rải đều (mức ②) | không phải frame thật |
-
-Hiện tại thiếu (1) là rơi thẳng xuống (3). Có (2) thì đỡ được một bậc.
-
-⚠️ Nếu làm: phải tra **cả hai bảng**. Chỉ tra `frame_map` là hụt 4.379 shot có
-`rep_source='own_1fps'` — rep của chúng nằm ở `keyframes.parquet`.
-
-**Chưa làm** — đây là thay đổi thiết kế, không phải sửa lỗi.
-
----
-
-### 10.6. 🐞 Vấn đề CÒN TRONG CODE
-
-> Rà `allocator.py` + `slot_budget.py` ngày 07/08 tìm được 3 chỗ. **09/08 đã sửa 2** —
-> xoá khỏi đây. Chỗ còn lại `BUILD_TASKS` không nhắc tới nên để nguyên.
-
-#### ✅ Đã sửa 09/08 — cả hai đều có căn cứ trong `BUILD_TASKS` D3.1
-
-**1. `allocate()` chặn `total < 1`**
-
-```
-allocate(hits,"KIS",total=0)   →  ValueError: total phải >= 1, nhận 0. Lúc thi luôn là 100.
-allocate(hits,"KIS",total=-5)  →  ValueError
-```
-
-Trước đó trả `[]` **lặng lẽ**. `BUILD_TASKS` D3.1 ghi *"⚠️ KHÔNG BAO GIỜ trả < 100
-dòng"* — một biến chưa gán ở tầng trên sẽ thành bài nộp TRẮNG mà không ai biết.
-
-**2. `allocate()` chặn `n_trake < 2`**
-
-```
-allocate(hits,"TRAKE",n_trake=1)  →  ValueError: TRAKE phải có ít nhất 2 khoảnh khắc
-allocate(hits,"TRAKE",n_trake=0)  →  ValueError
-```
-
-Trước đó allocator đẻ ra 100 dòng × 1 frame, rồi chính `_check_shape()` của D0.2 từ chối
-(`frame_count`). Hai module cùng một người mà không thống nhất.
-
-> 🐞 **Bắt thêm một bug lúc sửa:** `n = n_trake or TRAKE_DEFAULT_N` nuốt mất số 0 —
-> `n_trake=0` bị âm thầm thay bằng 4 thay vì báo lỗi. Đổi sang `is None`. Đúng kiểu
-> thay số lặng lẽ mà W0.2 cấm. Đã có test riêng cho ca `n=0`.
-
-**4 test mới** canh hai luật này (`total=0/-5`, `n_trake=0/1`).
-
-#### 🔵 Còn lại — *ngoài phạm vi `BUILD_TASKS`*
-
-`score = NaN` không bị chặn: `sorted(hits, key=score)` với NaN cho thứ tự tuỳ ý → thứ
-hạng shot thành ngẫu nhiên. Chưa nổ vì tầng search không sinh NaN, nhưng RRF chia cho 0
-thì có thể. `BUILD_TASKS` không nhắc → để lại, chờ Thạch chốt hợp đồng của `score`.
-
----
-
-### 10.7. 🔻 Hậu quả của lần pull 07/08 (chiều)
-
-> Pull về `812a555`. Không ai đụng file của tôi (`backend/export/`, `backend/slot/`,
-> `data/config/submit_format.py`, `slot_budget.py`, `tests/` — diff rỗng), nhưng **ba
-> thứ bên ngoài đập vào** — B và C đã xử lý xong, A và D vẫn chờ người khác.
-
-#### 🔴 A. `backend/indexing/frame_map.py` gãy → chặn mức ① của allocator
-
-Commit `6f53aaa` (*"revert: Xóa sạch thư mục preprocessing khỏi git tracking"*, Công Lý)
-xoá `preprocessing/common/frame_map.py`. Nhưng `backend/indexing/frame_map.py:15` vẫn:
+Nó đang hỏng. Commit `6f53aaa` (*"revert: Xóa sạch thư mục preprocessing khỏi git
+tracking"*) gỡ `preprocessing/common/frame_map.py` khỏi git, nhưng
+`backend/indexing/frame_map.py:15` vẫn import nó:
 
 ```python
 from preprocessing.common.frame_map import load_frame_map as load_frame_map_df
 → ModuleNotFoundError: No module named 'preprocessing.common.frame_map'
 ```
 
-**3 test đỏ** (`tests/test_allocator.py`). Kéo theo `/submit` của Thạch
-(`backend/api/main.py:142`) cũng chết — nay là lý do thứ hai, ngoài 11 điểm lệch cũ.
+Trên máy Công Lý file vẫn nằm trên đĩa nên chạy bình thường; mọi máy khác thì không.
+**3 test đỏ** (`tests/test_allocator.py`), và `/submit` của Thạch cũng chết theo.
 
 ⚠️ **Nguy hơn cái đỏ: demo vẫn xanh.**
 
@@ -498,47 +437,21 @@ CÓ  best_keyframe_id (đường chạy lúc thi) →  🔴 ModuleNotFoundError
 ```
 
 `python -m backend.slot --demo` không truyền `keyframe_id` nên không chạm hàm đó. Nhìn
-CLI thì tưởng lành; chỉ nổ đúng lúc Thạch nối search vào — tức lúc thi.
+CLI thì tưởng lành — nó chỉ nổ đúng lúc nối search vào, tức lúc chạy thật.
 
-**File của Công Lý, không tự sửa.** Fix đã kiểm: wrapper đó vốn chỉ để đổi tên
+**File của Công Lý, không tự sửa.** Hướng vá đã kiểm: wrapper đó vốn chỉ để đổi tên
 `frame_idx_corrected` → `frame_idx`, mà parquet mới đã có sẵn `frame_idx`, nên bỏ hẳn
 phụ thuộc `preprocessing` là xong — chạy thử ra đúng **354.642 key**, giữ cả hai định
 dạng `#k` và `_`.
 
-#### ✅ B. `backend/requirements.txt` — **đã khôi phục 07/08**
-
-Commit `5784ff8` gỡ 3 gói tôi thêm ở `f882a62` (`pandas` · `pyarrow` · `pytest`). Đã
-thêm lại kèm ghi chú chống gỡ nhầm. Thiếu chúng thì máy clone mới không chạy được
-`backend/export/` lẫn `backend/slot/`.
-
-#### ✅ C. Trích dẫn CLAUDE.md v4 → v3 — **đã sửa hết 09/08**
-
-Commit `2932ac4` đưa CLAUDE.md về v3 (108 dòng), đánh số khác hẳn v4. Đã sửa **11 chỗ**:
-
-| Trích dẫn cũ (v4) | Sửa thành | Vì sao |
-|:---|:---|:---|
-| `bất biến 5` (không đặt ngưỡng cứng) | **`bất biến 6`** | v3 #5 là *frame_id = frame index trong video*, lệch một bậc |
-| `bất biến 8` (assert `.parquet` lúc load) | **bỏ hẳn** | **Luật này chỉ có ở v4.** `_doc_cot()` vẫn giữ vì nó cứu đúng sự cố đổi schema, nhưng không được trích một điều luật không tồn tại |
-| `mục 5` · `5.2` · `5.3` (dạng bài, cách chấm) | **tài liệu BTC** | v3 không mô tả dạng bài |
-| `mục 6 quy tắc 1` · `mục 7` (đủ 100 slot, frame_id tự do) | **`BUILD_TASKS` D3.1** | luật nằm ở đó, đã kiểm còn nguyên |
-| `mục 11` · `mục 14.7` | **tên mục v3** (*Điều CHƯA chốt*, *Coding convention*) | v3 dùng `##` không đánh số |
-| `mục 2` (kiến trúc) trong `backend/slot/__init__.py` | **`BUILD_TASKS` D3.1** | |
-
-> [!IMPORTANT]
-> **Các LUẬT không đổi** — chúng nằm ở `BUILD_TASKS.md` (đã kiểm: D3.1 vẫn có
-> *"XEN KẼ theo shot"* và *"KHÔNG BAO GIỜ trả < 100 dòng"*) và tài liệu BTC. Chỉ địa chỉ
-> trích dẫn hỏng, không phải yêu cầu.
-
-#### 🔵 D. CLAUDE.md v3 vẫn ghi bug `frame_id` như giả định hiện hành
+### 10.6. 🔵 `CLAUDE.md` mô tả ngược thiết kế hiện tại
 
 ```
 | Format submit | data/config/submit_format.py | frame_id = hậu tố keyframe_id |
 ```
 
-Đúng cái W0.2 đã xoá khỏi code. Tôi từng báo Thạch dòng này ở bản v4; revert về v3 thì
-nó quay lại. Ai đọc CLAUDE.md lần đầu sẽ hiểu ngược hoàn toàn.
-
----
+Đúng cái W0.2 đã xoá khỏi code. Ai đọc `CLAUDE.md` lần đầu sẽ hiểu ngược hoàn toàn:
+tầng format **không** suy `frame_id` từ `keyframe_id`, và sẽ không bao giờ suy nữa.
 
 ## 11. 🧪 Code chỉ để thử nghiệm — bỏ khi vào thi
 
@@ -576,7 +489,7 @@ lệ mà sai.
 | Frame tiếp theo rải đều, **thụt 10% mỗi đầu**, ép `int`, khử trùng | ✅ |
 | Slot allocator chịu trách nhiệm cấp `frame_idx` THẬT | ✅ qua `load_frame_map()` của Công Lý |
 | ⚠️ **KHÔNG BAO GIỜ trả < 100 dòng**, kể cả khi chỉ có 3 shot | ✅ mức ④; test tới ca 1 shot × 12 frame |
-| Unit test cả ba dạng bài, gồm ca biên | ✅ 33 test |
+| Unit test cả ba dạng bài, gồm ca biên | ✅ 40 test |
 
 ### 12.2. `CLAUDE.md`
 
@@ -585,17 +498,17 @@ lệ mà sai.
 | `BUILD_TASKS` D3.1 — luôn nộp đủ 100 slot | ✅ |
 | Mục 6 quy tắc 3 — thứ tự XEN KẼ theo shot | ✅ |
 | Mục 7 — `frame_id` không cần là keyframe đã index | ✅ |
-| Bất biến 5 — **không đặt ngưỡng điểm cứng** | ✅ `score` chỉ dùng để sắp xếp |
-| Mục 14.7 — báo độ trễ đo được | ✅ mục 9 |
-| Mục 14.9 — không hardcode, đọc từ config | ✅ `slot_budget.py` |
-| Mục 12.8 — mọi `.parquet` assert lúc load | ✅ thiếu file → báo rõ tên file và ai phải giao |
+| Bất biến 6 — **không đặt ngưỡng điểm cứng** | ✅ `score` chỉ dùng để sắp xếp, không so với ngưỡng nào |
+| *Coding convention* — mỗi tối ưu phải đo được | ✅ mục 9 |
+| Không hardcode ngưỡng / đường dẫn, đọc từ config | ✅ `slot_budget.py` |
+| Assert lúc nạp `.parquet` | ✅ `_doc_cot()` — thiếu cột thì báo tên cột và ai phải giao |
 
 ### 12.3. Chỗ lệch so với chữ trong tài liệu
 
 | Chỗ | Lý do |
 |:---|:---|
 | `ShotHit` chỉ có `shot_id` + `score` + `best_keyframe_id`, **không có `start_frame`/`end_frame`** | Biên shot tra thẳng từ `shots.parquet`. Bắt tầng search truyền xuống là tạo nguồn sự thật thứ hai |
-| Không dùng `rep_kf_id` | Spec ghi frame đầu là keyframe **điểm cao nhất từ search** — thứ đó phụ thuộc query nên `rep_kf_id` không thay thế được. Nhưng làm **dự phòng** thì được: mục 10.5 |
+| Không dùng `rep_kf_id` của `shots.parquet` | Spec ghi frame đầu mỗi shot là keyframe **điểm cao nhất từ search** — thứ đó phụ thuộc query, còn `rep_kf_id` chọn tĩnh nên không thay thế được. Search đã cấp `best_keyframe_id` thật (mục 10.1), thêm một đường thứ hai để lấy cùng con số chỉ tạo **hai nguồn sự thật**: lúc chúng lệch nhau sẽ không ai biết mức ① đang lấy frame từ đâu |
 
 ---
 
@@ -610,22 +523,21 @@ lệ mà sai.
 | Chiến thuật tách khỏi cơ chế | ✅ tune = sửa một dòng số |
 | Nối vào validator D0.2 | ✅ output nộp được ngay |
 | Độ trễ | ✅ 1–2 ms mỗi query |
-| **Nối vào search thật** | 🔴 **chờ A2.1 của Thạch** |
+| **Hợp đồng với search thật** | ✅ **Khớp 10/08** — A2.1+A2.2 trả `shot_id` + `score` + `keyframe_id` tốt nhất mỗi shot; `shot_id` khớp `shots.parquet` 94.386/94.386 |
+| Keo dán `search() → ShotHit` | 🟡 ~5 dòng, chưa ai viết — thuộc `run_minimal.py` (A6.2-early) |
 | Chốt an toàn khi Data Factory đổi schema | ✅ `_doc_cot()` + 2 test (thêm 07/08) |
-| `n_trake=1` và `total=0` bị chặn ở cửa vào | ✅ Sửa 09/08 + 4 test — mục 10.6 |
-| Dùng `rep_kf_id` làm dự phòng cho mức ① | 🔒 **Kẹt** — tra keyframe đi qua module đang gãy (mục 10.7.A) |
-| `backend/indexing/frame_map.py` chạy được | 🔴 **GÃY sau pull** — mục 10.7.A, chờ Công Lý |
-| Trích dẫn CLAUDE.md khớp bản v3 | ✅ Sửa 11 chỗ (09/08) — mục 10.7.C |
+| Bốn chốt chặn ở cửa vào `allocate()` | ✅ 6 test — mục 7.3 |
+| `backend/indexing/frame_map.py` chạy được | 🔴 **GÃY** — mục 10.5, chờ Công Lý |
 
 ### Danh sách file được tạo / sửa
 
 | File | Vai trò | Dòng |
 |:---|:---|---:|
-| `backend/slot/allocator.py` | Cơ chế cấp phát — tạo mới | 400 |
+| `backend/slot/allocator.py` | Cơ chế cấp phát — tạo mới | 422 |
 | `backend/slot/__init__.py` | Re-export `allocate`, `ShotHit` | 7 |
 | `backend/slot/__main__.py` | `python -m backend.slot --demo` | 5 |
 | `data/config/slot_budget.py` | Chiến thuật — tạo mới | 78 |
-| `tests/test_allocator.py` | 33 test trên shot thật | 274 |
+| `tests/test_allocator.py` | 40 test trên shot thật | 320 |
 | `tests/conftest.py` | Thêm `_shots_df()`, `shots_of()`, `hits_of()` | 178 |
 
 **Dọn kèm:** `backend/export.py` → package `backend/export/`
@@ -635,10 +547,10 @@ lệ mà sai.
 ### Cách chạy / kiểm
 
 ```powershell
-python -m pytest -q      # 96 passed, 3 failed  ← 3 đỏ do mục 10.7.A (frame_map của Công Lý)
+python -m pytest -q      # 103 passed, 3 failed ← 3 đỏ do mục 10.5 (frame_map của Công Lý)
 python -m backend.slot --demo --task KIS
 python -m backend.slot --demo --task TRAKE
-python -m backend.export --demo              # D0.2, vẫn chạy như cũ
+python -m backend.export --demo              # D0.2 — chạy allocator thật rồi ghi file nộp
 ```
 
 ### Task tiếp theo
@@ -647,5 +559,6 @@ python -m backend.export --demo              # D0.2, vẫn chạy như cũ
 ghi vào `reports/slot_tuning.md`. `BUILD_TASKS` gọi đây là *"điểm miễn phí, không cần
 model mạnh hơn"*.
 
-Nhưng trước đó, thứ chặn thật là **A2.1 của Thạch** (mục 10.1) — không có nó thì G2
-(09/08) không có ống thông.
+Trước đó cần hai thứ, đều không nằm trong file này: **vá `frame_map.py`** (mục 10.5) và
+**mẩu keo dán `search() → ShotHit`** (mục 10.1). Có đủ hai thứ đó thì ống thông từ query
+tới file nộp.

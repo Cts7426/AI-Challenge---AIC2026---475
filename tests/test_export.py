@@ -14,9 +14,9 @@ import json
 
 import pytest
 
-from backend.export import to_submission, validate_file, write_submissions
+from backend.export import Issue, to_submission, validate_file, write_submissions
 from data.config.submit_format import FORMATS, Answer, build_submission, validate_format
-from tests.conftest import cat_bot, replace_answer
+from tests.conftest import cat_bot, replace_answer, rules_of
 
 
 def doc_csv(noi_dung: str) -> list[list[str]]:
@@ -207,6 +207,63 @@ def test_file_khong_bom_khong_crlf(all_subs, tmp_path):
         assert not raw.startswith(b"\xef\xbb\xbf"), f"{p.name} có BOM"
         assert b"\r\n" not in raw, f"{p.name} dùng CRLF"
         assert validate_file(p) == []
+
+
+def test_demo_lay_frame_tu_slot_allocator():
+    """Demo phải đi qua `allocate()` thật, không tự tính frame bằng công thức.
+
+    Đây là phép thử ĐẦU-CUỐI giữa D3.1 và D0.2: allocator đẻ ra thứ mà chính
+    validator của mình từ chối thì lộ ngay ở đây. Bản cũ sinh frame bằng
+    `(i+1)*bước` — đo lại thì 0/100 frame trùng keyframe thật.
+    """
+    from backend.export.exporter import _demo_subs, validate_all
+
+    subs = _demo_subs()
+    assert {s.task_type for s in subs} == {"KIS", "QA", "TRAKE"}
+    assert all(len(s.answers) == 100 for s in subs)
+    # Allocator xen kẽ theo shot → 5 dòng đầu KHÔNG được cùng một video/frame liền kề
+    kis = next(s for s in subs if s.task_type == "KIS")
+    assert len({(a.video_id, a.frame_ids) for a in kis.answers[:5]}) == 5
+    assert validate_all(subs) == []
+
+
+def test_validate_file_bat_crlf(tmp_path):
+    """File CRLF phải bị BẮT, không phải chỉ được test gián tiếp.
+
+    Trước 10/08 luật này không tồn tại: `write_submissions()` ghi đúng nên test
+    xanh, nhưng `validate_file()` im lặng trước file CRLF. D6.1 chạy hàm này lên
+    file cuối cùng — file đó có thể do UI hay PowerShell ghi ra.
+    """
+    p = tmp_path / "crlf.csv"
+    p.write_bytes(b"L21_V001,100\r\nL21_V001,200\r\n")
+    loi = validate_file(p)
+    assert rules_of(loi) == {"crlf"}
+    assert "2" in str(loi[0]), "phải nói rõ có bao nhiêu dòng dính CRLF"
+
+
+def test_validate_file_bat_cr_don_le(tmp_path):
+    """\\r đơn lẻ (newline kiểu Mac cổ) cũng không được lọt."""
+    p = tmp_path / "cr.csv"
+    p.write_bytes(b"L21_V001,100\rL21_V001,200\r")
+    assert rules_of(validate_file(p)) == {"crlf"}
+
+
+def test_validate_file_lf_thi_im_lang(tmp_path):
+    """Đối chứng: LF thuần phải sạch, không báo nhầm."""
+    p = tmp_path / "lf.csv"
+    p.write_bytes(b"L21_V001,100\nL21_V001,200\n")
+    assert validate_file(p) == []
+
+
+def test_issue_giu_position_khi_khong_co_query_id():
+    """Issue có `position` mà thiếu `query_id` vẫn phải in ra số thứ hạng.
+
+    Bản cũ lồng position bên trong nhánh query_id → mất số 7 im lặng.
+    """
+    assert "7" in str(Issue("x", "lỗi gì đó", None, 7))
+    # đối chứng: dạng đầy đủ không đổi cách in
+    day_du = str(Issue("x", "lỗi", "q001", 7))
+    assert "q001" in day_du and "7" in day_du
 
 
 def test_ghi_tao_thu_muc_cha(kis, tmp_path):

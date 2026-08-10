@@ -30,6 +30,14 @@ SUBMIT_FORMAT = "csv_v0"
 
 TASK_TYPES = ("KIS", "QA", "TRAKE")
 
+# Số câu trả lời mỗi truy vấn. BTC cho TỐI ĐA 100 và nộp sai KHÔNG bị trừ điểm
+# → luôn nộp đủ 100 (BUILD_TASKS D3.1: "KHÔNG BAO GIỜ trả < 100 dòng").
+#
+# Đặt ở đây vì đây là LUẬT CỦA BTC, không phải lựa chọn của tầng nào. Cả validator
+# (backend/export) lẫn slot allocator (data/config/slot_budget) đều đọc từ đúng chỗ này —
+# hai bản sao của cùng một con số là cách chắc chắn nhất để chúng lệch nhau về sau.
+ANSWERS_PER_QUERY = 100
+
 
 @dataclass(frozen=True)
 class Answer:

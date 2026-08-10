@@ -202,23 +202,52 @@ def test_moi_keyframe_that_deu_qua_duoc_luat_bien():
     """
     import pandas as pd
 
-    from backend.export import _video_frames
+    # Tên riêng tư → lấy thẳng từ module cài đặt, không qua __init__
+    from backend.export.exporter import _video_frames
     from tests.conftest import _frame_map
 
     df = _frame_map().merge(
         pd.Series(_video_frames(), name="n_frames").rename_axis("video_id").reset_index(),
         on="video_id", how="left",
-    )
+    )  # n_frames ở đây là tên do mình đặt cho Series, không phải tên cột trong parquet
     thieu = df[df.n_frames.isna()]
     assert thieu.empty, f"{thieu.video_id.nunique()} video có trong frame_map mà thiếu ở video_info"
 
-    # _frame_map() đã chuẩn hoá tên cột về btc_ordinal / frame_idx (frame_idx ở
-    # đây LÀ frame_idx_corrected — đã bù offset, xem preprocessing/common/frame_map.py)
     tran = df[(df.frame_idx < 0) | (df.frame_idx >= df.n_frames)]
     assert tran.empty, (
         f"{len(tran)} keyframe vượt biên, ví dụ:\n"
         f"{tran.head(5)[['video_id', 'btc_ordinal', 'frame_idx', 'n_frames']]}"
     )
+
+
+def test_doi_ten_cot_thi_bao_ro_rang(tmp_path):
+    """Data Factory đổi schema → phải gãy với thông báo đọc được, không phải ArrowInvalid.
+
+    07/08 đã xảy ra thật: `n_frames` đổi thành `nb_frames_decoded`, cả bộ test đỏ với
+    lỗi từ trong ruột pyarrow, mất công mới lần ra là thiếu cột gì.
+    """
+    import pandas as pd
+    import pytest
+
+    from backend.export.exporter import _doc_cot
+
+    p = tmp_path / "gia.parquet"
+    pd.DataFrame({"video_id": ["L21_V001"], "ten_moi": [100]}).to_parquet(p)
+
+    with pytest.raises(KeyError) as e:
+        _doc_cot(p, ["video_id", "ten_cu"], "Công Lý")
+    assert "ten_cu" in str(e.value), "phải nói rõ cột nào thiếu"
+    assert "ten_moi" in str(e.value), "phải liệt kê cột đang có"
+    assert "Công Lý" in str(e.value), "phải nói rõ hỏi ai"
+
+
+def test_thieu_file_thi_bao_ro_ai_phai_giao(tmp_path):
+    import pytest
+
+    from backend.export.exporter import _doc_cot
+
+    with pytest.raises(FileNotFoundError, match="Công Lý"):
+        _doc_cot(tmp_path / "khong_co.parquet", ["a"], "Công Lý")
 
 
 def test_validator_khong_bao_nham_tren_20_video_that():

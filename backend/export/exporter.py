@@ -1,8 +1,8 @@
-# backend/export.py — D0.2: gom đáp án, kiểm ngữ nghĩa, ghi file nộp
+# backend/export/exporter.py — D0.2: gom đáp án, kiểm ngữ nghĩa, ghi file nộp
 #
 # Chia vai với data/config/submit_format.py (BUILD_TASKS D0.2 yêu cầu tách hai tầng):
 #   submit_format.py  → ĐỊNH DẠNG: file trông ra sao, tên cột, thứ tự ô
-#   export.py (đây)   → CƠ CHẾ  : gom theo truy vấn, kiểm ngữ nghĩa, ghi đĩa
+#   exporter.py (đây) → CƠ CHẾ  : gom theo truy vấn, kiểm ngữ nghĩa, ghi đĩa
 #
 # Vì sao file này KHÔNG được biết tên cột nào?
 # → BTC chưa công bố định dạng. Tách ra thì lúc công bố chỉ sửa submit_format.py,
@@ -32,6 +32,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from data.config.submit_format import (
+    ANSWERS_PER_QUERY,
     SUBMIT_FORMAT,
     TASK_TYPES,
     Answer,
@@ -39,10 +40,11 @@ from data.config.submit_format import (
     suggest_filename,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 VIDEO_INFO_PATH = REPO_ROOT / "data" / "derived" / "video_info.parquet"
 
-ANSWERS_PER_QUERY = 100
+# ANSWERS_PER_QUERY nhập từ submit_format — luật BTC, khai báo đúng MỘT chỗ.
+# Re-export ở đây cho quen tay (đã dùng ở D0.2 trước khi gom về một mối).
 
 
 @dataclass(frozen=True)
@@ -73,37 +75,51 @@ class Issue:
 
 # ---------------------------------------------------- dữ liệu để kiểm ngữ nghĩa
 
+# Tên cột chứa độ dài video trong video_info.parquet.
+# 07/08: Data Factory đổi `n_frames` → `nb_frames_decoded`. Đặt thành hằng để lần đổi
+# sau chỉ phải sửa một dòng, và để `_doc_cot()` báo được tên cột nào đang thiếu.
+COT_N_FRAMES = "nb_frames_decoded"
+
+
+def _doc_cot(duong_dan: Path, can: list[str], chu: str):
+    """Đọc parquet, ASSERT đủ cột cần trước khi nạp dữ liệu.
+
+    Vào: đường dẫn · danh sách cột bắt buộc · tên người sở hữu file (để báo lỗi).
+    Ra:  DataFrame chỉ gồm các cột đó.
+    Bất biến: thiếu file hoặc thiếu cột thì **gãy to ngay lúc nạp**, kèm danh sách cột
+    đang có, chứ không để pyarrow ném lỗi khó đọc ở tận trong ruột.
+
+    Vì sao cần: 07/08 Data Factory đổi tên cột, cả bộ test đỏ với `ArrowInvalid` không
+    nói được là thiếu cột gì. Mất công mới lần ra mình cần đọc cột nào.
+
+    Đọc schema trước rồi mới đọc dữ liệu: `read_schema()` chỉ chạm phần đầu file nên
+    gần như miễn phí, còn `read_parquet(columns=...)` bỏ qua hẳn các cột không cần.
+    Đo trên shots.parquet (17 cột, cần 4): 11 ms → 6 ms.
+    """
+    import pandas as pd
+    import pyarrow.parquet as pq
+
+    if not duong_dan.exists():
+        raise FileNotFoundError(f"Không tìm thấy {duong_dan} — cần {chu} giao file này trước.")
+    dang_co = list(pq.read_schema(duong_dan).names)
+    thieu = [c for c in can if c not in dang_co]
+    if thieu:
+        raise KeyError(
+            f"{duong_dan.name} thiếu cột {thieu}. Đang có: {dang_co}. "
+            f"Nhiều khả năng {chu} vừa đổi schema — sửa hằng tên cột trong file này."
+        )
+    return pd.read_parquet(duong_dan, columns=can)
+
+
 @lru_cache(maxsize=1)
 def _video_frames() -> dict[str, int]:
-    """video_id → n_frames, đọc từ video_info.parquet của Data Factory.
+    """video_id → số frame của video, đọc từ video_info.parquet của Data Factory.
 
     Nạp MỘT lần thành dict: validator tra hàng nghìn lượt, lọc DataFrame mỗi lần
     thì 100 query × 100 dòng đã mất hàng chục giây.
     """
-    import pandas as pd
-
-    if not VIDEO_INFO_PATH.exists():
-        raise FileNotFoundError(
-            f"Không tìm thấy {VIDEO_INFO_PATH} — cần video_info.parquet "
-            "(video_id, số frame) để kiểm frame_id hợp lệ."
-        )
-
-    # Vì sao dò tên cột thay vì hardcode "n_frames":
-    # BUILD_TASKS B0.1a đặt tên cột là `n_frames`, nhưng build_video_info thực tế
-    # sinh ra `nb_frames_decoded` (số frame ĐẾM THẬT bằng ffprobe, đúng tinh thần
-    # B0.1a: không lấy từ metadata container). Hardcode một tên → ArrowInvalid,
-    # validator gãy trên data thật dù test fixture vẫn xanh.
-    # Ưu tiên nb_frames_decoded vì nó là số đếm thật; n_frames giữ lại cho fixture.
-    df = pd.read_parquet(VIDEO_INFO_PATH)
-    for cot in ("nb_frames_decoded", "n_frames"):
-        if cot in df.columns:
-            return {str(v): int(n) for v, n in zip(df["video_id"], df[cot])}
-
-    raise KeyError(
-        f"{VIDEO_INFO_PATH} không có cột số frame nào trong "
-        f"('nb_frames_decoded', 'n_frames'). Cột đang có: {list(df.columns)}. "
-        "Đây là khoá kiểm frame_id ∈ [0, n_frames) — không có thì không validate được."
-    )
+    df = _doc_cot(VIDEO_INFO_PATH, ["video_id", COT_N_FRAMES], "Công Lý (B0.1a)")
+    return {str(v): int(n) for v, n in zip(df["video_id"], df[COT_N_FRAMES])}
 
 
 def all_video_ids() -> list[str]:
@@ -183,7 +199,15 @@ def validate_all(
 
 
 def _check_duplicates(sub: QuerySubmission) -> list[Issue]:
-    """Hai câu trả lời trùng nội dung = tiêu hai slot mà chỉ mua một cơ hội."""
+    """Luật 4 — không hai dòng nào trùng nội dung hoàn toàn.
+
+    Vào: một QuerySubmission. Ra: list Issue `duplicate_answer`, rỗng = sạch.
+    Bất biến: `keyframe_id` KHÔNG nằm trong khóa so trùng — nó chỉ để debug, không
+    được phép cứu một dòng đã trùng về nội dung nộp.
+
+    Vì sao là lỗi: hai dòng giống nhau tiêu hai slot mà chỉ mua một cơ hội. Nộp sai
+    không bị trừ điểm, nên mỗi slot lãng phí là một cơ hội bị vứt miễn phí.
+    """
     seen: dict[tuple, int] = {}
     out: list[Issue] = []
     for i, a in enumerate(sub.answers, 1):
@@ -201,7 +225,17 @@ def _check_duplicates(sub: QuerySubmission) -> list[Issue]:
 
 
 def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
-    """Số frame đúng theo dạng bài · TRAKE tăng dần ngặt · Q&A có answer."""
+    """Luật 5 + 6 — hình dạng một dòng phải khớp dạng bài.
+
+    Vào: QuerySubmission + `expected_n` (số khoảnh khắc đề TRAKE công bố, None = chưa biết).
+    Ra: list Issue, rỗng = sạch. Sáu slug: `frame_count` · `trake_n_inconsistent` ·
+    `trake_n_mismatch` · `trake_not_increasing` · `answer_empty` · `answer_unexpected`.
+    Bất biến: KHÔNG sửa dữ liệu, chỉ báo. Ép về đúng hình dạng là việc của tầng trên.
+
+    Vì sao TRAKE phải tăng dần NGẶT: hai khoảnh khắc khác nhau không thể ở cùng một
+    frame. Vì sao Q&A bắt lỗi answer rỗng: hai cửa tử độc lập — frame đúng mà answer
+    sai vẫn 0 điểm (tài liệu BTC — Q&A có hai cửa tử độc lập).
+    """
     out: list[Issue] = []
     q, task = sub.query_id, sub.task_type
 
@@ -249,10 +283,14 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
 
 
 def _check_video_and_frames(sub: QuerySubmission) -> list[Issue]:
-    """video_id phải tồn tại · frame_id ∈ [0, n_frames).
+    """Luật 2 + 3 — video có thật, và frame nằm trong độ dài video.
 
-    Video lạ thì BÁO LỖI chứ không bỏ qua: bỏ qua = lặng lẽ cho trôi dòng sai,
-    đúng loại lỗi mà cả dự án đang phòng.
+    Vào: QuerySubmission. Ra: list Issue `video_unknown` / `frame_out_of_range`.
+    Bất biến: video lạ thì BÁO LỖI chứ không bỏ qua — bỏ qua là lặng lẽ cho trôi dòng
+    sai, đúng loại lỗi im lặng mà cả dự án đang phòng. Biên trên là `n_frames - 1`.
+
+    Đây là luật duy nhất cần dữ liệu ngoài (`video_info.parquet`) — cũng chính là lý do
+    validator ngữ nghĩa nằm ở đây chứ không nằm cạnh tầng định dạng.
     """
     out: list[Issue] = []
     vf = _video_frames()
@@ -423,5 +461,4 @@ def main() -> int:
     return 1 if loi_file else 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+# Điểm vào CLI nằm ở backend/export/__main__.py — `python -m backend.export --demo`

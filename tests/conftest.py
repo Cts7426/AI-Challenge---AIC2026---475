@@ -1,6 +1,6 @@
 # tests/conftest.py — tiện ích dùng chung cho test D0.2
 # Cụ thể: `video_id` và `n_frames` lấy từ video_info; `frame_id` lấy từ cột
-#   frame_idx_corrected của frame_map — đúng những con số mà slot allocator (D3.1)
+#   frame_idx (đã bù offset) của frame_map — đúng những con số mà slot allocator (D3.1)
 #   sẽ đưa xuống khi chạy thật.
 
 from __future__ import annotations
@@ -23,28 +23,16 @@ def _frame_map():
     duong_dan = REPO_ROOT / "data" / "derived" / "frame_map.parquet"
     if not duong_dan.exists():
         pytest.skip(f"Chưa có {duong_dan} — cần Data Factory giao frame_map trước")
-
-    # Vì sao dò tên cột: BUILD_TASKS đặt tên `btc_kf_ordinal` / `frame_idx_corrected`,
-    # còn frame_map.parquet thực tế sinh ra `btc_ordinal` / `frame_idx` (đã bù offset).
-    # Hardcode tên theo spec → ArrowInvalid, cả bộ test đỏ trên data thật.
-    df = pd.read_parquet(duong_dan)
-    doi_ten = {}
-    for chuan, ung_vien in (
-        ("btc_ordinal", ("btc_ordinal", "btc_kf_ordinal")),
-        ("frame_idx", ("frame_idx", "frame_idx_corrected")),
-    ):
-        thay = next((c for c in ung_vien if c in df.columns), None)
-        if thay is None:
-            pytest.skip(f"frame_map.parquet thiếu cột {ung_vien} (đang có: {list(df.columns)})")
-        doi_ten[thay] = chuan
-    return df.rename(columns=doi_ten)[["video_id", "btc_ordinal", "frame_idx"]]
+    # 07/08: Data Factory đổi tên cột — `btc_kf_ordinal` → `btc_ordinal`,
+    # `frame_idx_corrected` → `frame_idx` (bản đã bù offset nay là cột mặc định).
+    return pd.read_parquet(duong_dan, columns=["video_id", "btc_ordinal", "frame_idx", "kf_id"])
 
 
 @lru_cache(maxsize=8)
 def frames_of(video_id: str) -> tuple[int, ...]:
     """Mọi frame_idx THẬT của một video, sắp tăng dần.
 
-    Input: video_id. Output: tuple frame_idx (đã bù offset) theo thứ tự keyframe.
+    Input: video_id. Output: tuple frame_idx theo thứ tự keyframe.
     """
     df = _frame_map()
     s = df[df.video_id == video_id].sort_values("btc_ordinal")
@@ -78,7 +66,7 @@ def build_sub(
     Input: video có thật + n_frames của nó (chỉ dùng để assert).
     Output: QuerySubmission qua được cả 7 luật.
     Bất biến:
-      - mọi frame_id đều là frame_idx_corrected có thật trong frame_map
+      - mọi frame_id đều là frame_idx có thật trong frame_map
       - TRAKE luôn tăng dần ngặt (lấy các keyframe liên tiếp, vốn đã tăng dần)
     """
     frames = frames_of(video_id)
@@ -147,3 +135,43 @@ def all_subs(kis, qa, trake):
 def rules_of(issues) -> set[str]:
     """Tập slug luật bị vi phạm — test bám vào slug, không bám vào câu chữ."""
     return {i.rule for i in issues}
+
+
+# ------------------------------------------------------------ dữ liệu cho D3.1
+
+@lru_cache(maxsize=1)
+def _shots_df():
+    """shots.parquet — nguồn shot thật của Data Factory (B1.1)."""
+    import pandas as pd
+
+    from backend.export import REPO_ROOT
+
+    duong_dan = REPO_ROOT / "data" / "derived" / "shots.parquet"
+    if not duong_dan.exists():
+        pytest.skip(f"Chưa có {duong_dan} — cần Data Factory giao shots.parquet trước")
+    return pd.read_parquet(
+        duong_dan, columns=["shot_id", "video_id", "start_frame", "end_frame", "n_frames"]
+    )
+
+
+def shots_of(video_id: str, n: int | None = None):
+    """Shot THẬT của một video, theo thứ tự thời gian. n=None → lấy hết."""
+    df = _shots_df()
+    s = df[df.video_id == video_id].sort_values("start_frame")
+    return list((s.head(n) if n else s).itertuples(index=False))
+
+
+def hits_of(video_ids: list[str], per_video: int | None = None) -> list:
+    """Dựng ShotHit từ shot thật, điểm giảm dần theo đúng thứ tự truyền vào.
+
+    Mô phỏng thứ tầng search (A2.1) sẽ đưa xuống. Điểm chỉ để xếp hạng nên cho
+    giảm đều là đủ — allocator không so điểm với ngưỡng nào.
+    """
+    from backend.slot import ShotHit
+
+    out, diem = [], 1.0
+    for vid in video_ids:
+        for r in shots_of(vid, per_video):
+            out.append(ShotHit(r.shot_id, diem))
+            diem -= 0.001
+    return out

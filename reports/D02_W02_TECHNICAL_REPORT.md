@@ -4,7 +4,11 @@
 >
 > **Người thực hiện:** Minh Hoàng
 >
-> **Phạm vi:** Tầng sinh bài nộp — `data/config/submit_format.py` + `backend/export.py` + `tests/`
+> **Phạm vi:** Tầng sinh bài nộp — `data/config/submit_format.py` + `backend/export/` + `tests/`
+>
+> ⚠️ **Cập nhật 07/08:** `backend/export.py` đã được đóng gói thành package `backend/export/`
+> (`__init__.py` + `__main__.py` + `exporter.py`), theo đúng kiểu `backend/llm/` của Thạch.
+> Đường import `backend.export` **không đổi** — mọi ví dụ code dưới đây vẫn đúng nguyên văn.
 
 ---
 
@@ -18,7 +22,7 @@
 7. [Hai bug phát hiện trong lúc rà soát](#7-hai-bug-phát-hiện-trong-lúc-rà-soát)
 8. [Đo độ trễ](#8-đo-độ-trễ)
 9. [Đối chiếu với yêu cầu trong tài liệu](#9-đối-chiếu-với-yêu-cầu-trong-tài-liệu)
-10. [Việc còn treo](#10-việc-còn-treo) — kèm [10.1 lệch ở `POST /submit`](#101-chi-tiết-lệch-ở-post-submit-đã-báo-thạch)
+10. [Việc còn treo](#10-việc-còn-treo) — [10.1 lệch ở `POST /submit`](#101-chi-tiết-lệch-ở-post-submit-đã-báo-thạch) · [10.2 phần đang giả định](#102-phần-đang-chạy-trên-giả-định--sẽ-phải-sửa) · [10.3 code thử nghiệm](#103--code-chỉ-để-thử-nghiệm--bỏ-khi-vào-thi) · [**10.4 vấn đề còn trong code**](#104--vấn-đề-còn-trong-code--rà-lại-0708)
 11. [Kết luận](#11-kết-luận)
 
 ---
@@ -95,7 +99,7 @@ flowchart TD
 | Tầng | File | Biết gì | KHÔNG biết gì |
 |:---|:---|:---|:---|
 | **Định dạng** | `data/config/submit_format.py` | tên cột, thứ tự ô, CSV/JSON | video có thật không, dài bao nhiêu |
-| **Cơ chế** | `backend/export.py` | 100 dòng, `video_info`, frame hợp lệ | tên cột, dấu phẩy |
+| **Cơ chế** | `backend/export/exporter.py` | 100 dòng, `video_info`, frame hợp lệ | tên cột, dấu phẩy |
 
 Chiều phụ thuộc **một hướng**: `export.py` → `submit_format.py`. Không có chiều ngược.
 
@@ -197,7 +201,7 @@ path.write_text(noi_dung, encoding="utf-8", newline="")
 | `suggest_filename()` | Tên file cho một truy vấn. `TODO: BTC` — quy ước chưa công bố. |
 | `validate_format()` | Validator tầng định dạng: số cột nhất quán, `frame_id` là số nguyên, `video_id` khác rỗng. |
 
-### 4.2. `backend/export.py`
+### 4.2. `backend/export/exporter.py`
 
 | Hàm / lớp | Mô tả |
 |:---|:---|
@@ -252,9 +256,11 @@ KIS/Q&A đúng 1 frame · dạng không phải Q&A thì không được có `ans
 ### 6.1. Bộ test
 
 ```
-60 test — 100% xanh
+60 test của D0.2 — 100% xanh
   tests/test_validator.py : 32 test
   tests/test_export.py    : 28 test
+
+(cả repo hiện 93 test: + 33 test của D3.1, xem reports/D31_TECHNICAL_REPORT.md)
 ```
 
 Mỗi luật có **1 ca đúng + ít nhất 1 ca sai**. Ca sai mới là thứ chứng minh validator
@@ -453,12 +459,19 @@ Việc thực sự chạy mỗi lần nộp là **0.20 ms**. Tầng này không 
 
 ## 10. Việc còn treo
 
+> **Cập nhật 07/08** — task này làm sớm hơn tiến độ chung nên một số chỗ đang chạy trên
+> giả định. Bảng dưới nói rõ chỗ nào chờ ai, và mục 10.2 nói chỗ nào **có thể lệch** khi
+> người khác giao hàng.
+
 | # | Việc | Chủ | Ảnh hưởng |
 |:---:|:---|:---|:---|
 | 1 | `POST /submit` trong `backend/api/main.py` lệch 11 điểm so với tầng format sau W0.2 | **Thạch** | `/submit` gãy khi bấm nộp — chi tiết mục 10.1 |
-| 2 | `shots.parquet` chưa có cột `rep_kf_id` | **Công Lý** | Chặn D3.1 (hạn 09/08) |
-| 3 | Định dạng nộp thật của BTC | **Linh** → BTC | Thêm 1 hàm vào `FORMATS` là xong |
-| 4 | Docstring mấy hàm phụ `_check_*` mới có 1 dòng, chưa đủ *Vào / Ra / Bất biến* | tôi | Nhỏ, dọn sau |
+| 2 | Định dạng nộp thật của BTC | **Linh** → BTC | Thêm 1 hàm vào `FORMATS` là xong — chi tiết mục 10.2 |
+| ~~3~~ | ~~Docstring `_check_*` chưa đủ *Vào / Ra / Bất biến*~~ | ~~tôi~~ | **Đã trả 07/08** |
+
+~~`shots.parquet` chưa có cột `rep_kf_id` (Công Lý)~~ — **đã gỡ khỏi danh sách chờ.**
+Rà lại spec D3.1 thì frame đầu mỗi shot là keyframe **điểm cao nhất từ search**, không
+phải rep có sẵn của Data Factory. Không cần cột đó nữa.
 
 ### 10.1. Chi tiết lệch ở `POST /submit` (đã báo Thạch)
 
@@ -490,6 +503,105 @@ Cách gọn nhất cho Thạch: đừng gọi thẳng `build_submission`, gọi 
 của `export.py` — nó lo hộ cả 7 luật validator lẫn việc tách mỗi truy vấn một file, và
 raise kèm toàn bộ danh sách lỗi mà **không ghi gì ra đĩa** nếu dữ liệu sai.
 
+### 10.2. Phần đang chạy trên GIẢ ĐỊNH — sẽ phải sửa
+
+| #   | Chỗ                                                      | Đang giả định gì                            | Chờ ai         | Nếu sai thì sao                                                                              |
+| :---:| :---------------------------------------------------------| :--------------------------------------------| :---------------| :---------------------------------------------------------------------------------------------|
+| 1   | `SUBMIT_FORMAT = "csv_v0"`                               | BTC nhận CSV không header                   | **Linh** → BTC | Sửa **đúng một dòng**. Ba format đã đăng ký sẵn                                              |
+| 2   | `_header_for()` tên cột `video_id`, `frame_id`, `answer` | Chỉ dùng khi BTC đòi header                 | **Linh** → BTC | Không dùng thì không ảnh hưởng                                                               |
+| 3   | `suggest_filename()` = `"<query_id>.<đuôi>"`             | Quy ước đặt tên file                        | **Linh** → BTC | Đặt sai tên file có thể bị loại bài — **cần hỏi sớm**                                        |
+| 4   | `frame_id` đếm từ **0**                                  | `[0, n_frames)` như frame index trong video | **Linh** → BTC | Nếu BTC đếm từ 1 thì **lệch hệ thống mọi câu**. Đây là ca lỗi im lặng nguy hiểm nhất còn lại |
+| 5   | `expect_answers = 100`                                   | Tối đa 100 đáp án mỗi truy vấn              | —              | Đã xác nhận trong tài liệu BTC mục cách chấm                                                 |
+
+Điểm 4 là thứ duy nhất trong danh sách này có thể làm **0 điểm toàn giải mà không báo
+lỗi**. Validator hiện kiểm `frame_id ∈ [0, n_frames)`; nếu BTC đếm từ 1 thì luật đó vẫn
+xanh trong khi mọi đáp án lệch 1.
+
+---
+
+### 10.3. 🧪 Code chỉ để thử nghiệm — bỏ khi vào thi
+
+> Liệt kê để sau này không ai tưởng nhầm là code sản xuất.
+
+| # | Chỗ | Là gì | Xử lý |
+|:---:|:---|:---|:---|
+| 1 | `_demo_subs()` + cờ `--demo` | Sinh bài nộp giả từ video thật | **Giữ tới G2** — tiện kiểm nhanh mà không cần Milvus/ES. Không nằm trong đường chạy lúc thi |
+| 2 | `write_submissions(..., validate=False)` | Đường thoát ghi dữ liệu hỏng ra soi | ⚠️ **TUYỆT ĐỐI không dùng ngày nộp.** Mặc định `True`; đặt `False` là sinh ra file trông hợp lệ mà sai |
+| 3 | `csv_header_v0` · `json_v0` | Hai trong ba format là **phỏng đoán dự phòng** | BTC chốt → **xoá hai cái không dùng**. Để lại ba cái là để lại ba cách nộp sai |
+| 4 | `build_submission` kiểm `fmt not in FORMATS` | Chốt chặn cho lúc gõ nhầm tên format | Giữ — rẻ và bắt được lỗi cấu hình |
+| 5 | `tests/conftest.py` — `build_sub()`, `frames_of()`, `replace_answer()`, `cat_bot()` | Dựng dữ liệu test | Nằm trong `tests/`, không bao giờ chạy lúc thi |
+
+**Điểm 2 và 3 là hai chỗ dễ gây tai nạn nhất** — cả hai đều tạo ra file nộp *trông* hợp
+lệ mà sai.
+
+---
+
+### 10.4. 🐞 Vấn đề CÒN TRONG CODE — rà lại 07/08
+
+> Rà lại toàn bộ `exporter.py` + `submit_format.py` sau khi Data Factory đổi schema.
+> Năm chỗ dưới **chưa sửa**, ghi ra để không quên. Không cái nào làm sai file nộp
+> hiện tại, nhưng ba cái đầu sẽ cắn ở D6.1.
+
+#### 🟠 1. `validate_file()` KHÔNG bắt được CRLF
+
+Bảng ở mục 11 ghi *"UTF-8 không BOM, không CRLF — ✅ Có test"*. **Nửa sau không đúng.**
+
+Test có kiểm CRLF, nhưng nó đọc byte trực tiếp trong `test_export.py`, chứng minh
+`write_submissions()` ghi đúng. Còn bản thân `validate_file()` **không có luật CRLF**:
+
+```
+file chỉ chứa b"L21_V001,100\r\n"  →  validate_file() trả []   (im lặng)
+```
+
+Vì sao thành vấn đề: D6.1 (preflight, 19→20/08) sẽ chạy `validate_file()` lên **file
+cuối cùng trước khi nộp**. Nếu file đó do người khác ghi (UI, script tay, copy qua
+PowerShell) thì CRLF lọt qua mà không ai biết. Đúng loại lỗi im lặng cả dự án đang phòng.
+
+→ **Cần thêm luật `crlf` vào `validate_file()`**, không phải chỉ dựa vào test.
+
+#### 🟠 2. `_doc_cot()` đọc TOÀN BỘ cột rồi mới cắt — chậm 1.8×
+
+Sáng nay khi sửa schema, tôi đổi `pd.read_parquet(p, columns=[...])` thành
+`pd.read_parquet(p)[...]` để lấy được danh sách cột đang có mà báo lỗi. Cái giá:
+
+| Cách | shots.parquet (17 cột, cần 4) |
+|:---|---:|
+| `read_parquet(p, columns=CAN)` — cách cũ | 6 ms |
+| `read_parquet(p)[CAN]` — cách hiện tại | **11 ms** |
+
+Chỉ 5 ms và chỉ tốn **một lần** mỗi tiến trình, nên chưa vội. Nhưng đây là chi phí
+**không cần trả**: đọc `pyarrow.parquet.read_schema()` lấy tên cột thì rẻ hơn nhiều
+mà vẫn báo lỗi rõ như cũ.
+
+#### 🟡 3. `_demo_subs()` vẫn sinh frame bằng công thức
+
+Đã sửa `tests/` sang dùng frame thật, nhưng **quên phần demo**:
+
+```python
+base = (i + 1) * buoc          # số tính ra, không phải frame có bằng chứng
+```
+
+Đo lại: **0/100 frame trong demo trùng với keyframe thật** của video đó.
+
+Không sai — demo chỉ để xem file nộp trông ra sao. Nhưng từ 07/08 đã có
+`backend.slot.allocate()`, demo nên gọi thẳng nó: vừa bớt một chỗ sinh dữ liệu giả,
+vừa thành phép thử đầu-cuối thật giữa D3.1 và D0.2.
+
+#### 🔵 4. `Issue.__str__` nuốt mất `position` khi không có `query_id`
+
+```python
+Issue("x", "lỗi", None, 7)   →   "x: lỗi"      # mất số 7
+```
+
+Hiện chưa nổ vì mọi luật đều đặt cả hai. Là bẫy cho người thêm luật sau.
+
+#### 🔵 5. Chú thích đầu file còn ghi tên cũ
+
+`exporter.py` dòng 5 vẫn viết `export.py (đây)` — file đã đổi thành
+`backend/export/exporter.py` từ 07/08.
+
+---
+
 ---
 
 ## 11. Kết luận
@@ -509,9 +621,10 @@ raise kèm toàn bộ danh sách lỗi mà **không ghi gì ra đĩa** nếu d�
 
 | File | Vai trò | Dòng |
 |:---|:---|---:|
-| `data/config/submit_format.py` | **Tầng định dạng** — viết lại toàn bộ | 226 |
-| `backend/export.py` | **Tầng cơ chế** — tạo mới | 412 |
-| `tests/conftest.py` | Dựng dữ liệu test từ `video_info` + `frame_map` thật | 137 |
+| `data/config/submit_format.py` | **Tầng định dạng** — viết lại toàn bộ | 234 |
+| `backend/export/exporter.py` | **Tầng cơ chế** — tạo mới | 435 |
+| `backend/export/__init__.py` · `__main__.py` | Đóng gói thành package (07/08, theo kiểu `backend/llm/`) | 34 · 5 |
+| `tests/conftest.py` | Dựng dữ liệu test từ `video_info` + `frame_map` thật | 178 |
 | `tests/test_validator.py` | 32 test cho validator | 240 |
 | `tests/test_export.py` | 28 test cho định dạng + ghi file | 240 |
 | `backend/requirements.txt` | Thêm `pandas`, `pyarrow`, `pytest` | +6 |
@@ -522,11 +635,14 @@ sau khi rà thấy 3/6 hàm không có nơi nào gọi.
 ### Cách chạy / kiểm
 
 ```powershell
-python -m pytest -q                          # 60 passed
+python -m pytest tests/test_export.py tests/test_validator.py -q   # 60 passed (D0.2)
+python -m pytest -q                                                # 93 passed (cả repo)
 python -m backend.export --demo              # sinh file nộp mẫu
 ```
 
 ### Task tiếp theo
 
-**D3.1 — Slot allocator** (`backend/slot/allocator.py`, hạn 09/08). Nó là nơi chịu
-trách nhiệm cấp `frame_idx` thật mà tầng format đã từ chối tự tính.
+~~**D3.1 — Slot allocator**~~ → **đã xong 07/08**, xem `reports/D31_TECHNICAL_REPORT.md`.
+Đó là nơi chịu trách nhiệm cấp `frame_idx` thật mà tầng format đã từ chối tự tính.
+
+Tiếp theo: **D4.1 — chỉnh bảng `SLOT_BUDGET` theo dev set** (17→19/08).

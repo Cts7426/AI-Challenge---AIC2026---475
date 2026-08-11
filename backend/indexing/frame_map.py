@@ -30,12 +30,20 @@ def load_frame_map() -> dict[str, int]:
     # Chuyển đổi DataFrame thành dictionary với định dạng gốc (#k)
     res_dict = df.set_index('kf_id')['frame_idx'].to_dict()
     
-    # Bổ sung key format chuẩn 1fps (_000000) và format cũ (_0001) để tương thích ngược 100%
+    # Bổ sung key format chuẩn hóa keyframes.parquet ({video_id}_{frame_idx:07d})
+    # để allocator tra được best_keyframe_id → frame_idx thật.
+    #
+    # Vì sao KHÔNG dùng replace("#k", "_"):
+    #   L21_V001#k0001 → L21_V001_0001  (4 chữ số = ordinal BTC, KHÔNG phải frame_idx)
+    #   keyframes.parquet dùng L21_V001_0000014  (7 chữ số = frame_idx zero-padded)
+    #   Hai format khác nhau → .get() luôn trả None → allocator mất mức ưu tiên ①
+    #   mà không log lỗi gì (lỗi im lặng).
     compat_dict = {}
     for k, v in res_dict.items():
-        compat_dict[k] = v
+        compat_dict[k] = v  # giữ key gốc format BTC (#k)
         if "#k" in k:
-            old_key = k.replace("#k", "_")
-            compat_dict[old_key] = v
-            
+            video_id = k.split("#")[0]
+            # Key chuẩn hóa khớp keyframes.parquet: {video_id}_{frame_idx:07d}
+            compat_dict[f"{video_id}_{v:07d}"] = v
+
     return compat_dict

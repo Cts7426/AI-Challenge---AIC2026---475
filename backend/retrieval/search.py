@@ -209,7 +209,9 @@ def _nominate_from_asr(segments: list[dict]) -> list[dict]:
     )
     rows = milvus_connect().query(
         COLLECTION_NAME, filter=dieu_kien,
-        output_fields=["video_id", "frame_idx", "timestamp_ms"],
+        # keyframe_id là PK — Milvus thường tự trả, nhưng khai báo tường minh
+        # để không phụ thuộc hành vi ngầm (đổi version Milvus có thể thay đổi).
+        output_fields=["keyframe_id", "video_id", "frame_idx", "timestamp_ms"],
     )
     return [
         {

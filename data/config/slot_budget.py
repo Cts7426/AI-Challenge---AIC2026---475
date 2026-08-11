@@ -1,4 +1,4 @@
-# data/config/slot_budget.py — D3.1: Chia 100 slot cho các shot
+    # data/config/slot_budget.py — D3.1: Chia 100 slot cho các shot
 #
 # Tách khỏi backend/slot/allocator.py vì hai thứ này đổi với nhịp khác nhau:
 #   allocator.py  → CƠ CHẾ  : rút frame, xen kẽ, bảo đảm đủ 100. Viết một lần là xong.
@@ -41,20 +41,28 @@ SHOT_EDGE_INSET = 0.10
 TRAKE_DEFAULT_N = 4
 
 
-def budget_per_shot(n_shots: int, table: list[tuple[int, int]] = SLOT_BUDGET) -> list[int]:
+def budget_per_shot(
+    n_shots: int,
+    table: list[tuple[int, int]] = SLOT_BUDGET,
+    total: int = ANSWERS_PER_QUERY,
+) -> list[int]:
     """Trải bảng ngân sách thành hạn mức từng shot theo hạng.
 
-    INPUT: số shot ứng viên thực có.
+    INPUT: số shot ứng viên thực có · bảng cược · tổng slot cần chia (lúc thi = 100).
     OUTPUT: list dài đúng n_shots, phần tử i = số slot cấp cho shot hạng i.
-    Bất biến: tổng = ANSWERS_PER_QUERY, kể cả khi n_shots ít hơn hoặc nhiều hơn bảng.
+    Bất biến: tổng = `total`, kể cả khi n_shots ít hơn hoặc nhiều hơn bảng.
 
-    Hai ca lệch so với bảng, đều xử lý ở đây chứ không để allocator lo:
+    Ba ca lệch so với bảng, đều xử lý ở đây chứ không để allocator lo:
       - Ít shot hơn bảng (search chỉ ra 3 shot) → chia đều phần thiếu cho các shot
-        đang có, ưu tiên shot hạng cao. KHÔNG BAO GIỜ trả tổng < 100.
+        đang có, ưu tiên shot hạng cao. KHÔNG BAO GIỜ trả tổng < total.
       - Nhiều shot hơn bảng → các shot ngoài bảng nhận 0, coi như không dùng.
+      - `total` nhỏ hơn tổng bảng → bớt CHIỀU SÂU trước, giữ CHIỀU RỘNG. Chỉ gặp
+        lúc test và lúc D3.5 mô phỏng; lúc thi luôn là 100.
     """
     if n_shots <= 0:
         raise ValueError("Không có shot ứng viên nào để cấp phát slot")
+    if total < 1:
+        raise ValueError(f"total phải >= 1, nhận {total}")
 
     han_muc = [0] * n_shots
     i = 0
@@ -65,10 +73,23 @@ def budget_per_shot(n_shots: int, table: list[tuple[int, int]] = SLOT_BUDGET) ->
             han_muc[i] = slot_moi_shot
             i += 1
 
+    # Thừa slot (total < tổng bảng) → bớt từng slot MỘT ở shot đang sâu nhất,
+    # hoà thì bớt shot hạng thấp trước.
+    #
+    # Vì sao bớt chiều sâu chứ không cắt đứt shot hạng thấp: cắt đuôi thì total=5
+    # ra [5,0,0,...] — cả 5 dòng đầu cùng một shot, đúng cái sai mà luật xen kẽ
+    # đang tránh (shot đó sai là mất trắng cả R@1 lẫn R@5). Bớt chiều sâu thì ra
+    # [1,1,1,1,1] — 5 dòng đầu là 5 shot khác nhau, giữ nguyên thế phòng thủ.
+    du = sum(han_muc) - total
+    while du > 0:
+        sau_nhat = max(range(n_shots), key=lambda x: (han_muc[x], x))
+        han_muc[sau_nhat] -= 1
+        du -= 1
+
     # Thiếu slot (ít shot hơn bảng) → rải vòng tròn từ shot hạng cao xuống.
     # Rải vòng tròn chứ không dồn hết vào shot 1: dồn hết là quay lại đúng cái
     # sai "8 slot đầu cùng một shot" mà luật xen kẽ đang tránh.
-    thieu = ANSWERS_PER_QUERY - sum(han_muc)
+    thieu = total - sum(han_muc)
     j = 0
     while thieu > 0:
         han_muc[j % n_shots] += 1

@@ -86,10 +86,10 @@ thì **không còn chốt chặn nào phía sau**.
 
 ## 3. Chia vai: chiến thuật và cơ chế
 
-| File | Vai | Nhịp thay đổi |
-|:---|:---|:---|
+| File                         | Vai                                                     | Nhịp thay đổi                         |
+| :-----------------------------| :--------------------------------------------------------| :--------------------------------------|
 | `data/config/slot_budget.py` | **CHIẾN THUẬT** — cược bao nhiêu slot vào shot hạng mấy | đổi nhiều lần (D4.1 có hẳn task tune) |
-| `backend/slot/allocator.py` | **CƠ CHẾ** — rút frame, xen kẽ, bảo đảm đủ 100 | viết một lần là xong |
+| `backend/slot/allocator.py`  | **CƠ CHẾ** — rút frame, xen kẽ, bảo đảm đủ 100          | viết một lần là xong                  |
 
 Tách ra vì hai thứ này đổi với nhịp khác nhau. Lúc tune chỉ sửa **một dòng số**, không
 đụng logic, không sợ làm hỏng phần cấp phát.

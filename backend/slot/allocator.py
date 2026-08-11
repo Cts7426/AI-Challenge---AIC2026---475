@@ -101,6 +101,23 @@ def _rai_deu(a: int, b: int, m: int) -> list[int]:
     return [a + round(i * (b - a) / (m - 1)) for i in range(m)]
 
 
+def _doan_thu(start: int, end: int, k: int, m: int) -> tuple[int, int]:
+    """Đoạn thứ k trong m phần bằng nhau của [start, end]. k đếm từ 0.
+
+    Vào: biên shot · chỉ số đoạn · tổng số đoạn. Ra: biên đoạn con, gồm cả hai đầu.
+    Bất biến: luôn trả về đoạn có ít nhất 1 frame, và các đoạn không chồng lấn nhau.
+
+    Dùng khi một video có ÍT shot ứng viên hơn số khoảnh khắc TRAKE cần. Xem
+    `_allocate_trake` để biết vì sao chia đoạn chứ không dùng lại nguyên shot.
+    """
+    if m <= 1:
+        return start, end
+    span = end - start + 1
+    a = start + span * k // m
+    b = start + span * (k + 1) // m - 1
+    return (a, b) if b >= a else (a, a)
+
+
 def _frames_of_shot(
     start: int, end: int, quota: int, best_frame: int | None, n_frames_video: int
 ) -> Iterator[int]:
@@ -131,7 +148,8 @@ def _frames_of_shot(
 
     # ① — dùng nguyên vẹn, KHÔNG kẹp về biên shot. Nếu frame_map và shots.parquet
     # lệch nhau thì tin frame_map.
-    if best_frame is not None and phat(best_frame):
+    da_co_muc_1 = best_frame is not None and phat(best_frame)
+    if da_co_muc_1:
         yield best_frame
 
     span = end - start + 1
@@ -140,8 +158,12 @@ def _frames_of_shot(
     if b < a:  # shot quá ngắn để thụt được → dùng nguyên shot
         a, b = start, end
 
-    # ② — quota-1 frame vì mức ① đã chiếm slot đầu
-    for f in _rai_deu(a, b, max(quota - 1, 0)):
+    # ② — trừ 1 CHỈ KHI mức ① thật sự đã phát (có `best_frame` mà nó nằm ngoài
+    # [0, n_frames) thì cũng coi như chưa phát). Trừ vô điều kiện thì shot không có
+    # keyframe bị hụt một điểm rải, và slot cuối rơi xuống mức ③ — nơi quét từ `a`
+    # lên nên nhả ra frame dính sát điểm rải đầu tiên (đo được: 415 rồi 416).
+    # Một slot mua đúng cái đã có là một slot vứt đi.
+    for f in _rai_deu(a, b, max(quota - (1 if da_co_muc_1 else 0), 0)):
         if phat(f):
             yield f
 
@@ -166,30 +188,42 @@ def _frames_of_shot(
 # ------------------------------------------------------------ vòng tròn xen kẽ
 
 def _quay_vong(
-    nguon: list[tuple[str, Iterator[int]]], quotas: list[int], can: int
-) -> list[tuple[str, int]]:
+    nguon: list[ShotHit], quotas: list[int], can: int
+) -> list[tuple[str, int, str | None]]:
     """Rút frame theo VÒNG TRÒN: vòng r phát frame thứ r của mọi nguồn còn hạn mức.
 
-    Input: list (video_id, máy phát) đã xếp hạng · hạn mức từng nguồn · số dòng cần.
-    Output: list (video_id, frame_id) đúng `can` phần tử, không trùng.
+    Input: list ShotHit đã xếp hạng · hạn mức từng nguồn · số dòng cần.
+    Output: list (video_id, frame_id, keyframe_id) đúng `can` phần tử, không trùng.
+      `keyframe_id` chỉ khác None khi frame đó ĐÚNG LÀ frame của keyframe tốt nhất —
+      các frame rải sâu không có keyframe nào nên không được gán bừa.
     Bất biến: hai phần tử đầu tiên đến từ hai nguồn KHÁC NHAU (khi có ≥2 nguồn).
 
     Khử trùng theo cặp (video_id, frame): cùng số frame ở hai video khác nhau là hai
     câu trả lời khác nhau, không phải trùng.
+
+    Máy phát dựng LƯỜI: shot hạng > 31 nhận hạn mức 0 và thường không bao giờ được
+    rút. Dựng sẵn cho chúng là tra `frame_map` thừa (search trả 500 shot → 469 lượt
+    tra vô ích) và mở rộng bề mặt lỗi sang những shot không hề dùng tới.
     """
     da_dung: set[tuple[str, int]] = set()
-    ket_qua: list[tuple[str, int]] = []
+    ket_qua: list[tuple[str, int, str | None]] = []
+    may: dict[int, tuple[Iterator[int], int | None]] = {}
     vong = 0
 
     while len(ket_qua) < can:
         tien_bo = False
-        for i, (video_id, gen) in enumerate(nguon):
+        for i, hit in enumerate(nguon):
             if quotas[i] <= vong:
                 continue
+            if i not in may:  # lần đầu nguồn này được gọi tên → mới dựng
+                may[i] = _may_phat(hit, quotas[i])
+            gen, best_frame = may[i]
+            video_id = _video_of(hit)
             for f in gen:  # bỏ qua frame đã dùng, lấy cái đầu tiên còn mới
                 if (video_id, f) not in da_dung:
                     da_dung.add((video_id, f))
-                    ket_qua.append((video_id, f))
+                    kf = hit.best_keyframe_id if f == best_frame else None
+                    ket_qua.append((video_id, f, kf))
                     tien_bo = True
                     break
             if len(ket_qua) >= can:
@@ -257,6 +291,11 @@ def allocate(
         raise ValueError(f"total phải >= 1, nhận {total}. Lúc thi luôn là {ANSWERS_PER_QUERY}.")
     if task_type == "QA" and not (answer_text or "").strip():
         raise ValueError("Q&A phải có answer_text — tầng slot không tự bịa câu trả lời")
+    if task_type != "QA" and answer_text is not None:
+        # Nuốt lặng một tham số truyền nhầm là đúng loại lỗi im lặng file này đang
+        # phòng: người gọi tưởng đã đặt answer, validator D0.2 thì cấm KIS/TRAKE có
+        # answer — hai bên cùng "đúng" mà kết quả không như ai nghĩ.
+        raise ValueError(f"{task_type} không được có answer_text (chỉ Q&A mới có)")
 
     xep = sorted(hits, key=lambda h: h.score, reverse=True)
     if task_type == "TRAKE":
@@ -269,12 +308,10 @@ def allocate(
             raise ValueError(f"TRAKE phải có ít nhất 2 khoảnh khắc, nhận n_trake={n}")
         return _allocate_trake(xep, n, total, table)
 
-    quotas = budget_per_shot(len(xep), table)
-    nguon = [(_video_of(h), _gen_of(h, q)) for h, q in zip(xep, quotas)]
-
+    quotas = budget_per_shot(len(xep), table, total)
     return [
-        Answer(video_id=vid, frame_ids=(f,), answer_text=answer_text)
-        for vid, f in _quay_vong(nguon, quotas, total)
+        Answer(video_id=vid, frame_ids=(f,), answer_text=answer_text, keyframe_id=kf)
+        for vid, f, kf in _quay_vong(xep, quotas, total)
     ]
 
 
@@ -292,11 +329,26 @@ def _bounds_of(h: ShotHit) -> tuple[str, int, int]:
         ) from None
 
 
-def _gen_of(h: ShotHit, quota: int) -> Iterator[int]:
-    """Dựng máy phát frame cho một ShotHit, tra sẵn biên shot và frame của keyframe."""
+def _may_phat(
+    h: ShotHit, quota: int, doan: tuple[int, int] | None = None
+) -> tuple[Iterator[int], int | None]:
+    """Dựng máy phát frame cho một ShotHit.
+
+    Vào: ShotHit · hạn mức slot · `doan` = biên con thay cho cả shot (TRAKE dùng).
+    Ra: (máy phát, frame của keyframe tốt nhất). Trả kèm `best_frame` để chỗ gọi
+    biết dòng nào lấy đúng keyframe thật mà gắn `keyframe_id` — không phải đoán lại.
+
+    `best_frame` bị bỏ khi nằm ngoài `doan`: một khoảnh khắc TRAKE ở đoạn giữa shot
+    không được phép nhận keyframe của đoạn đầu, nếu không N khoảnh khắc lại chụm về
+    cùng một chỗ — đúng cái đang sửa.
+    """
     video_id, start, end = _bounds_of(h)
     best = _frame_of_keyframe(h.best_keyframe_id) if h.best_keyframe_id else None
-    return _frames_of_shot(start, end, quota, best, n_frames_of(video_id))
+    if doan is not None:
+        start, end = doan
+        if best is not None and not (start <= best <= end):
+            best = None
+    return _frames_of_shot(start, end, quota, best, n_frames_of(video_id)), best
 
 
 # ------------------------------------------------------------------------ TRAKE
@@ -312,22 +364,39 @@ def _allocate_trake(
 
     Cách dựng một dòng: lấy N shot điểm cao nhất của video đó, mỗi shot góp 1 frame,
     sắp tăng dần. Dòng thứ j của cùng một video lấy frame thứ j của từng shot.
-    Video có ít hơn N shot → các khoảnh khắc lấy sâu hơn trong những shot đang có.
+
+    ⚠️ Video có ÍT shot hơn N → **chia mỗi shot thành nhiều đoạn**, mỗi khoảnh khắc
+    lấy từ một đoạn riêng. KHÔNG được dựng nhiều máy phát trên cùng một biên: chúng
+    xả ra dãy GIỐNG HỆT nhau (mỗi máy có bộ khử trùng riêng), rồi phép đẩy +1 ở
+    `_mot_dong_trake` tách chúng thành N frame LIỀN NHAU — đo được `(34,35,36,37)`,
+    tức 4 khoảnh khắc cách nhau 0,16 giây ở 25fps. Một chuỗi sự kiện TRAKE trải vài
+    giây thì cụm đó giỏi lắm trúng 1/N cửa sổ đáp án.
+
+    Không biết khoảnh khắc nằm đâu thì đoán TRẢI RA vẫn hơn đoán DỒN một chỗ: dồn
+    thì hoặc trúng cả cụm hoặc trượt cả cụm, trải thì gần như chắc được vài phần.
     """
     theo_video: dict[str, list[ShotHit]] = {}
     for h in xep:
         theo_video.setdefault(_video_of(h), []).append(h)
 
     videos = list(theo_video)  # `xep` đã sắp giảm dần nên thứ tự này là hạng video
-    quotas = budget_per_shot(len(videos), table)
+    quotas = budget_per_shot(len(videos), table, total)
 
-    # Mỗi video: N máy phát, một cho mỗi khoảnh khắc. Ít shot hơn N thì dùng lại
-    # shot tốt nhất — nó vẫn đẻ ra frame khác nhau nên N khoảnh khắc vẫn phân biệt được.
     may_phat: dict[str, list[Iterator[int]]] = {}
     for hang, vid in enumerate(videos):
         ds = theo_video[vid]
-        chon = [ds[i % len(ds)] for i in range(n)]
-        may_phat[vid] = [_gen_of(h, quotas[hang]) for h in chon]
+        # Shot thứ j phải gánh mấy khoảnh khắc → chia nó ra ngần ấy đoạn
+        so_doan = [(n - 1 - j) // len(ds) + 1 for j in range(len(ds))]
+        da_dung_shot: dict[int, int] = {}
+        gens = []
+        for i in range(n):
+            j = i % len(ds)
+            k = da_dung_shot.get(j, 0)
+            da_dung_shot[j] = k + 1
+            _, start, end = _bounds_of(ds[j])
+            doan = _doan_thu(start, end, k, so_doan[j]) if so_doan[j] > 1 else None
+            gens.append(_may_phat(ds[j], quotas[hang], doan)[0])
+        may_phat[vid] = gens
 
     dong: list[Answer] = []
     da_dung: set[tuple[str, tuple[int, ...]]] = set()

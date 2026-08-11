@@ -15,6 +15,7 @@ import pytest
 
 from backend.export import QuerySubmission, n_frames_of, validate_submission
 from backend.slot import ShotHit, allocate
+from backend.slot.allocator import _frames_of_shot
 from data.config.slot_budget import ANSWERS_PER_QUERY, SHOT_EDGE_INSET, budget_per_shot
 from tests.conftest import _shots_df, hits_of, shots_of
 
@@ -263,6 +264,104 @@ def test_trake_video_it_shot_hon_N(real_videos):
     answers = allocate(hits_of(vids, 2), "TRAKE", n_trake=4)
     assert len(answers) == ANSWERS_PER_QUERY
     assert all(list(a.frame_ids) == sorted(set(a.frame_ids)) for a in answers)
+
+
+def test_trake_it_shot_thi_khoanh_khac_KHONG_dinh_nhau(real_videos):
+    """Video ít shot hơn N → N khoảnh khắc vẫn phải CÁCH XA nhau.
+
+    Đây là test kiểm CHẤT LƯỢNG, không phải kiểm hợp lệ — và đó là lý do bộ test cũ
+    bỏ lọt. Bản trước dựng N máy phát trên cùng một biên shot; chúng xả ra dãy giống
+    hệt nhau nên `_mot_dong_trake` phải đẩy +1 để tách, ra `(34, 35, 36, 37)`.
+    Bốn khoảnh khắc cách nhau 0,16 giây ở 25fps thì giỏi lắm trúng 1/4 cửa sổ đáp án,
+    mà `test_trake_dung_N_va_tang_dan_ngat` vẫn XANH vì dãy đó tăng dần ngặt thật.
+    """
+    vid = real_videos[0][0]
+    mot_shot = shots_of(vid, 1)[0]
+    span = mot_shot.end_frame - mot_shot.start_frame + 1
+    answers = allocate([ShotHit(mot_shot.shot_id, 1.0)], "TRAKE", n_trake=4, total=10)
+
+    # Chia shot làm 4 đoạn thì hai khoảnh khắc kề nhau phải cách ~span/4.
+    # Lấy ngưỡng span/8 cho rộng tay: đủ chặt để bắt ca dính nhau (cách 1 frame).
+    toi_thieu = max(2, span // 8)
+    for a in answers:
+        cach = [y - x for x, y in zip(a.frame_ids, a.frame_ids[1:])]
+        assert min(cach) >= toi_thieu, (
+            f"{a.frame_ids} có hai khoảnh khắc cách nhau {min(cach)} frame, "
+            f"cần ít nhất {toi_thieu} (shot dài {span})"
+        )
+
+
+def test_moi_shot_khong_co_keyframe_van_rai_du_diem(real_videos):
+    """Shot KHÔNG có best_keyframe_id vẫn phải được rải đủ `quota` điểm cách đều.
+
+    Bản trước luôn trừ 1 cho mức ① kể cả khi mức ① không phát gì, nên slot cuối rơi
+    xuống mức ③ và nhả ra frame dính sát điểm rải đầu (đo được: 415 rồi 416).
+    """
+    vid = real_videos[0][0]
+    r = next(s for s in shots_of(vid) if s.n_frames > 100)
+    span = r.end_frame - r.start_frame + 1
+    quota = 8
+
+    gen = _frames_of_shot(int(r.start_frame), int(r.end_frame), quota, None, 10**9)
+    lay = sorted(next(gen) for _ in range(quota))
+    cach = [y - x for x, y in zip(lay, lay[1:])]
+    # 8 điểm rải đều trên vùng đã thụt 10% hai đầu → mỗi khoảng ≈ span*0.8/7
+    assert min(cach) >= span // 16, f"{lay} có hai frame dính nhau (cách {min(cach)})"
+
+
+def test_keyframe_id_chi_gan_cho_dong_lay_dung_keyframe(real_videos, monkeypatch):
+    """`keyframe_id` phải theo dòng lấy ĐÚNG frame của keyframe, các dòng khác để None.
+
+    Gán bừa cho mọi dòng của shot là nói dối: frame rải sâu không đến từ keyframe nào.
+    D2.1 và D3.5 dựa vào field này để truy ngược dòng nộp về bằng chứng.
+    """
+    import backend.slot.allocator as al
+
+    vid = real_videos[0][0]
+    r = shots_of(vid, 1)[0]
+    moc = int(r.start_frame) + 5
+    monkeypatch.setattr(al, "_frame_of_keyframe", lambda kf: moc)
+
+    answers = allocate([ShotHit(r.shot_id, 1.0, "kf_gia")], "KIS", total=4)
+    assert answers[0].frame_ids == (moc,) and answers[0].keyframe_id == "kf_gia"
+    assert all(a.keyframe_id is None for a in answers[1:])
+
+
+def test_khong_tra_frame_map_cho_shot_khong_dung_toi(real_videos, monkeypatch):
+    """Shot hạng thấp (hạn mức 0) KHÔNG được tra frame_map — dựng máy phát phải LƯỜI.
+
+    Search trả 200 shot mà bảng chỉ phủ 31: tra cả 200 là 169 lượt đọc vô ích, và mở
+    rộng bề mặt lỗi sang những shot không hề được dùng.
+    """
+    import backend.slot.allocator as al
+
+    dem = {"n": 0}
+
+    def dem_tra(kf):
+        dem["n"] += 1
+        return None
+
+    monkeypatch.setattr(al, "_frame_of_keyframe", dem_tra)
+    hits = [ShotHit(h.shot_id, h.score, f"kf{i}") for i, h in enumerate(hits_of([real_videos[0][0]]))]
+    if len(hits) < 40:
+        pytest.skip("video này không đủ shot để kiểm")
+    allocate(hits, "KIS")
+    assert dem["n"] <= 31, f"tra frame_map {dem['n']} lần cho {len(hits)} shot — phải lười"
+
+
+def test_task_khong_phai_QA_ma_co_answer_text_thi_bao_loi(nhieu_video):
+    """Nuốt lặng tham số truyền nhầm là đúng loại lỗi im lặng file này đang phòng."""
+    for task in ("KIS", "TRAKE"):
+        with pytest.raises(ValueError, match="answer_text"):
+            allocate(hits_of(nhieu_video, 3), task, answer_text="5")
+
+
+def test_bang_ngan_sach_total_nho_thi_bot_chieu_sau_khong_cat_shot():
+    """total nhỏ → phải giữ CHIỀU RỘNG. [5,0,0,...] là dồn cả 5 dòng vào 1 shot."""
+    assert budget_per_shot(31, total=5) == [1] * 5 + [0] * 26
+    for n in range(1, 40):
+        for t in (1, 5, 20, 100, 150):
+            assert sum(budget_per_shot(n, total=t)) == t, f"n={n} total={t}"
 
 
 def test_trake_phu_nhieu_video_o_dau_danh_sach(nhieu_video):

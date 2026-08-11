@@ -98,7 +98,9 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > - 0.5–0.9 → nghi ngờ preprocessing/chuẩn hóa khác, báo tôi
 > Chạy trên 10 mẫu, in bảng kết quả.
 
-### C0.1 [Thi] — llm() adapter · 03→06/08
+### ✅ C0.1 [Thi] — llm() adapter · 03→06/08
+> 🔴 **Thạch đã làm thay để kịp tiến độ.**
+>
 > Hoàn thiện `backend/llm/adapter.py`:
 > `llm(prompt, images=None, json_schema=None, n=1, temperature=0) -> str`
 > - Đổi backend API ↔ local bằng biến môi trường `LLM_BACKEND`, **một dòng config**
@@ -106,7 +108,9 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > - Validator JSON tự động, retry khi output hỏng
 > Kiểm: `grep -rn "anthropic\|openai" backend/ | grep -v backend/llm/` → **phải rỗng**.
 
-### C1.1 [Thi] — Hiểu truy vấn v1 · 06→09/08
+### ✅ C1.1 [Thi] — Hiểu truy vấn v1 · 06→09/08
+> 🔴 **Thạch đã làm thay để kịp tiến độ.**
+>
 > `backend/retrieval/query_understanding.py` nhận query tiếng Việt, trả:
 > `{caption_main, captions_expanded[4], constraints_json}`
 > - Prompt dịch: 1 caption EN ngắn, phong cách chú thích ảnh
@@ -184,7 +188,7 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > `end_frame`, `rep_kf_id`). Shot > 60s cắt cưỡng bức thành đoạn 30s.
 > Nếu TransNetV2 chậm/khó cài: PySceneDetect chế độ content, threshold 27.
 
-### A6.2-early [Thạch] — Orchestrator tối giản · 08→09/08
+### ✅ A6.2-early [Thạch] — Orchestrator tối giản · 08→09/08
 > `run_minimal.py`: nhận file query → chạy search → slot allocator → export → file nộp.
 > Chỉ CLIP + BM25 + slot, **không rerank, không VLM**.
 > Đây là thứ chứng minh G2 và cũng là kịch bản dự phòng cho ngày nộp.

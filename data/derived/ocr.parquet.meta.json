@@ -1,0 +1,24 @@
+{
+  "file_name": "ocr.parquet",
+  "row_count": 160393,
+  "columns": [
+    "video_id",
+    "kf_id",
+    "frame_idx",
+    "text_raw",
+    "text_clean",
+    "n_boxes",
+    "avg_conf",
+    "boxes"
+  ],
+  "dtypes": {
+    "video_id": "string",
+    "kf_id": "string",
+    "frame_idx": "int64",
+    "text_raw": "string",
+    "text_clean": "string",
+    "n_boxes": "int32",
+    "avg_conf": "float32",
+    "boxes": "string"
+  }
+}

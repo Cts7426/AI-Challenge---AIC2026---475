@@ -1,0 +1,24 @@
+{
+  "file_name": "clip_kf_map.parquet",
+  "row_count": 371702,
+  "columns": [
+    "kf_id",
+    "video_id",
+    "frame_idx",
+    "shot_id",
+    "row_id",
+    "clip_kf_id",
+    "clip_frame_idx",
+    "frame_drift"
+  ],
+  "dtypes": {
+    "kf_id": "string",
+    "video_id": "object",
+    "frame_idx": "int64",
+    "shot_id": "string",
+    "row_id": "int64",
+    "clip_kf_id": "object",
+    "clip_frame_idx": "float64",
+    "frame_drift": "float64"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "file_name": "frame_map.parquet",
+  "row_count": 177321,
+  "columns": [
+    "video_id",
+    "btc_ordinal",
+    "frame_idx",
+    "pts_time",
+    "fps",
+    "kf_id",
+    "btc_kf_ordinal",
+    "frame_idx_corrected"
+  ],
+  "dtypes": {
+    "video_id": "object",
+    "btc_ordinal": "int64",
+    "frame_idx": "int64",
+    "pts_time": "float64",
+    "fps": "float64",
+    "kf_id": "object",
+    "btc_kf_ordinal": "int64",
+    "frame_idx_corrected": "int64"
+  }
+}

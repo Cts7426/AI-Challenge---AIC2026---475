@@ -1,0 +1,20 @@
+{
+  "file_name": "keyframes.parquet",
+  "row_count": 371702,
+  "columns": [
+    "kf_id",
+    "video_id",
+    "shot_id",
+    "frame_idx",
+    "path",
+    "row_id"
+  ],
+  "dtypes": {
+    "kf_id": "string",
+    "video_id": "string",
+    "shot_id": "string",
+    "frame_idx": "int64",
+    "path": "string",
+    "row_id": "int64"
+  }
+}

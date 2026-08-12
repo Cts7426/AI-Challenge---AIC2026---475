@@ -106,6 +106,18 @@ def test_shot_id_la_bao_loi_ro_rang():
         allocate([ShotHit("L99_V999#s0000", 1.0)], "KIS")
 
 
+def test_shot_id_la_o_HANG_CHOT_van_bao_loi(real_videos):
+    """shot_id lạ phải nổ kể cả khi nó nằm ở hạng thấp, không bao giờ được rút tới.
+
+    Máy phát frame dựng lười (khỏi tra `frame_map` thừa), nhưng phần tra BIÊN SHOT thì
+    không được lười theo: bắt lúc có lúc không còn tệ hơn không bắt — lỗi "search và
+    Data Factory dùng hai bản shot khác nhau" phải lộ ngay lúc gọi.
+    """
+    hits = hits_of([real_videos[0][0]], 40) + [ShotHit("L99_V999#s0000", -1.0)]
+    with pytest.raises(KeyError, match="shots.parquet"):
+        allocate(hits, "KIS")
+
+
 # ------------------------------------------------- bất biến 2: XEN KẼ theo shot
 
 def test_5_slot_dau_thuoc_5_shot_khac_nhau(real_videos):

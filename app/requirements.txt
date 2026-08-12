@@ -1,0 +1,12 @@
+# Dependencies của app/ — CÔNG CỤ DEV, KHÔNG nằm trên đường chạy lúc thi.
+#
+# Cài: pip install -r app/requirements.txt
+#
+# Vì sao tách khỏi backend/requirements.txt: máy chạy pipeline lúc thi không cần
+# Streamlit. Trộn chung là bắt máy đó cài thêm một cây phụ thuộc chỉ để ngồi nhìn.
+#
+# pandas / pyarrow / numpy đã có trong backend/requirements.txt (D0.2 + D3.1 cần
+# đọc parquet) nên không khai lại — hai bản ghi của cùng một phụ thuộc là cách chắc
+# chắn để chúng lệch phiên bản.
+
+streamlit>=1.30      # đã kiểm chạy trên Python 3.14 (bản 1.59.1)

@@ -113,13 +113,13 @@ flowchart TD
 
 ### 4.1. `b01_full_verification.py`
 
-| Hàm | Mô tả |
-|------|--------|
-| `get_free_memory_gb()` | Đọc `vm_stat` trên macOS để ước tính RAM trống (GB). Dùng để giám sát memory leak. |
-| `find_btc_keyframe_path(video_id, kf_ord)` | Tìm đường dẫn ảnh BTC từ cấu trúc thư mục (`Keyframes_L21/L21_V006/002.jpg`). Thử 3 cách đặt tên và 3 cách pad số (001, 0001, 1). |
+| Hàm                                               | Mô tả                                                                                                                                                                              |
+| ---------------------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `get_free_memory_gb()`                            | Đọc `vm_stat` trên macOS để ước tính RAM trống (GB). Dùng để giám sát memory leak.                                                                                                 |
+| `find_btc_keyframe_path(video_id, kf_ord)`        | Tìm đường dẫn ảnh BTC từ cấu trúc thư mục (`Keyframes_L21/L21_V006/002.jpg`). Thử 3 cách đặt tên và 3 cách pad số (001, 0001, 1).                                                  |
 | `process_video(video_id, df_kfs, n_frames_total)` | **Hàm chính.** Đọc tuần tự video MP4, giữ buffer 7 frame (deque maxlen=7). Với mỗi keyframe BTC, tính MSE tại 7 offset [-3,+3]. Trả về list kết quả + flag `has_duplicate_frames`. |
-| `worker(video_id)` | Wrapper cho multiprocessing. Gọi `process_video()` và ghi parquet checkpoint. |
-| `main()` | CLI entry point. Hỗ trợ `--workers N` cho parallel processing. Resume tự động bằng cách kiểm tra part đã có. |
+| `worker(video_id)`                                | Wrapper cho multiprocessing. Gọi `process_video()` và ghi parquet checkpoint.                                                                                                      |
+| `main()`                                          | CLI entry point. Hỗ trợ `--workers N` cho parallel processing. Resume tự động bằng cách kiểm tra part đã có.                                                                       |
 
 **Luồng xử lý bên trong `process_video()`:**
 

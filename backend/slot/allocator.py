@@ -188,11 +188,11 @@ def _frames_of_shot(
 # ------------------------------------------------------------ vòng tròn xen kẽ
 
 def _quay_vong(
-    nguon: list[ShotHit], quotas: list[int], can: int
+    nguon: list[tuple[str, ShotHit]], quotas: list[int], can: int
 ) -> list[tuple[str, int, str | None]]:
     """Rút frame theo VÒNG TRÒN: vòng r phát frame thứ r của mọi nguồn còn hạn mức.
 
-    Input: list ShotHit đã xếp hạng · hạn mức từng nguồn · số dòng cần.
+    Input: list (video_id, ShotHit) đã xếp hạng · hạn mức từng nguồn · số dòng cần.
     Output: list (video_id, frame_id, keyframe_id) đúng `can` phần tử, không trùng.
       `keyframe_id` chỉ khác None khi frame đó ĐÚNG LÀ frame của keyframe tốt nhất —
       các frame rải sâu không có keyframe nào nên không được gán bừa.
@@ -204,6 +204,12 @@ def _quay_vong(
     Máy phát dựng LƯỜI: shot hạng > 31 nhận hạn mức 0 và thường không bao giờ được
     rút. Dựng sẵn cho chúng là tra `frame_map` thừa (search trả 500 shot → 469 lượt
     tra vô ích) và mở rộng bề mặt lỗi sang những shot không hề dùng tới.
+
+    ⚠️ Chỉ MÁY PHÁT mới lười. `video_id` đã được chỗ gọi tra sẵn cho MỌI shot — tra
+    biên shot chỉ là một phép tra dict, mà làm sớm thì `shot_id` lạ ở hạng 50 cũng nổ
+    ngay lúc gọi. Lười cả phần đó thì lỗi "search và Data Factory dùng hai bản shot
+    khác nhau" chỉ lộ khi shot đó tình cờ được rút — bắt lúc có lúc không còn tệ hơn
+    là không bắt.
     """
     da_dung: set[tuple[str, int]] = set()
     ket_qua: list[tuple[str, int, str | None]] = []
@@ -212,13 +218,12 @@ def _quay_vong(
 
     while len(ket_qua) < can:
         tien_bo = False
-        for i, hit in enumerate(nguon):
+        for i, (video_id, hit) in enumerate(nguon):
             if quotas[i] <= vong:
                 continue
             if i not in may:  # lần đầu nguồn này được gọi tên → mới dựng
                 may[i] = _may_phat(hit, quotas[i])
             gen, best_frame = may[i]
-            video_id = _video_of(hit)
             for f in gen:  # bỏ qua frame đã dùng, lấy cái đầu tiên còn mới
                 if (video_id, f) not in da_dung:
                     da_dung.add((video_id, f))
@@ -309,9 +314,12 @@ def allocate(
         return _allocate_trake(xep, n, total, table)
 
     quotas = budget_per_shot(len(xep), table, total)
+    # `_video_of` cho MỌI shot ngay tại đây: shot_id lạ phải nổ lúc gọi allocate(),
+    # không phải lúc đã rút được nửa danh sách.
+    nguon = [(_video_of(h), h) for h in xep]
     return [
         Answer(video_id=vid, frame_ids=(f,), answer_text=answer_text, keyframe_id=kf)
-        for vid, f, kf in _quay_vong(xep, quotas, total)
+        for vid, f, kf in _quay_vong(nguon, quotas, total)
     ]
 
 

@@ -241,17 +241,17 @@ với đúng nhánh đó bật. **Không viết lại logic truy xuất trong UI
 
 ### 6.1. `app/labels.py` — bộ nhãn dev set
 
-| Tên | Mô tả |
-|:---|:---|
-| `Label` | Một lượt chấm. `__post_init__` chặn dữ liệu sai **ngay lúc dựng**: nhãn lạ · id rỗng · frame âm · khoảng ngược. Tự đóng dấu `ts` để biết dòng nào mới hơn |
-| `Label.chua()` | frame có nằm trong khoảng không (**gồm cả hai đầu**) |
-| `duong_dan_nhan()` | `dev_set/labels.<người>.jsonl` — mỗi người một file |
-| `ghi_nhan()` | Nối **một** dòng, `flush()` ngay. UTF-8 không BOM, LF |
-| `load_labels()` | Đọc gộp mọi file, khử trùng theo khoá, `ts` mới nhất thắng |
-| `_doc_mot_file()` | Dòng hỏng thì **báo rồi bỏ qua**, không kéo sập cả file |
-| `BangNhan` | Chỉ mục tra nhanh — dựng một lần, hỏi bao nhiêu lần cũng được |
-| `BangNhan.is_correct()` | **Hàm chấm điểm dùng chung** cho E4.2 và D3.5 |
-| `BangNhan.nhan_cua_frame()` | Nhãn hiện tại của một frame; khoảng **hẹp nhất** thắng |
+| Tên                         | Mô tả                                                                                                                                                     |
+| :----------------------------| :----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Label`                     | Một lượt chấm. `__post_init__` chặn dữ liệu sai **ngay lúc dựng**: nhãn lạ · id rỗng · frame âm · khoảng ngược. Tự đóng dấu `ts` để biết dòng nào mới hơn |
+| `Label.chua()`              | frame có nằm trong khoảng không (**gồm cả hai đầu**)                                                                                                      |
+| `duong_dan_nhan()`          | `dev_set/labels.<người>.jsonl` — mỗi người một file                                                                                                       |
+| `ghi_nhan()`                | Nối **một** dòng, `flush()` ngay. UTF-8 không BOM, LF                                                                                                     |
+| `load_labels()`             | Đọc gộp mọi file, khử trùng theo khoá, `ts` mới nhất thắng                                                                                                |
+| `_doc_mot_file()`           | Dòng hỏng thì **báo rồi bỏ qua**, không kéo sập cả file                                                                                                   |
+| `BangNhan`                  | Chỉ mục tra nhanh — dựng một lần, hỏi bao nhiêu lần cũng được                                                                                             |
+| `BangNhan.is_correct()`     | **Hàm chấm điểm dùng chung** cho E4.2 và D3.5                                                                                                             |
+| `BangNhan.nhan_cua_frame()` | Nhãn hiện tại của một frame; khoảng **hẹp nhất** thắng                                                                                                    |
 
 Ba quyết định đáng ghi lại:
 
@@ -493,36 +493,44 @@ Bốn gạch đầu dòng của đặc tả, đối chiếu từng cái:
 | 3 | Hiển thị **thứ hạng từng nhánh** cho mỗi kết quả | ✅ đủ 5 nhánh, đọc từ `ranks` của A2.2 |
 | 4 | Nút đúng/sai ghi thẳng vào `dev_set/labels.jsonl` | ✅ có, nhưng **đổi tên file** — xem 9.0.2 |
 
-#### 9.0.1. Hai thứ đặc tả đòi mà KHÔNG có nguồn dữ liệu
+#### 9.0.1. Hai thứ đặc tả đòi mà chưa hiển thị được — hai nguyên nhân KHÁC NHAU
 
-Đây không phải "chưa làm", mà là "chưa ai sinh ra thứ đó".
+**`objects` — BTC cho sẵn, chỉ là chưa tải về.**
 
-**`caption` mức frame — không có ai sản xuất.** Tìm khắp repo:
-
-```
-data/derived/*.parquet   → không bảng nào có cột caption
-preprocessing/           → không job nào sinh caption
-backend/indexing/        → không loader nào nạp caption
-BUILD_TASKS.md           → không task nào giao việc này
-```
-
-Chữ "caption" trong `BUILD_TASKS.md` chỉ xuất hiện ở **C1.1**, và đó là caption của
-**câu hỏi** (dịch query sang tiếng Anh cho CLIP), không phải mô tả nội dung frame.
-
-→ Muốn có ô này phải chạy VLM sinh mô tả cho 177.321 keyframe — một job GPU cỡ OCR,
-**chưa nằm trong kế hoạch của ai**. Cần chốt: bỏ hẳn khỏi D2.1, hay giao thành task
-mới cho Data Factory. **Đây là việc cần hỏi Thạch/Linh, không tự quyết được.**
-
-**`objects` mức frame — chưa có dữ liệu, kể cả bản mẫu.**
+`docs/contest.md` §"Dữ liệu BTC cung cấp" liệt kê Objects là một trong năm nguồn BTC
+phát: *1 JSON/keyframe, Faster R-CNN OpenImages V4*. Không ai phải chạy model sinh ra
+nó, và `load_objects.py` cũng đã viết xong.
 
 ```
 data/derived/objects.parquet   → không có
 data/sample/objects.json       → không có (đường dẫn mặc định của load_objects.py)
 ```
 
-`load_objects.py` tồn tại và nạp vào Elasticsearch, nhưng **file nguồn không tồn
-tại**. Nên đây không chỉ là "cần Docker chạy" — có Docker cũng không nạp được gì.
-Panel Objects trong UI hiện một dòng giải thích thay vì để trống.
+→ Thuộc **W0.5 [Công Lý] — tải data**, cùng gói với Keyframes và `.npy`. Tải xong là
+có, không cần code thêm. Lưu ý: có Docker mà chưa tải data thì vẫn nạp được số không —
+Panel Objects trong UI nói đúng nguyên nhân này thay vì để trống.
+
+**`caption` mức frame — không nguồn nào có, và chưa ai được giao.**
+
+BTC **không** phát caption (không nằm trong năm nguồn kể trên). Tìm khắp repo:
+
+```
+data/derived/*.parquet   → không bảng nào có cột caption
+preprocessing/           → không job nào sinh caption
+backend/indexing/        → không loader nào nạp caption
+BUILD_TASKS.md W1–W3     → không task nào giao việc này
+```
+
+Chữ "caption" trong `BUILD_TASKS.md` xuất hiện ở ba chỗ, **không chỗ nào là task**:
+- **C1.1** — caption của *câu hỏi* (dịch query sang tiếng Anh cho CLIP), khác hẳn.
+- **"Thứ tự cắt nếu trễ" hạng 2** — *Caption VLM*. Đây là phương án dự phòng, **không
+  phải lệnh cắt**: chưa ai tuyên bố cắt thì nó vẫn nằm trong phạm vi D2.1.
+- **"Đã hoãn sang chung kết"** — *caption-space retrieval*, thứ khác (tìm kiếm trên
+  không gian caption), đã hoãn dứt khoát.
+
+→ Muốn có ô này phải chạy VLM sinh mô tả cho 177.321 keyframe — job GPU cỡ OCR.
+**Cần người quyết**: giao thành task mới, hay dùng quyền cắt ở hạng 2. Không tự quyết
+được ở tầng D2.1.
 
 #### 9.0.2. Một chỗ cố ý làm khác đặc tả
 
@@ -605,15 +613,43 @@ Thứ chỉ lộ ra lúc chạy (Milvus trả `frame_idx` kiểu gì, `ranks` c�
 |:---|:---|
 | Ảnh keyframe → thay thẻ xám bằng ảnh thật | Data Factory (§4.2) |
 | File `.npy` `clip-features-32` → nhánh `vector` mới chạy | Data Factory (§10.2) |
-| Panel `objects` | **chưa có nguồn dữ liệu nào** (§9.0.1), không phải chỉ chờ Docker |
-| Panel `caption` mức frame | **chưa ai được giao việc sinh ra nó** (§9.0.1) — cần chốt |
+| Panel `objects` | BTC cho sẵn, **chưa tải** (§9.0.1) — cùng gói W0.5 |
+| Panel `caption` mức frame | BTC không phát, **chưa ai được giao** (§9.0.1) — cần người quyết |
 | Tab "Sau rerank" | A2.4 của Thạch |
 | Một lượt `live` chạy thật | hạ tầng — xem 9.1b |
 
-Một rủi ro để ngỏ tới lúc có ảnh: `_duong_dan_anh()` đang **thử hai quy ước tên file**
-(`0000.jpg` đếm từ 0 và `0001.jpg` đếm từ 1) rồi lấy cái nào tồn tại. Nếu bộ ảnh thật
-có cả hai thì nó chọn nhầm mà không báo. Có ảnh về là phải kiểm lại, không kiểm được
-bằng test lúc này.
+### 9.3. Quy ước tên file ảnh — đã hết đoán
+
+Trước đây `_duong_dan_anh()` thử cả hai quy ước rồi lấy cái nào tồn tại. Đã tra được
+câu trả lời từ hai nguồn đã chốt:
+
+| Nguồn | Nói gì |
+|:---|:---|
+| `docs/contest.md` §Dữ liệu BTC | thư mục Keyframes dạng `L01_V001/0000.jpg`, đánh số **từ 0** |
+| `frame_map.parquet` | `btc_ordinal` nhỏ nhất là **1**, khớp hậu tố `#k0001` |
+
+→ `#k0001` ứng với `0000.jpg`, tức `ordinal - 1`. Đây là thứ tự **duy nhất** được thử
+đầu tiên. Vẫn còn đường lui sang `ordinal` vì quy ước còn mang dấu `# TODO: BTC`, nhưng
+đường lui **luôn kèm cảnh báo hiện lên UI** — rơi vào đó nghĩa là mọi ảnh lệch một
+keyframe, và lệch im lặng thì người chấm ngồi soi nhầm frame suốt buổi.
+
+Có 3 test khoá lại (`test_ten_file_anh_theo_QUY_UOC_dem_tu_0` và hai test kèm).
+
+### 9.4. Một chỗ lệch nằm NGOÀI D2.1, phát hiện lúc rà soát
+
+`backend/api/main.py:126` dựng đường dẫn ảnh theo quy ước **khác**:
+
+```python
+thumbnail_url = f"/thumbnails/{video_id}/{keyframe_id}.jpg"   # → L21_V001/L21_V001#k0001.jpg
+```
+
+Nhưng `docs/contest.md` ghi cấu trúc thật là `L01_V001/0000.jpg`. Hai file cùng đọc
+biến môi trường `KEYFRAMES_DIR` mà hiểu tên file theo hai kiểu — một trong hai sẽ hỏng
+ảnh khi data về.
+
+Dòng đó đã có sẵn `# TODO: BTC — chỉnh khi biết cấu trúc thư mục Keyframes thật`, và
+**`docs/contest.md` đã trả lời TODO ấy rồi**. Không phải phạm vi D2.1 nên không sửa —
+cần báo cho chủ file (`backend/api/main.py`).
 
 ---
 

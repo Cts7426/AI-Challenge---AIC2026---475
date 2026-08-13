@@ -212,29 +212,44 @@ def tach_id(kf_id: str) -> tuple[str, str | None, str | None]:
     return video, None, None
 
 
-def _duong_dan_anh(video_id: str, kf_btc: str | None, kf_own: str | None) -> Path | None:
-    """Tìm file ảnh của keyframe, ưu tiên bộ BTC vì search trả id kiểu BTC.
+def _duong_dan_anh(video_id: str, kf_btc: str | None,
+                   kf_own: str | None) -> tuple[Path | None, str | None]:
+    """Tìm file ảnh của keyframe → (đường dẫn, cảnh báo).
 
-    Chưa tải ảnh về → trả None, UI vẽ thẻ xám. Không raise: thiếu ảnh làm UI kém vui
-    chứ không làm sai một con số nào.
+    Quy ước tên file KHÔNG đoán, tra từ hai nguồn đã chốt:
+      · docs/contest.md — thư mục Keyframes dạng `L01_V001/0000.jpg`, đánh số TỪ 0
+      · frame_map.parquet — `btc_ordinal` nhỏ nhất là 1, và hậu tố `#k0001` khớp nó
+    → `#k0001` ứng với `0000.jpg`, tức `ordinal - 1`.
+
+    Vẫn thử `ordinal` nếu không thấy, vì quy ước này còn là `# TODO: BTC` và chỉ kiểm
+    được thật khi có ảnh. Nhưng lần thử thứ hai LUÔN kèm cảnh báo: rơi vào nhánh đó
+    nghĩa là toàn bộ ảnh đang lệch một keyframe, và lệch im lặng thì người chấm nhãn
+    ngồi soi nhầm frame suốt buổi mà không biết.
+
+    Chưa tải ảnh về → (None, None), UI vẽ thẻ xám. Không raise.
     """
     if kf_btc:
         m = _KIEU_BTC.match(kf_btc)
         if m:
             stt = int(m.group("ordinal"))
-            # BTC đánh số file từ 0, còn btc_ordinal trong frame_map đếm từ 1
-            for ten in (f"{stt - 1:04d}.jpg", f"{stt:04d}.jpg"):
-                p = KEYFRAMES_DIR / video_id / ten
-                if p.exists():
-                    return p
+            p = KEYFRAMES_DIR / video_id / f"{stt - 1:04d}.jpg"
+            if p.exists():
+                return p, None
+            p2 = KEYFRAMES_DIR / video_id / f"{stt:04d}.jpg"
+            if p2.exists():
+                return p2, (
+                    f"ảnh đang lấy theo `{stt:04d}.jpg` chứ không phải `{stt - 1:04d}.jpg` — "
+                    "bộ ảnh đánh số từ 1, khác docs/contest.md. Kiểm lại toàn bộ trước khi "
+                    "chấm nhãn: nếu sai thì mọi ảnh lệch một keyframe."
+                )
     if kf_own:
         df = _keyframes_video(video_id)
         hang = df[df.kf_id == kf_own]
         if not hang.empty:
             p = DERIVED / str(hang.iloc[0].path)
             if p.exists():
-                return p
-    return None
+                return p, None
+    return None, None
 
 
 # -------------------------------------------------------------------- API chính
@@ -311,7 +326,9 @@ def bang_chung(kf_id: str) -> BangChung:
                     "truc_tiep": bool(trong),
                 })
 
-    bc.anh = _duong_dan_anh(video_id, kf_btc, kf_own)
+    bc.anh, canh_bao_anh = _duong_dan_anh(video_id, kf_btc, kf_own)
+    if canh_bao_anh:
+        bc.canh_bao.append(canh_bao_anh)
 
     # Sự cố lược đồ đứng ĐẦU danh sách: bảng không đọc được thì mọi cảnh báo phía sau
     # ("không có doc_text"…) đều là chẩn đoán sai ăn theo nó. Ghép cả khối một lần —

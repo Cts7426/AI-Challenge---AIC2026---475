@@ -246,3 +246,45 @@ def test_keyframe_cung_shot_tang_dan_va_chua_chinh_no(cap_id):
     assert dai, "shot nào cũng phải có ít nhất chính keyframe này"
     assert [d["frame_idx"] for d in dai] == sorted(d["frame_idx"] for d in dai)
     assert bc.kf_id_tu_trich in [d["kf_id"] for d in dai]
+
+
+# --------------------------------------------------------------- đường dẫn ảnh
+
+def test_ten_file_anh_theo_QUY_UOC_dem_tu_0(tmp_path, monkeypatch):
+    """`#k0001` phải trỏ tới `0000.jpg`, không phải `0001.jpg`.
+
+    Hai nguồn đã chốt việc này: docs/contest.md ghi thư mục Keyframes dạng
+    `L01_V001/0000.jpg` đánh số TỪ 0, còn `frame_map.btc_ordinal` nhỏ nhất là 1 và
+    khớp với hậu tố `#k0001`. Lệch một keyframe là người chấm nhãn soi nhầm frame
+    suốt buổi mà không có dấu hiệu gì.
+    """
+    import app.evidence as ev
+
+    (tmp_path / "L21_V001").mkdir()
+    for ten in ("0000.jpg", "0001.jpg"):
+        (tmp_path / "L21_V001" / ten).write_bytes(b"x")
+    monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
+
+    p, canh_bao = ev._duong_dan_anh("L21_V001", "L21_V001#k0001", None)
+    assert p is not None and p.name == "0000.jpg", "đang lệch một keyframe"
+    assert canh_bao is None
+
+
+def test_bo_anh_dem_tu_1_thi_dung_duoc_nhung_phai_BAO(tmp_path, monkeypatch):
+    """Đường lui phải kèm cảnh báo — quy ước còn là `# TODO: BTC`, chưa kiểm bằng ảnh thật."""
+    import app.evidence as ev
+
+    (tmp_path / "L21_V001").mkdir()
+    (tmp_path / "L21_V001" / "0001.jpg").write_bytes(b"x")  # chỉ có bản đếm từ 1
+    monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
+
+    p, canh_bao = ev._duong_dan_anh("L21_V001", "L21_V001#k0001", None)
+    assert p is not None and p.name == "0001.jpg"
+    assert canh_bao and "0001.jpg" in canh_bao, "dùng đường lui mà im lặng"
+
+
+def test_chua_co_anh_thi_tra_None_chu_khong_sap(tmp_path, monkeypatch):
+    import app.evidence as ev
+
+    monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path / "khong_ton_tai")
+    assert ev._duong_dan_anh("L21_V001", "L21_V001#k0001", None) == (None, None)

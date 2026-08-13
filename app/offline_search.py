@@ -1,32 +1,9 @@
-# app/offline_search.py — D2.1: tìm kiếm bằng chữ KHÔNG cần Milvus/Elasticsearch
+# app/offline_search.py — D2.1: BM25 trên docs_bm25.parquet, không cần Milvus/ES.
 #
-# ⚠️ ĐÂY LÀ CÔNG CỤ DEV, KHÔNG PHẢI ĐƯỜNG CHẠY LÚC THI.
-# Đường thi là `backend.retrieval.search.search()` (RRF trên 5 nhánh). File này chậm
-# hơn và dở hơn — nó chỉ có một việc: cho soi dữ liệu khi Docker chưa lên.
+# Công cụ DEV, không phải đường thi. Đường thi là `backend.retrieval.search.search()`.
+# Tồn tại để mở được UI khi Docker chưa lên và để soi chất lượng `doc_text`.
 #
-# Vì sao vẫn đáng viết:
-#   1. Mở được UI ngay cả khi Milvus/ES chết — kể cả 2h sáng ngày nộp.
-#   2. Kiểm được chất lượng `doc_text` của Công Lý ngay hôm nay (BUILD_TASKS B1.7:
-#      "tra thử một tên riêng hiếm → phải ra đúng frame").
-#   3. Không cần torch, không cần GPU, không cần nạp loader nào.
-#
-# ===== Vì sao quét theo LÔ chứ không nạp cả bảng =====
-# Đo thật: nạp hết cột `doc_text` (371.702 dòng, dài trung bình 1.977 ký tự) tốn
-# ~845 MB RAM. Máy 16 GB còn phải nuôi Docker (Milvus ăn vài GB) + Streamlit.
-# Quét theo lô thì đỉnh bộ nhớ chỉ bằng MỘT lô, còn thứ giữ lại là mấy mảng số đếm
-# (371k × vài số = chục MB).
-#
-# ===== Vì sao đếm bằng str.count thay vì tách từ =====
-# Tách từ 371k tài liệu × 2.000 ký tự bằng Python thuần mất hàng chục giây mỗi truy
-# vấn. `str.count` của pandas chạy ở tầng C, mỗi từ khoá một lượt quét — truy vấn
-# 3–5 từ là 3–5 lượt, đủ nhanh để dùng tay.
-#
-# ===== Hai thứ đã BỎ sau khi đo (toàn kho 371.702 tài liệu) =====
-#   bỏ dấu tiếng Việt (NFD + regex)  : 40,4 s  → BỎ, xem `tach_tu()`
-#   đo độ dài bằng str.count(r"\s+") : 29,7 s  → thay bằng str.len(), 1,0 s
-#   giữ lại: lower() 6,2 s · str.count mỗi từ 0,8 s · str.len() 1,0 s
-# Tổng cho một truy vấn 4 từ: ~10 s. Chậm, nhưng đây là đường lui chứ không phải
-# đường thi — và 10 s vẫn hơn hẳn "không mở được UI".
+# Số đo và lý do chọn từng cách làm: reports/D21_TECHNICAL_REPORT.md §5.
 
 from __future__ import annotations
 
@@ -37,13 +14,12 @@ from pathlib import Path
 
 DOCS_PATH = Path(__file__).resolve().parents[1] / "data" / "derived" / "docs_bm25.parquet"
 
-# Tham số BM25 chuẩn (Robertson & Walker). k1 điều tiết mức bão hoà khi một từ lặp
-# nhiều lần, b điều tiết mức phạt tài liệu dài. Không tune: đây là công cụ dev, và
-# đường thi dùng BM25 của Elasticsearch với chính hai giá trị mặc định này.
+# Mặc định của Elasticsearch — giữ nguyên để offline và live cùng thang điểm.
 BM25_K1 = 1.5
 BM25_B = 0.75
 
-LO = 50_000  # số dòng mỗi lô
+CO_LO = 50_000  # dòng mỗi lô; quét theo lô vì nạp cả cột doc_text tốn ~845 MB RAM
+DAI_TRICH = 90
 
 
 @dataclass(frozen=True)
@@ -53,29 +29,60 @@ class KetQuaOffline:
     shot_id: str | None
     frame_idx: int
     score: float
-    trich: str  # đoạn doc_text quanh từ khớp, để nhìn phát biết vì sao lên hạng
+    trich: str  # đoạn doc_text quanh từ khớp
 
 
 def tach_tu(q: str) -> list[str]:
-    """Truy vấn → danh sách từ khoá, viết thường, bỏ trùng, giữ thứ tự.
+    """Truy vấn → từ khoá viết thường, bỏ trùng, giữ thứ tự.
 
-    ⚠️ **KHÔNG bỏ dấu.** Đường thi có `VI_FOLDED_ANALYSIS` của Elasticsearch nên gõ
-    không dấu vẫn tra được; ở đây thì không. Lý do là số đo: bỏ dấu cả kho tốn
-    **40,4 s mỗi truy vấn** (NFD + regex trên 371k tài liệu), so với 6,2 s chỉ viết
-    thường. Đổi 34 s lấy tiện ích "gõ không dấu" là không đáng cho một đường lui.
-
-    → Gõ tiếng Việt CÓ DẤU khi dùng chế độ offline. Gõ thiếu dấu vẫn chạy, chỉ là
-    ít kết quả hơn — không sai, chỉ hụt.
-
-    Bỏ từ dưới 2 ký tự: 'ở', 'và' không phân biệt được tài liệu nào với tài liệu nào,
-    mà mỗi từ là một lượt quét toàn kho.
+    KHÔNG bỏ dấu: bỏ dấu cả kho tốn 40,4 s mỗi truy vấn. → gõ tiếng Việt CÓ DẤU.
+    Bỏ từ dưới 2 ký tự: không phân biệt được tài liệu nào với tài liệu nào.
     """
     tu = [t for t in re.split(r"\W+", q.lower()) if len(t) >= 2]
     return list(dict.fromkeys(tu))
 
 
-def _trich_quanh(doc: str, tu_khoa: list[str], rong: int = 90) -> str:
-    """Cắt một đoạn `doc_text` quanh từ khớp đầu tiên — nhìn phát biết vì sao lên hạng."""
+# Ranh giới từ, viết cho RE2 (công cụ regex của pyarrow — xem `_dem_dung_tu`).
+#
+# ⚠️ KHÔNG được thay bằng `\b`. `\b` của RE2 chỉ coi [A-Za-z0-9_] là chữ cái, nên
+# 'ù' bị tính là dấu ngắt từ: `\btù\b` KHÔNG khớp 'tù nhân' (sau 'ù' là dấu cách,
+# hai bên đều "không phải chữ" nên không có ranh giới) nhưng LẠI khớp 'tùng' (sau
+# 'ù' là 'n', có ranh giới). Sai ngược hoàn toàn, và không có dấu hiệu gì.
+# `\p{L}` là lớp chữ cái Unicode nên nó hiểu đúng nguyên âm có dấu.
+_RANH_GIOI_TU = r"(?:^|[^\p{L}\p{N}_])%s(?:[^\p{L}\p{N}_]|$)"
+
+
+def _dem_dung_tu(van, tu: str):
+    """Số lần `tu` xuất hiện NHƯ MỘT TỪ trong từng tài liệu.
+
+    Đếm chuỗi con là sai: tiếng Việt đơn âm nên 'ba' khớp cả trong 'baothanhnien',
+    thổi phồng tần suất tới 45 lần (đo trên L21_V001) và đẩy rác lên hạng 1.
+
+    Hai lượt. Lượt 1 đếm chuỗi con — rẻ, và là CẬN TRÊN nên không bỏ sót tài liệu
+    nào. Lượt 2 đếm đúng ranh giới từ, chỉ trên số tài liệu đã lọt lượt 1. Tổng
+    14,2 s cho 5 từ khoá trên toàn kho, bằng đúng bản đếm chuỗi con.
+
+    Gọi thẳng `pyarrow.compute` chứ không qua `pandas.str.count`: pandas 3.0 tự chọn
+    backend theo dtype (str → RE2, object → module `re`), hai backend cho ra kết quả
+    KHÁC NHAU ở đây, và pandas không hứa giữ nguyên cách chọn. Gọi thẳng thì luôn
+    biết mình đang chạy công cụ nào, và `_RANH_GIOI_TU` viết đúng cho công cụ đó.
+    """
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
+    ung_vien = van.str.count(re.escape(tu)).to_numpy() > 0
+    dem = np.zeros(len(van), dtype=np.float32)
+    if ung_vien.any():
+        so = pc.count_substring_regex(
+            pa.array(van[ung_vien]), _RANH_GIOI_TU % re.escape(tu)
+        )
+        dem[ung_vien] = so.to_numpy(zero_copy_only=False)
+    return dem
+
+
+def _trich_quanh(doc: str, tu_khoa: list[str], rong: int = DAI_TRICH) -> str:
+    """Cắt đoạn doc_text quanh từ khớp đầu tiên — nhìn phát biết vì sao lên hạng."""
     thuong = doc.lower()
     for t in tu_khoa:
         i = thuong.find(t)
@@ -86,16 +93,13 @@ def _trich_quanh(doc: str, tu_khoa: list[str], rong: int = 90) -> str:
 
 
 def tim(query: str, top_k: int = 20, docs_path: Path | None = None) -> list[KetQuaOffline]:
-    """BM25 thô trên `docs_bm25.parquet`. Trả top-K keyframe đã xếp hạng.
+    """BM25 trên `docs_bm25.parquet`, trả top-K keyframe đã xếp hạng.
 
-    Vào: truy vấn tiếng Việt (có dấu hay không đều được) · số kết quả.
-    Ra: list `KetQuaOffline` xếp theo điểm giảm dần. Truy vấn không có từ nào ≥2 ký
-    tự → trả rỗng.
-    Bất biến: KHÔNG nạp cả cột `doc_text` vào RAM · không đặt ngưỡng điểm cứng (cùng
-    lý do với CLAUDE.md bất biến 6 — lọc theo ngưỡng là vứt kết quả đúng).
+    Vào: truy vấn tiếng Việt · số kết quả. Ra: list `KetQuaOffline`, điểm giảm dần.
+    Bất biến: không nạp cả cột `doc_text` vào RAM · không đặt ngưỡng điểm cứng.
 
-    Một lượt quét duy nhất: vừa đếm tần suất từ, vừa đo độ dài tài liệu, vừa đếm số
-    tài liệu chứa mỗi từ. Tính điểm sau khi quét xong vì IDF cần thống kê toàn kho.
+    Một lượt quét gom tần suất từ + độ dài tài liệu; tính điểm sau vì IDF cần thống
+    kê toàn kho.
     """
     import numpy as np
     import pandas as pd
@@ -106,38 +110,37 @@ def tim(query: str, top_k: int = 20, docs_path: Path | None = None) -> list[KetQ
     if not tu_khoa or not p.exists():
         return []
 
-    tf_lo: list[np.ndarray] = []      # tần suất từng từ trong từng tài liệu
-    dai_lo: list[np.ndarray] = []     # độ dài tài liệu (số từ)
+    tf_lo: list[np.ndarray] = []
+    dai_lo: list[np.ndarray] = []
     meta_lo: list[pd.DataFrame] = []
 
     t0 = time.time()
     for lo in pq.ParquetFile(p).iter_batches(
-        batch_size=LO, columns=["kf_id", "video_id", "shot_id", "frame_idx", "doc_text"]
+        batch_size=CO_LO, columns=["kf_id", "video_id", "shot_id", "frame_idx", "doc_text"]
     ):
         df = lo.to_pandas()
+        if df.empty:
+            continue
         van = df.doc_text.fillna("").str.lower()
-        # Độ dài tính bằng KÝ TỰ, không phải số từ: `str.count(r"\s+")` tốn 29,7 s
-        # còn `str.len()` tốn 1,0 s trên cùng bộ dữ liệu. BM25 chỉ cần một thước đo
-        # NHẤT QUÁN để phạt tài liệu dài — ký tự hay từ đều được, miễn cùng đơn vị
-        # với `dai_tb`.
+        # Độ dài đo bằng KÝ TỰ: str.len() tốn 1,0 s, đếm khoảng trắng tốn 29,7 s.
+        # BM25 chỉ cần một thước đo nhất quán để phạt tài liệu dài.
         dai_lo.append(van.str.len().to_numpy(dtype=np.float32))
-        tf_lo.append(np.stack(
-            [van.str.count(re.escape(t)).to_numpy(dtype=np.float32) for t in tu_khoa]
-        ))
+        tf_lo.append(np.stack([_dem_dung_tu(van, t) for t in tu_khoa]))
         meta_lo.append(df.drop(columns=["doc_text"]))
 
     if not tf_lo:
         return []
 
-    tf = np.concatenate(tf_lo, axis=1)          # (số_từ, số_tài_liệu)
+    tf = np.concatenate(tf_lo, axis=1)  # (số_từ, số_tài_liệu)
     dai = np.concatenate(dai_lo)
     meta = pd.concat(meta_lo, ignore_index=True)
 
     n = len(dai)
-    dai_tb = float(dai.mean()) or 1.0
-    df_tu = (tf > 0).sum(axis=1)                # số tài liệu chứa mỗi từ
-    # IDF chuẩn BM25: từ có mặt khắp nơi thì gần như không mang thông tin
-    idf = np.log(1.0 + (n - df_tu + 0.5) / (df_tu + 0.5))
+    dai_tb = float(dai.mean())
+    if not dai_tb > 0:  # kho rỗng hoặc toàn doc_text rỗng — cũng bắt luôn NaN
+        return []
+    so_tl_chua = (tf > 0).sum(axis=1)
+    idf = np.log(1.0 + (n - so_tl_chua + 0.5) / (so_tl_chua + 0.5))
 
     mau = tf + BM25_K1 * (1.0 - BM25_B + BM25_B * dai / dai_tb)
     diem = (idf[:, None] * (tf * (BM25_K1 + 1.0)) / np.maximum(mau, 1e-9)).sum(axis=0)
@@ -147,16 +150,15 @@ def tim(query: str, top_k: int = 20, docs_path: Path | None = None) -> list[KetQ
         return []
     thu_tu = co_diem[np.argsort(-diem[co_diem])[:top_k]]
 
-    # Đọc lại doc_text CHỈ cho vài dòng thắng cuộc — rẻ hơn nhiều so với giữ cả cột
-    can = set(meta.iloc[thu_tu].kf_id)
-    doc_text = _doc_text_cua(p, can)
+    # Đọc lại doc_text CHỈ cho vài dòng thắng cuộc, rẻ hơn giữ cả cột trong RAM
+    doc_text = _doc_text_cua(p, set(meta.iloc[thu_tu].kf_id))
 
     print(f"  [offline] {n} tài liệu · {len(tu_khoa)} từ khoá · {time.time() - t0:.1f}s")
     return [
         KetQuaOffline(
             kf_id=str(r.kf_id),
             video_id=str(r.video_id),
-            shot_id=str(r.shot_id) if r.shot_id is not None else None,
+            shot_id=_chuoi_hoac_none(r.shot_id),
             frame_idx=int(r.frame_idx),
             score=round(float(diem[i]), 4),
             trich=_trich_quanh(doc_text.get(str(r.kf_id), ""), tu_khoa),
@@ -165,12 +167,20 @@ def tim(query: str, top_k: int = 20, docs_path: Path | None = None) -> list[KetQ
     ]
 
 
+def _chuoi_hoac_none(v) -> str | None:
+    """Ô rỗng của parquet ra `NaN`/`NaT`, không phải `None` — `str()` thẳng sẽ ra
+    chuỗi 'nan' rồi trôi vào nhãn và không ai nhận ra."""
+    if v is None or v != v:
+        return None
+    return str(v)
+
+
 def _doc_text_cua(p: Path, kf_ids: set[str]) -> dict[str, str]:
-    """Lấy `doc_text` của đúng vài kf_id — quét lại theo lô, không giữ gì thừa."""
+    """`doc_text` của đúng vài kf_id — quét lại theo lô, không giữ gì thừa."""
     import pyarrow.parquet as pq
 
     ra: dict[str, str] = {}
-    for lo in pq.ParquetFile(p).iter_batches(batch_size=LO, columns=["kf_id", "doc_text"]):
+    for lo in pq.ParquetFile(p).iter_batches(batch_size=CO_LO, columns=["kf_id", "doc_text"]):
         d = lo.to_pydict()
         for k, v in zip(d["kf_id"], d["doc_text"]):
             if k in kf_ids:
@@ -184,7 +194,7 @@ def main() -> int:
     """CLI soi nhanh: `python -m app.offline_search "tên riêng hiếm"`."""
     import argparse
 
-    ap = argparse.ArgumentParser(description="BM25 thô trên docs_bm25.parquet (D2.1, dev).")
+    ap = argparse.ArgumentParser(description="BM25 trên docs_bm25.parquet (D2.1, dev).")
     ap.add_argument("query")
     ap.add_argument("--top-k", type=int, default=10)
     args = ap.parse_args()

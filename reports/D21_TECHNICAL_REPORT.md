@@ -6,8 +6,10 @@
 >
 > **Phạm vi:** `app/` + `data/config/debug_ui.py` + `tests/`
 >
-> **Trạng thái: ĐÃ CHẠY ĐƯỢC ĐẦU-CUỐI.** Gõ truy vấn → tìm → chấm nhãn → nhãn ra file.
-> Còn thiếu: ảnh keyframe (chưa tải về) và nhánh `objects` (cần Elasticsearch).
+> **Trạng thái: ĐÃ CHẠY ĐƯỢC ĐẦU-CUỐI ở chế độ `offline`.** Gõ truy vấn → tìm →
+> chấm nhãn → nhãn ra file. Chế độ `live` mới kiểm được hợp đồng tĩnh, **chưa chạy
+> thật lần nào** (§9.1b). Ba thứ trong đặc tả chưa có nguồn dữ liệu: ảnh keyframe,
+> `objects`, `caption` mức frame (§9.0).
 
 ---
 
@@ -20,7 +22,8 @@
 6. [Chi tiết từng hàm](#6-chi-tiết-từng-hàm)
 7. [Kết quả chạy thực tế](#7-kết-quả-chạy-thực-tế)
 8. [Kết quả chạy đầu-cuối](#8-kết-quả-chạy-đầu-cuối)
-9. [Còn lại](#9-còn-lại)
+9. [Rà soát lại toàn bộ (13/08)](#9-rà-soát-lại-toàn-bộ-1308) — [đối chiếu đặc tả](#90-đối-chiếu-với-đặc-tả-d21-trong-build_tasksmd)
+10. [Dùng chế độ nào, cần gì để chạy](#10-dùng-chế-độ-nào-cần-gì-để-chạy)
 
 ---
 
@@ -35,8 +38,8 @@ UI này trả lời ba câu:
 | Câu hỏi | Nhìn vào đâu |
 |:---|:---|
 | Frame này lên hạng nhờ nguồn nào? | thứ hạng từng nhánh (`ranks` từ A2.2) |
-| Frame này thật sự chứa gì? | OCR · ASR · objects · `doc_text` |
-| Kết quả này đúng hay sai? | nút chấm nhãn → `dev_set/labels.jsonl` |
+| Frame này thật sự chứa gì? | OCR · ASR · `doc_text` (objects: xem §9.0) |
+| Kết quả này đúng hay sai? | nút chấm nhãn → `dev_set/labels.<người>.jsonl` |
 
 Câu thứ ba mới là lý do tồn tại chính. File nhãn sinh ra ở đây là **đề thi tự chấm** của
 nhóm, và là đầu vào bắt buộc của hai task sau:
@@ -296,16 +299,83 @@ frame. Có test riêng đối chiếu với `frame_map.parquet`.
 **Ba quyết định đều dựa trên số đo**, không phải cảm tính. Đo trên toàn kho 371.702
 tài liệu (dài trung bình 1.977 ký tự):
 
-| Cách làm | Chi phí mỗi truy vấn | Quyết định |
-|:---|---:|:---|
-| Nạp cả cột `doc_text` vào RAM | 845 MB | ❌ quét theo lô, đỉnh = 1 lô |
-| Bỏ dấu tiếng Việt (NFD + regex) | 40,4 s | ❌ bỏ — chấp nhận phải gõ có dấu |
-| Đo độ dài bằng `str.count(r"\s+")` | 29,7 s | ❌ đổi sang `str.len()`, còn 1,0 s |
-| `str.lower()` | 6,2 s | ✅ giữ |
-| `str.count` mỗi từ khoá | 0,8 s | ✅ giữ |
+| Cách làm                           | Chi phí mỗi truy vấn | Quyết định                        |
+| :-----------------------------------| ---------------------:| :----------------------------------|
+| Nạp cả cột `doc_text` vào RAM      | 845 MB               | ❌ quét theo lô, đỉnh = 1 lô       |
+| Bỏ dấu tiếng Việt (NFD + regex)    | 40,4 s               | ❌ bỏ — chấp nhận phải gõ có dấu   |
+| Đo độ dài bằng `str.count(r"\s+")` | 29,7 s               | ❌ đổi sang `str.len()`, còn 1,0 s |
+| `str.lower()`                      | 6,2 s                | ✅ giữ                             |
+| `str.count` chuỗi con, mỗi từ khoá | 0,8 s                | ⚠️ nhanh nhưng **SAI** — xem dưới  |
+| `str.count` có `\b`, mỗi từ khoá   | 2,7 s                | ✅ dùng, nhưng chỉ cho ứng viên    |
 
-Tổng thực tế: **~8 s cho truy vấn 3 từ**. Chậm, nhưng đây là đường lui — và 8 s vẫn
-hơn hẳn "không mở được UI".
+Tổng thực tế: **~18 s cho truy vấn 5 từ**, ~15 s cho truy vấn 1 từ phổ biến. Chậm,
+nhưng đây là đường lui — và 18 s vẫn hơn hẳn "không mở được UI".
+
+### 6.3.1. Hai lỗi đếm từ, đều phát hiện từ một truy vấn thật
+
+Tra **"tù nhân"** trả về toàn `nạn nhân là ông tùng`, không có tù nhân nào. Kho có
+**26 keyframe chứa đúng cụm "tù nhân"** mà không cái nào lọt top-5. Lần lại ra hai
+lỗi chồng lên nhau.
+
+**Lỗi 1 — đếm chuỗi con thay vì đếm từ.**
+
+`str.count("ba")` đếm cả những lần `ba` nằm **bên trong** một từ khác. Tiếng Việt đơn
+âm nên từ khoá thường chỉ 2–3 ký tự, và mức thổi phồng đo được trên `L21_V001` là:
+
+| Từ khoá | Đếm chuỗi con | Đếm đúng từ | Thổi phồng |
+|:---|---:|---:|---:|
+| `ba` | 1.078 | 24 | **×44,9** |
+| `an` | 10.046 | 913 | ×11,0 |
+| `hoa` | 273 | 49 | ×5,6 |
+| `nam` | 2.793 | 1.482 | ×1,9 |
+
+Hậu quả thật, quan sát được trước khi sửa: gõ `ba` thì hạng 1 là một tài liệu chứa
+`#baothanhnien` — **không hề có chữ "ba" nào**. Không crash, không cảnh báo, chỉ là
+bảng xếp hạng vô nghĩa.
+
+Cách sửa (`_dem_dung_tu()`) **hai lượt**, vì đếm đúng ranh giới từ đắt hơn nhiều:
+
+1. Lượt 1 — đếm chuỗi con (rẻ). Kết quả là **cận trên**: tài liệu chứa từ thật thì
+   chắc chắn cũng chứa chuỗi con, nên không bỏ sót cái nào.
+2. Lượt 2 — đếm đúng ranh giới từ, **chỉ trên số tài liệu lọt lượt 1**.
+
+**Lỗi 2 — `\b` không dùng được cho tiếng Việt, và pandas âm thầm đổi công cụ regex.**
+
+Bản sửa đầu tiên dùng `pandas.str.count(r"\btù\b")`. Vẫn sai, sai kiểu khác:
+
+| Tài liệu | `\btù\b` cho ra | Đúng phải là |
+|:---|---:|---:|
+| `tù nhân bỏ trốn` | **0** | 1 |
+| `nạn nhân là ông tùng` | **1** | 0 |
+
+Sai **ngược hoàn toàn** — đúng lý do "tù nhân" trả về "ông tùng". Hai nguyên nhân
+chồng nhau:
+
+- **pandas 3.0 chọn backend regex theo dtype.** Cột đọc từ parquet có dtype `str` nên
+  `str.count` chạy **RE2 của pyarrow**; cùng dữ liệu ấy `astype(object)` thì chạy
+  module `re` và cho kết quả **khác**. pandas không hứa giữ nguyên cách chọn này.
+- **`\b` của RE2 chỉ coi `[A-Za-z0-9_]` là chữ cái.** Với `ù`: trong `tù nhân`, sau
+  `ù` là dấu cách — RE2 coi cả hai đều không-phải-chữ nên **không thấy ranh giới**,
+  không khớp. Trong `tùng`, sau `ù` là `n` — RE2 thấy ranh giới, **khớp**.
+
+Bản cuối gọi thẳng `pyarrow.compute.count_substring_regex` với ranh giới viết bằng
+lớp chữ cái Unicode:
+
+```python
+_RANH_GIOI_TU = r"(?:^|[^\p{L}\p{N}_])%s(?:[^\p{L}\p{N}_]|$)"
+```
+
+Gọi thẳng pyarrow chứ không qua pandas là để **luôn biết mình đang chạy công cụ nào** —
+mẫu regex chỉ đúng cho đúng một công cụ.
+
+**Đối chiếu:** khớp module `re` của Python trên 11 ca biên (gồm chồng lấn `tù tù tù`,
+ngăn cách bằng dấu câu, chữ hoa, số dính liền) và 400 ca sinh ngẫu nhiên — **411/411**.
+
+**Đo lại:** 14,2 s cho 5 từ khoá trên toàn kho — bằng đúng bản đếm chuỗi con sai. Ba
+cách khác đều bị loại: `\b` qua module `re` **46 s**, `astype(object)` **49 s**, cả hai
+quá chậm để chấm nhãn bằng tay.
+
+**Kết quả tra lại "tù nhân"** — 5 hạng đầu đều là tin về bạo loạn nhà tù ở Nga.
 
 > [!NOTE]
 > Bỏ dấu là đánh đổi **có chủ ý**, có test chốt lại (`test_tach_tu_KHONG_bo_dau`) để
@@ -406,18 +476,190 @@ AIC_LABELER=e2e · chế độ offline
 |:---|:---|
 | `_cau_noi` giữ **dòng cuối** thay vì dòng gần nhất | Bằng chứng lệch tới 22 frame so với ảnh đang nhìn |
 | `tach_id` nổ `TypeError` khi gặp `NAType` | Ô rỗng trong parquet làm sập UI |
-| Trang **tự chạy search** khi chưa bấm nút | Đợi 8 giây mỗi lần chạm bàn phím, kể cả lúc chỉ bấm nút chấm nhãn |
+| Trang **tự chạy search** khi chưa bấm nút | Đợi ~18 giây mỗi lần chạm bàn phím, kể cả lúc chỉ bấm nút chấm nhãn |
 
 ---
 
-## 9. Còn lại
+## 9. Rà soát lại toàn bộ (13/08)
+
+### 9.0. Đối chiếu với đặc tả D2.1 trong `BUILD_TASKS.md`
+
+Bốn gạch đầu dòng của đặc tả, đối chiếu từng cái:
+
+| # | Đặc tả yêu cầu | Trạng thái |
+|:--:|:---|:---|
+| 1 | Nhập query → thấy kết quả **từng tầng cạnh nhau** (sau RRF / sau rerank) | 🟡 có 3 tab: RRF ✅ · từng nhánh riêng ✅ · **rerank là khung rỗng**, chờ A2.4 |
+| 2 | Click frame → thấy **caption, OCR, ASR, object** của frame đó | 🟡 OCR ✅ ASR ✅ (+`doc_text`) · **caption ❌** · **object ❌** — xem dưới |
+| 3 | Hiển thị **thứ hạng từng nhánh** cho mỗi kết quả | ✅ đủ 5 nhánh, đọc từ `ranks` của A2.2 |
+| 4 | Nút đúng/sai ghi thẳng vào `dev_set/labels.jsonl` | ✅ có, nhưng **đổi tên file** — xem 9.0.2 |
+
+#### 9.0.1. Hai thứ đặc tả đòi mà KHÔNG có nguồn dữ liệu
+
+Đây không phải "chưa làm", mà là "chưa ai sinh ra thứ đó".
+
+**`caption` mức frame — không có ai sản xuất.** Tìm khắp repo:
+
+```
+data/derived/*.parquet   → không bảng nào có cột caption
+preprocessing/           → không job nào sinh caption
+backend/indexing/        → không loader nào nạp caption
+BUILD_TASKS.md           → không task nào giao việc này
+```
+
+Chữ "caption" trong `BUILD_TASKS.md` chỉ xuất hiện ở **C1.1**, và đó là caption của
+**câu hỏi** (dịch query sang tiếng Anh cho CLIP), không phải mô tả nội dung frame.
+
+→ Muốn có ô này phải chạy VLM sinh mô tả cho 177.321 keyframe — một job GPU cỡ OCR,
+**chưa nằm trong kế hoạch của ai**. Cần chốt: bỏ hẳn khỏi D2.1, hay giao thành task
+mới cho Data Factory. **Đây là việc cần hỏi Thạch/Linh, không tự quyết được.**
+
+**`objects` mức frame — chưa có dữ liệu, kể cả bản mẫu.**
+
+```
+data/derived/objects.parquet   → không có
+data/sample/objects.json       → không có (đường dẫn mặc định của load_objects.py)
+```
+
+`load_objects.py` tồn tại và nạp vào Elasticsearch, nhưng **file nguồn không tồn
+tại**. Nên đây không chỉ là "cần Docker chạy" — có Docker cũng không nạp được gì.
+Panel Objects trong UI hiện một dòng giải thích thay vì để trống.
+
+#### 9.0.2. Một chỗ cố ý làm khác đặc tả
+
+Đặc tả ghi `dev_set/labels.jsonl` (một file). Code ghi
+**`dev_set/labels.<người>.jsonl`** (mỗi người một file).
+
+Lý do: nhãn được commit lên git (§4.3). Năm người cùng `append` vào một file thì mỗi
+lần pull là một conflict, và conflict trên file JSONL rất dễ giải quyết sai — mất
+nhãn mà không ai biết. Tách theo người thì hai người không bao giờ đụng cùng một
+dòng, mà `load_labels()` vẫn gộp lại thành một bộ duy nhất khi đọc.
+
+→ Thay đổi này **không ảnh hưởng ai khác**: E4.2 và D3.5 gọi `load_labels()` /
+`BangNhan`, không đọc thẳng file.
+
+Đọc lại cả 4 file sau khi đã chạy thật. Sáu chỗ sai, **đã sửa hết**, mỗi chỗ có test
+khoá lại.
+
+| # | Chỗ sai | Hậu quả nếu để nguyên | Cách sửa |
+|:--:|:---|:---|:---|
+| 1 | **Đếm chuỗi con thay vì đếm từ** (`offline_search`) | Xếp hạng vô nghĩa với từ khoá ngắn — thổi phồng tới ×45, xem §6.3.1 | `_dem_dung_tu()` hai lượt |
+| 2 | Ô bật/tắt 5 nhánh **vẫn bấm được ở chế độ offline** | Tắt `vector` thấy kết quả y hệt → kết luận "vector không đóng góp", trong khi nó chưa từng được gọi | `disabled=` khi offline |
+| 3 | Nhãn không ghi **chấm từ chế độ nào** | Không phát hiện được lệch bộ nhãn (§10.3) | `source = "debug_ui/live"` hoặc `/offline` |
+| 4 | Khoá widget OCR dùng `id(dict)` | `id()` là địa chỉ bộ nhớ, được cấp lại sau GC → hai lần vẽ khác nhau trùng khoá, Streamlit lỗi giữa lúc đang chấm | khoá theo `kf_id` + thứ tự |
+| 5 | `bang_chung()` bị gọi **hai lần mỗi thẻ** | 20 kết quả = 40 lượt lọc DataFrame thừa | gọi một lần, dùng lại |
+| 6 | `shot_id` rỗng thành chuỗi `"nan"` | `str(NaN)` ra `"nan"`, trôi thẳng vào file nhãn không ai nhận ra | `_chuoi_hoac_none()` |
+| 7 | **`\b` sai với tiếng Việt + pandas đổi backend regex** | Xếp hạng sai NGƯỢC: "tù nhân" ra "ông tùng", xem §6.3.1 | gọi thẳng `pyarrow.compute` với `\p{L}` |
+| 8 | UI mặc định chọn `live` trên máy chưa cài gì | `backend.retrieval.search` nạp lười nên import trót lọt; người dùng bấm Tìm kiếm rồi mới biết | kiểm từng gói bằng `find_spec`, báo tên gói + lệnh `pip install` |
+| 9 | Thiếu `ANTHROPIC_API_KEY` + bỏ trống ô tiếng Anh | `search()` gọi LLM để dịch và ném lỗi **trước khi nhánh nào chạy** → chết cả 5 nhánh, stack trace không liên quan gì tới thao tác vừa bấm | chặn trước, đánh dấu ô tiếng Anh là BẮT BUỘC |
+
+Ngoài ra: `insert(0, …)` trong vòng lặp làm **lật ngược** thứ tự cảnh báo lược đồ (đã
+đổi thành ghép cả khối), và `dai_tb` không chặn `NaN` (đã thêm chặn).
+
+### 9.1. ⚠️ Hai nguồn cùng nói về `frame_idx`
+
+Phát hiện lúc rà soát, **chưa xử lý dứt điểm** vì không có cách xử lý đúng ở phía UI:
+
+- `search()` trả `frame_idx` lấy từ **Milvus** (chế độ `live`) hoặc từ hậu tố kf_id tự
+  trích (chế độ `offline`).
+- `evidence.bang_chung()` tra `frame_idx` từ **`frame_map.parquet`**.
+
+Hai số này **có thể lệch nhau**, và ở chế độ `offline` thì lệch là chuyện bình thường
+— keyframe tự trích và keyframe BTC cách nhau trung vị 11 frame (§3). Nhãn ghi theo
+số đang hiện trên thẻ, còn panel bằng chứng hiện số của `frame_map`.
+
+Đã xử lý bằng cách **nói ra**: thẻ nào lệch thì hiện một dòng `⚠️ frame_map nói N
+(lệch ±k)` kèm gợi ý bấm **✓ Cả shot**. Nhãn cả shot là một khoảng nên nuốt được cả
+hai số, tránh hẳn vấn đề.
+
+> [!WARNING]
+> Đây là chỗ đáng soi lại khi có data thật. Nếu Milvus được nạp `frame_idx` từ nguồn
+> khác `frame_map.parquet` thì đó là lỗi của A2.2/A1, không phải của D2.1 — nhưng
+> chính UI này là nơi nhìn thấy nó đầu tiên.
+
+### 9.1b. Chế độ `live` đã đúng hợp đồng tới đâu
+
+Đã đối chiếu từng điểm với `backend/retrieval/search.py`, có test khoá lại:
+
+| Điểm nối | Trạng thái |
+|:---|:---|
+| Chữ ký `search(query_vi, query_en, top_k, branches, group_by_shot)` | ✅ khớp |
+| Tên 5 nhánh UI gửi đi so với `BRANCHES` | ✅ khớp — `test_ten_nhanh_KHOP_voi_search_weights` |
+| Trường UI đọc (`keyframe_id/video_id/frame_idx/shot_id/score/ranks`) | ✅ có trong hợp đồng `search()`, neo bằng test |
+| Thiếu gói → báo tên gói + lệnh cài | ✅ sau khi sửa lỗi #8 |
+| Thiếu khoá API → chặn trước, không để nổ giữa chừng | ✅ sau khi sửa lỗi #9 |
+
+> [!IMPORTANT]
+> Tên nhánh là chỗ nguy hiểm nhất: `search()` gộp `{**BRANCHES, **branches}` nên gõ
+> sai một khoá **không báo lỗi** — nó nằm im và nhánh thật vẫn bật theo mặc định.
+> Bỏ tick `vector` thấy kết quả không đổi rồi kết luận "vector không đóng góp gì".
+> Đó là lý do có test riêng cho việc này.
+
+**Chưa kiểm được:** không có Milvus/ES chạy nên **chưa từng có một lượt `live` nào
+chạy thật**. Những gì đã kiểm là hợp đồng tĩnh — chữ ký hàm, tên khoá, tên trường.
+Thứ chỉ lộ ra lúc chạy (Milvus trả `frame_idx` kiểu gì, `ranks` có đủ 5 nhánh không,
+`shot_id` có `None` không) thì phải đợi dựng xong hạ tầng mới biết.
+
+### 9.2. Còn lại, chờ người khác
 
 | Việc | Chờ ai |
 |:---|:---|
-| Ảnh keyframe → thay thẻ xám bằng ảnh thật | tải data (mục 4.2) |
-| Nhánh `objects` trong tab bằng chứng | cần Elasticsearch chạy |
-| Cột "Sau rerank" | A2.4 của Thạch |
-| Chế độ `live` | `pip install elasticsearch pymilvus` + `docker compose up -d` |
+| Ảnh keyframe → thay thẻ xám bằng ảnh thật | Data Factory (§4.2) |
+| File `.npy` `clip-features-32` → nhánh `vector` mới chạy | Data Factory (§10.2) |
+| Panel `objects` | **chưa có nguồn dữ liệu nào** (§9.0.1), không phải chỉ chờ Docker |
+| Panel `caption` mức frame | **chưa ai được giao việc sinh ra nó** (§9.0.1) — cần chốt |
+| Tab "Sau rerank" | A2.4 của Thạch |
+| Một lượt `live` chạy thật | hạ tầng — xem 9.1b |
 
-Ghi nhận lúc chạy thử: **`elasticsearch` chưa cài trên máy này** nên `live` không dùng
-được, chỉ `offline` chạy. Đó chính là ca mà chế độ offline sinh ra để đỡ.
+Một rủi ro để ngỏ tới lúc có ảnh: `_duong_dan_anh()` đang **thử hai quy ước tên file**
+(`0000.jpg` đếm từ 0 và `0001.jpg` đếm từ 1) rồi lấy cái nào tồn tại. Nếu bộ ảnh thật
+có cả hai thì nó chọn nhầm mà không báo. Có ảnh về là phải kiểm lại, không kiểm được
+bằng test lúc này.
+
+---
+
+## 10. Dùng chế độ nào, cần gì để chạy
+
+### 10.1. Lúc THI thì dùng gì
+
+**Không dùng cái nào trong hai cái này.** UI debug không phải công cụ nộp bài.
+
+| Việc | Chạy bằng gì |
+|:---|:---|
+| **Nộp bài lúc thi** | `backend/retrieval/search.py` → `backend/slot/allocate()` → `backend/export/exporter.py`. Tức là **đường `live`**, nhưng gọi từ pipeline chứ không qua Streamlit |
+| Chấm nhãn dev-set trước khi thi | `app/debug_ui.py`, chế độ nào cũng được |
+| Đo `Final Score` của nhóm | E4.2 `eval.py`, ăn file nhãn |
+
+Sơ tuyển 8/2026 nộp **lô**, không trừ thời gian → không ai ngồi bấm UI lúc thi. UI này
+là để **trước ngày thi**, sinh ra bộ nhãn và soi xem search sai chỗ nào.
+
+### 10.2. `live` cần gì
+
+`live` **cần cả Docker lẫn dữ liệu đã nạp** — Docker chỉ dựng cái thùng rỗng.
+
+| Lớp | Thiếu thì mất gì |
+|:---|:---|
+| `pip install elasticsearch pymilvus` | không kết nối được, `live` báo lỗi ngay |
+| `pip install torch open_clip_torch` | không encode được câu hỏi → mất nhánh `vector` |
+| Docker Desktop **đang chạy** + `docker compose up -d` | ES/Milvus không tồn tại |
+| `python -m backend.indexing.load_{metadata,ocr,asr,objects}` | 4 nhánh chữ trả rỗng |
+| **File `.npy` của BTC** (`data/raw/clip-features-32`) + `load_clip` | Milvus rỗng → **nhánh `vector` trả rỗng**, đây là nhánh lõi |
+
+Trạng thái máy này (đo 12/08): 4 gói pip **thiếu cả 4**; Docker CLI có (29.4.2) nhưng
+**daemon chưa chạy**; **không có file `.npy` nào**. `torch 2.13.0+cpu` có wheel cho
+Py3.14 — không dính rủi ro như paddle/whisper.
+
+→ Cài pip + bật Docker vẫn **chưa đủ**: phải xin `clip-features-32` từ Data Factory.
+
+### 10.3. `offline` cần gì
+
+Chỉ cần `data/derived/docs_bm25.parquet`, đã có sẵn. Không Docker, không torch, không
+ES. Đổi lại: **chỉ có BM25 trên chữ** — không nhánh vector, không RRF, không rerank.
+
+Nên dùng `offline` khi: chấm nhãn cho câu hỏi mà lời giải nằm trong OCR/ASR, hoặc lúc
+Docker chưa lên mà không muốn ngồi đợi.
+
+> [!WARNING]
+> Chấm nhãn **chỉ** từ kết quả `offline` sẽ làm lệch bộ nhãn: nhãn tập trung vào frame
+> mà BM25 tìm ra được. Lúc E4.2 chấm `live`, điểm sẽ **thấp hơn thực tế** vì frame
+> đúng do nhánh vector tìm ra chưa từng được ai chấm. Muốn số tin được thì phải có
+> nhãn từ cả hai chế độ.

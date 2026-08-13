@@ -1,26 +1,14 @@
-# app/labels.py — D2.1: đọc/ghi bộ nhãn dev set (đáp án tự làm của nhóm)
+# app/labels.py — D2.1: đọc/ghi bộ nhãn dev set (đáp án tự làm của nhóm).
 #
-# BTC không phát đáp án để tập. Muốn biết search tốt hay dở thì phải tự dựng đề và
-# tự chấm — file này giữ phần "tự chấm". UI debug (D2.1) là cái máy sản xuất nhãn;
-# E4.2 (`eval.py`) và D3.5 (mô phỏng chấm điểm) là hai nơi tiêu thụ.
+# BTC không phát đáp án để tập. UI debug là máy sản xuất nhãn; E4.2 (`eval.py`) và
+# D3.5 (mô phỏng chấm điểm) là hai nơi tiêu thụ.
 #
-# ===== Vì sao nhãn là một KHOẢNG frame, không phải một frame =====
-# 1. BTC chấm `frame_id ∈ [s, e]` — một cửa sổ, không phải trúng đúng một số.
-# 2. Slot allocator (D3.1) phát ra frame KHÔNG phải keyframe: mức ②③④ rải frame bất
-#    kỳ trong shot. Nhãn ghi "keyframe số 42 đúng" thì D3.5 không chấm nổi frame 431
-#    mà allocator đẻ ra, dù nó nằm ngay cạnh.
-# Nên đơn vị nhãn là `[frame_start, frame_end]`, GỒM CẢ HAI ĐẦU.
-#
-# ===== Vì sao mỗi người một file =====
-# Nhãn là công sức người (chấm 200 nhãn là vài giờ), nên nó được commit lên git chứ
-# không gitignore — mất máy là mất trắng, và người khác chạy eval phải ra cùng số.
-# Nhưng 5 người cùng append vào MỘT file thì git conflict liên tục. Tách theo người
-# thì vừa chia sẻ được, vừa không bao giờ đụng nhau.
-#
-# ===== Vì sao append-only, không sửa dòng cũ =====
-# Chấm lại một frame → ghi dòng MỚI, dòng cũ giữ nguyên. Đọc thì lấy dòng mới nhất.
-# Giữ được lịch sử đổi ý (soi lại một câu trượt còn biết mình từng nghĩ gì), và ghi
-# thêm thì không bao giờ hỏng dữ liệu đã có.
+# Ba quyết định định hình cả file (lý do đầy đủ: reports/D21_TECHNICAL_REPORT.md §5):
+#   · Nhãn là một KHOẢNG `[frame_start, frame_end]`, gồm cả hai đầu — BTC chấm theo
+#     cửa sổ, và allocator (D3.1) phát ra frame không phải keyframe.
+#   · Mỗi người một file — nhãn được commit lên git, 5 người cùng append một file
+#     thì conflict liên tục.
+#   · Append-only — chấm lại thì ghi dòng mới, đọc lấy dòng `ts` mới nhất.
 
 from __future__ import annotations
 

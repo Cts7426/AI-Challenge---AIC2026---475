@@ -93,3 +93,85 @@ def test_co_o_chon_che_do_live_va_offline():
     at = _chay()
     lua_chon = set(at.sidebar.radio[0].options)
     assert lua_chon == {"live", "offline"}
+
+
+def test_offline_thi_KHOA_cac_o_bat_tat_nhanh():
+    """Offline chỉ có một nguồn (BM25) nên mấy ô kia không đổi được gì.
+
+    Để bật được mà không có tác dụng là lời nói dối về chính công cụ chẩn đoán: người
+    dùng tắt `vector` rồi thấy kết quả y hệt, kết luận "vector không đóng góp gì" —
+    trong khi thật ra nó chưa từng được gọi.
+    """
+    at = _chay()
+    at.sidebar.radio[0].set_value("offline").run()
+    assert not at.exception
+    o = {c.label: c for c in at.sidebar.checkbox}
+    assert all(o[n].disabled for n in ("vector", "metadata", "objects", "ocr", "asr"))
+    assert o["Gom về shot"].disabled
+
+
+def test_live_thi_MO_cac_o_bat_tat_nhanh():
+    at = _chay()
+    at.sidebar.radio[0].set_value("live").run()
+    assert not at.exception
+    assert not any(c.disabled for c in at.sidebar.checkbox)
+
+
+# ------------------------------------------- hợp đồng với backend.retrieval.search
+
+def test_bao_dung_goi_con_THIEU_cho_che_do_live():
+    """Thiếu gói thì phải nói TÊN GÓI, không nói chung chung "không nạp được".
+
+    `backend.retrieval.search` nạp lười (`import torch` nằm trong thân hàm) nên nó
+    import trót lọt trên máy chưa cài gì. Nếu chỉ dựa vào phép import đó, UI mặc định
+    chọn `live`, người dùng bấm Tìm kiếm rồi mới nhận lỗi.
+    """
+    import importlib.util
+
+    from app.debug_ui import GOI_CAN_CHO_LIVE
+
+    thieu = [pip for mod, pip in GOI_CAN_CHO_LIVE.items()
+             if importlib.util.find_spec(mod) is None]
+    at = _chay()
+    at.sidebar.radio[0].set_value("live").run()
+    assert not at.exception
+    loi = " ".join(e.value for e in at.sidebar.error)
+    if thieu:
+        assert all(g in loi for g in thieu), f"thiếu {thieu} mà báo: {loi!r}"
+        assert "pip install" in loi, "phải kèm lệnh cài, không bắt người dùng tự tra"
+    else:
+        assert "thiếu gói" not in loi
+
+
+def test_ten_nhanh_KHOP_voi_search_weights():
+    """Tên nhánh UI gửi đi phải trùng tên nhánh `search()` nhận.
+
+    Đây là hợp đồng mà không ai kiểm được lúc chạy: `search()` gộp `{**BRANCHES,
+    **branches}` nên một khoá gõ sai KHÔNG báo lỗi — nó chỉ nằm im, nhánh thật vẫn
+    bật theo mặc định. Người dùng bỏ tick `vector`, kết quả không đổi, rồi kết luận
+    sai rằng vector không đóng góp gì. Chạy được mà kết quả sai, đúng loại lỗi im
+    lặng dự án đang phòng.
+    """
+    from data.config.search_weights import BRANCHES
+
+    from app.debug_ui import NHANH
+
+    assert set(NHANH) == set(BRANCHES), (
+        f"UI gửi {sorted(set(NHANH) - set(BRANCHES))}, search không biết khoá này"
+    )
+
+
+def test_truong_ket_qua_UI_doc_deu_co_trong_hop_dong_cua_search():
+    """UI đọc `keyframe_id/video_id/frame_idx/shot_id/score/ranks` từ mỗi kết quả.
+
+    Đổi tên một trường bên `search()` thì UI im lặng vẽ ra `None` — thẻ trống, không
+    chấm nhãn được, không có thông báo nào. Neo vào docstring của `search()` để lần
+    đổi tên tiếp theo làm test đỏ.
+    """
+    import inspect
+
+    from backend.retrieval import search as mod
+
+    tai_lieu = inspect.getdoc(mod.search) or ""
+    for truong in ("keyframe_id", "video_id", "frame_idx", "shot_id", "score", "ranks"):
+        assert truong in tai_lieu, f"`search()` không còn hứa trả `{truong}`"

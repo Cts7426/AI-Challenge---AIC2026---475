@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.offline_search import DOCS_PATH, tach_tu, tim
+from app.offline_search import DOCS_PATH, _dem_dung_tu, tach_tu, tim
 
 
 @pytest.fixture(scope="module")
@@ -143,6 +143,89 @@ def test_trich_dan_chua_tu_khoa(kho_nho):
     if not kq:
         pytest.skip("không có kết quả")
     assert tu in kq[0].trich.lower(), "trích dẫn phải cắt QUANH từ khớp, không phải đầu tài liệu"
+
+
+# ------------------------------------------------- đếm từ, không đếm chuỗi con
+
+def test_dem_theo_TU_khong_theo_chuoi_con(kho_nho):
+    """Từ khoá chỉ được tính khi đứng RIÊNG, không phải khi nằm trong từ khác.
+
+    Tiếng Việt đơn âm nên đây không phải ca hiếm: đo trên L21_V001, 'ba' khớp 1.078
+    lần theo chuỗi con nhưng chỉ 24 lần như một từ — thổi phồng 45 lần. Hậu quả thật
+    đã thấy: gõ 'ba' ra hạng 1 là một tài liệu chứa '#baothanhnien', không hề có chữ
+    'ba' nào. Rác lên đầu mà không có dấu hiệu gì.
+    """
+    import pandas as pd
+
+    p, lat = kho_nho
+    moi = lat.copy()
+    # hai tài liệu bịa: một cái chứa ĐÚNG từ, một cái chỉ chứa nó như chuỗi con
+    moi.loc[len(moi)] = ["ZZ_V000_0000001", "ZZ_V000", "ZZ_V000#s1", 1, "con voi qua duong"]
+    moi.loc[len(moi)] = ["ZZ_V000_0000002", "ZZ_V000", "ZZ_V000#s1", 2,
+                         "concon concert conconcon"]
+    q = p.parent / "docs_dem.parquet"
+    pd.DataFrame(moi).to_parquet(q, index=False)
+
+    kq = tim("con", top_k=5, docs_path=q)
+    thang = [r.kf_id for r in kq]
+    assert "ZZ_V000_0000001" in thang, "tài liệu chứa đúng từ 'con' phải lọt top"
+    assert "ZZ_V000_0000002" not in thang, (
+        "'concon/concert' KHÔNG chứa từ 'con' — đang đếm chuỗi con, xem _dem_dung_tu()"
+    )
+
+
+def test_ranh_gioi_tu_hieu_NGUYEN_AM_CO_DAU():
+    """Nguyên âm có dấu phải được tính là CHỮ CÁI khi xác định ranh giới từ.
+
+    Đây là lỗi đã thật sự xảy ra, phát hiện khi tra "tù nhân" ra toàn "nạn nhân".
+    `\\b` của RE2 chỉ coi [A-Za-z0-9_] là chữ cái, nên với từ khoá 'tù':
+      · 'tù nhân'  → sau 'ù' là dấu cách, RE2 coi cả hai đều không-phải-chữ nên
+                     KHÔNG thấy ranh giới → không khớp (SAI, phải khớp)
+      · 'ông tùng' → sau 'ù' là 'n', RE2 thấy ranh giới → khớp (SAI, không được khớp)
+    Sai ngược hoàn toàn. Bản sửa dùng `\\p{L}` (lớp chữ cái Unicode).
+
+    Kiểm thẳng `_dem_dung_tu` chứ không qua `tim()`: đi qua BM25 thì một tf sai có
+    thể bị IDF che, test xanh mà lỗi vẫn còn.
+    """
+    import pandas as pd
+
+    van = pd.Series(["tù nhân bỏ trốn", "nạn nhân là ông tùng", "không liên quan", "tù tù"])
+    assert _dem_dung_tu(van, "tù").tolist() == [1.0, 0.0, 0.0, 2.0]
+
+
+def test_ranh_gioi_tu_khop_voi_module_re_chuan():
+    """Đối chiếu với `re` của Python — thước đo độc lập, không cùng công cụ regex."""
+    import re as _re
+
+    import pandas as pd
+
+    mau = ["tù,tù", "xtù tù", "tù.tù.tù", "1tù tù2", "tù-tù", "tùtù", ""]
+    van = pd.Series(mau)
+    mong_doi = [float(len(_re.findall(r"\btù\b", s))) for s in mau]
+    assert _dem_dung_tu(van, "tù").tolist() == mong_doi
+
+
+def test_tra_duoc_cum_tu_co_that_trong_kho(kho_nho):
+    """Tài liệu chứa CẢ HAI từ phải xếp trên tài liệu chỉ chứa một từ phổ biến.
+
+    Ca thật đã trượt: "tù nhân" trả về toàn "nạn nhân là ông tùng" — tài liệu có
+    đúng chữ "tù nhân" không lọt top vì tf của 'tù' bị tính bằng 0.
+    """
+    import pandas as pd
+
+    p, lat = kho_nho
+    moi = lat.copy()
+    moi.loc[len(moi)] = ["ZZ_V002_0000001", "ZZ_V002", "ZZ_V002#s1", 1,
+                         "bạo loạn của tù nhân trong trại giam"]
+    moi.loc[len(moi)] = ["ZZ_V002_0000002", "ZZ_V002", "ZZ_V002#s1", 2,
+                         "nạn nhân là ông tùng 53 tuổi"]
+    q = p.parent / "docs_cum.parquet"
+    pd.DataFrame(moi).to_parquet(q, index=False)
+
+    thang = [r.kf_id for r in tim("tù nhân", top_k=5, docs_path=q)]
+    assert thang and thang[0] == "ZZ_V002_0000001", (
+        f"tài liệu chứa đúng 'tù nhân' phải đứng đầu, đang là {thang[:3]}"
+    )
 
 
 def _doc_cua(lat, kf_id: str) -> str:

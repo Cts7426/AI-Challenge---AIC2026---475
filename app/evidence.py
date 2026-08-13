@@ -1,32 +1,16 @@
-# app/evidence.py — D2.1: gom mọi bằng chứng của MỘT keyframe
+# app/evidence.py — D2.1: gom mọi bằng chứng của MỘT keyframe.
 #
-# Trả lời câu "frame này thật sự chứa gì" — thứ quyết định khi chấm nhãn đúng/sai,
-# và cũng là thứ giải thích được "vì sao frame này lên hạng cao mà nhìn chẳng liên quan".
+# ⚠️ HAI KIỂU TÊN KEYFRAME — đọc trước khi sửa file này:
+#   kiểu BTC       "L21_V001#k0001"    → frame_map · ocr · Milvus (search trả kiểu này)
+#   kiểu tự trích  "L21_V001_0000090"  → keyframes · docs_bm25 (hậu tố LÀ frame_idx)
 #
-# ⚠️ ===== HAI KIỂU TÊN KEYFRAME — đọc trước khi sửa file này =====
-# Trong data/derived/ có HAI cách đặt tên keyframe, KHÔNG thay thế nhau được:
+# Hai hệ KHÔNG thay nhau được. Nối thẳng keyframe_id của search vào docs_bm25 thì ra
+# rỗng trắng: không crash, không cảnh báo, panel lúc nào cũng trống — đúng loại lỗi im
+# lặng cả dự án đang phòng. `clip_kf_map.parquet` là điểm nối duy nhất; mọi phép tra
+# chéo phải đi qua `_cau_noi()`. Số đo độ phủ: reports/D21_TECHNICAL_REPORT.md §3.
 #
-#   kiểu BTC      "L21_V001#k0001"     = keyframe thứ 1 trong thư mục BTC
-#                 → frame_map · ocr · MILVUS (nên `search()` luôn trả kiểu này)
-#
-#   kiểu tự trích "L21_V001_0000090"   = keyframe tự cắt 1fps, hậu tố LÀ frame_idx
-#                 → keyframes · docs_bm25
-#
-# Đo trên dữ liệu thật:
-#   clip_kf_id (BTC)      có trong ocr       : 224.284 / 371.702
-#   kf_id (tự trích)      có trong docs_bm25 : 371.702 / 371.702
-#
-# Nối thẳng keyframe_id của search vào docs_bm25 → RỖNG TRẮNG. Không crash, không
-# cảnh báo, chỉ là panel "vì sao frame này lên hạng" lúc nào cũng trống. Đúng loại
-# lỗi im lặng cả dự án đang phòng.
-#
-# `clip_kf_map.parquet` là ĐIỂM NỐI DUY NHẤT giữa hai hệ (có cả hai cột). Mọi phép
-# tra chéo phải đi qua `_cau_noi()` bên dưới.
-#
-# ===== Vì sao đọc parquet thẳng, không qua backend/indexing =====
-# Đây là công cụ dev, KHÔNG nằm trên đường nộp bài. Nó chỉ HIỂN THỊ con số chứ không
-# nộp, nên không tạo ra rủi ro "hai nguồn sự thật" cho bài nộp. Ngược lại, việc nó
-# độc lập là có chủ ý: soi được dữ liệu ngay cả khi tầng indexing đang hỏng.
+# Đọc parquet thẳng thay vì qua backend/indexing là có chủ ý: đây là công cụ dev,
+# không nộp bài, nên phải soi được dữ liệu ngay cả khi tầng indexing đang hỏng.
 
 from __future__ import annotations
 
@@ -77,18 +61,13 @@ def _doc(ten: str, cot: list[str], video_id: str | None = None):
 
     Vào: tên file (không đuôi) · cột cần · video_id.
     Ra: DataFrame. Thiếu file / thiếu cột → rỗng đúng cột, KHÔNG raise.
-    Bất biến: thiếu CỘT thì ghi vào `_LOI_LUOC_DO` kèm tên cột thiếu và danh sách cột
-    đang có — để UI nói được "Data Factory đổi lược đồ" chứ không đoán mò thành
-    "không có dữ liệu".
+    Bất biến: thiếu CỘT thì ghi vào `_LOI_LUOC_DO` kèm danh sách cột đang có, để UI
+    nói được "Data Factory đổi lược đồ" chứ không đoán mò thành "không có dữ liệu".
 
-    Vì sao lọc bằng `filters` chứ không nạp hết rồi cắt: `docs_bm25` 69.7 MB và `ocr`
-    44.6 MB. Đo thật cho 1 video: 512 ms và 89 ms — nạp hết là ăn cả GB RAM cho thứ
-    chỉ dùng vài dòng. Máy 16 GB còn phải chạy Docker.
-
-    Thiếu file trả rỗng thay vì gãy: UI phải mở được cả khi Data Factory chưa giao
-    đủ bảng — mất một panel còn hơn không mở được cái nào. Nhưng KHÔNG được im lặng:
-    im lặng thì panel trống bị đọc nhầm thành "frame này không có OCR", rồi người ta
-    chấm nhãn dựa trên một kết luận sai.
+    Lọc bằng `filters` chứ không nạp hết rồi cắt: nạp hết `docs_bm25` là ăn cả GB RAM
+    cho thứ chỉ dùng vài dòng. Thiếu file trả rỗng thay vì gãy vì UI phải mở được cả
+    khi Data Factory chưa giao đủ bảng — nhưng không được im lặng, im lặng thì panel
+    trống bị đọc thành "frame này không có OCR" rồi người ta chấm nhãn theo đó.
     """
     import pandas as pd
     import pyarrow.parquet as pq
@@ -128,18 +107,13 @@ def _doc(ten: str, cot: list[str], video_id: str | None = None):
 def _cau_noi(video_id: str) -> tuple[dict[str, str], dict[str, str], dict[str, float]]:
     """Bảng dịch giữa HAI hệ tên keyframe, cho một video.
 
-    Ra: (btc→tự_trích, tự_trích→btc, btc→frame_drift).
-    Nguồn: `clip_kf_map.parquet` — bảng DUY NHẤT có cả hai cột.
+    Ra: (btc→tự_trích, tự_trích→btc, btc→frame_drift). Nguồn: `clip_kf_map.parquet`,
+    bảng duy nhất có cả hai cột. `frame_drift` = khoảng lệch frame giữa hai hệ ở cùng
+    một chỗ (toàn kho: median 11, p95 21, max 25).
 
-    `frame_drift` = khoảng lệch frame giữa keyframe BTC và keyframe tự trích của
-    cùng một chỗ (đo toàn kho: median 11, p95 21, max 25 — cỡ nửa giây). Giữ lại để
-    panel chẩn đoán nói được "anh đang nhìn frame nào" khi soi một câu trượt.
-
-    ⚠️ Ánh xạ BTC → tự trích là NHIỀU-VỀ-MỘT. Keyframe tự trích dày hơn (1 fps) nên
-    nhiều cái cùng trỏ về một keyframe BTC: 75.124/166.661 keyframe BTC bị trùng,
-    nhiều nhất 6 cái. Phải lấy cái có `frame_drift` NHỎ NHẤT — tức gần nhất về thời
-    gian. Lấy bừa (dòng cuối thắng) thì bằng chứng hiển thị có thể lệch tới 22 frame
-    so với ảnh người ta đang nhìn, mà không có dấu hiệu gì.
+    ⚠️ Chiều BTC → tự trích là NHIỀU-VỀ-MỘT: 75.124/166.661 keyframe BTC có hơn một
+    ứng viên, nhiều nhất 6. Phải lấy cái `frame_drift` NHỎ NHẤT. Lấy bừa (dòng cuối
+    thắng) thì bằng chứng lệch tới 22 frame so với ảnh đang nhìn, không dấu hiệu gì.
     """
     df = _doc("clip_kf_map", ["kf_id", "clip_kf_id", "frame_drift"], video_id)
     btc2own: dict[str, str] = {}
@@ -161,10 +135,9 @@ def _cau_noi(video_id: str) -> tuple[dict[str, str], dict[str, str], dict[str, f
 def _frame_map_video(video_id: str) -> dict[str, int]:
     """kf_id kiểu BTC → frame_idx thật, cho một video.
 
-    Đọc thẳng cột `frame_idx` của `frame_map.parquet` — chính là cột đã bù offset mà
-    `backend/indexing/frame_map.py` cũng đọc, nên KHÔNG phải nguồn sự thật thứ hai:
-    cùng một file, cùng một cột. Đọc thẳng để UI soi được dữ liệu ngay cả khi module
-    kia đang hỏng.
+    Đọc thẳng cột `frame_idx` của `frame_map.parquet` — cùng file cùng cột mà
+    `backend/indexing/frame_map.py` đọc, nên không phải nguồn sự thật thứ hai. Đọc
+    thẳng để UI soi được dữ liệu ngay cả khi module kia đang hỏng.
     """
     df = _doc("frame_map", ["kf_id", "frame_idx"], video_id)
     return {r.kf_id: int(r.frame_idx) for r in df.itertuples(index=False)}
@@ -215,14 +188,11 @@ def tach_id(kf_id: str) -> tuple[str, str | None, str | None]:
     """Một keyframe_id bất kỳ → (video_id, id kiểu BTC, id kiểu tự trích).
 
     Vào: id thuộc MỘT trong hai hệ. Ra: cả hai dạng nếu dịch được, None nếu không.
-    Bất biến: KHÔNG tự bịa ra dạng còn lại bằng cách ghép chuỗi — phải tra
-    `clip_kf_map`. Ghép chuỗi là đúng kiểu suy diễn mà W0.2 đã cấm.
+    Bất biến: KHÔNG bịa dạng còn lại bằng cách ghép chuỗi — phải tra `clip_kf_map`.
+    Ghép chuỗi là đúng kiểu suy diễn mà W0.2 đã cấm.
 
-    Nhận cả hai hệ vì `search()` trả kiểu BTC, còn `docs_bm25`/`keyframes` dùng kiểu
-    tự trích — người dùng UI có thể dán vào id lấy từ chỗ nào cũng được.
-
-    Đầu vào không phải chuỗi (ô rỗng của parquet ra `NAType`, UI dán nhầm `None`)
-    → trả về rỗng chứ không ném `TypeError` từ tận trong regex.
+    Đầu vào không phải chuỗi (ô rỗng parquet ra `NAType`) → trả rỗng chứ không ném
+    `TypeError` từ tận trong regex.
     """
     if not isinstance(kf_id, str) or not kf_id:
         return "", None, None
@@ -273,12 +243,11 @@ def bang_chung(kf_id: str) -> BangChung:
     """Gom mọi bằng chứng của một keyframe.
 
     Vào: keyframe_id thuộc hệ nào cũng được. Ra: `BangChung`.
-    Bất biến: KHÔNG BAO GIỜ raise vì thiếu dữ liệu — mọi thứ thiếu thành trường rỗng
-    kèm một dòng trong `canh_bao`. UI phải mở được cả khi nửa kho dữ liệu chưa có.
+    Bất biến: KHÔNG BAO GIỜ raise vì thiếu dữ liệu — thiếu gì thành trường rỗng kèm
+    một dòng `canh_bao`. UI phải mở được cả khi nửa kho dữ liệu chưa có.
 
-    Vì sao gom hết vào một hàm thay vì để UI tự tra từng bảng: thứ tự tra và các phép
-    dịch id là chỗ dễ sai nhất (mục HAI KIỂU TÊN ở đầu file). Gói lại một chỗ thì chỉ
-    phải làm đúng một lần, và test được mà không cần dựng Streamlit.
+    Gom vào một hàm thay vì để UI tự tra từng bảng vì thứ tự tra và các phép dịch id
+    là chỗ dễ sai nhất, và ở đây thì test được mà không cần dựng Streamlit.
     """
     video_id, kf_btc, kf_own = tach_id(kf_id)
     bc = BangChung(kf_id_btc=kf_btc, kf_id_tu_trich=kf_own, video_id=video_id)
@@ -344,11 +313,10 @@ def bang_chung(kf_id: str) -> BangChung:
 
     bc.anh = _duong_dan_anh(video_id, kf_btc, kf_own)
 
-    # Sự cố lược đồ chèn lên ĐẦU danh sách: nếu một bảng không đọc được thì mọi cảnh
-    # báo phía sau ("không có doc_text"…) đều là chẩn đoán sai ăn theo nó. Gom ở cuối
-    # hàm vì lúc này mới biết bảng nào thật sự đã bị đụng tới.
-    for ten, loi in _LOI_LUOC_DO.items():
-        bc.canh_bao.insert(0, f"[{ten}] {loi}")
+    # Sự cố lược đồ đứng ĐẦU danh sách: bảng không đọc được thì mọi cảnh báo phía sau
+    # ("không có doc_text"…) đều là chẩn đoán sai ăn theo nó. Ghép cả khối một lần —
+    # `insert(0, …)` trong vòng lặp sẽ lật ngược thứ tự các bảng.
+    bc.canh_bao[:0] = [f"[{ten}] {loi}" for ten, loi in _LOI_LUOC_DO.items()]
     return bc
 
 

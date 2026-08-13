@@ -22,7 +22,7 @@
 7. [Chi tiết từng hàm](#7-chi-tiết-từng-hàm)
 8. [Kết quả chạy thực tế](#8-kết-quả-chạy-thực-tế)
 9. [Đo độ trễ](#9-đo-độ-trễ)
-10. [⚠️ Phần TREO và phần có thể LỆCH](#10-️-phần-treo-và-phần-có-thể-lệch) — kèm [10.1 hợp đồng với search](#101-hợp-đồng-với-tầng-search--khớp-nhưng-chưa-ai-nối-dây) · [**10.5 phụ thuộc đang gãy**](#105--phụ-thuộc-đang-gãy--backendindexingframe_mappy)
+10. [⚠️ Phần TREO và phần có thể LỆCH](#10-️-phần-treo-và-phần-có-thể-lệch) — kèm [**10.1 run_minimal không gọi allocate()**](#101-hợp-đồng-với-tầng-search--khớp-nhưng-chưa-ai-nối-dây) · [10.5 phụ thuộc đã sửa](#105--đã-sửa--backendindexingframe_mappy)
 11. [🧪 Code chỉ để thử nghiệm — bỏ khi vào thi](#11--code-chỉ-để-thử-nghiệm--bỏ-khi-vào-thi)
 12. [Đối chiếu với yêu cầu](#12-đối-chiếu-với-yêu-cầu)
 13. [Kết luận](#13-kết-luận)
@@ -277,7 +277,7 @@ gì. Riêng NaN là rủi ro có thật từ khi A2.2 dùng RRF — `1/(K + rank
 ### 8.1. Bộ test
 
 ```
-106 test · 103 xanh — 3 đỏ do lỗi import NGOÀI (mục 10.5), không phải logic allocator
+106 test · 103 xanh — 3 đỏ do lỗi import NGOÀI (mục 10.5). **13/08: đã vá, 192/192 xanh**
   tests/test_validator.py : 34 test   (D0.2)
   tests/test_export.py    : 32 test   (D0.2)
   tests/test_allocator.py : 40 test   (D3.1, 6 test canh bốn chốt chặn ở mục 7.3)
@@ -376,7 +376,7 @@ cần đều có sẵn. Đã kiểm trên dữ liệu thật:
 | `keyframe_id` của Milvus phải tra được `frame_map` | **khớp** — cùng dạng `L21_V001#k0001` |
 | Mỗi shot phải có keyframe điểm cao nhất → mức ① | **có** — chính là `keyframe_id` trả về |
 
-Còn thiếu **đúng một mẩu keo dán**, chưa nằm trong file nào:
+Mẩu keo dán cần viết chỉ có một dòng:
 
 ```python
 hits = [ShotHit(r["shot_id"], r["score"], r["keyframe_id"]) for r in search(...)]
@@ -384,6 +384,37 @@ hits = [ShotHit(r["shot_id"], r["score"], r["keyframe_id"]) for r in search(...)
 
 Nó thuộc `run_minimal.py` (A6.2-early của Thạch). Không viết vào allocator vì đó là việc
 của tầng điều phối, không phải của tầng cấp phát.
+
+> [!CAUTION]
+> **Rà soát 13/08 — vấn đề nặng hơn "chưa ai nối dây".** `run_minimal.py` đã tồn tại và
+> đã chạy được đầu-cuối, nhưng nó **không gọi `allocate()`**. Nó tự chia slot bằng
+> `_chia_slot()` + `_don_cho_du()` của riêng nó.
+>
+> Kiểm chứng: `grep -rn "backend.slot" --include=*.py .` chỉ ra hai chỗ — hàm demo của
+> `exporter.py` và CLI `python -m backend.slot`. **Không có chỗ nào trên đường nộp bài.**
+>
+> Hai cách chia slot khác nhau về bản chất:
+>
+> | | `allocate()` (D3.1) | `_chia_slot()` (`run_minimal.py`) |
+> |:---|:---|:---|
+> | Một slot là | frame bất kỳ trong shot | **đúng một keyframe** đã index |
+> | Đào sâu trong shot | có — mức ②③④ | **không** |
+> | Xen kẽ theo shot | có, theo bảng ngân sách | không, theo thứ hạng search |
+> | Khi thiếu slot | nới ra ngoài biên shot | độn `frame 0` của video chưa dùng |
+>
+> Hệ quả:
+> 1. **Toàn bộ phần đào sâu theo shot đang không chạy.** Đặc tả D3.1 ghi *"`frame_idx`
+>    không cần là keyframe đã index — độ sâu là miễn phí"*. Đường nộp thật đang bỏ
+>    đúng thứ đó.
+> 2. **D4.1 (17/08 — tune bảng ngân sách) sẽ vô nghĩa** nếu nối dây không xong trước.
+>    Tune một bảng mà đường nộp không đọc tới.
+> 3. Phần độn: `allocate()` độn bằng frame sâu trong shot ứng viên (còn cơ hội đúng),
+>    `_don_cho_du()` độn bằng `frame 0` của video chưa dùng (*"gần như chắc sai"* —
+>    lời chú thích trong chính file đó).
+>
+> Đây **không phải lỗi của ai**: `run_minimal.py` là A6.2-**early**, viết ra để ghép ống
+> cho pipeline chạy hết đường trước khi D3.1 xong. Nhưng giờ D3.1 xong rồi mà chưa ai
+> đổi. Việc cần làm thuộc Thạch (chủ `run_minimal.py`), **không tự sửa được từ D3.1**.
 
 ### 10.2. 🟡 CHẠY ĐƯỢC nhưng đang giả định — sẽ phải sửa
 
@@ -411,13 +442,19 @@ Cả ba đều nằm trong `data/config/slot_budget.py` — chốt lại là **s
 
 ---
 
-### 10.5. 🔴 Phụ thuộc đang GÃY — `backend/indexing/frame_map.py`
+### 10.5. ✅ ĐÃ SỬA — `backend/indexing/frame_map.py`
+
+> [!NOTE]
+> **Cập nhật 13/08: Công Lý đã vá, đúng theo hướng đề xuất ở cuối mục này.**
+> `import backend.indexing.frame_map` chạy sạch, **toàn bộ 192 test xanh, 0 đỏ**.
+> Mức ① không còn phụ thuộc gãy. Phần dưới giữ lại làm hồ sơ sự cố — đây là ca mẫu
+> cho kiểu lỗi "demo xanh mà đường chạy thật đỏ", đáng đọc lại trước lúc thi.
 
 Allocator tra `keyframe_id → frame_idx` qua `load_frame_map()` của Công Lý, **không tự
 đọc parquet** — bảng đó có bù offset, tự đọc lại là mở đường cho hai nguồn sự thật.
 Cái giá của lựa chọn đó: module ấy hỏng thì mức ① chết theo.
 
-Nó đang hỏng. Commit `6f53aaa` (*"revert: Xóa sạch thư mục preprocessing khỏi git
+Nó **đã từng** hỏng. Commit `6f53aaa` (*"revert: Xóa sạch thư mục preprocessing khỏi git
 tracking"*) gỡ `preprocessing/common/frame_map.py` khỏi git, nhưng
 `backend/indexing/frame_map.py:15` vẫn import nó:
 
@@ -524,10 +561,10 @@ lệ mà sai.
 | Nối vào validator D0.2 | ✅ output nộp được ngay |
 | Độ trễ | ✅ 1–2 ms mỗi query |
 | **Hợp đồng với search thật** | ✅ **Khớp 10/08** — A2.1+A2.2 trả `shot_id` + `score` + `keyframe_id` tốt nhất mỗi shot; `shot_id` khớp `shots.parquet` 94.386/94.386 |
-| Keo dán `search() → ShotHit` | 🟡 ~5 dòng, chưa ai viết — thuộc `run_minimal.py` (A6.2-early) |
+| Keo dán `search() → ShotHit` | 🔴 **`run_minimal.py` tự chia slot, KHÔNG gọi `allocate()`** — mục 10.1 |
 | Chốt an toàn khi Data Factory đổi schema | ✅ `_doc_cot()` + 2 test (thêm 07/08) |
 | Bốn chốt chặn ở cửa vào `allocate()` | ✅ 6 test — mục 7.3 |
-| `backend/indexing/frame_map.py` chạy được | 🔴 **GÃY** — mục 10.5, chờ Công Lý |
+| `backend/indexing/frame_map.py` chạy được | ✅ Công Lý đã vá 13/08 — mục 10.5 |
 
 ### Danh sách file được tạo / sửa
 
@@ -547,7 +584,7 @@ lệ mà sai.
 ### Cách chạy / kiểm
 
 ```powershell
-python -m pytest -q      # 103 passed, 3 failed ← 3 đỏ do mục 10.5 (frame_map của Công Lý)
+python -m pytest -q      # 13/08: 192 passed, 0 failed (mục 10.5 đã vá)
 python -m backend.slot --demo --task KIS
 python -m backend.slot --demo --task TRAKE
 python -m backend.export --demo              # D0.2 — chạy allocator thật rồi ghi file nộp

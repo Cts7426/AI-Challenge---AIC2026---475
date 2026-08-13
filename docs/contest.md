@@ -34,12 +34,44 @@
 
 ## Cách chấm — quyết định chiến thuật
 
-Mỗi truy vấn nộp tối đa 100 câu. `R@k` = R-Score cao nhất trong k câu đầu.
-`Final = trung bình(R@1, R@5, R@20, R@50, R@100)`. Giá trị theo hạng câu đúng đầu tiên:
+> Nguồn: *Thông tin vòng Sơ tuyển AIC2026* của BTC, mục 2. Chép lại nguyên công thức
+> — mục này từng chỉ có bảng rút gọn ở cuối, đủ dùng cho KIS/Q&A nhưng **sai với
+> TRAKE**. Đọc phần định nghĩa trước khi dùng bảng.
+
+Mỗi truy vấn nộp tối đa 100 câu. **Mỗi câu** được chấm một `R-Score ∈ [0, 1]`, cách
+tính **khác nhau theo dạng bài**:
+
+| Dạng | `R-Score(rᵢ)` |
+|:---|:---|
+| **KIS** | `I(vᵢ = GTᵥ ∧ idᵢ ∈ [s, e])` — nhị phân 0 hoặc 1 |
+| **Q&A** | `I(vᵢ = GTᵥ ∧ idᵢ ∈ [s, e] ∧ aᵢ = GTₐ)` — nhị phân. Ba điều kiện cùng lúc; `answer` chấm theo **ngữ nghĩa**, VI hay EN đều được |
+| **TRAKE** | `0` nếu sai video. Đúng video → `(1/N) · Σⱼ I(idᵢⱼ ∈ [sⱼ, eⱼ])` — **điểm từng phần** |
+
+⚠️ TRAKE khớp **theo vị trí**: frame thứ *j* phải rơi vào khoảng `[sⱼ, eⱼ]` của khoảnh
+khắc thứ *j*. Không phải khớp bất kỳ thứ tự nào. Mỗi khoảng thường **dưới 10 frame**.
+
+Rồi mới tới bước gộp:
+
+```
+R@k   = max{ R-Score(r₁ … r_k) }          k ∈ {1, 5, 20, 50, 100}
+Final = trung bình 5 giá trị R@k
+```
+
+**Ví dụ của BTC:** câu 1 được 0.5 · câu 3 được 0.8 (cao nhất) · câu 15 được 0.6.
+→ `R@1 = 0.5`, còn `R@5 = R@20 = R@50 = R@100 = 0.8`
+→ `Final = (0.5 + 0.8 + 0.8 + 0.8 + 0.8) / 5 = 0.74`
+
+**Bảng rút gọn — CHỈ đúng cho KIS và Q&A** (vì `R-Score` nhị phân), theo hạng câu
+đúng đầu tiên. Suy ra từ công thức trên, không phải một luật riêng:
 
 | Hạng | 1 | 2–5 | 6–20 | 21–50 | 51–100 | >100 |
 |---|---|---|---|---|---|---|
-| Điểm | 1.00 | 0.80 | 0.60 | 0.40 | 0.20 | 0 |
+| Final | 1.00 | 0.80 | 0.60 | 0.40 | 0.20 | 0 |
+
+> [!WARNING]
+> **Đừng dùng bảng này cho TRAKE.** TRAKE có điểm lẻ (khớp 3/4 khoảnh khắc → 0.75)
+> nên phải chạy thẳng công thức `max` rồi `trung bình`. Ví dụ: hạng 1 được 0.5, hạng
+> 3 được 0.75 → `Final = (0.5 + 0.75×4)/5 = 0.70`, không có ô nào trong bảng ra số đó.
 
 **Hai quy tắc bắt buộc:**
 1. **LUÔN nộp đủ 100 câu** — không có hình phạt cho câu sai ở sơ tuyển. (Quy tắc
@@ -56,19 +88,23 @@ tài liệu hỗ trợ → ĐƯỢC PHÉP tự trích frame dày hơn và tự e
 |---|---|---|
 | Videos | `L01_V001.mp4` | nguồn chuẩn; trích frame khi cần |
 | Keyframes | `L01_V001/0000.jpg`, thứ tự tăng dần | Milvus (id) + hiển thị |
-| Objects | 1 JSON/keyframe, Faster R-CNN OpenImages V4 | Elasticsearch |
-| CLIP features | `.npy`, model `clip-ViT-B-32` (512d), hàng i = keyframe i | Milvus |
+| Objects | 1 JSON/keyframe, tên khớp tên keyframe (`L01_V001/0000.json`), Faster R-CNN OpenImages V4 | Elasticsearch |
+| CLIP features | **MỘT file `.npy` duy nhất cho toàn bộ keyframe**, model `clip-ViT-B-32`, hàng i = keyframe thứ i (thứ tự tăng dần) | Milvus |
 | Metadata | 1 JSON/video (title, description, keywords...) | Elasticsearch |
 
 - Một số video KHÔNG có metadata → mọi logic metadata phải có đường lui.
 - Data hiện tại là batch 1 (= data AIC 2025); batch 2 có sau → code phải nạp thêm
   không index lại từ đầu (loader upsert idempotent đáp ứng sẵn).
-- Cách gói `.npy` (1 file/tất cả hay 1 file/video) — kiểm lại khi tải data về.
+- ✅ Cách gói `.npy` **đã rõ**: BTC nói rõ là MỘT file duy nhất cho tất cả keyframe, thứ tự
+  tăng dần theo chỉ số keyframe. `load_clip.py` phải đọc theo kiểu đó, không phải 1 file/video.
 
 ### ⚠️ frame_map — dễ mất điểm nhất
 Tên file keyframe (`0007.jpg`) là SỐ THỨ TỰ, còn BTC chấm theo FRAME INDEX trong
-video. Phải nạp bảng `keyframe_id → frame_idx` (các mùa trước: file `map-keyframes`
-CSV gồm n, pts_time, fps, frame_idx — tìm ngay khi tải data). Nhầm = 0 điểm dù đúng video.
+video. Phải nạp bảng `keyframe_id → frame_idx`. Nhầm = 0 điểm dù đúng video.
+
+⚠️ **Tài liệu BTC nói frame index nằm trong "file metadata"**, không nhắc file
+`map-keyframes` CSV như các mùa trước. Chưa rõ là metadata YouTube của video hay một
+file riêng cho keyframe — **kiểm ngay lúc tải data**, đây là thứ dễ mất điểm nhất.
 
 ## Chiến lược 2 tầng (cho TRAKE + nâng chất lượng)
 

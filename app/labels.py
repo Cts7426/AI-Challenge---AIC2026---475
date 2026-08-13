@@ -9,6 +9,21 @@
 #   · Mỗi người một file — nhãn được commit lên git, 5 người cùng append một file
 #     thì conflict liên tục.
 #   · Append-only — chấm lại thì ghi dòng mới, đọc lấy dòng `ts` mới nhất.
+#
+# ===== Tờ đáp án phải ghi đủ thứ BTC kiểm =====
+# File này là đáp án tự soạn. Nó chỉ chấm đúng nếu ghi lại được MỌI điều kiện BTC
+# kiểm — mà ba dạng bài kiểm ba thứ khác nhau (docs/contest.md §Cách chấm):
+#
+#   KIS    1 điều kiện : frame ∈ [s, e]                → khoảng có sẵn là đủ
+#   Q&A    3 điều kiện : + answer đúng ngữ nghĩa       → cần `answer_text`/`answer_dung`
+#   TRAKE  N điều kiện : mỗi khoảnh khắc j một [sⱼ,eⱼ] → cần `moment_idx`
+#
+# Thiếu ô nào thì `eval.py` bỏ qua đúng điều kiện đó và **cho điểm cao hơn thật**,
+# im lặng. Với Q&A đó là ca tệ nhất: đường nộp đang điền "CHUA_CO_ANSWER" nên điểm
+# thật là 0 tuyệt đối, mà thước đo lại báo có điểm.
+#
+# TRAKE ghi N DÒNG cho một truy vấn, mỗi dòng một `moment_idx` (0,1,2…), thay vì
+# nhét N khoảng vào một dòng — giữ nguyên được luật append-only và khoá gộp.
 
 from __future__ import annotations
 
@@ -45,6 +60,12 @@ class Label:
     source: str = "debug_ui"
     note: str = ""
 
+    # --- ba trường cho Q&A và TRAKE. Xem đầu file, mục "tờ đáp án phải ghi gì".
+    # Mặc định None để dòng nhãn KIS cũ đọc lại vẫn hợp lệ.
+    answer_text: str | None = None   # câu trả lời hệ sinh ra (Q&A)
+    answer_dung: bool | None = None  # người chấm phán: đúng ngữ nghĩa? None = chưa chấm
+    moment_idx: int | None = None    # khoảnh khắc thứ mấy của TRAKE; None = KIS/Q&A
+
     def __post_init__(self) -> None:
         """Chuẩn hoá và chặn dữ liệu sai NGAY LÚC DỰNG, không đợi lúc ghi ra đĩa.
 
@@ -72,9 +93,14 @@ class Label:
             object.__setattr__(self, "ts", datetime.now(timezone.utc).astimezone().isoformat())
 
     @property
-    def khoa(self) -> tuple[str, str, int, int]:
-        """Khoá gộp: chấm lại đúng khoảng này thì dòng mới thay dòng cũ."""
-        return (self.query_id, self.video_id, self.frame_start, self.frame_end)
+    def khoa(self) -> tuple[str, str, int, int, int | None]:
+        """Khoá gộp: chấm lại đúng khoảng này thì dòng mới thay dòng cũ.
+
+        `moment_idx` nằm trong khoá vì hai khoảnh khắc TRAKE là hai đáp án độc lập —
+        sửa khoảnh khắc 2 không được ghi đè khoảnh khắc 1.
+        """
+        return (self.query_id, self.video_id, self.frame_start, self.frame_end,
+                self.moment_idx)
 
     def chua(self, frame_idx: int) -> bool:
         """frame_idx có nằm trong khoảng này không (gồm cả hai đầu)."""
@@ -82,6 +108,18 @@ class Label:
 
 
 # ------------------------------------------------------------------------ ghi
+
+def _chuan_hoa(s: str | None) -> str | None:
+    """Chuẩn hoá answer trước khi so: bỏ khoảng trắng thừa, viết thường.
+
+    Không bỏ dấu: "màu xanh" và "mau xanh" là hai câu khác nhau, và BTC chấm ngữ
+    nghĩa chứ không chấm chuỗi — mình không được tự nới rộng thay họ.
+    """
+    if s is None:
+        return None
+    can = " ".join(s.split()).lower()
+    return can or None
+
 
 def duong_dan_nhan(labeler: str = LABELER, thu_muc: Path | None = None) -> Path:
     """File nhãn của một người. Mỗi người một file → không bao giờ git conflict."""
@@ -176,29 +214,67 @@ class BangNhan:
         for n in self.nhan:
             self._theo_khoa.setdefault((n.query_id, n.video_id), []).append(n)
 
-    def is_correct(self, query_id: str, video_id: str, frame_idx: int) -> bool:
+    def is_correct(self, query_id: str, video_id: str, frame_idx: int,
+                   moment_idx: int | None = None) -> bool:
         """Frame này có nằm trong khoảng nào đã chấm ĐÚNG không?
 
-        Vào: id truy vấn · video · frame index TRONG VIDEO. Ra: True/False.
+        Vào: id truy vấn · video · frame index TRONG VIDEO · khoảnh khắc thứ mấy
+        (TRAKE; None cho KIS/Q&A). Ra: True/False.
         Bất biến: chỉ nhãn `correct` mới cho True. `wrong` và `unsure` KHÔNG phủ định
         một khoảng `correct` chồng lên nó — `wrong` chỉ có nghĩa "đã soi, không phải",
         nó không chứng minh được là chỗ khác cũng sai.
+
+        Khoá tra gồm `video_id`, nên **sai video tự động ra False** — đúng luật BTC
+        "sai video → 0 điểm ngay", không cần nhánh `if` riêng ở chỗ gọi.
 
         Đây chính là hàm chấm điểm dùng chung cho E4.2 và D3.5. Viết một lần ở đây
         để hai chỗ đó không tự định nghĩa "thế nào là đúng" theo hai kiểu.
         """
         return any(
-            n.label == "correct" and n.chua(frame_idx)
+            n.label == "correct" and n.moment_idx == moment_idx and n.chua(frame_idx)
             for n in self._theo_khoa.get((query_id, video_id), ())
         )
 
-    def nhan_cua_frame(self, query_id: str, video_id: str, frame_idx: int) -> str | None:
+    def answer_dung(self, query_id: str, answer_text: str | None) -> bool | None:
+        """Câu trả lời này đã được chấm là đúng ngữ nghĩa chưa?
+
+        Ra: True/False nếu có người chấm rồi · **None nếu CHƯA AI CHẤM**.
+        Ba giá trị chứ không phải hai: gộp "chưa chấm" vào False thì điểm Q&A tụt
+        xuống theo số câu chưa chấm, nhìn như hệ thống dở. `eval.py` phải đếm riêng
+        và báo ra, không được nuốt.
+
+        So khớp sau khi chuẩn hoá khoảng trắng + viết thường: người chấm phán trên
+        một chuỗi cụ thể, gõ thừa dấu cách không được thành câu trả lời khác.
+        """
+        can = _chuan_hoa(answer_text)
+        if can is None:
+            return None
+        for n in self.nhan:
+            if (n.query_id == query_id and n.answer_dung is not None
+                    and _chuan_hoa(n.answer_text) == can):
+                return n.answer_dung
+        return None
+
+    def so_khoanh_khac(self, query_id: str) -> int | None:
+        """N của một truy vấn TRAKE, suy từ nhãn. None nếu truy vấn này không phải TRAKE.
+
+        Là MẪU SỐ của công thức TRAKE `(1/N)·Σ`. Lấy từ đáp án chứ không lấy từ số
+        frame mình nộp: nộp thiếu khoảnh khắc thì vẫn phải chia cho N thật, nếu không
+        nộp 1 frame trúng 1 sẽ ra 1.0 thay vì 0.25.
+        """
+        idx = [n.moment_idx for n in self.nhan
+               if n.query_id == query_id and n.moment_idx is not None]
+        return max(idx) + 1 if idx else None
+
+    def nhan_cua_frame(self, query_id: str, video_id: str, frame_idx: int,
+                       moment_idx: int | None = None) -> str | None:
         """Nhãn hiện tại của một frame, hoặc None nếu chưa ai chấm.
 
         UI dùng để tô nút Đúng/Sai theo trạng thái đã chấm — chấm rồi thì khỏi chấm lại.
         Khoảng HẸP NHẤT thắng: người ta khoanh hẹp lại chính là để nói rõ hơn.
         """
-        ung_vien = [n for n in self._theo_khoa.get((query_id, video_id), ()) if n.chua(frame_idx)]
+        ung_vien = [n for n in self._theo_khoa.get((query_id, video_id), ())
+                    if n.moment_idx == moment_idx and n.chua(frame_idx)]
         if not ung_vien:
             return None
         return min(ung_vien, key=lambda n: (n.frame_end - n.frame_start, n.ts)).label

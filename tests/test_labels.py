@@ -210,3 +210,60 @@ def test_labels_of_va_cac_query(tmp_path):
     ghi_nhan(mot_nhan(query_id="q002", frame_start=1, frame_end=2), tmp_path)
     assert len(labels_of("q001", tmp_path)) == 1
     assert BangNhan(thu_muc=tmp_path).cac_query() == ["q001", "q002"]
+
+
+# ------------------------------------- ba trường cho Q&A và TRAKE (thêm ở E4.2)
+
+def test_doc_duoc_dong_nhan_CU_thieu_ba_truong_moi(tmp_path):
+    """Dòng nhãn viết trước khi có Q&A/TRAKE phải đọc lại được nguyên vẹn.
+
+    `Label(**json.loads(...))` sẽ nổ `TypeError` nếu trường mới không có mặc định.
+    Hiện `dev_set/` còn rỗng nên chưa mất gì, nhưng lần thêm trường TIẾP THEO sẽ
+    diễn ra khi đã có vài trăm nhãn — test này chốt luật lại từ bây giờ.
+    """
+    p = tmp_path / "labels.cu.jsonl"
+    p.write_text(json.dumps({
+        "query_id": "q1", "query_vi": "cũ", "task_type": "KIS", "video_id": "L01_V001",
+        "frame_start": 10, "frame_end": 20, "label": "correct", "labeler": "cu",
+        "ts": "2026-08-01T00:00:00+07:00",
+    }, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    nhan = load_labels(tmp_path)
+    assert len(nhan) == 1
+    assert nhan[0].answer_text is None and nhan[0].moment_idx is None
+
+
+def test_hai_khoanh_khac_TRAKE_khong_de_len_nhau(tmp_path):
+    """Khoá gộp phải gồm `moment_idx` — sửa khoảnh khắc 2 không được xoá khoảnh khắc 1."""
+    goc = dict(query_id="t1", query_vi="nhảy cao", task_type="TRAKE",
+               video_id="L10_V010", label="correct", labeler="test")
+    for j, (s, e) in enumerate([(95, 105), (145, 155)]):
+        ghi_nhan(Label(frame_start=s, frame_end=e, moment_idx=j, **goc), tmp_path)
+
+    bn = BangNhan(thu_muc=tmp_path)
+    assert len(bn) == 2
+    assert bn.so_khoanh_khac("t1") == 2
+    assert bn.is_correct("t1", "L10_V010", 101, moment_idx=0)
+    assert not bn.is_correct("t1", "L10_V010", 101, moment_idx=1), "nhầm khoảnh khắc"
+
+
+def test_answer_dung_tra_ba_gia_tri():
+    """True / False / **None khi chưa ai chấm** — gộp None vào False là dìm điểm Q&A."""
+    goc = dict(query_id="q1", query_vi="?", task_type="QA", video_id="L01_V001",
+               frame_start=0, frame_end=9, labeler="test")
+    bn = BangNhan([
+        Label(label="correct", answer_text="màu xanh", answer_dung=True, **goc),
+        Label(label="wrong", answer_text="màu trắng", answer_dung=False, **goc),
+    ])
+    assert bn.answer_dung("q1", "màu xanh") is True
+    assert bn.answer_dung("q1", "màu trắng") is False
+    assert bn.answer_dung("q1", "màu tím") is None
+    assert bn.answer_dung("q1", None) is None
+
+
+def test_so_khoanh_khac_None_cho_KIS():
+    """Truy vấn không phải TRAKE thì không có N — đừng trả 0 rồi chia cho 0."""
+    bn = BangNhan([Label(query_id="q1", query_vi="?", task_type="KIS",
+                         video_id="L01_V001", frame_start=0, frame_end=9,
+                         label="correct", labeler="test")])
+    assert bn.so_khoanh_khac("q1") is None

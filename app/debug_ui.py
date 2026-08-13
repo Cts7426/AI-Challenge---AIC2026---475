@@ -102,6 +102,16 @@ def sidebar() -> dict:
     task = st.sidebar.selectbox("Dạng bài", ("KIS", "QA", "TRAKE"))
     top_k = st.sidebar.slider("Số kết quả", 5, 100, TOP_K_MAC_DINH, step=5)
 
+    # TRAKE: chọn sẵn ở đây thay vì bấm lại trên từng thẻ. Soạn đáp án thường làm
+    # xong khoảnh khắc 1 cho cả loạt kết quả rồi mới sang khoảnh khắc 2.
+    moment = 1
+    if task == "TRAKE":
+        moment = st.sidebar.number_input(
+            "Đang soạn khoảnh khắc thứ", min_value=1, max_value=20, value=1, step=1,
+            help="TRAKE chấm theo VỊ TRÍ: frame thứ j phải rơi vào khoảng của "
+                 "khoảnh khắc thứ j. Mỗi khoảnh khắc là một dòng nhãn riêng.",
+        )
+
     search, thieu_goi = _tang_search()
     co_search = search is not None and not thieu_goi
     che_do = st.sidebar.radio(
@@ -145,7 +155,7 @@ def sidebar() -> dict:
         st.sidebar.info(f"Chưa có ảnh keyframe ở `{KEYFRAMES_DIR}` — sẽ vẽ thẻ xám.")
 
     chay = st.sidebar.button("Tìm kiếm", type="primary", use_container_width=True)
-    return dict(q=q, q_en=q_en, task=task, top_k=top_k, che_do=che_do,
+    return dict(q=q, q_en=q_en, task=task, top_k=top_k, che_do=che_do, moment=int(moment),
                 bat=bat, gom_shot=gom_shot, chay=chay, co_khoa=co_khoa)
 
 
@@ -233,14 +243,26 @@ def ve_the(r: dict, cf: dict, qid: str, bn: BangNhan, khoa: str) -> None:
             st.caption("Không có frame_idx — không chấm nhãn được cho kết quả này.")
             return
 
+        # TRAKE chấm THEO VỊ TRÍ: khoảnh khắc j có khoảng đáp án [sⱼ,eⱼ] riêng, nên
+        # mỗi nhãn phải nói rõ nó là đáp án của khoảnh khắc nào. Xem app/labels.py.
+        moment = None
+        if cf["task"] == "TRAKE":
+            moment = st.number_input(
+                "Khoảnh khắc thứ", min_value=1, max_value=20, value=cf["moment"],
+                step=1, key=f"m{khoa}",
+                help="Nhãn này là đáp án của khoảnh khắc thứ mấy trong chuỗi sự kiện.",
+            ) - 1
+
         dat = {"query_id": qid, "query_vi": cf["q"], "task_type": cf["task"],
                "video_id": video_id, "kf_id": kf, "shot_id": r.get("shot_id"),
+               "moment_idx": moment,
                # Ghi rõ nhãn này chấm từ nguồn nào: chấm toàn bộ từ offline sẽ làm
                # lệch bộ nhãn (xem báo cáo §10.3), và chỉ cột này phát hiện ra được.
                "source": f"debug_ui/{cf['che_do']}"}
 
-        def cham(nhan: str, s: int, e: int) -> None:
-            ghi_nhan(Label(frame_start=s, frame_end=e, label=nhan, labeler=LABELER, **dat))
+        def cham(nhan: str, s: int, e: int, **them) -> None:
+            ghi_nhan(Label(frame_start=s, frame_end=e, label=nhan, labeler=LABELER,
+                           **{**dat, **them}))
             st.rerun()
 
         b1, b2, b3, b4 = st.columns(4)
@@ -259,9 +281,38 @@ def ve_the(r: dict, cf: dict, qid: str, bn: BangNhan, khoa: str) -> None:
                                                "một cú bấm ra hàng chục frame nhãn"):
                 cham("correct", *bc.shot_bien)
 
-        nhan_hien_tai = bn.nhan_cua_frame(qid, video_id, frame_idx)
+        if cf["task"] == "QA":
+            _o_cham_answer(r, cham, khoa)
+
+        nhan_hien_tai = bn.nhan_cua_frame(qid, video_id, frame_idx, moment_idx=moment)
         if nhan_hien_tai:
             st.caption(f"{MAU_NHAN[nhan_hien_tai]} đã chấm: **{nhan_hien_tai}**")
+
+
+def _o_cham_answer(r: dict, cham, khoa: str) -> None:
+    """Chấm câu trả lời — cửa tử THỨ HAI của Q&A, độc lập với cửa frame.
+
+    BTC: `R-Score = I(video ∧ frame ∈ [s,e] ∧ answer đúng ngữ nghĩa)`. Frame đúng mà
+    answer sai vẫn 0 điểm, nên phải chấm riêng chứ không suy ra từ nhãn frame.
+
+    Ô nhập tay chứ không chỉ đọc từ kết quả search: `backend/tasks/qa.py` (C3.1 của
+    Thi) chưa có, `run_minimal.py` đang điền "CHUA_CO_ANSWER". Gõ tay được thì soạn
+    đáp án cho dev set ngay bây giờ, không phải đợi.
+    """
+    txt = st.text_input(
+        "Câu trả lời (Q&A)", value=r.get("answer_text") or "", key=f"ans{khoa}",
+        placeholder="vd: màu xanh · 5 · Nguyễn Văn A",
+    )
+    if not txt.strip():
+        st.caption("Gõ câu trả lời rồi mới chấm được cửa thứ hai.")
+        return
+    a1, a2 = st.columns(2)
+    with a1:
+        if st.button("✓ Answer đúng", key=f"ad{khoa}", use_container_width=True):
+            cham("correct", r["frame_idx"], r["frame_idx"], answer_text=txt, answer_dung=True)
+    with a2:
+        if st.button("✗ Answer sai", key=f"as{khoa}", use_container_width=True):
+            cham("wrong", r["frame_idx"], r["frame_idx"], answer_text=txt, answer_dung=False)
 
 
 # ------------------------------------------------- vùng C: bằng chứng một frame

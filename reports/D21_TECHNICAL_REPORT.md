@@ -8,7 +8,7 @@
 >
 > **Trạng thái: ĐÃ CHẠY ĐƯỢC ĐẦU-CUỐI ở chế độ `offline`.** Gõ truy vấn → tìm →
 > chấm nhãn → nhãn ra file. Chế độ `live` mới kiểm được hợp đồng tĩnh, **chưa chạy
-> thật lần nào** (§9.1b). Ba thứ trong đặc tả chưa có nguồn dữ liệu: ảnh keyframe,
+> thật lần nào** (§9.2). Ba thứ trong đặc tả chưa có nguồn dữ liệu: ảnh keyframe,
 > `objects`, `caption` mức frame (§9.0).
 
 ---
@@ -22,7 +22,7 @@
 6. [Chi tiết từng hàm](#6-chi-tiết-từng-hàm)
 7. [Kết quả chạy thực tế](#7-kết-quả-chạy-thực-tế)
 8. [Kết quả chạy đầu-cuối](#8-kết-quả-chạy-đầu-cuối)
-9. [Rà soát lại toàn bộ (13/08)](#9-rà-soát-lại-toàn-bộ-1308) — [đối chiếu đặc tả](#90-đối-chiếu-với-đặc-tả-d21-trong-build_tasksmd)
+9. [Đối chiếu đặc tả và phần còn treo](#9-đối-chiếu-đặc-tả-và-phần-còn-treo)
 10. [Dùng chế độ nào, cần gì để chạy](#10-dùng-chế-độ-nào-cần-gì-để-chạy)
 
 ---
@@ -245,13 +245,13 @@ với đúng nhánh đó bật. **Không viết lại logic truy xuất trong UI
 | :----------------------------| :----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Label`                     | Một lượt chấm. `__post_init__` chặn dữ liệu sai **ngay lúc dựng**: nhãn lạ · id rỗng · frame âm · khoảng ngược. Tự đóng dấu `ts` để biết dòng nào mới hơn |
 | `Label.chua()`              | frame có nằm trong khoảng không (**gồm cả hai đầu**)                                                                                                      |
-| `duong_dan_nhan()`          | `dev_set/labels.<người>.jsonl` — mỗi người một file                                                                                                       |
-| `ghi_nhan()`                | Nối **một** dòng, `flush()` ngay. UTF-8 không BOM, LF                                                                                                     |
+| `label_path()`          | `dev_set/labels.<người>.jsonl` — mỗi người một file                                                                                                       |
+| `append_label()`                | Nối **một** dòng, `flush()` ngay. UTF-8 không BOM, LF                                                                                                     |
 | `load_labels()`             | Đọc gộp mọi file, khử trùng theo khoá, `ts` mới nhất thắng                                                                                                |
 | `_doc_mot_file()`           | Dòng hỏng thì **báo rồi bỏ qua**, không kéo sập cả file                                                                                                   |
-| `BangNhan`                  | Chỉ mục tra nhanh — dựng một lần, hỏi bao nhiêu lần cũng được                                                                                             |
-| `BangNhan.is_correct()`     | **Hàm chấm điểm dùng chung** cho E4.2 và D3.5                                                                                                             |
-| `BangNhan.nhan_cua_frame()` | Nhãn hiện tại của một frame; khoảng **hẹp nhất** thắng                                                                                                    |
+| `LabelIndex`                  | Chỉ mục tra nhanh — dựng một lần, hỏi bao nhiêu lần cũng được                                                                                             |
+| `LabelIndex.is_correct()`     | **Hàm chấm điểm dùng chung** cho E4.2 và D3.5                                                                                                             |
+| `LabelIndex.label_of_frame()` | Nhãn hiện tại của một frame; khoảng **hẹp nhất** thắng                                                                                                    |
 
 Ba quyết định đáng ghi lại:
 
@@ -270,12 +270,12 @@ viết kiểu `!= "wrong"` thì `unsure` lặng lẽ thành điểm. Có test ri
 | Tên | Mô tả |
 |:---|:---|
 | `_doc()` | Đọc bảng derived, **lọc sẵn theo video** bằng `filters`. Thiếu file → rỗng, không raise |
-| `_cau_noi()` | **Cầu nối hai hệ tên** (mục 3). Chiều BTC → tự trích chọn `frame_drift` nhỏ nhất |
+| `_id_bridge()` | **Cầu nối hai hệ tên** (mục 3). Chiều BTC → tự trích chọn `frame_drift` nhỏ nhất |
 | `_frame_map_video()` | `kf_id` BTC → `frame_idx` thật |
-| `tach_id()` | id bất kỳ → `(video_id, id BTC, id tự trích)`. **Không ghép chuỗi**, phải tra bảng |
-| `bang_chung()` | Gom tất cả. **Không bao giờ raise** vì thiếu dữ liệu — thành `canh_bao` |
-| `keyframe_cung_shot()` | Dải ngữ cảnh trước/sau trong cùng shot |
-| `xoa_cache()` | Quên bảng đã nạp khi Data Factory giao bản mới giữa phiên |
+| `split_id()` | id bất kỳ → `(video_id, id BTC, id tự trích)`. **Không ghép chuỗi**, phải tra bảng |
+| `evidence_of()` | Gom tất cả. **Không bao giờ raise** vì thiếu dữ liệu — thành `warnings` |
+| `keyframes_in_shot()` | Dải ngữ cảnh trước/sau trong cùng shot |
+| `clear_cache()` | Quên bảng đã nạp khi Data Factory giao bản mới giữa phiên |
 
 **ASR gán theo THỜI GIAN, không theo id**, và phân biệt hai mức: đoạn nói **chứa**
 frame (`truc_tiep=True`) khác hẳn đoạn chỉ dính vì cửa sổ ±3s. Không phân biệt thì
@@ -291,9 +291,9 @@ frame. Có test riêng đối chiếu với `frame_map.parquet`.
 
 | Tên | Mô tả |
 |:---|:---|
-| `tach_tu()` | Truy vấn → từ khoá, viết thường, bỏ trùng, bỏ từ < 2 ký tự |
+| `tokenize()` | Truy vấn → từ khoá, viết thường, bỏ trùng, bỏ từ < 2 ký tự |
 | `tim()` | Một lượt quét theo lô: đếm tần suất + đo độ dài + đếm `df`, tính BM25 sau |
-| `_trich_quanh()` | Cắt đoạn `doc_text` quanh từ khớp — nhìn phát biết vì sao lên hạng |
+| `_snippet()` | Cắt đoạn `doc_text` quanh từ khớp — nhìn phát biết vì sao lên hạng |
 | `main()` | CLI: `python -m app.offline_search "tên riêng hiếm"` |
 
 **Ba quyết định đều dựa trên số đo**, không phải cảm tính. Đo trên toàn kho 371.702
@@ -333,7 +333,7 @@ Hậu quả thật, quan sát được trước khi sửa: gõ `ba` thì hạng 
 `#baothanhnien` — **không hề có chữ "ba" nào**. Không crash, không cảnh báo, chỉ là
 bảng xếp hạng vô nghĩa.
 
-Cách sửa (`_dem_dung_tu()`) **hai lượt**, vì đếm đúng ranh giới từ đắt hơn nhiều:
+Cách sửa (`_count_whole_word()`) **hai lượt**, vì đếm đúng ranh giới từ đắt hơn nhiều:
 
 1. Lượt 1 — đếm chuỗi con (rẻ). Kết quả là **cận trên**: tài liệu chứa từ thật thì
    chắc chắn cũng chứa chuỗi con, nên không bỏ sót cái nào.
@@ -474,13 +474,13 @@ AIC_LABELER=e2e · chế độ offline
 
 | Lỗi | Hậu quả nếu lọt |
 |:---|:---|
-| `_cau_noi` giữ **dòng cuối** thay vì dòng gần nhất | Bằng chứng lệch tới 22 frame so với ảnh đang nhìn |
-| `tach_id` nổ `TypeError` khi gặp `NAType` | Ô rỗng trong parquet làm sập UI |
+| `_id_bridge` giữ **dòng cuối** thay vì dòng gần nhất | Bằng chứng lệch tới 22 frame so với ảnh đang nhìn |
+| `split_id` nổ `TypeError` khi gặp `NAType` | Ô rỗng trong parquet làm sập UI |
 | Trang **tự chạy search** khi chưa bấm nút | Đợi ~18 giây mỗi lần chạm bàn phím, kể cả lúc chỉ bấm nút chấm nhãn |
 
 ---
 
-## 9. Rà soát lại toàn bộ (13/08)
+## 9. Đối chiếu đặc tả và phần còn treo
 
 ### 9.0. Đối chiếu với đặc tả D2.1 trong `BUILD_TASKS.md`
 
@@ -543,33 +543,27 @@ nhãn mà không ai biết. Tách theo người thì hai người không bao gi�
 dòng, mà `load_labels()` vẫn gộp lại thành một bộ duy nhất khi đọc.
 
 → Thay đổi này **không ảnh hưởng ai khác**: E4.2 và D3.5 gọi `load_labels()` /
-`BangNhan`, không đọc thẳng file.
+`LabelIndex`, không đọc thẳng file.
 
-Đọc lại cả 4 file sau khi đã chạy thật. Sáu chỗ sai, **đã sửa hết**, mỗi chỗ có test
-khoá lại.
+#### 9.0.3. Bốn bất biến rút ra từ đợt rà soát
 
-| # | Chỗ sai | Hậu quả nếu để nguyên | Cách sửa |
-|:--:|:---|:---|:---|
-| 1 | **Đếm chuỗi con thay vì đếm từ** (`offline_search`) | Xếp hạng vô nghĩa với từ khoá ngắn — thổi phồng tới ×45, xem §6.3.1 | `_dem_dung_tu()` hai lượt |
-| 2 | Ô bật/tắt 5 nhánh **vẫn bấm được ở chế độ offline** | Tắt `vector` thấy kết quả y hệt → kết luận "vector không đóng góp", trong khi nó chưa từng được gọi | `disabled=` khi offline |
-| 3 | Nhãn không ghi **chấm từ chế độ nào** | Không phát hiện được lệch bộ nhãn (§10.3) | `source = "debug_ui/live"` hoặc `/offline` |
-| 4 | Khoá widget OCR dùng `id(dict)` | `id()` là địa chỉ bộ nhớ, được cấp lại sau GC → hai lần vẽ khác nhau trùng khoá, Streamlit lỗi giữa lúc đang chấm | khoá theo `kf_id` + thứ tự |
-| 5 | `bang_chung()` bị gọi **hai lần mỗi thẻ** | 20 kết quả = 40 lượt lọc DataFrame thừa | gọi một lần, dùng lại |
-| 6 | `shot_id` rỗng thành chuỗi `"nan"` | `str(NaN)` ra `"nan"`, trôi thẳng vào file nhãn không ai nhận ra | `_chuoi_hoac_none()` |
-| 7 | **`\b` sai với tiếng Việt + pandas đổi backend regex** | Xếp hạng sai NGƯỢC: "tù nhân" ra "ông tùng", xem §6.3.1 | gọi thẳng `pyarrow.compute` với `\p{L}` |
-| 8 | UI mặc định chọn `live` trên máy chưa cài gì | `backend.retrieval.search` nạp lười nên import trót lọt; người dùng bấm Tìm kiếm rồi mới biết | kiểm từng gói bằng `find_spec`, báo tên gói + lệnh `pip install` |
-| 9 | Thiếu `ANTHROPIC_API_KEY` + bỏ trống ô tiếng Anh | `search()` gọi LLM để dịch và ném lỗi **trước khi nhánh nào chạy** → chết cả 5 nhánh, stack trace không liên quan gì tới thao tác vừa bấm | chặn trước, đánh dấu ô tiếng Anh là BẮT BUỘC |
+Bốn chỗ dưới đây từng viết sai một lần, nên chúng được ghi lại thành luật kèm test —
+người sửa file này về sau đọc là biết vì sao code trông "vòng vo" ở mấy chỗ đó.
 
-Ngoài ra: `insert(0, …)` trong vòng lặp làm **lật ngược** thứ tự cảnh báo lược đồ (đã
-đổi thành ghép cả khối), và `dai_tb` không chặn `NaN` (đã thêm chặn).
+| Luật | Vì sao |
+|:---|:---|
+| Đếm từ khoá phải theo **ranh giới từ Unicode**, gọi thẳng `pyarrow.compute` | Đếm chuỗi con thổi phồng ×45; `` của RE2 lại sai ngược với nguyên âm có dấu (§6.3.1) |
+| Ô điều khiển không có tác dụng thì phải **khoá**, không để bật được | Tắt `vector` ở chế độ offline mà kết quả y hệt → người dùng kết luận sai về nguồn nào gánh điểm |
+| Khoá widget Streamlit phải **ổn định**, không dùng `id(dict)` | `id()` là địa chỉ bộ nhớ, cấp lại sau GC → hai lần vẽ trùng khoá, trang nổ giữa lúc đang chấm |
+| Ô rỗng của parquet phải qua `_str_or_none()` | `str(NaN)` ra chuỗi `"nan"` rồi trôi thẳng vào file nhãn, không ai nhận ra |
 
 ### 9.1. ⚠️ Hai nguồn cùng nói về `frame_idx`
 
-Phát hiện lúc rà soát, **chưa xử lý dứt điểm** vì không có cách xử lý đúng ở phía UI:
+**Chưa xử lý dứt điểm** vì không có cách xử lý đúng ở phía UI:
 
 - `search()` trả `frame_idx` lấy từ **Milvus** (chế độ `live`) hoặc từ hậu tố kf_id tự
   trích (chế độ `offline`).
-- `evidence.bang_chung()` tra `frame_idx` từ **`frame_map.parquet`**.
+- `evidence.evidence_of()` tra `frame_idx` từ **`frame_map.parquet`**.
 
 Hai số này **có thể lệch nhau**, và ở chế độ `offline` thì lệch là chuyện bình thường
 — keyframe tự trích và keyframe BTC cách nhau trung vị 11 frame (§3). Nhãn ghi theo
@@ -584,7 +578,7 @@ hai số, tránh hẳn vấn đề.
 > khác `frame_map.parquet` thì đó là lỗi của A2.2/A1, không phải của D2.1 — nhưng
 > chính UI này là nơi nhìn thấy nó đầu tiên.
 
-### 9.1b. Chế độ `live` đã đúng hợp đồng tới đâu
+### 9.2. Chế độ `live` đã đúng hợp đồng tới đâu
 
 Đã đối chiếu từng điểm với `backend/retrieval/search.py`, có test khoá lại:
 
@@ -593,8 +587,8 @@ hai số, tránh hẳn vấn đề.
 | Chữ ký `search(query_vi, query_en, top_k, branches, group_by_shot)` | ✅ khớp |
 | Tên 5 nhánh UI gửi đi so với `BRANCHES` | ✅ khớp — `test_ten_nhanh_KHOP_voi_search_weights` |
 | Trường UI đọc (`keyframe_id/video_id/frame_idx/shot_id/score/ranks`) | ✅ có trong hợp đồng `search()`, neo bằng test |
-| Thiếu gói → báo tên gói + lệnh cài | ✅ sau khi sửa lỗi #8 |
-| Thiếu khoá API → chặn trước, không để nổ giữa chừng | ✅ sau khi sửa lỗi #9 |
+| Thiếu gói → báo tên gói + lệnh cài | ✅ `find_spec` từng gói, không chỉ thử import module |
+| Thiếu khoá API → chặn trước, không để nổ giữa chừng | ✅ `search()` gọi LLM để dịch trước khi chạy nhánh nào |
 
 > [!IMPORTANT]
 > Tên nhánh là chỗ nguy hiểm nhất: `search()` gộp `{**BRANCHES, **branches}` nên gõ
@@ -607,7 +601,7 @@ chạy thật**. Những gì đã kiểm là hợp đồng tĩnh — chữ ký h
 Thứ chỉ lộ ra lúc chạy (Milvus trả `frame_idx` kiểu gì, `ranks` có đủ 5 nhánh không,
 `shot_id` có `None` không) thì phải đợi dựng xong hạ tầng mới biết.
 
-### 9.2. Còn lại, chờ người khác
+### 9.3. Còn lại, chờ người khác
 
 | Việc | Chờ ai |
 |:---|:---|
@@ -616,12 +610,11 @@ Thứ chỉ lộ ra lúc chạy (Milvus trả `frame_idx` kiểu gì, `ranks` c�
 | Panel `objects` | BTC cho sẵn, **chưa tải** (§9.0.1) — cùng gói W0.5 |
 | Panel `caption` mức frame | BTC không phát, **chưa ai được giao** (§9.0.1) — cần người quyết |
 | Tab "Sau rerank" | A2.4 của Thạch |
-| Một lượt `live` chạy thật | hạ tầng — xem 9.1b |
+| Một lượt `live` chạy thật | hạ tầng — xem §9.2 |
 
-### 9.3. Quy ước tên file ảnh — đã hết đoán
+### 9.4. Quy ước tên file ảnh
 
-Trước đây `_duong_dan_anh()` thử cả hai quy ước rồi lấy cái nào tồn tại. Đã tra được
-câu trả lời từ hai nguồn đã chốt:
+Quy ước tên file tra từ hai nguồn đã chốt, không đoán:
 
 | Nguồn | Nói gì |
 |:---|:---|
@@ -635,7 +628,7 @@ keyframe, và lệch im lặng thì người chấm ngồi soi nhầm frame su�
 
 Có 3 test khoá lại (`test_ten_file_anh_theo_QUY_UOC_dem_tu_0` và hai test kèm).
 
-### 9.4. Một chỗ lệch nằm NGOÀI D2.1, phát hiện lúc rà soát
+### 9.5. Một chỗ lệch nằm NGOÀI D2.1
 
 `backend/api/main.py:126` dựng đường dẫn ảnh theo quy ước **khác**:
 

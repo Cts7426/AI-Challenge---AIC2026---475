@@ -19,7 +19,7 @@
 4. [Chi tiết từng hàm](#4-chi-tiết-từng-hàm)
 5. [Bảy luật của validator](#5-bảy-luật-của-validator)
 6. [Kết quả chạy thực tế](#6-kết-quả-chạy-thực-tế)
-7. [Hai bug phát hiện trong lúc rà soát](#7-hai-bug-phát-hiện-trong-lúc-rà-soát)
+7. [`Answer.__post_init__` — chuẩn hoá `frame_ids`](#7-answer__post_init__--chuẩn-hoá-frame_ids-ở-cửa-vào)
 8. [Đo độ trễ](#8-đo-độ-trễ)
 9. [Đối chiếu với yêu cầu trong tài liệu](#9-đối-chiếu-với-yêu-cầu-trong-tài-liệu)
 10. [Việc còn treo](#10-việc-còn-treo) — [10.1 ai gọi tầng này](#101-ai-gọi-tầng-này-và-gọi-thế-nào) · [10.2 phần đang giả định](#102-phần-đang-chạy-trên-giả-định--sẽ-phải-sửa) · [10.3 code thử nghiệm](#103--code-chỉ-để-thử-nghiệm--bỏ-khi-vào-thi)
@@ -368,38 +368,15 @@ Bắt đủ 4, **báo một lượt** chứ không dừng ở lỗi đầu tiên
 
 ---
 
-## 7. Hai bug phát hiện trong lúc rà soát
+## 7. `Answer.__post_init__` — chuẩn hoá `frame_ids` ở cửa vào
 
-Cả hai đều thuộc loại **chưa nổ nhưng chắc chắn sẽ nổ ở D3.1**.
+`Answer` nhận `frame_ids` từ slot allocator, mà allocator tính frame từ `shots.parquet`
+bằng pandas. Hai kiểu dữ liệu đi vào đây mà nếu không chuẩn hoá sẽ hỏng:
 
-### 7.1. `frame_ids` dạng `list` làm validator crash
-
-`BUILD_TASKS` ghi kiểu là **`frame_ids: list[int]`**. Nếu slot allocator truyền đúng
-như vậy:
-
-```
-validate_submission(...)  →  TypeError: unhashable type: 'list'
-```
-
-Vỡ chính bất biến đã đặt cho hàm đó: *"không ném exception vì dữ liệu sai"*. Nó
-**crash bẩn** thay vì trả `Issue`.
-
-### 7.2. `numpy.int64` bị báo nhầm là "không phải số nguyên"
-
-```python
-isinstance(np.int64(100), int)  →  False
-```
-
-Slot allocator (D3.1) tính frame từ `shots.parquet` bằng pandas → **chắc chắn trả
-`numpy.int64`**. Kết quả:
-
-```
-ValueError: dòng 1: frame_id phải là số nguyên, đang là int64
-```
-
-Một báo lỗi sai hoàn toàn, trên dữ liệu hoàn toàn đúng.
-
-### 7.3. Cách sửa — chuẩn hoá ở cửa vào
+| Đầu vào | Không chuẩn hoá thì |
+|:---|:---|
+| `[100, 103]` — `BUILD_TASKS` ghi kiểu là `list[int]` | `TypeError: unhashable type: 'list'` khi validator so trùng. Crash bẩn, vỡ đúng bất biến "không ném exception vì dữ liệu sai" |
+| `numpy.int64(100)` | `isinstance(np.int64(100), int)` là `False` → báo "frame_id phải là số nguyên, đang là int64". Báo lỗi sai trên dữ liệu đúng |
 
 ```python
 def __post_init__(self) -> None:
@@ -414,11 +391,11 @@ def __post_init__(self) -> None:
 | `100.7` (float) | `TypeError` | ✅ **từ chối** |
 
 > [!WARNING]
-> Dùng `operator.index()` chứ **không** dùng `int()`. `int(100.7)` sẽ âm thầm ra
-> `100` — đó chính là "tầng format tự tính", điều W0.2 cấm tuyệt đối.
-> `operator.index()` chỉ nhận thứ chuyển sang số nguyên **không mất mát**.
+> Dùng `operator.index()` chứ **không** dùng `int()`. `int(100.7)` sẽ âm thầm ra `100`
+> — đó chính là "tầng format tự tính", điều W0.2 cấm tuyệt đối. `operator.index()` chỉ
+> nhận thứ chuyển sang số nguyên **không mất mát**.
 
-Đã thêm 3 test chặn: `test_nhan_frame_ids_dang_list`, `test_nhan_numpy_int`,
+Ba test chốt: `test_nhan_frame_ids_dang_list`, `test_nhan_numpy_int`,
 `test_tu_choi_float_khong_lam_tron_ho`.
 
 ---

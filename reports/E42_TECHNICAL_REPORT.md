@@ -137,7 +137,7 @@ chọn, cả hai đều sai:
 | Trường | Ghi gì | Cho dạng |
 |:---|:---|:---|
 | `answer_text` | câu trả lời hệ sinh ra | Q&A |
-| `answer_dung` | người chấm phán: đúng ngữ nghĩa? `None` = chưa chấm | Q&A |
+| `answer_correct` | người chấm phán: đúng ngữ nghĩa? `None` = chưa chấm | Q&A |
 | `moment_idx` | dòng này là đáp án của khoảnh khắc thứ mấy | TRAKE |
 
 TRAKE ghi **N dòng** cho một truy vấn thay vì nhét N khoảng vào một dòng — giữ nguyên
@@ -155,8 +155,8 @@ chốt (`test_doc_duoc_dong_nhan_CU_thieu_ba_truong_moi`).
 
 | Thứ | Vai trò |
 |:---|:---|
-| `K_MOC = (1,5,20,50,100)` | năm mốc BTC chấm |
-| `SO_CAU_TOI_DA = 100` | cắt phần nộp dư |
+| `K_THRESHOLDS = (1,5,20,50,100)` | năm mốc BTC chấm |
+| `MAX_ANSWERS = 100` | cắt phần nộp dư |
 | `r_at_k(r_scores, k)` | `max` trong k câu đầu |
 | `final_score(r_scores)` | trung bình 5 giá trị `R@k` |
 
@@ -171,11 +171,11 @@ không".
 | `r_score_kis()` | nhị phân, chỉ xét frame đầu tiên |
 | `r_score_qa()` | trả `(điểm, answer_chưa_chấm)` — cờ thứ hai để báo riêng |
 | `r_score_trake()` | khớp theo vị trí, mẫu số lấy từ đáp án |
-| `cham_query()` | chấm 100 dòng của một truy vấn |
-| `cham_lo()` | chấm nhiều truy vấn, tách câu chưa có nhãn |
-| `doc_runs()` | đọc file JSONL kết quả chạy |
-| `tu_submissions()` | `QuerySubmission` (D0.2) → `LoNop` |
-| `in_bao_cao()` | ba mức: theo dạng · tổng · câu tệ nhất |
+| `score_query()` | chấm 100 dòng của một truy vấn |
+| `score_runs()` | chấm nhiều truy vấn, tách câu chưa có nhãn |
+| `read_runs()` | đọc file JSONL kết quả chạy |
+| `from_submissions()` | `QuerySubmission` (D0.2) → `QueryRun` |
+| `format_report()` | ba mức: theo dạng · tổng · câu tệ nhất |
 
 **Định dạng file `runs`** — JSONL, mỗi dòng một truy vấn:
 
@@ -194,7 +194,7 @@ của khâu **đo**, không phải khâu **nộp**.
 
 ### 5.1. Không tự định nghĩa "thế nào là đúng"
 
-`eval.py` gọi `BangNhan.is_correct()` của `app/labels.py`. D3.5 (mô phỏng chấm điểm,
+`eval.py` gọi `LabelIndex.is_correct()` của `app/labels.py`. D3.5 (mô phỏng chấm điểm,
 16/08) gọi **đúng hàm đó**. Hai chỗ tự định nghĩa là hai con số khác nhau, và lúc cãi
 nhau sẽ không có cơ sở nào để phân xử.
 
@@ -209,7 +209,7 @@ quan trọng hơn: không quên được. Nhánh `if` riêng là thứ người 
 ### 5.3. TRAKE — mẫu số lấy từ ĐÁP ÁN, không lấy `len(frame_ids)`
 
 ```python
-n = bn.so_khoanh_khac(query_id) or len(dong.frame_ids)
+n = bn.n_moments(query_id) or len(dong.frame_ids)
 ```
 
 Nộp thiếu khoảnh khắc mà chia cho số mình nộp thì trúng 1/1 ra `1.0` thay vì `0.25` —
@@ -325,21 +325,21 @@ Ghi ở đây không phải để đổ lỗi mà để **thước đo sẵn sà
 
 BTC chấm `aᵢ = GTₐ` theo **ngữ nghĩa** — `"5"` và `"Năm"` đều được tính đúng.
 
-`BangNhan.answer_dung()` so chuỗi sau khi chuẩn hoá khoảng trắng + viết thường. Nghĩa
+`LabelIndex.answer_correct()` so chuỗi sau khi chuẩn hoá khoảng trắng + viết thường. Nghĩa
 là người chấm phán trên **một chuỗi cụ thể**; hệ sinh ra chuỗi khác về nghĩa giống
 nhau sẽ bị coi là "chưa chấm" (`None`), không phải "sai".
 
 Chọn cách này có chủ ý: nới rộng thay BTC (bỏ dấu, so gần đúng, hỏi LLM) là **tự cho
 mình điểm** mà lúc thi không có. Báo "chưa chấm" rồi để người phán là an toàn hơn.
 
-Đường nâng cấp nếu bộ nhãn phình to: cho `answer_dung()` gọi `llm()` để so ngữ nghĩa,
+Đường nâng cấp nếu bộ nhãn phình to: cho `answer_correct()` gọi `llm()` để so ngữ nghĩa,
 nhưng phải là **tuỳ chọn tắt được** và kết quả ghi lại thành nhãn, không phán lại mỗi
 lần chạy.
 
 ### 7.4. 🟡 Chưa có ai gọi `eval.py` trong pipeline
 
 `run_minimal.py` chưa xuất file `runs.jsonl`. Hiện phải tự dựng file đó, hoặc gọi
-`tu_submissions()` từ script.
+`from_submissions()` từ script.
 
 Thêm ~5 dòng vào `run_minimal.py` là xong, nhưng đó là **file của Thạch** — cùng chỗ
 với vấn đề `run_minimal.py` không gọi `allocate()` đã ghi ở `D31_TECHNICAL_REPORT.md`
@@ -367,7 +367,7 @@ với vấn đề `run_minimal.py` không gọi `allocate()` đã ghi ở `D31_T
 
 ### Việc tiếp theo của Minh Hoàng
 
-**D3.5 — mô phỏng chấm điểm** (14→16/08). Nó ăn thẳng `BangNhan` và `scoring.py` của
+**D3.5 — mô phỏng chấm điểm** (14→16/08). Nó ăn thẳng `LabelIndex` và `scoring.py` của
 task này, trả lời được: *"đổi từ 3 shot × 8 frame sang 5 × 5 thì điểm đổi thế nào"* —
 mà không cần chạy lại pipeline.
 

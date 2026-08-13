@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.evidence import bang_chung, keyframe_cung_shot, tach_id
+from app.evidence import evidence_of, keyframes_in_shot, split_id
 
 
 @pytest.fixture(scope="module")
@@ -41,11 +41,11 @@ def test_dich_duoc_ca_hai_chieu(cap_id):
     đòi hỏi: dịch xuôi rồi dịch ngược phải quay về đúng chỗ cũ.
     """
     btc, own, video = cap_id
-    assert tach_id(own) == (video, btc, own)
+    assert split_id(own) == (video, btc, own)
 
-    v2, btc2, own2 = tach_id(btc)
+    v2, btc2, own2 = split_id(btc)
     assert (v2, btc2) == (video, btc)
-    assert own2 is not None and tach_id(own2)[1] == btc, "dịch xuôi-ngược phải khép kín"
+    assert own2 is not None and split_id(own2)[1] == btc, "dịch xuôi-ngược phải khép kín"
 
 
 def test_chieu_nhieu_ve_mot_chon_keyframe_GAN_NHAT(cap_id):
@@ -66,7 +66,7 @@ def test_chieu_nhieu_ve_mot_chon_keyframe_GAN_NHAT(cap_id):
     if len(ung_vien) < 2:
         pytest.skip("keyframe BTC này chỉ có 1 ứng viên, không kiểm được phép chọn")
     gan_nhat = str(ung_vien.loc[ung_vien.frame_drift.idxmin()].kf_id)
-    assert tach_id(btc)[2] == gan_nhat
+    assert split_id(btc)[2] == gan_nhat
 
 
 def test_khong_bia_id_bang_cach_ghep_chuoi(cap_id):
@@ -80,27 +80,27 @@ def test_khong_bia_id_bang_cach_ghep_chuoi(cap_id):
 
 
 def test_id_la_khong_lam_sap():
-    video, btc, own = tach_id("khong_theo_he_nao")
+    video, btc, own = split_id("khong_theo_he_nao")
     assert btc is None and own is None
 
 
 @pytest.mark.parametrize("xau", ["", None, 123])
 def test_dau_vao_khong_phai_chuoi_tra_rong(xau):
     """Ô rỗng của parquet ra `NAType`, UI có thể dán vào `None` — không được nổ regex."""
-    assert tach_id(xau) == ("", None, None)
+    assert split_id(xau) == ("", None, None)
 
 
 # --------------------------------------------------------------- gom bằng chứng
 
 def test_bang_chung_co_du_thong_tin_nhan_dang(cap_id):
     btc, own, video = cap_id
-    bc = bang_chung(btc)
+    bc = evidence_of(btc)
     assert bc.video_id == video
     assert bc.kf_id_btc == btc
     # nhiều-về-một: chỉ đòi hỏi dịch được và khép kín, không đòi đúng dòng đã bốc
-    assert bc.kf_id_tu_trich and tach_id(bc.kf_id_tu_trich)[1] == btc
+    assert bc.kf_id_own and split_id(bc.kf_id_own)[1] == btc
     assert bc.frame_idx is not None and bc.frame_idx >= 0
-    assert bc.n_frames_video and bc.frame_idx < bc.n_frames_video
+    assert bc.n_frames and bc.frame_idx < bc.n_frames
 
 
 def test_frame_idx_lay_tu_frame_map_khong_phai_hau_to_id(cap_id):
@@ -118,13 +118,13 @@ def test_frame_idx_lay_tu_frame_map_khong_phai_hau_to_id(cap_id):
     fm = pd.read_parquet(DERIVED / "frame_map.parquet", columns=["kf_id", "frame_idx"],
                          filters=[("video_id", "==", video)])
     mong_doi = int(fm[fm.kf_id == btc].iloc[0].frame_idx)
-    assert bang_chung(btc).frame_idx == mong_doi
+    assert evidence_of(btc).frame_idx == mong_doi
 
 
 def test_doc_text_khong_trong_khi_co_cau_noi(cap_id):
     """`doc_text` nằm ở bảng dùng hệ TỰ TRÍCH — nối thẳng id BTC vào là rỗng trắng."""
     btc, _, _ = cap_id
-    bc = bang_chung(btc)
+    bc = evidence_of(btc)
     assert bc.doc_text, "cầu nối clip_kf_map hỏng → panel 'vì sao lên hạng' sẽ trống"
     assert bc.shot_id, "shot_id cũng lấy từ bảng hệ tự trích"
 
@@ -132,17 +132,17 @@ def test_doc_text_khong_trong_khi_co_cau_noi(cap_id):
 def test_shot_bien_bao_frame_cua_no(cap_id):
     """Biên shot phải thật sự chứa frame đang xem — nếu không thì đang nối nhầm shot."""
     btc, _, _ = cap_id
-    bc = bang_chung(btc)
-    if bc.shot_bien is None:
+    bc = evidence_of(btc)
+    if bc.shot_bounds is None:
         pytest.skip("shot này không có trong shots.parquet")
-    s, e = bc.shot_bien
+    s, e = bc.shot_bounds
     assert s <= bc.frame_idx <= e, f"frame {bc.frame_idx} nằm ngoài shot [{s}, {e}]"
 
 
 def test_timestamp_khop_voi_frame_idx(cap_id):
     """timestamp = frame_idx / fps. Sai chỗ này thì cửa sổ ASR ±3s cũng sai theo."""
     btc, _, _ = cap_id
-    bc = bang_chung(btc)
+    bc = evidence_of(btc)
     if bc.timestamp_s is None:
         pytest.skip("video_info thiếu fps")
     assert 0 <= bc.timestamp_s <= 24 * 3600
@@ -151,14 +151,14 @@ def test_timestamp_khop_voi_frame_idx(cap_id):
 
 def test_keyframe_la_tra_ve_rong_chu_khong_raise():
     """Keyframe không có trong kho → panel trống kèm cảnh báo, KHÔNG được sập UI."""
-    bc = bang_chung("L99_V999#k0001")
+    bc = evidence_of("L99_V999#k0001")
     assert bc.ocr == [] and bc.asr == [] and bc.doc_text is None
-    assert bc.canh_bao, "thiếu dữ liệu thì phải BÁO, không im lặng"
+    assert bc.warnings, "thiếu dữ liệu thì phải BÁO, không im lặng"
 
 
 def test_cach_bao_khi_khong_tra_duoc_frame_idx():
-    bc = bang_chung("L99_V999#k0001")
-    assert any("frame_idx" in c for c in bc.canh_bao)
+    bc = evidence_of("L99_V999#k0001")
+    assert any("frame_idx" in c for c in bc.warnings)
 
 
 def test_doi_ten_cot_thi_bao_DUNG_nguyen_nhan(cap_id, monkeypatch):
@@ -172,23 +172,23 @@ def test_doi_ten_cot_thi_bao_DUNG_nguyen_nhan(cap_id, monkeypatch):
     import app.evidence as ev
 
     btc, _, _ = cap_id
-    goc = ev._doc
+    goc = ev._read_table
     monkeypatch.setattr(
-        ev, "_doc",
+        ev, "_read_table",
         lambda ten, cot, v=None: goc(ten, cot + (["cot_bia_ra"] if ten == "docs_bm25" else []), v),
     )
-    ev.xoa_cache()
-    ev._LOI_LUOC_DO.clear()
+    ev.clear_cache()
+    ev._SCHEMA_ERRORS.clear()
     try:
-        bc = bang_chung(btc)
-        assert any("docs_bm25" in c and "thiếu cột" in c for c in bc.canh_bao), bc.canh_bao
+        bc = evidence_of(btc)
+        assert any("docs_bm25" in c and "thiếu cột" in c for c in bc.warnings), bc.warnings
         # phải nêu tên cột đang có, để người sửa biết đổi thành gì
-        assert any("doc_text" in c for c in bc.canh_bao)
+        assert any("doc_text" in c for c in bc.warnings)
         # và phải đứng ĐẦU: các cảnh báo sau đều là hệ quả ăn theo
-        assert "docs_bm25" in bc.canh_bao[0]
+        assert "docs_bm25" in bc.warnings[0]
     finally:
-        ev.xoa_cache()
-        ev._LOI_LUOC_DO.clear()
+        ev.clear_cache()
+        ev._SCHEMA_ERRORS.clear()
 
 
 # ------------------------------------------------------------------------- ASR
@@ -217,9 +217,9 @@ def test_asr_phan_biet_truc_tiep_va_gan_do(cap_id):
     if fm_kf is None:
         pytest.skip("không tìm được keyframe gần đoạn ASR này")
 
-    bc = bang_chung(fm_kf)
+    bc = evidence_of(fm_kf)
     assert bc.asr, "frame nằm giữa một đoạn nói mà không lấy được đoạn nào"
-    assert any(a["truc_tiep"] for a in bc.asr)
+    assert any(a["direct"] for a in bc.asr)
 
 
 def _kf_gan_frame(video_id: str, frame_idx: int) -> str | None:
@@ -239,13 +239,13 @@ def _kf_gan_frame(video_id: str, frame_idx: int) -> str | None:
 
 def test_keyframe_cung_shot_tang_dan_va_chua_chinh_no(cap_id):
     btc, _, video = cap_id
-    bc = bang_chung(btc)
+    bc = evidence_of(btc)
     if not bc.shot_id:
         pytest.skip("keyframe này không tra được shot")
-    dai = keyframe_cung_shot(video, bc.shot_id)
+    dai = keyframes_in_shot(video, bc.shot_id)
     assert dai, "shot nào cũng phải có ít nhất chính keyframe này"
     assert [d["frame_idx"] for d in dai] == sorted(d["frame_idx"] for d in dai)
-    assert bc.kf_id_tu_trich in [d["kf_id"] for d in dai]
+    assert bc.kf_id_own in [d["kf_id"] for d in dai]
 
 
 # --------------------------------------------------------------- đường dẫn ảnh
@@ -265,9 +265,9 @@ def test_ten_file_anh_theo_QUY_UOC_dem_tu_0(tmp_path, monkeypatch):
         (tmp_path / "L21_V001" / ten).write_bytes(b"x")
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
 
-    p, canh_bao = ev._duong_dan_anh("L21_V001", "L21_V001#k0001", None)
+    p, warnings = ev._image_path("L21_V001", "L21_V001#k0001", None)
     assert p is not None and p.name == "0000.jpg", "đang lệch một keyframe"
-    assert canh_bao is None
+    assert warnings is None
 
 
 def test_bo_anh_dem_tu_1_thi_dung_duoc_nhung_phai_BAO(tmp_path, monkeypatch):
@@ -278,13 +278,13 @@ def test_bo_anh_dem_tu_1_thi_dung_duoc_nhung_phai_BAO(tmp_path, monkeypatch):
     (tmp_path / "L21_V001" / "0001.jpg").write_bytes(b"x")  # chỉ có bản đếm từ 1
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
 
-    p, canh_bao = ev._duong_dan_anh("L21_V001", "L21_V001#k0001", None)
+    p, warnings = ev._image_path("L21_V001", "L21_V001#k0001", None)
     assert p is not None and p.name == "0001.jpg"
-    assert canh_bao and "0001.jpg" in canh_bao, "dùng đường lui mà im lặng"
+    assert warnings and "0001.jpg" in warnings, "dùng đường lui mà im lặng"
 
 
 def test_chua_co_anh_thi_tra_None_chu_khong_sap(tmp_path, monkeypatch):
     import app.evidence as ev
 
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path / "khong_ton_tai")
-    assert ev._duong_dan_anh("L21_V001", "L21_V001#k0001", None) == (None, None)
+    assert ev._image_path("L21_V001", "L21_V001#k0001", None) == (None, None)

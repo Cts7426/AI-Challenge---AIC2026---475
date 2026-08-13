@@ -86,11 +86,11 @@ class Issue:
 
 # Tên cột chứa độ dài video trong video_info.parquet.
 # 07/08: Data Factory đổi `n_frames` → `nb_frames_decoded`. Đặt thành hằng để lần đổi
-# sau chỉ phải sửa một dòng, và để `_doc_cot()` báo được tên cột nào đang thiếu.
-COT_N_FRAMES = "nb_frames_decoded"
+# sau chỉ phải sửa một dòng, và để `_read_columns()` báo được tên cột nào đang thiếu.
+COL_N_FRAMES = "nb_frames_decoded"
 
 
-def _doc_cot(duong_dan: Path, can: list[str], chu: str):
+def _read_columns(path_: Path, required: list[str], owner: str):
     """Đọc parquet, ASSERT đủ cột cần trước khi nạp dữ liệu.
 
     Vào: đường dẫn · danh sách cột bắt buộc · tên người sở hữu file (để báo lỗi).
@@ -108,16 +108,16 @@ def _doc_cot(duong_dan: Path, can: list[str], chu: str):
     import pandas as pd
     import pyarrow.parquet as pq
 
-    if not duong_dan.exists():
-        raise FileNotFoundError(f"Không tìm thấy {duong_dan} — cần {chu} giao file này trước.")
-    dang_co = list(pq.read_schema(duong_dan).names)
-    thieu = [c for c in can if c not in dang_co]
-    if thieu:
+    if not path_.exists():
+        raise FileNotFoundError(f"Không tìm thấy {path_} — cần {owner} giao file này trước.")
+    available = list(pq.read_schema(path_).names)
+    missing = [c for c in required if c not in available]
+    if missing:
         raise KeyError(
-            f"{duong_dan.name} thiếu cột {thieu}. Đang có: {dang_co}. "
-            f"Nhiều khả năng {chu} vừa đổi schema — sửa hằng tên cột trong file này."
+            f"{path_.name} thiếu cột {missing}. Đang có: {available}. "
+            f"Nhiều khả năng {owner} vừa đổi schema — sửa hằng tên cột trong file này."
         )
-    return pd.read_parquet(duong_dan, columns=can)
+    return pd.read_parquet(path_, columns=required)
 
 
 @lru_cache(maxsize=1)
@@ -127,8 +127,8 @@ def _video_frames() -> dict[str, int]:
     Nạp MỘT lần thành dict: validator tra hàng nghìn lượt, lọc DataFrame mỗi lần
     thì 100 query × 100 dòng đã mất hàng chục giây.
     """
-    df = _doc_cot(VIDEO_INFO_PATH, ["video_id", COT_N_FRAMES], "Công Lý (B0.1a)")
-    return {str(v): int(n) for v, n in zip(df["video_id"], df[COT_N_FRAMES])}
+    df = _read_columns(VIDEO_INFO_PATH, ["video_id", COL_N_FRAMES], "Công Lý (B0.1a)")
+    return {str(v): int(n) for v, n in zip(df["video_id"], df[COL_N_FRAMES])}
 
 
 def all_video_ids() -> list[str]:
@@ -161,7 +161,9 @@ def validate_submission(
     issues: list[Issue] = []
 
     if sub.task_type not in TASK_TYPES:
-        issues.append(Issue("task_type", f"task_type '{sub.task_type}' lạ, phải là {TASK_TYPES}", q))
+        issues.append(Issue(
+            "task_type", f"task_type '{sub.task_type}' lạ, phải là {TASK_TYPES}", q
+        ))
 
     if not sub.answers:
         return issues + [Issue("empty", "không có câu trả lời nào", q)]
@@ -267,7 +269,8 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
         elif task == "TRAKE":
             if len(a.frame_ids) < 2:
                 out.append(Issue(
-                    "frame_count", f"TRAKE phải có ít nhất 2 frame, đang có {len(a.frame_ids)}", q, i
+                    "frame_count",
+                    f"TRAKE phải có ít nhất 2 frame, đang có {len(a.frame_ids)}", q, i
                 ))
             if expected_n is not None and len(a.frame_ids) != expected_n:
                 out.append(Issue(
@@ -353,17 +356,17 @@ def validate_file(path: str | Path) -> list[Issue]:
         out.append(Issue("not_utf8", f"{path.name} không phải UTF-8 hợp lệ: {e}"))
 
     # Đếm để báo được mức độ: 1 dòng lẻ dính CRLF khác hẳn cả file sai newline.
-    so_crlf = raw.count(b"\r\n")
-    so_cr = raw.count(b"\r")
-    if so_crlf:
+    n_crlf = raw.count(b"\r\n")
+    n_cr = raw.count(b"\r")
+    if n_crlf:
         out.append(Issue(
             "crlf",
-            f"{path.name} có {so_crlf} dòng kết thúc bằng CRLF (\\r\\n) — phải ghi LF. "
+            f"{path.name} có {n_crlf} dòng kết thúc bằng CRLF (\\r\\n) — phải ghi LF. "
             "Ghi bằng open(..., newline='') hoặc Path.write_text(..., newline='').",
         ))
-    elif so_cr:
+    elif n_cr:
         # \r đơn lẻ: newline kiểu Mac cổ, hoặc file bị sửa bằng công cụ lạ
-        out.append(Issue("crlf", f"{path.name} có {so_cr} ký tự \\r đơn lẻ — phải ghi LF"))
+        out.append(Issue("crlf", f"{path.name} có {n_cr} ký tự \\r đơn lẻ — phải ghi LF"))
 
     if not raw.strip():
         out.append(Issue("file_empty", f"{path.name} rỗng"))
@@ -374,17 +377,17 @@ def format_issues(issues: list[Issue]) -> str:
     """Gom lỗi thành báo cáo đọc được, nhóm theo luật."""
     if not issues:
         return "HỢP LỆ — không phát hiện lỗi nào."
-    theo_luat: dict[str, list[Issue]] = defaultdict(list)
+    by_rule: dict[str, list[Issue]] = defaultdict(list)
     for i in issues:
-        theo_luat[i.rule].append(i)
-    dong = [f"KHÔNG HỢP LỆ — {len(issues)} lỗi thuộc {len(theo_luat)} loại:"]
-    for rule, ds in sorted(theo_luat.items()):
-        dong.append(f"  [{rule}] {len(ds)} lỗi")
-        for i in ds[:3]:
-            dong.append(f"      - {i}")
-        if len(ds) > 3:
-            dong.append(f"      ... và {len(ds) - 3} lỗi nữa")
-    return "\n".join(dong)
+        by_rule[i.rule].append(i)
+    lines = [f"KHÔNG HỢP LỆ — {len(issues)} lỗi thuộc {len(by_rule)} loại:"]
+    for rule, group in sorted(by_rule.items()):
+        lines.append(f"  [{rule}] {len(group)} lỗi")
+        for i in group[:3]:
+            lines.append(f"      - {i}")
+        if len(group) > 3:
+            lines.append(f"      ... và {len(group) - 3} lỗi nữa")
+    return "\n".join(lines)
 
 
 # -------------------------------------------------------------------- xuất file
@@ -496,9 +499,9 @@ def main() -> int:
     out_dir = Path(args.out) if args.out else REPO_ROOT / "submissions" / f"demo_{SUBMIT_FORMAT}"
 
     print("== Kiểm ngữ nghĩa ==")
-    loi = validate_all(subs, expect_answers=args.answers)
-    print(format_issues(loi))
-    if loi:
+    issues_ = validate_all(subs, expect_answers=args.answers)
+    print(format_issues(issues_))
+    if issues_:
         return 1
 
     files, loi_file = write_submissions(subs, out_dir, expect_answers=args.answers)

@@ -1,8 +1,8 @@
-# app/debug_ui.py — D2.1: UI debug (Streamlit).  Chạy: streamlit run app/debug_ui.py
+# app/debug_ui.py — UI debug.  Chạy: streamlit run app/debug_ui.py
 #
 # File này CHỈ VẼ. Logic nằm ở app/labels.py, app/evidence.py, app/offline_search.py —
 # ba module thường, có test. Streamlit không chạy trong pytest, nhét logic vào đây là
-# vừa mất test vừa buộc E4.2/D3.5 viết lại (viết lại = lệch nhau).
+# vừa mất test vừa buộc eval.py/D3.5 viết lại (viết lại = lệch nhau).
 #
 # UI trả lời ba câu: frame này lên hạng nhờ nguồn nào · thật sự chứa gì · đúng hay sai.
 # Câu ba là lý do tồn tại — nhãn sinh ra ở đây là đầu vào của E4.2 và D3.5.
@@ -21,35 +21,23 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from app.evidence import bang_chung, keyframe_cung_shot  # noqa: E402
-from app.labels import BangNhan, Label, ghi_nhan  # noqa: E402
-from app.offline_search import tim as tim_offline  # noqa: E402
+from app.evidence import evidence_of, keyframes_in_shot  # noqa: E402
+from app.labels import Label, LabelIndex, append_label  # noqa: E402
+from app.offline_search import search as offline_search  # noqa: E402
 from data.config.debug_ui import (  # noqa: E402
+    DEFAULT_TOP_K,
     DEV_SET_DIR,
     KEYFRAMES_DIR,
     LABELER,
-    TOP_K_MAC_DINH,
 )
 
 st.set_page_config(page_title="AIC 2026 · UI debug", layout="wide")
 
-NHANH = ("vector", "metadata", "objects", "ocr", "asr")
-MAU_NHAN = {"correct": "🟢", "wrong": "🔴", "unsure": "🟡"}
+BRANCHES = ("vector", "metadata", "objects", "ocr", "asr")
+LABEL_ICON = {"correct": "🟢", "wrong": "🔴", "unsure": "🟡"}
 
-
-# --------------------------------------------------------------- tiện ích nhỏ
-
-def query_id_cua(q: str) -> str:
-    """`query_id` ổn định từ câu truy vấn, để nhãn của cùng một câu gom về một chỗ.
-
-    Băm thay vì dùng nguyên câu: gõ thừa một dấu cách là thành query khác, nhãn
-    tách làm hai đống.
-    """
-    return "q_" + hashlib.sha1(q.strip().lower().encode("utf-8")).hexdigest()[:8]
-
-
-# Gói mà chế độ live BẮT BUỘC phải có → tên hiển thị khi thiếu.
-GOI_CAN_CHO_LIVE = {
+# Gói mà chế độ live bắt buộc phải có → tên để cài bằng pip.
+LIVE_PACKAGES = {
     "elasticsearch": "elasticsearch",   # nhánh metadata/ocr/asr/objects
     "pymilvus": "pymilvus",             # nhánh vector
     "torch": "torch",                   # encode câu hỏi
@@ -57,30 +45,36 @@ GOI_CAN_CHO_LIVE = {
 }
 
 
+# --------------------------------------------------------------- tiện ích nhỏ
+
+def query_id_of(query: str) -> str:
+    """`query_id` ổn định từ câu truy vấn, để nhãn của cùng một câu gom về một chỗ.
+
+    Băm thay vì dùng nguyên câu: gõ thừa một dấu cách là thành query khác, nhãn tách
+    làm hai đống.
+    """
+    return "q_" + hashlib.sha1(query.strip().lower().encode("utf-8")).hexdigest()[:8]
+
+
 @st.cache_resource(show_spinner=False)
-def _tang_search():
+def _load_search():
     """(hàm search, danh sách gói còn thiếu). Thiếu gói nào thì live không chạy được.
 
-    Phải kiểm TỪNG GÓI chứ không chỉ thử `import backend.retrieval.search`: module đó
+    Phải kiểm TỪNG GÓI chứ không chỉ thử import backend.retrieval.search: module đó
     nạp lười (`import torch` nằm trong thân hàm) nên nó import trót lọt trên máy trắng
-    trơn. Chỉ dựa vào phép import ấy thì UI mặc định chọn `live`, người dùng bấm Tìm
-    kiếm rồi mới nhận lỗi — trong khi biết trước được từ lúc mở app.
+    trơn. Chỉ dựa vào phép import ấy thì UI mặc định chọn live, người dùng bấm Tìm
+    kiếm rồi mới nhận lỗi.
     """
     import importlib.util
 
-    thieu = [pip for mod, pip in GOI_CAN_CHO_LIVE.items()
-             if importlib.util.find_spec(mod) is None]
+    missing = [pip for mod, pip in LIVE_PACKAGES.items()
+               if importlib.util.find_spec(mod) is None]
     try:
         from backend.retrieval.search import search
     except Exception as e:
         print(f"  [cảnh báo] không nạp được backend.retrieval.search: {e}")
-        return None, thieu
-    return search, thieu
-
-
-def _bang_nhan() -> BangNhan:
-    """Dựng lại chỉ mục nhãn sau mỗi lần vẽ — nhãn vừa ghi phải hiện ra ngay."""
-    return BangNhan()
+        return None, missing
+    return search, missing
 
 
 # --------------------------------------------------------------- vùng A: sidebar
@@ -88,61 +82,61 @@ def _bang_nhan() -> BangNhan:
 def sidebar() -> dict:
     st.sidebar.title("Điều khiển")
 
-    q = st.sidebar.text_area("Truy vấn (tiếng Việt)", height=80,
-                             placeholder="thủ môn cản phá quả penalty")
-    # Bỏ trống ô này thì `search()` gọi `translate_to_english()` → `llm()`. Không có
-    # khoá API thì `llm()` ném RuntimeError TRƯỚC khi nhánh nào chạy, nên chết cả 5
-    # nhánh chứ không riêng nhánh vector. Nói trước còn hơn để người dùng nhận một
-    # vệt stack trace không liên quan gì tới điều họ vừa bấm.
-    co_khoa = bool(os.environ.get("ANTHROPIC_API_KEY")) or os.environ.get("LLM_BACKEND") == "local"
-    q_en = st.sidebar.text_input(
-        "Bản dịch tiếng Anh" + ("" if co_khoa else " — BẮT BUỘC"),
+    query = st.sidebar.text_area("Truy vấn (tiếng Việt)", height=80,
+                                 placeholder="thủ môn cản phá quả penalty")
+
+    # Bỏ trống ô tiếng Anh thì search() gọi translate_to_english() → llm(). Không có
+    # khoá API thì llm() ném RuntimeError TRƯỚC khi nhánh nào chạy, nên chết cả 5
+    # nhánh. Nói trước còn hơn để người dùng nhận một vệt stack trace không liên quan.
+    has_key = (bool(os.environ.get("ANTHROPIC_API_KEY"))
+               or os.environ.get("LLM_BACKEND") == "local")
+    query_en = st.sidebar.text_input(
+        "Bản dịch tiếng Anh" + ("" if has_key else " — BẮT BUỘC"),
         help="CLIP nhận tiếng Anh. Có ANTHROPIC_API_KEY thì để trống, hệ tự dịch.",
     )
     task = st.sidebar.selectbox("Dạng bài", ("KIS", "QA", "TRAKE"))
-    top_k = st.sidebar.slider("Số kết quả", 5, 100, TOP_K_MAC_DINH, step=5)
+    top_k = st.sidebar.slider("Số kết quả", 5, 100, DEFAULT_TOP_K, step=5)
 
-    # TRAKE: chọn sẵn ở đây thay vì bấm lại trên từng thẻ. Soạn đáp án thường làm
-    # xong khoảnh khắc 1 cho cả loạt kết quả rồi mới sang khoảnh khắc 2.
+    # TRAKE: chọn ở sidebar thay vì bấm lại trên từng thẻ. Soạn đáp án thường làm xong
+    # khoảnh khắc 1 cho cả loạt kết quả rồi mới sang khoảnh khắc 2.
     moment = 1
     if task == "TRAKE":
         moment = st.sidebar.number_input(
             "Đang soạn khoảnh khắc thứ", min_value=1, max_value=20, value=1, step=1,
-            help="TRAKE chấm theo VỊ TRÍ: frame thứ j phải rơi vào khoảng của "
-                 "khoảnh khắc thứ j. Mỗi khoảnh khắc là một dòng nhãn riêng.",
+            help="TRAKE chấm theo VỊ TRÍ: frame thứ j phải rơi vào khoảng của khoảnh "
+                 "khắc thứ j. Mỗi khoảnh khắc là một dòng nhãn riêng.",
         )
 
-    search, thieu_goi = _tang_search()
-    co_search = search is not None and not thieu_goi
-    che_do = st.sidebar.radio(
-        "Nguồn kết quả",
-        ("live", "offline"),
-        index=0 if co_search else 1,
+    search_fn, missing_pkgs = _load_search()
+    can_live = search_fn is not None and not missing_pkgs
+    mode = st.sidebar.radio(
+        "Nguồn kết quả", ("live", "offline"), index=0 if can_live else 1,
         help="live = search thật (cần Milvus + Elasticsearch). "
              "offline = BM25 trên docs_bm25.parquet, ~14 giây/truy vấn, không cần Docker.",
     )
-    if che_do == "live" and thieu_goi:
+    if mode == "live" and missing_pkgs:
         st.sidebar.error(
-            "Chế độ live thiếu gói: **" + "**, **".join(thieu_goi) + "**\n\n"
-            "`pip install " + " ".join(thieu_goi) + "`\n\n"
+            "Chế độ live thiếu gói: **" + "**, **".join(missing_pkgs) + "**\n\n"
+            "`pip install " + " ".join(missing_pkgs) + "`\n\n"
             "torch dùng bản CPU: `pip install torch --index-url "
             "https://download.pytorch.org/whl/cpu`"
         )
-    elif che_do == "live" and search is None:
+    elif mode == "live" and search_fn is None:
         st.sidebar.error("Không nạp được tầng search — hãy dùng chế độ offline.")
 
     # Offline chỉ có MỘT nguồn (BM25 trên doc_text) nên mấy ô dưới không có tác dụng.
     # Khoá lại thay vì để bật được: ô bật mà không đổi gì là lời nói dối về công cụ
-    # chẩn đoán — người dùng tưởng đã tắt vector rồi kết luận sai về nguồn nào gánh điểm.
-    khoa = che_do == "offline"
+    # chẩn đoán — người dùng tưởng đã tắt vector rồi kết luận sai nguồn nào gánh điểm.
+    locked = mode == "offline"
     st.sidebar.markdown("**Bật/tắt từng nhánh**")
-    if khoa:
+    if locked:
         st.sidebar.caption("Chế độ offline chỉ có một nguồn — các ô dưới bị khoá.")
-    bat = {
-        n: st.sidebar.checkbox(n, value=True, key=f"nhanh_{n}", disabled=khoa) for n in NHANH
+    branches = {
+        b: st.sidebar.checkbox(b, value=True, key=f"branch_{b}", disabled=locked)
+        for b in BRANCHES
     }
-    gom_shot = st.sidebar.checkbox(
-        "Gom về shot", value=True, disabled=khoa,
+    group_by_shot = st.sidebar.checkbox(
+        "Gom về shot", value=True, disabled=locked,
         help="Tắt để xem các keyframe liền nhau trong cùng một shot — kiểm xem phép "
              "gom có nuốt mất keyframe đúng không.",
     )
@@ -154,41 +148,43 @@ def sidebar() -> dict:
     if not KEYFRAMES_DIR.is_dir():
         st.sidebar.info(f"Chưa có ảnh keyframe ở `{KEYFRAMES_DIR}` — sẽ vẽ thẻ xám.")
 
-    chay = st.sidebar.button("Tìm kiếm", type="primary", use_container_width=True)
-    return dict(q=q, q_en=q_en, task=task, top_k=top_k, che_do=che_do, moment=int(moment),
-                bat=bat, gom_shot=gom_shot, chay=chay, co_khoa=co_khoa)
+    run = st.sidebar.button("Tìm kiếm", type="primary", use_container_width=True)
+    return dict(query=query, query_en=query_en, task=task, top_k=top_k, mode=mode,
+                moment=int(moment), branches=branches, group_by_shot=group_by_shot,
+                run=run, has_key=has_key)
 
 
 # ------------------------------------------------------- gọi search / offline
 
-def chay_search(cf: dict, chi_nhanh: str | None = None) -> list[dict]:
+def run_search(cfg: dict, only_branch: str | None = None) -> list[dict]:
     """Một lượt tìm kiếm → list dict đã chuẩn hoá cho phần vẽ.
 
-    `chi_nhanh` khác None → chỉ bật đúng nhánh đó, bằng cách gọi lại chính `search()`
+    `only_branch` khác None → chỉ bật đúng nhánh đó, bằng cách gọi lại chính `search()`
     thay vì viết lại logic truy xuất trong UI.
     """
-    if cf["che_do"] == "offline":
+    if cfg["mode"] == "offline":
         return [
             {"keyframe_id": r.kf_id, "video_id": r.video_id, "shot_id": r.shot_id,
              "frame_idx": r.frame_idx, "score": r.score, "ranks": {}, "contrib": {},
-             "trich": r.trich}
-            for r in tim_offline(cf["q"], cf["top_k"])
+             "snippet": r.snippet}
+            for r in offline_search(cfg["query"], cfg["top_k"])
         ]
 
-    search, thieu_goi = _tang_search()
-    if search is None or thieu_goi:
+    search_fn, missing = _load_search()
+    if search_fn is None or missing:
         return []
-    if not cf["q_en"].strip() and not cf.get("co_khoa", True):
+    if not cfg["query_en"].strip() and not cfg.get("has_key", True):
         st.error(
             "Chưa có `ANTHROPIC_API_KEY` mà ô **Bản dịch tiếng Anh** đang trống. "
             "`search()` sẽ gọi LLM để dịch và ném lỗi trước khi chạy nhánh nào — "
             "chết cả 5 nhánh. Điền bản dịch tay, hoặc set khoá rồi mở lại app."
         )
         return []
-    bat = {n: False for n in NHANH} | {chi_nhanh: True} if chi_nhanh else cf["bat"]
+    enabled = ({b: False for b in BRANCHES} | {only_branch: True}
+               if only_branch else cfg["branches"])
     try:
-        return search(cf["q"], query_en=cf["q_en"] or None, top_k=cf["top_k"],
-                      branches=bat, group_by_shot=cf["gom_shot"])
+        return search_fn(cfg["query"], query_en=cfg["query_en"] or None, top_k=cfg["top_k"],
+                         branches=enabled, group_by_shot=cfg["group_by_shot"])
     except Exception as e:
         st.error(f"Search lỗi: {e}")
         return []
@@ -196,9 +192,9 @@ def chay_search(cf: dict, chi_nhanh: str | None = None) -> list[dict]:
 
 # ------------------------------------------------------------ vùng B: một thẻ
 
-def _ve_anh(bc, frame_idx) -> None:
-    if bc.anh and bc.anh.exists():
-        st.image(str(bc.anh), use_container_width=True)
+def _draw_image(ev, frame_idx) -> None:
+    if ev.image and ev.image.exists():
+        st.image(str(ev.image), use_container_width=True)
         return
     st.markdown(
         f"<div style='background:#2b2b2b;color:#bbb;padding:14px;border-radius:6px;"
@@ -208,267 +204,261 @@ def _ve_anh(bc, frame_idx) -> None:
     )
 
 
-def ve_the(r: dict, cf: dict, qid: str, bn: BangNhan, khoa: str) -> None:
+def draw_card(row: dict, cfg: dict, query_id: str, index: LabelIndex, key: str) -> None:
     """Một kết quả: ảnh + thứ hạng từng nhánh + nút chấm nhãn."""
-    kf = r.get("keyframe_id") or ""
-    video_id = r.get("video_id") or ""
-    frame_idx = r.get("frame_idx")
-    bc = bang_chung(kf)  # gọi MỘT lần, dùng lại cho cả ảnh lẫn nút "cả shot"
+    kf_id = row.get("keyframe_id") or ""
+    video_id = row.get("video_id") or ""
+    frame_idx = row.get("frame_idx")
+    ev = evidence_of(kf_id)   # gọi MỘT lần, dùng lại cho cả ảnh lẫn nút "cả shot"
 
-    c1, c2 = st.columns([1, 3])
-    with c1:
-        _ve_anh(bc, frame_idx)
-    with c2:
-        st.markdown(f"**{kf}** · `{video_id}` · shot `{r.get('shot_id') or '—'}`")
+    left, right = st.columns([1, 3])
+    with left:
+        _draw_image(ev, frame_idx)
+    with right:
+        st.markdown(f"**{kf_id}** · `{video_id}` · shot `{row.get('shot_id') or '—'}`")
         # frame_idx in ĐẬM: đây là con số duy nhất BTC chấm
-        st.markdown(f"frame **{frame_idx}** · điểm {r.get('score', 0):.4f}")
+        st.markdown(f"frame **{frame_idx}** · điểm {row.get('score', 0):.4f}")
 
         # Hai nguồn cùng nói về một con số: search (Milvus/docs_bm25) và frame_map.
-        # Lệch thì nhãn ghi một số mà panel bằng chứng hiện số khác — phải nói ra.
-        # Ở chế độ offline lệch là BÌNH THƯỜNG: keyframe tự trích và keyframe BTC
-        # cách nhau trung vị 11 frame (frame_drift), không phải lỗi.
-        if frame_idx is not None and bc.frame_idx is not None and bc.frame_idx != frame_idx:
-            st.caption(f"⚠️ frame_map nói **{bc.frame_idx}** (lệch {bc.frame_idx - frame_idx:+d}) "
-                       f"— nhãn ghi theo số đang hiện. Không chắc thì bấm **✓ Cả shot**.")
+        # Lệch thì nhãn ghi một số mà panel bằng chứng hiện số khác — phải nói ra. Ở
+        # chế độ offline lệch là BÌNH THƯỜNG: keyframe tự trích và keyframe BTC cách
+        # nhau trung vị 11 frame (frame_drift), không phải lỗi.
+        if frame_idx is not None and ev.frame_idx is not None and ev.frame_idx != frame_idx:
+            st.caption(f"⚠️ frame_map nói **{ev.frame_idx}** "
+                       f"(lệch {ev.frame_idx - frame_idx:+d}) — nhãn ghi theo số đang "
+                       "hiện. Không chắc thì bấm **✓ Cả shot**.")
 
-        ranks = r.get("ranks") or {}
+        ranks = row.get("ranks") or {}
         if ranks:
-            st.caption(" · ".join(f"{n}#{ranks[n]}" for n in NHANH if n in ranks))
-        elif cf["che_do"] == "live":
+            st.caption(" · ".join(f"{b}#{ranks[b]}" for b in BRANCHES if b in ranks))
+        elif cfg["mode"] == "live":
             st.caption("(search không trả `ranks` — không phân tích được nhánh nào đóng góp)")
-        if r.get("trich"):
-            st.caption(r["trich"])
+        if row.get("snippet"):
+            st.caption(row["snippet"])
 
         if frame_idx is None:
             st.caption("Không có frame_idx — không chấm nhãn được cho kết quả này.")
             return
 
-        # TRAKE chấm THEO VỊ TRÍ: khoảnh khắc j có khoảng đáp án [sⱼ,eⱼ] riêng, nên
-        # mỗi nhãn phải nói rõ nó là đáp án của khoảnh khắc nào. Xem app/labels.py.
-        moment = None
-        if cf["task"] == "TRAKE":
-            moment = st.number_input(
-                "Khoảnh khắc thứ", min_value=1, max_value=20, value=cf["moment"],
-                step=1, key=f"m{khoa}",
-                help="Nhãn này là đáp án của khoảnh khắc thứ mấy trong chuỗi sự kiện.",
-            ) - 1
+        moment = cfg["moment"] - 1 if cfg["task"] == "TRAKE" else None
+        base = {"query_id": query_id, "query_vi": cfg["query"], "task_type": cfg["task"],
+                "video_id": video_id, "kf_id": kf_id, "shot_id": row.get("shot_id"),
+                "moment_idx": moment,
+                # Chấm toàn bộ từ offline sẽ làm lệch bộ nhãn (báo cáo D2.1 §10.3),
+                # và chỉ cột này phát hiện ra được.
+                "source": f"debug_ui/{cfg['mode']}"}
 
-        dat = {"query_id": qid, "query_vi": cf["q"], "task_type": cf["task"],
-               "video_id": video_id, "kf_id": kf, "shot_id": r.get("shot_id"),
-               "moment_idx": moment,
-               # Ghi rõ nhãn này chấm từ nguồn nào: chấm toàn bộ từ offline sẽ làm
-               # lệch bộ nhãn (xem báo cáo §10.3), và chỉ cột này phát hiện ra được.
-               "source": f"debug_ui/{cf['che_do']}"}
-
-        def cham(nhan: str, s: int, e: int, **them) -> None:
-            ghi_nhan(Label(frame_start=s, frame_end=e, label=nhan, labeler=LABELER,
-                           **{**dat, **them}))
+        def save(label: str, start: int, end: int, **extra) -> None:
+            append_label(Label(frame_start=start, frame_end=end, label=label,
+                               labeler=LABELER, **{**base, **extra}))
             st.rerun()
 
         b1, b2, b3, b4 = st.columns(4)
         with b1:
-            if st.button("✓ Đúng", key=f"d{khoa}", use_container_width=True):
-                cham("correct", frame_idx, frame_idx)
+            if st.button("✓ Đúng", key=f"ok{key}", use_container_width=True):
+                save("correct", frame_idx, frame_idx)
         with b2:
-            if st.button("✗ Sai", key=f"s{khoa}", use_container_width=True):
-                cham("wrong", frame_idx, frame_idx)
+            if st.button("✗ Sai", key=f"no{key}", use_container_width=True):
+                save("wrong", frame_idx, frame_idx)
         with b3:
-            if st.button("? Chưa chắc", key=f"c{khoa}", use_container_width=True):
-                cham("unsure", frame_idx, frame_idx)
+            if st.button("? Chưa chắc", key=f"maybe{key}", use_container_width=True):
+                save("unsure", frame_idx, frame_idx)
         with b4:
-            if bc.shot_bien and st.button("✓ Cả shot", key=f"a{khoa}", use_container_width=True,
-                                          help="Đánh dấu đúng cả khoảng shot — "
-                                               "một cú bấm ra hàng chục frame nhãn"):
-                cham("correct", *bc.shot_bien)
+            if ev.shot_bounds and st.button("✓ Cả shot", key=f"shot{key}",
+                                            use_container_width=True,
+                                            help="Đánh dấu đúng cả khoảng shot — "
+                                                 "một cú bấm ra hàng chục frame nhãn"):
+                save("correct", *ev.shot_bounds)
 
-        if cf["task"] == "QA":
-            _o_cham_answer(r, cham, khoa)
+        if cfg["task"] == "QA":
+            _answer_judgment(row, save, key)
 
-        nhan_hien_tai = bn.nhan_cua_frame(qid, video_id, frame_idx, moment_idx=moment)
-        if nhan_hien_tai:
-            st.caption(f"{MAU_NHAN[nhan_hien_tai]} đã chấm: **{nhan_hien_tai}**")
+        current = index.label_of_frame(query_id, video_id, frame_idx, moment_idx=moment)
+        if current:
+            st.caption(f"{LABEL_ICON[current]} đã chấm: **{current}**")
 
 
-def _o_cham_answer(r: dict, cham, khoa: str) -> None:
+def _answer_judgment(row: dict, save, key: str) -> None:
     """Chấm câu trả lời — cửa tử THỨ HAI của Q&A, độc lập với cửa frame.
 
     BTC: `R-Score = I(video ∧ frame ∈ [s,e] ∧ answer đúng ngữ nghĩa)`. Frame đúng mà
     answer sai vẫn 0 điểm, nên phải chấm riêng chứ không suy ra từ nhãn frame.
 
-    Ô nhập tay chứ không chỉ đọc từ kết quả search: `backend/tasks/qa.py` (C3.1 của
-    Thi) chưa có, `run_minimal.py` đang điền "CHUA_CO_ANSWER". Gõ tay được thì soạn
-    đáp án cho dev set ngay bây giờ, không phải đợi.
+    Ô nhập tay chứ không chỉ đọc từ kết quả search: backend/tasks/qa.py (C3.1) chưa
+    có, run_minimal.py đang điền "CHUA_CO_ANSWER". Gõ tay được thì soạn đáp án cho
+    dev set ngay bây giờ, không phải đợi.
     """
-    txt = st.text_input(
-        "Câu trả lời (Q&A)", value=r.get("answer_text") or "", key=f"ans{khoa}",
+    text = st.text_input(
+        "Câu trả lời (Q&A)", value=row.get("answer_text") or "", key=f"ans{key}",
         placeholder="vd: màu xanh · 5 · Nguyễn Văn A",
     )
-    if not txt.strip():
+    if not text.strip():
         st.caption("Gõ câu trả lời rồi mới chấm được cửa thứ hai.")
         return
-    a1, a2 = st.columns(2)
-    with a1:
-        if st.button("✓ Answer đúng", key=f"ad{khoa}", use_container_width=True):
-            cham("correct", r["frame_idx"], r["frame_idx"], answer_text=txt, answer_dung=True)
-    with a2:
-        if st.button("✗ Answer sai", key=f"as{khoa}", use_container_width=True):
-            cham("wrong", r["frame_idx"], r["frame_idx"], answer_text=txt, answer_dung=False)
+    c1, c2 = st.columns(2)
+    frame_idx = row["frame_idx"]
+    with c1:
+        if st.button("✓ Answer đúng", key=f"ansok{key}", use_container_width=True):
+            save("correct", frame_idx, frame_idx, answer_text=text, answer_correct=True)
+    with c2:
+        if st.button("✗ Answer sai", key=f"ansno{key}", use_container_width=True):
+            save("wrong", frame_idx, frame_idx, answer_text=text, answer_correct=False)
 
 
 # ------------------------------------------------- vùng C: bằng chứng một frame
 
-def ve_bang_chung(kf: str) -> None:
-    bc = bang_chung(kf)
+def draw_evidence(kf_id: str) -> None:
+    ev = evidence_of(kf_id)
 
     st.subheader("Bằng chứng")
-    for c in bc.canh_bao:
-        st.warning(c)
+    for w in ev.warnings:
+        st.warning(w)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("frame_idx", bc.frame_idx if bc.frame_idx is not None else "—",
+    c1.metric("frame_idx", ev.frame_idx if ev.frame_idx is not None else "—",
               help="Con số DUY NHẤT BTC chấm. Không phải số thứ tự keyframe.")
-    c2.metric("thời điểm", f"{bc.timestamp_s}s" if bc.timestamp_s is not None else "—")
-    c3.metric("shot", str(bc.shot_bien) if bc.shot_bien else "—")
-    c4.metric("độ dài video", bc.n_frames_video or "—")
+    c2.metric("thời điểm", f"{ev.timestamp_s}s" if ev.timestamp_s is not None else "—")
+    c3.metric("shot", str(ev.shot_bounds) if ev.shot_bounds else "—")
+    c4.metric("độ dài video", ev.n_frames or "—")
 
-    st.caption(f"id BTC `{bc.kf_id_btc}` · id tự trích `{bc.kf_id_tu_trich}`")
+    st.caption(f"id BTC `{ev.kf_id_btc}` · id tự trích `{ev.kf_id_own}`")
 
-    if bc.shot_id:
-        dai = keyframe_cung_shot(bc.video_id, bc.shot_id)
-        if len(dai) > 1:
+    if ev.shot_id:
+        siblings = keyframes_in_shot(ev.video_id, ev.shot_id)
+        if len(siblings) > 1:
             st.caption("**Cùng shot:** " + " · ".join(
-                f"**{d['frame_idx']}**" if d["kf_id"] == bc.kf_id_tu_trich else str(d["frame_idx"])
-                for d in dai
+                f"**{s['frame_idx']}**" if s["kf_id"] == ev.kf_id_own else str(s["frame_idx"])
+                for s in siblings
             ))
 
     t1, t2, t3, t4 = st.tabs(["OCR", "ASR", "doc_text (BM25)", "Objects"])
     with t1:
-        _tab_ocr(bc)
+        _tab_ocr(ev)
     with t2:
-        _tab_asr(bc)
+        _tab_asr(ev)
     with t3:
-        _tab_doc_text(bc)
+        _tab_doc_text(ev)
     with t4:
-        # Không phải "chưa nối" mà là CHƯA CÓ DỮ LIỆU: không có objects.parquet, cũng
-        # không có data/sample/objects.json (đường dẫn mặc định của load_objects.py).
-        # Nói đúng nguyên nhân, nếu không người dùng sẽ đi dựng Docker rồi vẫn trống.
+        # Không phải "chưa nối" mà là CHƯA CÓ DỮ LIỆU. Nói đúng nguyên nhân, nếu không
+        # người dùng sẽ đi dựng Docker rồi vẫn thấy trống.
         st.caption(
-            "Chưa có dữ liệu objects — không có `data/derived/objects.parquet`, cũng "
-            "không có `data/sample/objects.json`. Dựng Elasticsearch cũng chưa nạp "
-            "được gì, phải chờ Data Factory sinh nguồn trước.\n\n"
+            "Chưa có dữ liệu objects — BTC có phát (1 JSON/keyframe) nhưng chưa tải "
+            "về: không có `data/derived/objects.parquet`, cũng không có "
+            "`data/sample/objects.json`.\n\n"
             "Lưu ý khi có: số lượng object bị BÃO HOÀ ở 100/keyframe — đừng dùng nó "
             "làm tín hiệu xếp hạng."
         )
 
 
-def _tab_ocr(bc) -> None:
-    if not bc.ocr:
+def _tab_ocr(ev) -> None:
+    if not ev.ocr:
         st.caption("Không có chữ nào đọc được ở frame này.")
     # Khoá widget theo kf_id + thứ tự. Dùng id() của dict là sai: đó là địa chỉ bộ
-    # nhớ, được cấp lại sau khi GC, nên hai lần vẽ khác nhau có thể trùng khoá.
-    for i, o in enumerate(bc.ocr):
+    # nhớ, được cấp lại sau GC, nên hai lần vẽ khác nhau có thể trùng khoá.
+    for i, o in enumerate(ev.ocr):
         a, b = st.columns(2)
         # text_raw cạnh text_clean: bất biến B1.4 là giữ nguyên text_raw vì LLM đôi
         # khi "sửa" hỏng tên riêng — muốn thấy nó sửa gì thì phải nhìn được cả hai.
-        a.text_area("text_raw", str(o["text_raw"]), height=90, key=f"ocr_raw_{bc.kf_id_btc}_{i}")
+        a.text_area("text_raw", str(o["text_raw"]), height=90,
+                    key=f"ocr_raw_{ev.kf_id_btc}_{i}")
         b.text_area("text_clean", str(o["text_clean"]), height=90,
-                    key=f"ocr_clean_{bc.kf_id_btc}_{i}")
+                    key=f"ocr_clean_{ev.kf_id_btc}_{i}")
         st.caption(f"{o['n_boxes']} vùng chữ · độ tin cậy TB {o['avg_conf']}")
 
 
-def _tab_asr(bc) -> None:
-    if not bc.asr:
+def _tab_asr(ev) -> None:
+    if not ev.asr:
         st.caption("Không có lời nói nào quanh frame này.")
-    for a in bc.asr:
-        nhan = "🔊 ngay tại frame" if a["truc_tiep"] else "· gần đó (±3s)"
-        st.markdown(f"**{a['start_s']:.1f}s–{a['end_s']:.1f}s** {nhan}")
+    for a in ev.asr:
+        tag = "🔊 ngay tại frame" if a["direct"] else "· gần đó (±3s)"
+        st.markdown(f"**{a['start_s']:.1f}s–{a['end_s']:.1f}s** {tag}")
         st.write(a["text_vi"])
 
 
-def _tab_doc_text(bc) -> None:
-    if not bc.doc_text:
+def _tab_doc_text(ev) -> None:
+    if not ev.doc_text:
         st.caption("Không có — cầu nối `clip_kf_map` thiếu dòng cho keyframe này "
                    "(6% keyframe BTC rơi vào diện này).")
         return
     st.caption("Đây là NGUYÊN VĂN thứ BM25 nhìn thấy ở frame này.")
-    st.text_area("doc_text", bc.doc_text, height=220, key=f"doc_{bc.kf_id_btc}")
+    st.text_area("doc_text", ev.doc_text, height=220, key=f"doc_{ev.kf_id_btc}")
+
+
+def _tab_branches(cfg: dict) -> None:
+    if cfg["mode"] == "offline":
+        st.info("Chế độ offline chỉ có một nhánh (BM25 trên doc_text).")
+        return
+    st.caption("Mỗi nhánh gọi lại `search()` với đúng nhánh đó bật — "
+               "không viết lại logic truy xuất trong UI.")
+    for col, branch in zip(st.columns(len(BRANCHES)), BRANCHES):
+        with col:
+            st.markdown(f"**{branch}**")
+            if st.button("chạy", key=f"go_{branch}"):
+                st.session_state[f"hits_{branch}"] = run_search(cfg, only_branch=branch)
+            for j, r in enumerate(st.session_state.get(f"hits_{branch}", [])[:10]):
+                st.caption(f"{j + 1}. {r.get('keyframe_id')} · {r.get('score', 0):.4f}")
 
 
 # ----------------------------------------------------------------------- main
 
-def _man_hinh_trong() -> None:
+def _empty_state() -> None:
     st.info("Gõ một truy vấn ở thanh bên trái rồi bấm **Tìm kiếm**.")
-    bn = _bang_nhan()
-    st.caption(f"Đang có **{len(bn)}** nhãn trong `{DEV_SET_DIR}` "
-               f"trên {len(bn.cac_query())} truy vấn.")
+    index = LabelIndex()
+    st.caption(f"Đang có **{len(index)}** nhãn trong `{DEV_SET_DIR}` "
+               f"trên {len(index.query_ids())} truy vấn.")
 
 
 def main() -> None:
-    cf = sidebar()
+    cfg = sidebar()
     st.title("UI debug — AIC 2026")
 
-    if not cf["q"].strip():
-        _man_hinh_trong()
+    if not cfg["query"].strip():
+        _empty_state()
         return
 
-    qid = query_id_cua(cf["q"])
-    st.caption(f"`query_id` = **{qid}** — nhãn của câu này luôn gom về một chỗ.")
+    query_id = query_id_of(cfg["query"])
+    st.caption(f"`query_id` = **{query_id}** — nhãn của câu này luôn gom về một chỗ.")
 
-    # CHỈ chạy khi bấm nút: Streamlit vẽ lại trang sau MỌI thao tác, kể cả lúc bấm
-    # nút chấm nhãn — tự chạy search là bắt đợi ~18 giây mỗi lần chạm bàn phím.
-    if cf["chay"]:
+    # CHỈ chạy khi bấm nút: Streamlit vẽ lại trang sau MỌI thao tác, kể cả lúc bấm nút
+    # chấm nhãn — tự chạy search là bắt đợi ~14 giây mỗi lần chạm bàn phím.
+    if cfg["run"]:
         with st.spinner("Đang tìm…"):
-            st.session_state["kq"] = chay_search(cf)
-        st.session_state["kq_q"] = cf["q"]
+            st.session_state["hits"] = run_search(cfg)
+        st.session_state["hits_query"] = cfg["query"]
 
-    kq = st.session_state.get("kq", [])
-    if not kq:
-        if cf["chay"]:
+    hits = st.session_state.get("hits", [])
+    if not hits:
+        if cfg["run"]:
             st.warning("Không có kết quả. Thử chế độ offline, hoặc kiểm Milvus/Elasticsearch.")
         else:
             st.info("Bấm **Tìm kiếm** ở thanh bên trái.")
         return
 
-    if st.session_state.get("kq_q") != cf["q"]:
+    if st.session_state.get("hits_query") != cfg["query"]:
         st.warning("Kết quả đang hiện là của truy vấn TRƯỚC — bấm Tìm kiếm để chạy lại.")
 
-    bn = _bang_nhan()
-    tab_rrf, tab_nhanh, tab_rerank = st.tabs(
+    index = LabelIndex()   # dựng lại sau mỗi lần vẽ: nhãn vừa ghi phải hiện ra ngay
+    tab_rrf, tab_branch, tab_rerank = st.tabs(
         ["Sau hợp nhất (RRF)", "Từng nhánh riêng", "Sau rerank"]
     )
 
     with tab_rrf:
-        for i, r in enumerate(kq):
+        for i, row in enumerate(hits):
             with st.container(border=True):
                 st.caption(f"hạng {i + 1}")
-                ve_the(r, cf, qid, bn, khoa=f"rrf{i}")
+                draw_card(row, cfg, query_id, index, key=f"rrf{i}")
 
-    with tab_nhanh:
-        _tab_tung_nhanh(cf)
+    with tab_branch:
+        _tab_branches(cfg)
 
     with tab_rerank:
         st.info("Rerank (A2.4) chưa bật. Khung để sẵn — có rerank là tự có dữ liệu.")
 
     st.divider()
-    chon = st.selectbox("Soi bằng chứng của keyframe",
-                        [r.get("keyframe_id") for r in kq], index=0)
-    if chon:
-        ve_bang_chung(chon)
-
-
-def _tab_tung_nhanh(cf: dict) -> None:
-    if cf["che_do"] == "offline":
-        st.info("Chế độ offline chỉ có một nhánh (BM25 trên doc_text).")
-        return
-    st.caption("Mỗi nhánh gọi lại `search()` với đúng nhánh đó bật — "
-               "không viết lại logic truy xuất trong UI.")
-    for c, nhanh in zip(st.columns(len(NHANH)), NHANH):
-        with c:
-            st.markdown(f"**{nhanh}**")
-            if st.button("chạy", key=f"go_{nhanh}"):
-                st.session_state[f"kq_{nhanh}"] = chay_search(cf, chi_nhanh=nhanh)
-            for j, r in enumerate(st.session_state.get(f"kq_{nhanh}", [])[:10]):
-                st.caption(f"{j + 1}. {r.get('keyframe_id')} · {r.get('score', 0):.4f}")
+    chosen = st.selectbox("Soi bằng chứng của keyframe",
+                          [r.get("keyframe_id") for r in hits], index=0)
+    if chosen:
+        draw_evidence(chosen)
 
 
 main()

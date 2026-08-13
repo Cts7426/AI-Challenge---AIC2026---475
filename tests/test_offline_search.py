@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.offline_search import DOCS_PATH, _dem_dung_tu, tach_tu, tim
+from app.offline_search import DOCS_PATH, _count_whole_word, search, tokenize
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +30,7 @@ def kho_nho(tmp_path_factory):
 
 def test_tach_tu_bo_tu_qua_ngan():
     """Từ 1 ký tự không phân biệt được tài liệu nào, mà mỗi từ là một lượt quét toàn kho."""
-    assert tach_tu("ở nhà có 3 người") == ["nhà", "có", "người"]
+    assert tokenize("ở nhà có 3 người") == ["nhà", "có", "người"]
 
 
 def test_tach_tu_KHONG_bo_dau():
@@ -40,21 +40,21 @@ def test_tach_tu_KHONG_bo_dau():
     viết thường. Đường thi có `VI_FOLDED_ANALYSIS` của Elasticsearch lo việc này;
     đường lui thì chấp nhận phải gõ có dấu.
     """
-    assert tach_tu("Hà Nội") == ["hà", "nội"], "đang bỏ dấu — xem lại số đo trước khi đổi"
+    assert tokenize("Hà Nội") == ["hà", "nội"], "đang bỏ dấu — xem lại số đo trước khi đổi"
 
 
 def test_tach_tu_bo_trung_giu_thu_tu():
-    assert tach_tu("bóng đá bóng rổ") == ["bóng", "đá", "rổ"]
+    assert tokenize("bóng đá bóng rổ") == ["bóng", "đá", "rổ"]
 
 
 def test_tach_tu_viet_thuong():
-    assert tach_tu("Hà Nội") == ["hà", "nội"]
+    assert tokenize("Hà Nội") == ["hà", "nội"]
 
 
 def test_truy_van_rong_tra_rong(kho_nho):
     p, _ = kho_nho
-    assert tim("", docs_path=p) == []
-    assert tim("a ở", docs_path=p) == []
+    assert search("", docs_path=p) == []
+    assert search("a ở", docs_path=p) == []
 
 
 # ------------------------------------------------------------------ tìm kiếm
@@ -67,7 +67,7 @@ def test_tim_duoc_tu_co_that_trong_doc_text(kho_nho):
     if tu is None:
         pytest.skip("không tìm được từ đủ dài trong lát cắt này")
 
-    kq = tim(tu, top_k=10, docs_path=p)
+    kq = search(tu, top_k=10, docs_path=p)
     assert kq, f"'{tu}' có trong doc_text mà tra không ra"
     assert all(tu in _doc_cua(lat, r.kf_id).lower() for r in kq), "trả về frame không chứa từ đó"
 
@@ -88,7 +88,7 @@ def test_ten_rieng_hiem_ra_dung_frame(kho_nho):
     if not hiem:
         pytest.skip("lát cắt này không có từ nào đủ hiếm")
 
-    kq = tim(hiem[0], top_k=5, docs_path=p)
+    kq = search(hiem[0], top_k=5, docs_path=p)
     assert kq, f"từ hiếm '{hiem[0]}' tra không ra"
     assert hiem[0] in _doc_cua(lat, kq[0].kf_id).lower(), "hạng 1 không chứa từ hiếm"
 
@@ -96,7 +96,7 @@ def test_ten_rieng_hiem_ra_dung_frame(kho_nho):
 def test_xep_hang_giam_dan(kho_nho):
     p, lat = kho_nho
     tu = str(lat.iloc[0].doc_text).lower().split()[0]
-    kq = tim(tu, top_k=20, docs_path=p)
+    kq = search(tu, top_k=20, docs_path=p)
     if len(kq) < 2:
         pytest.skip("ít kết quả quá, không kiểm được thứ tự")
     assert [r.score for r in kq] == sorted((r.score for r in kq), reverse=True)
@@ -105,17 +105,17 @@ def test_xep_hang_giam_dan(kho_nho):
 def test_top_k_duoc_ton_trong(kho_nho):
     p, lat = kho_nho
     tu = str(lat.iloc[0].doc_text).lower().split()[0]
-    assert len(tim(tu, top_k=3, docs_path=p)) <= 3
+    assert len(search(tu, top_k=3, docs_path=p)) <= 3
 
 
 def test_khong_co_ket_qua_thi_tra_rong_chu_khong_sap(kho_nho):
     p, _ = kho_nho
-    assert tim("zzzqqqxxx khongtontaidauca", docs_path=p) == []
+    assert search("zzzqqqxxx khongtontaidauca", docs_path=p) == []
 
 
 def test_thieu_file_thi_tra_rong(tmp_path):
     """Chưa có docs_bm25 → UI vẫn mở được, chỉ là chế độ offline không dùng được."""
-    assert tim("gì đó", docs_path=tmp_path / "khong_co.parquet") == []
+    assert search("gì đó", docs_path=tmp_path / "khong_co.parquet") == []
 
 
 # ------------------------------------------------------------------- kết quả
@@ -124,13 +124,13 @@ def test_ket_qua_du_truong_de_cham_nhan(kho_nho):
     """UI cần đủ 4 thứ để chấm nhãn: frame_idx thật · video · shot · trích dẫn."""
     p, lat = kho_nho
     tu = str(lat.iloc[0].doc_text).lower().split()[0]
-    kq = tim(tu, top_k=3, docs_path=p)
+    kq = search(tu, top_k=3, docs_path=p)
     if not kq:
         pytest.skip("không có kết quả")
     r = kq[0]
     assert r.video_id and r.kf_id
     assert isinstance(r.frame_idx, int) and r.frame_idx >= 0
-    assert r.trich, "phải có trích dẫn — không có thì không biết vì sao nó lên hạng"
+    assert r.snippet, "phải có trích dẫn — không có thì không biết vì sao nó lên hạng"
 
 
 def test_trich_dan_chua_tu_khoa(kho_nho):
@@ -139,10 +139,10 @@ def test_trich_dan_chua_tu_khoa(kho_nho):
     tu = next((t for t in doc.lower().split() if len(t) >= 6 and t.isalpha()), None)
     if tu is None:
         pytest.skip("không tìm được từ đủ dài")
-    kq = tim(tu, top_k=1, docs_path=p)
+    kq = search(tu, top_k=1, docs_path=p)
     if not kq:
         pytest.skip("không có kết quả")
-    assert tu in kq[0].trich.lower(), "trích dẫn phải cắt QUANH từ khớp, không phải đầu tài liệu"
+    assert tu in kq[0].snippet.lower(), "trích dẫn phải cắt QUANH từ khớp, không phải đầu tài liệu"
 
 
 # ------------------------------------------------- đếm từ, không đếm chuỗi con
@@ -166,11 +166,11 @@ def test_dem_theo_TU_khong_theo_chuoi_con(kho_nho):
     q = p.parent / "docs_dem.parquet"
     pd.DataFrame(moi).to_parquet(q, index=False)
 
-    kq = tim("con", top_k=5, docs_path=q)
+    kq = search("con", top_k=5, docs_path=q)
     thang = [r.kf_id for r in kq]
     assert "ZZ_V000_0000001" in thang, "tài liệu chứa đúng từ 'con' phải lọt top"
     assert "ZZ_V000_0000002" not in thang, (
-        "'concon/concert' KHÔNG chứa từ 'con' — đang đếm chuỗi con, xem _dem_dung_tu()"
+        "'concon/concert' KHÔNG chứa từ 'con' — đang đếm chuỗi con, xem _count_whole_word()"
     )
 
 
@@ -184,13 +184,13 @@ def test_ranh_gioi_tu_hieu_NGUYEN_AM_CO_DAU():
       · 'ông tùng' → sau 'ù' là 'n', RE2 thấy ranh giới → khớp (SAI, không được khớp)
     Sai ngược hoàn toàn. Bản sửa dùng `\\p{L}` (lớp chữ cái Unicode).
 
-    Kiểm thẳng `_dem_dung_tu` chứ không qua `tim()`: đi qua BM25 thì một tf sai có
+    Kiểm thẳng `_count_whole_word` chứ không qua `search()`: đi qua BM25 thì một tf sai có
     thể bị IDF che, test xanh mà lỗi vẫn còn.
     """
     import pandas as pd
 
     van = pd.Series(["tù nhân bỏ trốn", "nạn nhân là ông tùng", "không liên quan", "tù tù"])
-    assert _dem_dung_tu(van, "tù").tolist() == [1.0, 0.0, 0.0, 2.0]
+    assert _count_whole_word(van, "tù").tolist() == [1.0, 0.0, 0.0, 2.0]
 
 
 def test_ranh_gioi_tu_khop_voi_module_re_chuan():
@@ -202,7 +202,7 @@ def test_ranh_gioi_tu_khop_voi_module_re_chuan():
     mau = ["tù,tù", "xtù tù", "tù.tù.tù", "1tù tù2", "tù-tù", "tùtù", ""]
     van = pd.Series(mau)
     mong_doi = [float(len(_re.findall(r"\btù\b", s))) for s in mau]
-    assert _dem_dung_tu(van, "tù").tolist() == mong_doi
+    assert _count_whole_word(van, "tù").tolist() == mong_doi
 
 
 def test_tra_duoc_cum_tu_co_that_trong_kho(kho_nho):
@@ -222,7 +222,7 @@ def test_tra_duoc_cum_tu_co_that_trong_kho(kho_nho):
     q = p.parent / "docs_cum.parquet"
     pd.DataFrame(moi).to_parquet(q, index=False)
 
-    thang = [r.kf_id for r in tim("tù nhân", top_k=5, docs_path=q)]
+    thang = [r.kf_id for r in search("tù nhân", top_k=5, docs_path=q)]
     assert thang and thang[0] == "ZZ_V002_0000001", (
         f"tài liệu chứa đúng 'tù nhân' phải đứng đầu, đang là {thang[:3]}"
     )

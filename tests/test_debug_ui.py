@@ -1,7 +1,7 @@
 # tests/test_debug_ui.py — D2.1: kiểm màn hình Streamlit có VẼ ĐƯỢC không
 #
 # `debug_ui.py` chỉ vẽ, logic nằm ở labels/evidence/offline_search và đã có test
-# riêng. Nhưng "chỉ vẽ" vẫn hỏng được: đổi tên một trường trong `BangChung` là trang
+# riêng. Nhưng "chỉ vẽ" vẫn hỏng được: đổi tên một trường trong `Evidence` là trang
 # nổ giữa lúc đang chấm nhãn, mà không test nào bắt.
 #
 # `AppTest` của Streamlit chạy THẬT kịch bản trong tiến trình pytest và thu lại
@@ -15,7 +15,7 @@ pytest.importorskip("streamlit", reason="app/requirements.txt chưa cài")
 
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
-from app.debug_ui import query_id_cua  # noqa: E402
+from app.debug_ui import query_id_of  # noqa: E402
 
 DUONG_DAN = "app/debug_ui.py"
 
@@ -28,16 +28,16 @@ def _chay() -> AppTest:
 
 def test_query_id_on_dinh_giua_cac_phien():
     """Nhãn của cùng một câu hỏi phải gom về một chỗ, kể cả sau khi tắt máy."""
-    assert query_id_cua("thủ môn cản phá") == query_id_cua("thủ môn cản phá")
+    assert query_id_of("thủ môn cản phá") == query_id_of("thủ môn cản phá")
 
 
 def test_query_id_bo_qua_khoang_trang_va_hoa_thuong():
     """Gõ thừa một dấu cách không được biến thành truy vấn khác — nhãn sẽ tách hai đống."""
-    assert query_id_cua("  Thủ Môn cản phá  ") == query_id_cua("thủ môn cản phá")
+    assert query_id_of("  Thủ Môn cản phá  ") == query_id_of("thủ môn cản phá")
 
 
 def test_query_id_khac_nhau_cho_cau_khac_nhau():
-    assert query_id_cua("thủ môn") != query_id_cua("hậu vệ")
+    assert query_id_of("thủ môn") != query_id_of("hậu vệ")
 
 
 # --------------------------------------------------------------- vẽ được không
@@ -60,7 +60,7 @@ def test_khong_tu_chay_search_khi_chua_bam_nut():
 def test_hien_query_id_khi_da_go_truy_van():
     at = _chay()
     at.sidebar.text_area[0].set_value("thủ môn cản phá penalty").run()
-    qid = query_id_cua("thủ môn cản phá penalty")
+    qid = query_id_of("thủ môn cản phá penalty")
     assert any(qid in c.value for c in at.caption), "phải hiện query_id để biết nhãn gom vào đâu"
 
 
@@ -128,9 +128,9 @@ def test_bao_dung_goi_con_THIEU_cho_che_do_live():
     """
     import importlib.util
 
-    from app.debug_ui import GOI_CAN_CHO_LIVE
+    from app.debug_ui import LIVE_PACKAGES
 
-    thieu = [pip for mod, pip in GOI_CAN_CHO_LIVE.items()
+    thieu = [pip for mod, pip in LIVE_PACKAGES.items()
              if importlib.util.find_spec(mod) is None]
     at = _chay()
     at.sidebar.radio[0].set_value("live").run()
@@ -152,12 +152,12 @@ def test_ten_nhanh_KHOP_voi_search_weights():
     sai rằng vector không đóng góp gì. Chạy được mà kết quả sai, đúng loại lỗi im
     lặng dự án đang phòng.
     """
-    from data.config.search_weights import BRANCHES
+    from data.config.search_weights import BRANCHES as SEARCH_BRANCHES
 
-    from app.debug_ui import NHANH
+    from app.debug_ui import BRANCHES as UI_BRANCHES
 
-    assert set(NHANH) == set(BRANCHES), (
-        f"UI gửi {sorted(set(NHANH) - set(BRANCHES))}, search không biết khoá này"
+    assert set(UI_BRANCHES) == set(SEARCH_BRANCHES), (
+        f"UI gửi {sorted(set(UI_BRANCHES) - set(SEARCH_BRANCHES))}, search không biết khoá này"
     )
 
 

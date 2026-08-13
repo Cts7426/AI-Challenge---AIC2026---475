@@ -184,8 +184,8 @@ def test_gom_nhieu_loi_cung_luc(kis):
 def test_issue_co_vi_tri_de_truy(kis):
     """Issue phải chỉ ra đúng thứ hạng để người vận hành tìm được dòng lỗi."""
     issues = validate_submission(replace_answer(kis, 4, frame_ids=(-1,)))
-    loi = [i for i in issues if i.rule == "frame_out_of_range"][0]
-    assert loi.query_id == "kis_001" and loi.position == 5  # index 4 → hạng 5
+    issues_ = [i for i in issues if i.rule == "frame_out_of_range"][0]
+    assert issues_.query_id == "kis_001" and issues_.position == 5  # index 4 → hạng 5
 
 
 # ------------------------------------------------- chạy trên TOÀN BỘ dữ liệu thật
@@ -210,8 +210,8 @@ def test_moi_keyframe_that_deu_qua_duoc_luat_bien():
         pd.Series(_video_frames(), name="n_frames").rename_axis("video_id").reset_index(),
         on="video_id", how="left",
     )  # n_frames ở đây là tên do mình đặt cho Series, không phải tên cột trong parquet
-    thieu = df[df.n_frames.isna()]
-    assert thieu.empty, f"{thieu.video_id.nunique()} video có trong frame_map mà thiếu ở video_info"
+    missing = df[df.n_frames.isna()]
+    assert missing.empty, f"{missing.video_id.nunique()} video có trong frame_map mà thiếu ở video_info"
 
     tran = df[(df.frame_idx < 0) | (df.frame_idx >= df.n_frames)]
     assert tran.empty, (
@@ -229,13 +229,13 @@ def test_doi_ten_cot_thi_bao_ro_rang(tmp_path):
     import pandas as pd
     import pytest
 
-    from backend.export.exporter import _doc_cot
+    from backend.export.exporter import _read_columns
 
     p = tmp_path / "gia.parquet"
     pd.DataFrame({"video_id": ["L21_V001"], "ten_moi": [100]}).to_parquet(p)
 
     with pytest.raises(KeyError) as e:
-        _doc_cot(p, ["video_id", "ten_cu"], "Công Lý")
+        _read_columns(p, ["video_id", "ten_cu"], "Công Lý")
     assert "ten_cu" in str(e.value), "phải nói rõ cột nào thiếu"
     assert "ten_moi" in str(e.value), "phải liệt kê cột đang có"
     assert "Công Lý" in str(e.value), "phải nói rõ hỏi ai"
@@ -244,10 +244,10 @@ def test_doi_ten_cot_thi_bao_ro_rang(tmp_path):
 def test_thieu_file_thi_bao_ro_ai_phai_giao(tmp_path):
     import pytest
 
-    from backend.export.exporter import _doc_cot
+    from backend.export.exporter import _read_columns
 
     with pytest.raises(FileNotFoundError, match="Công Lý"):
-        _doc_cot(tmp_path / "khong_co.parquet", ["a"], "Công Lý")
+        _read_columns(tmp_path / "khong_co.parquet", ["a"], "Công Lý")
 
 
 def test_validator_khong_bao_nham_tren_20_video_that():

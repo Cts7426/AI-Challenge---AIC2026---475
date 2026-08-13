@@ -69,7 +69,7 @@ flowchart TD
     D -->|"tra biên shot"| E[("shots.parquet<br/>100.810 shot")]
     D -->|"keyframe → frame_idx"| F[("frame_map<br/>hàm của Công Lý")]
     D -->|"kẹp [0, n_frames)"| G[("video_info<br/>873 video")]
-    D --> H{"_quay_vong()<br/>XEN KẼ theo shot"}
+    D --> H{"_round_robin()<br/>XEN KẼ theo shot"}
     H --> I["100 Answer đã xếp hạng"]
     I --> J["QuerySubmission → export.py (D0.2)"]
 
@@ -142,7 +142,7 @@ Khử trùng đặt ngay trong generator, không đẩy cho chỗ gọi.
 
 > [!WARNING]
 > Đây là **bug thật gặp lúc code**. Ban đầu generator lặp lại chính nó. KIS không lộ vì
-> `_quay_vong` có khử trùng riêng, còn TRAKE rút thẳng nên đẻ ra dòng trùng và chết ở
+> `_round_robin` có khử trùng riêng, còn TRAKE rút thẳng nên đẻ ra dòng trùng và chết ở
 > dòng 80/100. Sửa bằng cách đưa khử trùng **vào hợp đồng của generator**, không vá chỗ
 > gọi — chỗ gọi thứ ba sẽ lại quên.
 
@@ -235,12 +235,12 @@ còn hơn nộp dòng bị validator loại vì không tăng dần ngặt.
 | `ShotHit` | Đầu vào: `shot_id` · `score` · `best_keyframe_id`. `score` chỉ để **xếp hạng**, không so ngưỡng — cosine CLIP thực tế quanh 0.2–0.3 (CLAUDE.md bất biến 6) |
 | `_shots()` | `shot_id → (video_id, start, end)`. `@lru_cache` → đọc đĩa 1 lần cho cả tiến trình |
 | `_frame_of_keyframe()` | Gọi `load_frame_map()` **của Công Lý**, không tự đọc parquet. Trả `None` khi không có — mất mức ① của một shot không đáng làm hỏng cả bài nộp |
-| `_rai_deu()` | m điểm rải đều trên `[a, b]`, gồm cả hai đầu |
+| `_spread_evenly()` | m điểm rải đều trên `[a, b]`, gồm cả hai đầu |
 | `_frames_of_shot()` | **Máy phát frame** — bốn mức ở mục 4. Tự khử trùng |
-| `_quay_vong()` | **Xen kẽ** — mục 5 |
+| `_round_robin()` | **Xen kẽ** — mục 5 |
 | `allocate()` | API công khai. Kiểm đầu vào → sắp theo `score` → cấp hạn mức → quay vòng → bọc `Answer` |
 | `_bounds_of()` · `_video_of()` · `_gen_of()` | Ba hàm tra cứu nhỏ, dùng chung cache của `_shots()` |
-| `_allocate_trake()` · `_mot_dong_trake()` | Nhánh TRAKE — mục 6 |
+| `_allocate_trake()` · `_trake_row()` | Nhánh TRAKE — mục 6 |
 | `main()` | 🧪 CLI demo — xem mục 11 |
 
 Trả về thẳng `list[Answer]` (class của `submit_format.py`) → cắm vào `QuerySubmission`
@@ -442,44 +442,20 @@ Cả ba đều nằm trong `data/config/slot_budget.py` — chốt lại là **s
 
 ---
 
-### 10.5. ✅ ĐÃ SỬA — `backend/indexing/frame_map.py`
-
-> [!NOTE]
-> **Cập nhật 13/08: Công Lý đã vá, đúng theo hướng đề xuất ở cuối mục này.**
-> `import backend.indexing.frame_map` chạy sạch, **toàn bộ 192 test xanh, 0 đỏ**.
-> Mức ① không còn phụ thuộc gãy. Phần dưới giữ lại làm hồ sơ sự cố — đây là ca mẫu
-> cho kiểu lỗi "demo xanh mà đường chạy thật đỏ", đáng đọc lại trước lúc thi.
+### 10.5. ✅ Phụ thuộc `backend/indexing/frame_map.py` — đã thông
 
 Allocator tra `keyframe_id → frame_idx` qua `load_frame_map()` của Công Lý, **không tự
-đọc parquet** — bảng đó có bù offset, tự đọc lại là mở đường cho hai nguồn sự thật.
-Cái giá của lựa chọn đó: module ấy hỏng thì mức ① chết theo.
+đọc parquet**: bảng đó có bù offset, tự đọc lại là mở đường cho hai nguồn sự thật. Cái
+giá của lựa chọn đó là mức ① phụ thuộc hoàn toàn vào module ấy.
 
-Nó **đã từng** hỏng. Commit `6f53aaa` (*"revert: Xóa sạch thư mục preprocessing khỏi git
-tracking"*) gỡ `preprocessing/common/frame_map.py` khỏi git, nhưng
-`backend/indexing/frame_map.py:15` vẫn import nó:
+Module từng gãy (thiếu `preprocessing.common.frame_map` sau một lần revert), Công Lý đã
+vá 13/08. Hiện `import` sạch, toàn bộ test xanh.
 
-```python
-from preprocessing.common.frame_map import load_frame_map as load_frame_map_df
-→ ModuleNotFoundError: No module named 'preprocessing.common.frame_map'
-```
-
-Trên máy Công Lý file vẫn nằm trên đĩa nên chạy bình thường; mọi máy khác thì không.
-**3 test đỏ** (`tests/test_allocator.py`), và `/submit` của Thạch cũng chết theo.
-
-⚠️ **Nguy hơn cái đỏ: demo vẫn xanh.**
-
-```
-KHÔNG có best_keyframe_id (giống --demo)  →  100 dòng, "HỢP LỆ" ✅
-CÓ  best_keyframe_id (đường chạy lúc thi) →  🔴 ModuleNotFoundError
-```
-
-`python -m backend.slot --demo` không truyền `keyframe_id` nên không chạm hàm đó. Nhìn
-CLI thì tưởng lành — nó chỉ nổ đúng lúc nối search vào, tức lúc chạy thật.
-
-**File của Công Lý, không tự sửa.** Hướng vá đã kiểm: wrapper đó vốn chỉ để đổi tên
-`frame_idx_corrected` → `frame_idx`, mà parquet mới đã có sẵn `frame_idx`, nên bỏ hẳn
-phụ thuộc `preprocessing` là xong — chạy thử ra đúng **354.642 key**, giữ cả hai định
-dạng `#k` và `_`.
+> [!IMPORTANT]
+> Bài học giữ lại, không phải sự cố: **`python -m backend.slot --demo` KHÔNG chạm hàm
+> đó** vì demo không truyền `keyframe_id`. Lúc module gãy, demo vẫn in ra 100 dòng và
+> báo "HỢP LỆ", chỉ đường chạy thật mới nổ. Demo xanh không chứng minh được gì về
+> đường có `best_keyframe_id` — đừng dùng nó làm phép kiểm cuối trước khi nộp.
 
 ### 10.6. 🔵 `CLAUDE.md` mô tả ngược thiết kế hiện tại
 
@@ -538,7 +514,7 @@ lệ mà sai.
 | Bất biến 6 — **không đặt ngưỡng điểm cứng** | ✅ `score` chỉ dùng để sắp xếp, không so với ngưỡng nào |
 | *Coding convention* — mỗi tối ưu phải đo được | ✅ mục 9 |
 | Không hardcode ngưỡng / đường dẫn, đọc từ config | ✅ `slot_budget.py` |
-| Assert lúc nạp `.parquet` | ✅ `_doc_cot()` — thiếu cột thì báo tên cột và ai phải giao |
+| Assert lúc nạp `.parquet` | ✅ `_read_columns()` — thiếu cột thì báo tên cột và ai phải giao |
 
 ### 12.3. Chỗ lệch so với chữ trong tài liệu
 
@@ -562,7 +538,7 @@ lệ mà sai.
 | Độ trễ | ✅ 1–2 ms mỗi query |
 | **Hợp đồng với search thật** | ✅ **Khớp 10/08** — A2.1+A2.2 trả `shot_id` + `score` + `keyframe_id` tốt nhất mỗi shot; `shot_id` khớp `shots.parquet` 94.386/94.386 |
 | Keo dán `search() → ShotHit` | 🔴 **`run_minimal.py` tự chia slot, KHÔNG gọi `allocate()`** — mục 10.1 |
-| Chốt an toàn khi Data Factory đổi schema | ✅ `_doc_cot()` + 2 test (thêm 07/08) |
+| Chốt an toàn khi Data Factory đổi schema | ✅ `_read_columns()` + 2 test (thêm 07/08) |
 | Bốn chốt chặn ở cửa vào `allocate()` | ✅ 6 test — mục 7.3 |
 | `backend/indexing/frame_map.py` chạy được | ✅ Công Lý đã vá 13/08 — mục 10.5 |
 

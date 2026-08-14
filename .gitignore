@@ -48,3 +48,13 @@ AI-Challenge---AIC2026---475-main/
 
 # File nop sinh ra khi bam Nop (Task 3.2)
 submissions/
+
+# New ignores added for clean commit
+aic2026-keyframes.zip
+backup_running/
+data/cache/
+data/manifests/
+learning/
+reports/shot_preview/
+data/derived/*
+data/config/config.yaml

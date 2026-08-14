@@ -42,3 +42,23 @@ ASR_TIME_PAD_MS = 2000
 # Số đoạn ASR khớp nhất được quyền ĐỀ CỬ keyframe (tra Milvus theo khoảng thời
 # gian). Cap lại để 1 query Milvus không phình filter vô hạn.
 ASR_NOMINATE_SEGMENTS = 5
+
+# --------------------------------------------------------------- TRAKE (C3.2)
+
+# Hệ số THƯỞNG (nhân điểm video) khi các sự kiện của TRAKE khớp trong video theo
+# ĐÚNG trình tự thời gian đề bài mô tả. Đặt ở config chứ không hardcode trong
+# backend/tasks/trake.py vì đây là chiến thuật cần tune trên dev_set (giống mọi
+# trọng số khác trong file này), không phải hằng số thuật toán.
+#
+# ⚠️ Chỉ dùng để XẾP LẠI HẠNG trong nhóm video đã có điểm hợp lý — KHÔNG dùng
+# làm ngưỡng lọc cứng: 1 video đúng nhưng có 1 sự kiện bị đảo thứ tự (nhiễu tìm
+# kiếm) vẫn phải còn cơ hội lọt top-10, chỉ là xếp thấp hơn video khớp thứ tự
+# hoàn hảo. Sai video ở TRAKE là 0 điểm tuyệt đối (docs/contest.md) — loại nhầm
+# 1 video đúng khỏi top-10 vì phạt quá tay còn tệ hơn xếp nó hạng 8 thay vì hạng 2.
+TRAKE_ORDER_BONUS = 1.5
+
+# Mỗi sự kiện TRAKE lấy top bấy nhiêu shot khi search() riêng (KHÔNG nối chuỗi
+# N sự kiện thành 1 câu — vi phạm giới hạn 77 token của CLIP, xem
+# backend/tasks/trake.py). Rộng hơn top-10 video cuối cùng để video đúng mà
+# chỉ khớp yếu 1-2 sự kiện vẫn có cơ hội lọt vào bảng gộp điểm.
+TRAKE_EVENT_SEARCH_POOL = 200

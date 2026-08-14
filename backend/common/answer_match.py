@@ -72,10 +72,34 @@ def answer_matches(pred: str, gt_text: str, variants: list[str]) -> tuple[bool, 
         return True, 2
 
     for t in eq_targets:
-        if difflib.SequenceMatcher(None, eq_pred, t).ratio() >= FUZZY_MATCH_RATIO:
+        if _fuzzy_match(eq_pred, t, FUZZY_MATCH_RATIO):
             return True, 3
 
     return False, 0
+
+
+def _fuzzy_match(a: str, b: str, threshold: float) -> bool:
+    """Tầng 3 — so gần đúng AN TOÀN CHO TÊN RIÊNG.
+
+    ⚠️ SỬA 14/08 (code review phát hiện): so ratio trên TOÀN CHUỖI khiến
+    "nguyễn văn a" khớp NHẦM "nguyễn văn b" (ratio 0.92 > 0.85) — tiền tố
+    chung dài ("nguyễn văn ") che mất đúng chỗ khác nhau (chữ cuối), mà
+    contest.md định tuyến "tên/chức danh → OCR" nên đây là ca THƯỜNG GẶP,
+    không phải hiếm. Cùng lỗi này xảy ra với MỌI cặp chuỗi dài, giống nhau
+    gần hết, chỉ khác đúng 1 từ ngắn ở cuối — không riêng tên người.
+    Sửa: so KHỚP TỪNG TỪ khi hai chuỗi CÙNG SỐ TỪ — mọi cặp từ đều phải đạt
+    ngưỡng riêng, một từ khác hẳn (như "a" vs "b", ratio 0.0) không còn bị
+    trung bình hoá bởi các từ giống hệt xung quanh. Số từ khác nhau (thiếu/
+    thừa 1 từ, vd tên đệm) thì lùi về so cả chuỗi — ca hiếm hơn, chấp nhận
+    rủi ro cũ ở mức thấp hơn nhiều vì độ dài lệch đã tự làm giảm ratio.
+    """
+    wa, wb = a.split(), b.split()
+    if len(wa) != len(wb):
+        return difflib.SequenceMatcher(None, a, b).ratio() >= threshold
+    return all(
+        difflib.SequenceMatcher(None, x, y).ratio() >= threshold
+        for x, y in zip(wa, wb)
+    )
 
 
 def majority_answer(candidates: list[str]) -> tuple[str, int]:

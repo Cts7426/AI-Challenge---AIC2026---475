@@ -12,10 +12,11 @@ from backend.retrieval.search import search
 from backend.indexing.frame_map import load_frame_map
 from backend.slot.allocator import allocate, ShotHit
 from backend.export import write_submissions
+from backend.tasks.qa import qa_pipeline
 
 from data.config.submit_format import Answer
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
-from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis, rscore_qa, rscore_trake
+from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis, rscore_trake
 
 
 def load_jsonl(path: Path):
@@ -199,14 +200,29 @@ def run_evaluation():
 
             try:
                 q_en = q.query_en or q.query_vi
+                best_hit_ranks = {}
 
-                res = search(q.query_vi, q_en, top_k=100, group_by_shot=True)
-
-                answer_text = None
                 if q.task_type == "QA":
-                    answer_text = gt.answer_text
+                    # ⚠️ SỬA 14/08 (code review phát hiện): bản cũ gán
+                    # `answer_text = gt.answer_text` — nghĩa là so sánh đáp án
+                    # với CHÍNH NÓ, R-Score của QA LUÔN LÀ 1.0 bất kể hệ thống
+                    # thật trả lời gì (đo thật: "màu xanh"/"CHUA_CO_ANSWER"/
+                    # "màu đỏ" đều ra R@1=1.0 với code cũ). Giờ gọi ĐÚNG
+                    # pipeline production (backend.tasks.qa.qa_pipeline, C3.1)
+                    # để answer_text là câu hệ THẬT SỰ sinh ra — 482 dòng
+                    # qa.py trước đây chưa từng được đo lần nào qua đường này.
+                    #
+                    # KHÔNG có best_hit_ranks debug ở nhánh này: qa_pipeline()
+                    # tự search trên event_vi đã tách (khác q.query_vi gốc),
+                    # không trả lại thứ hạng thô từng nhánh — chấp nhận mất
+                    # tính năng debug phụ để giữ đúng hành vi production, đo
+                    # ranks riêng cho QA là việc làm thêm sau nếu cần.
+                    hits, answer_text = qa_pipeline(q.query_vi)
+                else:
+                    res = search(q.query_vi, q_en, top_k=100, group_by_shot=True)
+                    hits = _to_shot_hits(res)
+                    answer_text = None
 
-                hits = _to_shot_hits(res)
                 n_trake = q.n_events if q.task_type == "TRAKE" else None
                 ans = allocate(hits, q.task_type, answer_text=answer_text, n_trake=n_trake)
 
@@ -217,30 +233,30 @@ def run_evaluation():
                 r_100 = recall_at_k(ans, gt, q.task_type, 100)
                 fin = final_score(ans, gt, q.task_type)
 
-                # Thứ hạng của câu đúng trên từng nhánh search — để debug thất bại
-                best_hit_ranks = {}
-                for row in res:
-                    video_id = row["video_id"]
-                    kf = row["keyframe_id"]
-                    if kf not in fmap:
-                        continue
-                    frame_idx = fmap[kf]
+                # Thứ hạng của câu đúng trên từng nhánh search — để debug thất
+                # bại. Chỉ có cho KIS/TRAKE (dùng res thô của q.query_vi gốc);
+                # QA xem comment ở trên.
+                if q.task_type != "QA":
+                    for row in res:
+                        video_id = row["video_id"]
+                        kf = row["keyframe_id"]
+                        if kf not in fmap:
+                            continue
+                        frame_idx = fmap[kf]
 
-                    hit = False
-                    if q.task_type == "KIS":
-                        hit = (rscore_kis(video_id, frame_idx, gt) > 0)
-                    elif q.task_type == "QA":
-                        hit = (rscore_qa(video_id, frame_idx, answer_text or "", gt) > 0)
-                    elif q.task_type == "TRAKE":
-                        if video_id == gt.video_id:
-                            for w in gt.frames:
-                                if w["start"] <= frame_idx <= w["end"]:
-                                    hit = True
-                                    break
+                        hit = False
+                        if q.task_type == "KIS":
+                            hit = (rscore_kis(video_id, frame_idx, gt) > 0)
+                        elif q.task_type == "TRAKE":
+                            if video_id == gt.video_id:
+                                for w in gt.frames:
+                                    if w["start"] <= frame_idx <= w["end"]:
+                                        hit = True
+                                        break
 
-                    if hit:
-                        best_hit_ranks = row.get("ranks", {})
-                        break
+                        if hit:
+                            best_hit_ranks = row.get("ranks", {})
+                            break
 
                 record = {
                     "query_id": q.query_id,

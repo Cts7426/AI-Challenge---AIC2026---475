@@ -109,17 +109,25 @@ def _id_bridge(video_id: str) -> tuple[dict[str, str], dict[str, str], dict[str,
     ⚠️ Chiều btc→own là NHIỀU-VỀ-MỘT: 75.124/166.661 keyframe BTC có hơn một ứng viên,
     nhiều nhất 6. Phải lấy cái `frame_drift` NHỎ NHẤT. Lấy bừa (dòng cuối thắng) thì
     bằng chứng lệch tới 22 frame so với ảnh đang nhìn, không dấu hiệu gì.
+
+    CẢ HAI chiều đều lấy drift nhỏ nhất. Chiều own→btc hiện là 1-1 trên dữ liệu đang
+    có, nhưng đó là tính chất của bảng chứ không phải ràng buộc ai bảo đảm — để dòng
+    cuối thắng ở một chiều là gài sẵn đúng cái bẫy vừa gỡ ở chiều kia, cho lần Data
+    Factory dựng lại `clip_kf_map`.
     """
     df = _read_table("clip_kf_map", ["kf_id", "clip_kf_id", "frame_drift"], video_id)
     btc2own: dict[str, str] = {}
     own2btc: dict[str, str] = {}
     drift: dict[str, float] = {}
+    drift_own: dict[str, float] = {}
     for r in df.itertuples(index=False):
         if not (isinstance(r.clip_kf_id, str) and isinstance(r.kf_id, str)):
             continue
         # NaN != NaN → ô rỗng coi như lệch vô hạn, luôn thua một dòng có số thật
         d = float(r.frame_drift) if r.frame_drift == r.frame_drift else float("inf")
-        own2btc[r.kf_id] = r.clip_kf_id
+        if r.kf_id not in own2btc or d < drift_own[r.kf_id]:
+            own2btc[r.kf_id] = r.clip_kf_id
+            drift_own[r.kf_id] = d
         if r.clip_kf_id not in btc2own or d < drift[r.clip_kf_id]:
             btc2own[r.clip_kf_id] = r.kf_id
             drift[r.clip_kf_id] = d

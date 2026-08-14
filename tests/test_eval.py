@@ -304,3 +304,45 @@ def test_bao_cao_liet_ke_cau_te_nhat_kem_ly_do():
 
 def test_bao_cao_khong_sap_khi_khong_co_gi_de_cham():
     assert isinstance(format_report(score_runs([], LabelIndex([]))), str)
+
+
+# ================================== mẫu số TRAKE: N người KHAI, không phải N suy
+
+def _nhan_trake(n_khai=None):
+    goc = dict(query_id="t1", query_vi="4 khoảnh khắc cú nhảy", task_type="TRAKE",
+               video_id="L01_V001", label="correct", labeler="test",
+               n_moments_total=n_khai)
+    return [Label(frame_start=s, frame_end=e, moment_idx=j, **goc)
+            for j, (s, e) in enumerate([(95, 105), (145, 155), (195, 205)])]
+
+
+def test_trake_chia_cho_N_NGUOI_KHAI_du_nhan_con_thieu():
+    """Đáp án thật N=4, người chấm mới kịp 3 khoảnh khắc → vẫn phải chia cho 4.
+
+    Suy mẫu số từ `max(moment_idx)+1` thì ra 3, và nộp trúng cả 3 sẽ ra 1.0 thay vì
+    0.75 — thước đo tự thổi phồng đúng lúc bộ nhãn còn thiếu, không dấu hiệu gì.
+    """
+    bn = LabelIndex(_nhan_trake(n_khai=4))
+    dong = SubmittedRow("L01_V001", (101, 150, 200, 9999))
+    assert r_score_trake(dong, "t1", bn) == 0.75
+
+
+def test_trake_khong_ai_khai_N_thi_van_cham_nhung_BAO_RA():
+    """Đường lui cho nhãn cũ: chấm được, nhưng báo cáo phải nói mẫu số đang là suy đoán."""
+    bn = LabelIndex(_nhan_trake(n_khai=None))
+    bc = score_runs([_lo("TRAKE", [SubmittedRow("L01_V001", (101, 150, 200))], qid="t1")], bn)
+    assert bc.scores[0].trake_n_inferred == 3
+    assert "chưa ai khai N" in format_report(bc)
+
+
+def test_trake_da_khai_N_thi_KHONG_canh_bao():
+    bn = LabelIndex(_nhan_trake(n_khai=4))
+    bc = score_runs([_lo("TRAKE", [SubmittedRow("L01_V001", (101, 150, 200, 300))], qid="t1")], bn)
+    assert bc.scores[0].trake_n_inferred is None
+    assert "chưa ai khai N" not in format_report(bc)
+
+
+def test_canh_bao_N_khong_dinh_toi_KIS_va_QA():
+    bn = LabelIndex([_nhan(query_id="q1")])
+    bc = score_runs([_lo("KIS", [_kis()], qid="q1")], bn)
+    assert bc.scores[0].trake_n_inferred is None

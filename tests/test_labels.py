@@ -267,3 +267,119 @@ def test_so_khoanh_khac_None_cho_KIS():
                          video_id="L01_V001", frame_start=0, frame_end=9,
                          label="correct", labeler="test")])
     assert bn.n_moments("q1") is None
+
+
+# ================================================== hai lượt chấm CÙNG một khoá
+# Q&A có hai cửa tử độc lập nhưng UI ghi cả hai vào cùng `Label.key`. Bốn test dưới
+# khoá lại việc lượt sau không được xoá lượt trước.
+
+def test_phan_answer_KHONG_lat_duoc_nhan_frame(tmp_path):
+    """Bấm '✗ Sai' rồi phán answer đúng → frame vẫn phải là `wrong`.
+
+    Bản cũ đặt `label` theo phán quyết ANSWER nên frame lật thành `correct`,
+    `eval.py` chấm dòng đó 1.0 trong khi BTC chấm 0.
+    """
+    goc = dict(query_id="q1", task_type="QA", video_id="L21_V001",
+               frame_start=888, frame_end=888)
+    append_label(mot_nhan(label="wrong", ts="2026-08-14T10:00:00+07:00", **goc), tmp_path)
+    append_label(mot_nhan(label="wrong", ts="2026-08-14T10:01:00+07:00",
+                          answer_text="màu xanh", answer_correct=True, **goc), tmp_path)
+    bn = LabelIndex(directory=tmp_path)
+    assert not bn.is_correct("q1", "L21_V001", 888), "phán answer không được lật cửa frame"
+    assert bn.is_answer_correct("q1", "màu xanh") is True
+
+
+def test_cham_frame_SAU_khi_phan_answer_khong_xoa_answer(tmp_path):
+    """Chiều ngược lại: nút frame ghi answer_text=None, không được coi là 'xoá answer'."""
+    goc = dict(query_id="q1", task_type="QA", video_id="L21_V001",
+               frame_start=500, frame_end=500)
+    append_label(mot_nhan(label="unsure", ts="2026-08-14T10:00:00+07:00",
+                          answer_text="màu xanh", answer_correct=True, **goc), tmp_path)
+    append_label(mot_nhan(label="correct", ts="2026-08-14T10:01:00+07:00", **goc), tmp_path)
+    bn = LabelIndex(directory=tmp_path)
+    assert bn.is_correct("q1", "L21_V001", 500), "lượt chấm frame vẫn phải thắng ở ô label"
+    assert bn.is_answer_correct("q1", "màu xanh") is True, "answer đã phán không được biến mất"
+
+
+def test_dong_moi_van_thang_o_o_no_thuc_su_noi_toi(tmp_path):
+    """Gộp không được biến thành 'không bao giờ đổi ý được'."""
+    goc = dict(query_id="q1", task_type="QA", video_id="L21_V001",
+               frame_start=7, frame_end=7)
+    append_label(mot_nhan(label="correct", ts="2026-08-14T10:00:00+07:00",
+                          answer_text="màu xanh", answer_correct=True, **goc), tmp_path)
+    append_label(mot_nhan(label="correct", ts="2026-08-14T10:01:00+07:00",
+                          answer_text="màu xanh", answer_correct=False, **goc), tmp_path)
+    assert LabelIndex(directory=tmp_path).is_answer_correct("q1", "màu xanh") is False
+
+
+# ------------------------------------------------------------ ts lệch múi giờ
+
+def test_ts_so_theo_MOC_THOI_GIAN_khong_so_chuoi(tmp_path):
+    """`ts` mang offset của máy người chấm: Windows `+07:00`, WSL/Docker `+00:00`.
+
+    So chuỗi thì `04:30+00:00` (VN 11:30) bị coi là CŨ HƠN `10:00+07:00` (VN 10:00)
+    → chấm lại xong dòng mới bị bỏ, im lặng.
+    """
+    append_label(mot_nhan(label="correct", ts="2026-08-14T10:00:00+07:00"), tmp_path)
+    append_label(mot_nhan(label="wrong", ts="2026-08-14T04:30:00+00:00"), tmp_path)
+    doc = load_labels(tmp_path)
+    assert len(doc) == 1 and doc[0].label == "wrong"
+
+
+def test_ts_hong_thi_thua_dong_co_ts_doc_duoc(tmp_path):
+    append_label(mot_nhan(label="wrong", ts="rác"), tmp_path)
+    append_label(mot_nhan(label="correct", ts="2026-08-14T10:00:00+07:00"), tmp_path)
+    assert load_labels(tmp_path)[0].label == "correct"
+
+
+# --------------------------------------------------- N của TRAKE do người KHAI
+
+def test_N_khai_thang_N_suy_tu_so_nhan_da_cham():
+    """Chấm dở 3/4 khoảnh khắc mà suy mẫu số thì ra 3 → điểm cao hơn thật."""
+    goc = dict(query_id="t1", query_vi="?", task_type="TRAKE", video_id="L10_V010",
+               label="correct", labeler="test", n_moments_total=4)
+    bn = LabelIndex([
+        Label(frame_start=95, frame_end=105, moment_idx=0, **goc),
+        Label(frame_start=145, frame_end=155, moment_idx=1, **goc),
+        Label(frame_start=195, frame_end=205, moment_idx=2, **goc),
+    ])
+    assert bn.n_moments("t1") == 4, "phải lấy N người khai, không lấy max(moment_idx)+1"
+    assert bn.n_is_declared("t1")
+
+
+def test_khong_ai_khai_N_thi_suy_nhung_phai_bao_ra():
+    goc = dict(query_id="t1", query_vi="?", task_type="TRAKE", video_id="L10_V010",
+               label="correct", labeler="test")
+    bn = LabelIndex([Label(frame_start=95, frame_end=105, moment_idx=0, **goc)])
+    assert bn.n_moments("t1") == 1
+    assert not bn.n_is_declared("t1"), "eval.py dựa vào cờ này để cảnh báo"
+
+
+def test_hai_nguoi_khai_N_lech_nhau_thi_lay_so_LON_hon():
+    """Mẫu số lớn → điểm thấp hơn. Thước đo lệch xuống thì có người đi soi."""
+    goc = dict(query_id="t1", query_vi="?", task_type="TRAKE", video_id="L10_V010",
+               label="correct", labeler="test", frame_start=0, frame_end=9)
+    bn = LabelIndex([
+        Label(moment_idx=0, n_moments_total=4, **goc),
+        Label(moment_idx=1, n_moments_total=5, **goc),
+    ])
+    assert bn.n_moments("t1") == 5
+
+
+@pytest.mark.parametrize("n, moment", [(1, None), (4, 4), (4, 9)])
+def test_khai_N_mau_thuan_bi_chan_ngay_luc_dung(n, moment):
+    with pytest.raises(ValueError):
+        mot_nhan(task_type="TRAKE", n_moments_total=n, moment_idx=moment)
+
+
+def test_dong_nhan_CU_thieu_o_khai_N_van_doc_duoc(tmp_path):
+    """Nhãn chấm trước khi thêm ô này phải đọc lại được, không gãy."""
+    dong = {"query_id": "q1", "query_vi": "?", "task_type": "TRAKE",
+            "video_id": "L21_V001", "frame_start": 10, "frame_end": 20,
+            "label": "correct", "labeler": "cu", "ts": "2026-08-10T10:00:00+07:00",
+            "moment_idx": 0}
+    p = label_path("cu", tmp_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(dong, ensure_ascii=False) + "\n", encoding="utf-8")
+    bn = LabelIndex(directory=tmp_path)
+    assert len(bn) == 1 and bn.n_moments("q1") == 1 and not bn.n_is_declared("q1")

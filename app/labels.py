@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -50,10 +50,18 @@ class Label:
     source: str = "debug_ui"
     note: str = ""
 
-    # Ba trường cho Q&A và TRAKE. Mặc định None để dòng nhãn KIS cũ đọc lại vẫn hợp lệ.
+    # Bốn trường cho Q&A và TRAKE. Mặc định None để dòng nhãn KIS cũ đọc lại vẫn hợp lệ.
     answer_text: str | None = None      # câu trả lời hệ sinh ra (Q&A)
     answer_correct: bool | None = None  # người chấm phán; None = chưa ai chấm
     moment_idx: int | None = None       # khoảnh khắc thứ mấy của TRAKE; None = KIS/Q&A
+
+    # N THẬT của đề TRAKE, do người chấm KHAI. None = chưa khai.
+    #
+    # Vì sao không suy từ `max(moment_idx) + 1`: suy như vậy chỉ đúng khi bộ nhãn đã
+    # đủ N khoảnh khắc. Chấm dở dang 3/4 khoảnh khắc thì mẫu số thành 3, và công thức
+    # `(1/N)·Σ` cho ra 1.0 thay vì 0.75 — thước đo tự thổi phồng đúng lúc bộ nhãn còn
+    # thiếu, im lặng. Khai N là một con số người chấm ĐỌC ĐƯỢC TỪ ĐỀ, không phải suy.
+    n_moments_total: int | None = None
 
     def __post_init__(self) -> None:
         """Chặn dữ liệu sai ngay lúc dựng, không đợi lúc ghi ra đĩa.
@@ -78,6 +86,16 @@ class Label:
             raise ValueError(f"khoảng ngược: frame_start={start} > frame_end={end}")
         object.__setattr__(self, "frame_start", start)
         object.__setattr__(self, "frame_end", end)
+        if self.n_moments_total is not None:
+            n = int(self.n_moments_total)
+            if n < 2:
+                raise ValueError(f"n_moments_total = {n} — TRAKE phải có ít nhất 2 khoảnh khắc")
+            if self.moment_idx is not None and not (0 <= self.moment_idx < n):
+                raise ValueError(
+                    f"moment_idx = {self.moment_idx} nằm ngoài [0, {n}) — "
+                    "khai N nhỏ hơn số khoảnh khắc đang chấm là mâu thuẫn"
+                )
+            object.__setattr__(self, "n_moments_total", n)
         if not self.ts:
             object.__setattr__(self, "ts", datetime.now(timezone.utc).astimezone().isoformat())
 
@@ -143,12 +161,53 @@ def _read_file(path: Path) -> list[Label]:
     return out
 
 
+def _ts_key(label: Label) -> datetime:
+    """`ts` thành mốc thời gian THẬT để so sánh.
+
+    KHÔNG so `ts` bằng chuỗi. `ts` ghi bằng `.astimezone()` nên mang offset của máy
+    người chấm: Windows ở VN ra `+07:00`, còn WSL/Docker/CI ra `+00:00`. So chuỗi thì
+    `2026-08-14T04:30:00+00:00` (VN 11:30) bị coi là CŨ HƠN `2026-08-14T10:00:00+07:00`
+    (VN 10:00) — chấm lại xong dòng mới bị bỏ, dòng cũ vẫn thắng, không dấu hiệu gì.
+
+    Chuỗi hỏng hoặc rỗng → mốc nhỏ nhất, tức luôn thua dòng có `ts` đọc được.
+    Chuỗi không có offset (sửa tay) → hiểu là giờ máy đang chạy, để so được với dòng
+    có offset mà không ném TypeError giữa lúc đang chấm.
+    """
+    try:
+        moc = datetime.fromisoformat(label.ts)
+    except (TypeError, ValueError):
+        return datetime.min.replace(tzinfo=timezone.utc)
+    if moc.tzinfo is None:
+        return moc.astimezone()
+    return moc
+
+
+def _merge(cu: Label, moi: Label) -> Label:
+    """Gộp hai lượt chấm CÙNG khoá: dòng mới thắng, nhưng không xoá ô nó không nói tới.
+
+    Q&A có hai cửa tử ĐỘC LẬP (frame và answer) nên UI có hai nhóm nút, mà cả hai lại
+    ghi ra cùng một khoá `(query_id, video_id, frame_start, frame_end, moment_idx)`.
+    Đè nguyên khối thì lượt chấm sau xoá mất lượt trước: bấm "✓ Đúng" sau khi đã phán
+    answer sẽ thổi bay phán quyết answer, và ngược lại. Cả hai đều im lặng.
+
+    Quy ước: `answer_text`/`answer_correct` bằng `None` nghĩa là lượt chấm này KHÔNG
+    nói gì về câu trả lời, không phải "câu trả lời rỗng" — nên lấy lại giá trị cũ.
+    """
+    if moi.answer_text is not None or moi.answer_correct is not None:
+        moi_du = moi
+    else:
+        moi_du = replace(moi, answer_text=cu.answer_text, answer_correct=cu.answer_correct)
+    if moi_du.n_moments_total is None and cu.n_moments_total is not None:
+        moi_du = replace(moi_du, n_moments_total=cu.n_moments_total)
+    return moi_du
+
+
 def load_labels(directory: Path | None = None) -> list[Label]:
     """Đọc gộp nhãn của MỌI người trong dev_set/, đã khử trùng.
 
-    Cùng một `key` thì giữ dòng có `ts` mới nhất — chấm lại thì lần sau thắng. Hai
-    người chấm lệch nhau ở cùng một khoảng thường là truy vấn mơ hồ, đáng xem lại;
-    cột `labeler` giữ lại để truy ra.
+    Cùng một `key` thì giữ dòng có `ts` mới nhất — chấm lại thì lần sau thắng — nhưng
+    GỘP các ô mà dòng mới không nói tới (xem `_merge`). Hai người chấm lệch nhau ở cùng
+    một khoảng thường là truy vấn mơ hồ, đáng xem lại; cột `labeler` giữ lại để truy ra.
     """
     directory = directory or DEV_SET_DIR
     if not directory.is_dir():
@@ -158,8 +217,12 @@ def load_labels(directory: Path | None = None) -> list[Label]:
     for path in sorted(directory.glob("labels.*.jsonl")):
         for label in _read_file(path):
             old = latest.get(label.key)
-            if old is None or label.ts >= old.ts:
+            if old is None:
                 latest[label.key] = label
+            elif _ts_key(label) >= _ts_key(old):
+                latest[label.key] = _merge(old, label)
+            else:
+                latest[label.key] = _merge(label, old)
     return list(latest.values())
 
 
@@ -231,15 +294,38 @@ class LabelIndex:
         return None
 
     def n_moments(self, query_id: str) -> int | None:
-        """N của một truy vấn TRAKE, suy từ nhãn. None nếu không phải TRAKE.
+        """N của một truy vấn TRAKE. None nếu không phải TRAKE.
 
-        Là MẪU SỐ của công thức `(1/N)·Σ`. Lấy từ đáp án chứ không lấy số frame mình
-        nộp: nộp thiếu khoảnh khắc mà chia cho số mình nộp thì trúng 1/1 ra 1.0 thay
-        vì 0.25 — nộp càng ít điểm càng cao.
+        Là MẪU SỐ của công thức `(1/N)·Σ`. Hai nguồn, theo thứ tự ưu tiên:
+
+        ① `n_moments_total` — người chấm ĐỌC TỪ ĐỀ rồi khai. Đúng kể cả khi bộ nhãn
+           mới chấm được vài khoảnh khắc.
+        ② `max(moment_idx) + 1` — suy từ nhãn đang có. **Chỉ đúng khi đã chấm đủ N.**
+           Chấm dở 3/4 thì mẫu số ra 3, và điểm ra 1.0 thay vì 0.75. Đường lui này giữ
+           lại để dòng nhãn cũ (chưa có ô khai N) vẫn chấm được, nhưng `n_is_declared()`
+           báo ra để `eval.py` cảnh báo chứ không im lặng.
+
+        Lấy từ ĐÁP ÁN chứ không lấy số frame mình nộp: nộp thiếu khoảnh khắc mà chia
+        cho số mình nộp thì trúng 1/1 ra 1.0 thay vì 0.25 — nộp càng ít điểm càng cao.
         """
-        idx = [n.moment_idx for n in self.labels
-               if n.query_id == query_id and n.moment_idx is not None]
+        cua_query = [n for n in self.labels if n.query_id == query_id]
+        khai = [n.n_moments_total for n in cua_query if n.n_moments_total is not None]
+        if khai:
+            # Hai người khai lệch nhau → lấy số LỚN NHẤT. Mẫu số lớn cho điểm THẤP hơn,
+            # mà thước đo sai lệch về phía thấp thì người đọc đi soi, còn sai lệch về
+            # phía cao thì không ai soi.
+            return max(khai)
+        idx = [n.moment_idx for n in cua_query if n.moment_idx is not None]
         return max(idx) + 1 if idx else None
+
+    def n_is_declared(self, query_id: str) -> bool:
+        """N của truy vấn này là do người chấm KHAI, hay chỉ suy từ số nhãn đang có?
+
+        `False` nghĩa là mẫu số đang bằng số khoảnh khắc ĐÃ CHẤM. Chấm thiếu thì điểm
+        TRAKE cao hơn thật — `eval.py` phải đếm và báo, không được nuốt.
+        """
+        return any(n.query_id == query_id and n.n_moments_total is not None
+                   for n in self.labels)
 
     def label_of_frame(self, query_id: str, video_id: str, frame_idx: int,
                        moment_idx: int | None = None) -> str | None:
@@ -252,7 +338,7 @@ class LabelIndex:
                  if n.moment_idx == moment_idx and n.contains(frame_idx)]
         if not found:
             return None
-        return min(found, key=lambda n: (n.frame_end - n.frame_start, n.ts)).label
+        return min(found, key=lambda n: (n.frame_end - n.frame_start, _ts_key(n))).label
 
     def query_ids(self) -> list[str]:
         """Danh sách query_id đã có nhãn, để eval biết chấm được câu nào."""

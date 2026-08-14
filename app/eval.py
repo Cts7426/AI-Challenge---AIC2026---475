@@ -58,6 +58,7 @@ class QueryScore:
     first_hit_rank: int | None      # hạng câu đầu tiên có điểm > 0
     n_rows: int
     answer_unjudged: int = 0        # Q&A: frame đúng nhưng chưa ai chấm answer
+    trake_n_inferred: int | None = None  # TRAKE: N đang SUY từ nhãn, chưa ai khai
 
 
 @dataclass
@@ -154,6 +155,13 @@ def score_query(run: QueryRun, index: LabelIndex) -> QueryScore:
             score = r_score_kis(row, run.query_id, index)
         r_scores.append(score)
 
+    # TRAKE chấm bằng mẫu số N. Nếu không ai khai N thì nó đang bằng số khoảnh khắc
+    # ĐÃ CHẤM — chấm dở 3/4 thì mẫu số 3 và điểm ra 1.0 thay vì 0.75. Đếm để báo,
+    # cùng lý do với `answer_unjudged`: thước đo lệch về phía CAO thì không ai đi soi.
+    n_suy = None
+    if run.task_type == "TRAKE" and not index.n_is_declared(run.query_id):
+        n_suy = index.n_moments(run.query_id)
+
     rank = next((i for i, v in enumerate(r_scores, 1) if v > 0), None)
     return QueryScore(
         query_id=run.query_id,
@@ -165,6 +173,7 @@ def score_query(run: QueryRun, index: LabelIndex) -> QueryScore:
         first_hit_rank=rank,
         n_rows=len(rows),
         answer_unjudged=unjudged,
+        trake_n_inferred=n_suy,
     )
 
 
@@ -265,6 +274,16 @@ def format_report(report: Report, n_worst: int = 10) -> str:
     if unjudged:
         out.append(f"\n⚠️  {unjudged} dòng Q&A có frame ĐÚNG nhưng answer CHƯA AI CHẤM "
                    f"→ đang tính 0. Điểm Q&A thật có thể cao hơn.")
+
+    suy = [s for s in report.scores if s.trake_n_inferred is not None]
+    if suy:
+        out.append(
+            f"\n⚠️  {len(suy)} truy vấn TRAKE chưa ai khai N → mẫu số đang lấy bằng số "
+            "khoảnh khắc ĐÃ CHẤM. Chấm thiếu thì điểm CAO HƠN THẬT: "
+            + ", ".join(f"{s.query_id}(N={s.trake_n_inferred})" for s in suy[:5])
+            + ("…" if len(suy) > 5 else "")
+            + "\n    Khai N ở ô 'Tổng số khoảnh khắc' trong UI debug rồi chấm lại."
+        )
     if report.skipped:
         out.append(f"⚠️  {len(report.skipped)} truy vấn chưa có nhãn nào → BỎ QUA, "
                    "không tính 0: " + ", ".join(report.skipped[:5])

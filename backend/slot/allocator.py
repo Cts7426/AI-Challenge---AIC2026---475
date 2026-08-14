@@ -214,12 +214,13 @@ def _round_robin(
     used: set[tuple[str, int]] = set()
     out: list[tuple[str, int, str | None]] = []
     gens: dict[int, tuple[Iterator[int], int | None]] = {}
-    round_no = 0
+    drawn = [0] * len(sources)   # đã rút bao nhiêu dòng từ nguồn i
+    dead: set[int] = set()       # máy phát đã cạn — không bao giờ cấp thêm được
 
     while len(out) < needed:
         progress = False
         for i, (video_id, hit) in enumerate(sources):
-            if quotas[i] <= round_no:
+            if i in dead or drawn[i] >= quotas[i]:
                 continue
             if i not in gens:  # lần đầu nguồn này được gọi tên → mới dựng
                 gens[i] = _make_generator(hit, quotas[i])
@@ -229,16 +230,31 @@ def _round_robin(
                     used.add((video_id, f))
                     kf = hit.best_keyframe_id if f == best_frame else None
                     out.append((video_id, f, kf))
+                    drawn[i] += 1
                     progress = True
                     break
+            else:
+                dead.add(i)  # quét hết video mà không còn frame mới
             if len(out) >= needed:
                 return out
-        round_no += 1
 
-        # Hết hạn mức mà chưa đủ dòng → nới hạn mức cho mọi nguồn rồi quay tiếp.
-        # Xảy ra khi trùng lặp ăn mất slot; nới đều để giữ thế xen kẽ.
-        if all(q <= round_no for q in quotas):
+        # Hết hạn mức mà chưa đủ dòng → nới đều rồi quay tiếp. Xảy ra khi trùng lặp
+        # ăn mất slot (mức ④ nới ra ngoài biên shot rất dễ đụng frame của shot kề).
+        #
+        # ⚠️ Điều kiện phải so `drawn[i]` với `quotas[i]`, KHÔNG so với một bộ đếm
+        # vòng. Bản trước dùng `quotas[i] <= round_no` rồi nới cả `quotas` lẫn
+        # `round_no` mỗi vòng, nên hiệu số đứng im: mô phỏng 200 vòng với bảng
+        # [(3,8),(7,5),(10,3),(11,1)] cho ra shot 1–3 rút 200 lượt còn shot 4–31
+        # đứng nguyên. Thế xen kẽ sập về 3 shot đầu — ngược hẳn chú thích "nới đều",
+        # và ngược đặc tả D3.1 ("bù bằng cách rải thêm frame trong các shot đã có").
+        if all(i in dead or drawn[i] >= quotas[i] for i in range(len(sources))):
+            if len(dead) == len(sources):
+                raise RuntimeError(
+                    f"Cạn frame ở dòng {len(out)}/{needed}: tất cả video ứng viên đã hết "
+                    "frame chưa dùng. Cần thêm shot ứng viên từ tầng search."
+                )
             quotas = [q + 1 for q in quotas]
+            continue
 
         if not progress:
             raise RuntimeError(
@@ -408,26 +424,37 @@ def _allocate_trake(
 
     rows: list[Answer] = []
     used: set[tuple[str, tuple[int, ...]]] = set()
-    round_no = 0
+    drawn = [0] * len(videos)   # đã rút bao nhiêu dòng từ video hạng i
+    dead: set[int] = set()      # máy phát đã cạn
     while len(rows) < total:
         progress = False
         for i, vid in enumerate(videos):
-            if quotas[i] <= round_no:
+            if i in dead or drawn[i] >= quotas[i]:
                 continue
             frames = _trake_row(generators[vid], n_frames_of(vid))
             if frames is None:
+                dead.add(i)
                 continue
             key = (vid, frames)
             if key in used:
-                continue
+                continue  # trùng — máy phát đã tiến, vòng sau thử lại
             used.add(key)
             rows.append(Answer(video_id=vid, frame_ids=frames))
+            drawn[i] += 1
             progress = True
             if len(rows) >= total:
                 return rows
-        round_no += 1
-        if all(q <= round_no for q in quotas):
+
+        # Cùng lý do với `_round_robin`: so `drawn` với `quotas`, không so với bộ đếm
+        # vòng — nới cả hai thì hiệu số đứng im và chỉ 3 video đầu còn được rút.
+        if all(i in dead or drawn[i] >= quotas[i] for i in range(len(videos))):
+            if len(dead) == len(videos):
+                raise RuntimeError(
+                    f"Cạn phương án TRAKE ở dòng {len(rows)}/{total} — cần thêm video ứng viên"
+                )
             quotas = [q + 1 for q in quotas]
+            continue
+
         if not progress:
             raise RuntimeError(
                 f"Cạn phương án TRAKE ở dòng {len(rows)}/{total} — cần thêm video ứng viên"

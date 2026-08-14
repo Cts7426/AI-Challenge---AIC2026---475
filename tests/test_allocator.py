@@ -426,3 +426,80 @@ def test_bang_ngan_sach_it_shot_thi_rai_deu_khong_don_het():
 def test_khong_co_shot_thi_bang_ngan_sach_bao_loi():
     with pytest.raises(ValueError):
         budget_per_shot(0)
+
+
+# ============================== nới hạn mức khi có shot cạn frame giữa chừng
+# Đường này chạm tới khi một video ứng viên quá ngắn: shot của nó cấp hết frame rồi
+# chết, phần thiếu phải do các shot còn lại gánh. Câu hỏi là gánh thế nào.
+
+def _gia_lap_5_shot(monkeypatch, n_frames_video_ngan: int = 5):
+    """1 shot ở video RẤT NGẮN (chết sớm) + 4 shot ở video dài, mỗi shot một video.
+
+    Mỗi shot một video riêng để đếm được dòng nào đến từ shot nào — `Answer` chỉ mang
+    `video_id`, không mang `shot_id`.
+    """
+    import backend.slot.allocator as al
+
+    bounds = {
+        "s0": ("VNGAN", 0, n_frames_video_ngan - 1),
+        "s1": ("VB", 0, 4000),
+        "s2": ("VC", 0, 4000),
+        "s3": ("VD", 0, 4000),
+        "s4": ("VE", 0, 4000),
+    }
+    do_dai = {"VNGAN": n_frames_video_ngan, "VB": 5000, "VC": 5000, "VD": 5000, "VE": 5000}
+    monkeypatch.setattr(al, "_shots", lambda: bounds)
+    monkeypatch.setattr(al, "n_frames_of", lambda v: do_dai[v])
+    return [ShotHit(s, 1.0 - i * 0.01) for i, s in enumerate(bounds)]
+
+
+def test_shot_can_frame_giua_chung_van_du_100_dong(monkeypatch):
+    hits = _gia_lap_5_shot(monkeypatch)
+    answers = allocate(hits, "KIS")
+    assert len(answers) == ANSWERS_PER_QUERY
+    assert len({(a.video_id, a.frame_ids) for a in answers}) == ANSWERS_PER_QUERY
+
+
+def test_phan_thieu_duoc_NOI_DEU_khong_don_vao_shot_dau(monkeypatch):
+    """Phần shot chết để lại phải rải cho MỌI shot còn sống, không dồn vào top.
+
+    Bản cũ so hạn mức với một bộ đếm vòng rồi nới cả hai mỗi vòng → hiệu số đứng im,
+    chỉ shot có hạn mức lớn nhất còn được rút. Mô phỏng 200 vòng với bảng thật cho ra
+    shot 1–3 rút 200 lượt còn shot 4–31 đứng nguyên. Đặc tả D3.1 nói ngược lại: "bù
+    bằng cách rải thêm frame trong các shot đã có".
+    """
+    hits = _gia_lap_5_shot(monkeypatch, n_frames_video_ngan=5)
+    answers = allocate(hits, "KIS")
+
+    dem = {v: 0 for v in ("VNGAN", "VB", "VC", "VD", "VE")}
+    for a in answers:
+        dem[a.video_id] += 1
+
+    assert dem["VNGAN"] == 5, "video 5 frame chỉ cấp được 5 dòng rồi phải chết hẳn"
+
+    goc = budget_per_shot(5, total=ANSWERS_PER_QUERY)
+    thieu = goc[0] - 5
+    assert thieu > 0, "kịch bản phải thật sự thiếu slot thì test mới có nghĩa"
+
+    them = [dem[v] - q for v, q in zip(("VB", "VC", "VD", "VE"), goc[1:])]
+    assert all(t > 0 for t in them), f"shot hạng thấp cũng phải được gánh thêm, đang là {them}"
+    assert max(them) - min(them) <= 1, f"chênh lệch phải ≤ 1 dòng, đang là {them}"
+
+
+def test_moi_shot_deu_cạn_thi_bao_loi_ro_rang(monkeypatch):
+    """Cạn thật thì phải gãy to, không được lặng lẽ trả thiếu 100 dòng."""
+    import backend.slot.allocator as al
+
+    monkeypatch.setattr(al, "_shots", lambda: {"s0": ("VTI", 0, 9)})
+    monkeypatch.setattr(al, "n_frames_of", lambda v: 10)
+    with pytest.raises(RuntimeError, match="Cạn frame"):
+        allocate([ShotHit("s0", 1.0)], "KIS")
+
+
+def test_trake_shot_can_giua_chung_van_du_100_dong(monkeypatch):
+    """Nhánh TRAKE có cùng vòng lặp nên phải khoá cùng một bất biến."""
+    hits = _gia_lap_5_shot(monkeypatch, n_frames_video_ngan=40)
+    answers = allocate(hits, "TRAKE", n_trake=4)
+    assert len(answers) == ANSWERS_PER_QUERY
+    assert all(len(a.frame_ids) == 4 for a in answers)
+    assert len({(a.video_id, a.frame_ids) for a in answers}) == ANSWERS_PER_QUERY

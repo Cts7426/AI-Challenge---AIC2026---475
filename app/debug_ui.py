@@ -99,10 +99,19 @@ def sidebar() -> dict:
 
     # TRAKE: chọn ở sidebar thay vì bấm lại trên từng thẻ. Soạn đáp án thường làm xong
     # khoảnh khắc 1 cho cả loạt kết quả rồi mới sang khoảnh khắc 2.
-    moment = 1
+    moment, n_moments_total = 1, None
     if task == "TRAKE":
+        # Khai N trước, vì nó chặn trên cho ô "khoảnh khắc thứ". N là MẪU SỐ của công
+        # thức `(1/N)·Σ` — không khai thì eval lấy tạm số khoảnh khắc đã chấm, và chấm
+        # dở 3/4 sẽ ra 1.0 thay vì 0.75.
+        n_moments_total = int(st.sidebar.number_input(
+            "Tổng số khoảnh khắc N (đọc từ đề)", min_value=2, max_value=20, value=4, step=1,
+            help="MẪU SỐ khi chấm điểm. Đề có ghi N thì gõ đúng số đó. Không khai thì "
+                 "eval.py lấy tạm số khoảnh khắc đã chấm → điểm CAO HƠN THẬT.",
+        ))
         moment = st.sidebar.number_input(
-            "Đang soạn khoảnh khắc thứ", min_value=1, max_value=20, value=1, step=1,
+            "Đang soạn khoảnh khắc thứ", min_value=1, max_value=n_moments_total, value=1,
+            step=1,
             help="TRAKE chấm theo VỊ TRÍ: frame thứ j phải rơi vào khoảng của khoảnh "
                  "khắc thứ j. Mỗi khoảnh khắc là một dòng nhãn riêng.",
         )
@@ -150,8 +159,8 @@ def sidebar() -> dict:
 
     run = st.sidebar.button("Tìm kiếm", type="primary", use_container_width=True)
     return dict(query=query, query_en=query_en, task=task, top_k=top_k, mode=mode,
-                moment=int(moment), branches=branches, group_by_shot=group_by_shot,
-                run=run, has_key=has_key)
+                moment=int(moment), n_moments_total=n_moments_total, branches=branches,
+                group_by_shot=group_by_shot, run=run, has_key=has_key)
 
 
 # ------------------------------------------------------- gọi search / offline
@@ -244,6 +253,8 @@ def draw_card(row: dict, cfg: dict, query_id: str, index: LabelIndex, key: str) 
         base = {"query_id": query_id, "query_vi": cfg["query"], "task_type": cfg["task"],
                 "video_id": video_id, "kf_id": kf_id, "shot_id": row.get("shot_id"),
                 "moment_idx": moment,
+                # N của đề TRAKE — mẫu số lúc chấm. Xem `LabelIndex.n_moments()`.
+                "n_moments_total": cfg.get("n_moments_total") if cfg["task"] == "TRAKE" else None,
                 # Chấm toàn bộ từ offline sẽ làm lệch bộ nhãn (báo cáo D2.1 §10.3),
                 # và chỉ cột này phát hiện ra được.
                 "source": f"debug_ui/{cfg['mode']}"}
@@ -252,6 +263,8 @@ def draw_card(row: dict, cfg: dict, query_id: str, index: LabelIndex, key: str) 
             append_label(Label(frame_start=start, frame_end=end, label=label,
                                labeler=LABELER, **{**base, **extra}))
             st.rerun()
+
+        current = index.label_of_frame(query_id, video_id, frame_idx, moment_idx=moment)
 
         b1, b2, b3, b4 = st.columns(4)
         with b1:
@@ -264,25 +277,43 @@ def draw_card(row: dict, cfg: dict, query_id: str, index: LabelIndex, key: str) 
             if st.button("? Chưa chắc", key=f"maybe{key}", use_container_width=True):
                 save("unsure", frame_idx, frame_idx)
         with b4:
-            if ev.shot_bounds and st.button("✓ Cả shot", key=f"shot{key}",
-                                            use_container_width=True,
-                                            help="Đánh dấu đúng cả khoảng shot — "
-                                                 "một cú bấm ra hàng chục frame nhãn"):
+            # ⚠️ Cả shot rộng trung vị 69 frame, còn cửa sổ đáp án của BTC thì HẸP —
+            # riêng TRAKE là DƯỚI 10 frame (docs/contest.md). Nhãn rộng gấp ~7 lần đáp
+            # án thật thì eval nhận cả những frame BTC loại → điểm cao hơn lúc thi.
+            # Dùng cho KIS/Q&A khi không chắc frame nào trong shot; đừng dùng cho TRAKE.
+            rong = cfg["task"] == "TRAKE"
+            if ev.shot_bounds and st.button(
+                "✓ Cả shot", key=f"shot{key}", use_container_width=True, disabled=rong,
+                help=("TRAKE có cửa sổ dưới 10 frame — nhãn cả shot (~69 frame) sẽ "
+                      "cho điểm cao hơn thật. Khoanh tay từng khoảnh khắc."
+                      if rong else
+                      "Đánh dấu đúng cả khoảng shot — một cú bấm ra hàng chục frame nhãn"),
+            ):
                 save("correct", *ev.shot_bounds)
 
         if cfg["task"] == "QA":
-            _answer_judgment(row, save, key)
+            _answer_judgment(row, save, key, current)
 
-        current = index.label_of_frame(query_id, video_id, frame_idx, moment_idx=moment)
         if current:
             st.caption(f"{LABEL_ICON[current]} đã chấm: **{current}**")
 
 
-def _answer_judgment(row: dict, save, key: str) -> None:
+def _answer_judgment(row: dict, save, key: str, frame_label: str | None) -> None:
     """Chấm câu trả lời — cửa tử THỨ HAI của Q&A, độc lập với cửa frame.
 
     BTC: `R-Score = I(video ∧ frame ∈ [s,e] ∧ answer đúng ngữ nghĩa)`. Frame đúng mà
     answer sai vẫn 0 điểm, nên phải chấm riêng chứ không suy ra từ nhãn frame.
+
+    ⚠️ Hai nút dưới ghi ra CÙNG MỘT `Label.key` với nhóm nút chấm frame ở trên
+    `(query_id, video_id, frame_start, frame_end, moment_idx)`. Bản trước đặt thẳng
+    `label="correct"`/`"wrong"` theo phán quyết ANSWER, nên phán answer đè mất phán
+    quyết FRAME: bấm "✗ Sai" (frame sai) rồi bấm "✓ Answer đúng" là frame lật thành
+    `correct`, `eval.py` chấm dòng đó 1.0 trong khi BTC chấm 0.
+
+    Sửa: verdict answer chỉ đi vào ô `answer_correct`; ô `label` GIỮ NGUYÊN thứ người
+    chấm đã phán về frame. Chưa phán frame thì ghi `unsure` — nhãn không cho điểm, nên
+    ca xấu nhất là điểm thấp hơn thật, chứ không phải cao hơn. Chiều ngược lại (chấm
+    frame sau, xoá mất answer) do `labels._merge()` chặn.
 
     Ô nhập tay chứ không chỉ đọc từ kết quả search: backend/tasks/qa.py (C3.1) chưa
     có, run_minimal.py đang điền "CHUA_CO_ANSWER". Gõ tay được thì soạn đáp án cho
@@ -295,14 +326,20 @@ def _answer_judgment(row: dict, save, key: str) -> None:
     if not text.strip():
         st.caption("Gõ câu trả lời rồi mới chấm được cửa thứ hai.")
         return
+
+    verdict = frame_label or "unsure"
+    if frame_label is None:
+        st.caption("Chưa phán frame → nhãn ghi `unsure`, chưa cho điểm. "
+                   "Bấm **✓ Đúng**/**✗ Sai** ở trên để chốt cửa thứ nhất.")
+
     c1, c2 = st.columns(2)
     frame_idx = row["frame_idx"]
     with c1:
         if st.button("✓ Answer đúng", key=f"ansok{key}", use_container_width=True):
-            save("correct", frame_idx, frame_idx, answer_text=text, answer_correct=True)
+            save(verdict, frame_idx, frame_idx, answer_text=text, answer_correct=True)
     with c2:
         if st.button("✗ Answer sai", key=f"ansno{key}", use_container_width=True):
-            save("wrong", frame_idx, frame_idx, answer_text=text, answer_correct=False)
+            save(verdict, frame_idx, frame_idx, answer_text=text, answer_correct=False)
 
 
 # ------------------------------------------------- vùng C: bằng chứng một frame

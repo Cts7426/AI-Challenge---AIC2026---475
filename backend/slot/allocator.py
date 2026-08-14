@@ -323,6 +323,19 @@ def allocate(
     ]
 
 
+def shot_bounds(shot_id: str) -> tuple[str, int, int]:
+    """video_id, start_frame, end_frame của 1 shot — API công khai cho module
+    khác (backend/tasks/qa.py — C3.1) tra biên shot mà không tự đọc lại
+    shots.parquet lần thứ hai."""
+    try:
+        return _shots()[shot_id]
+    except KeyError:
+        raise KeyError(
+            f"shot_id '{shot_id}' không có trong shots.parquet. "
+            "Tầng search và Data Factory đang dùng hai bản shot khác nhau."
+        ) from None
+
+
 def _video_of(h: ShotHit) -> str:
     return _bounds_of(h)[0]
 

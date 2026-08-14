@@ -5,13 +5,22 @@
 # backend chỉ sửa một dòng config, không phải lùng sửa từng chỗ gọi rải rác.
 #
 # ===== Cấu hình bằng biến môi trường =====
-#   LLM_BACKEND      = "api" (mặc định) | "local"
+#   LLM_BACKEND      = "api" (mặc định) | "gemini" | "local"
 #   LLM_API_MODEL    = model khi dùng API (mặc định claude-opus-5)
 #   ANTHROPIC_API_KEY= bắt buộc khi LLM_BACKEND=api
+#   LLM_GEMINI_MODEL = model khi dùng Gemini (mặc định gemini-flash-latest — xem
+#                      lý do không mặc định "pro" ở comment DEFAULT_GEMINI_MODEL)
+#   GEMINI_API_KEY   = bắt buộc khi LLM_BACKEND=gemini, lấy tại aistudio.google.com/apikey
 #   LLM_LOCAL_MODEL  = model Ollama khi chạy offline (mặc định qwen2.5:7b-instruct)
 #   LLM_LOCAL_URL    = địa chỉ Ollama (mặc định http://localhost:11434)
 #   LLM_CACHE_DIR    = thư mục cache (mặc định data/cache/llm)
 #   LLM_NO_CACHE=1   → tắt cache (khi muốn đo độ trễ thật)
+#
+# ===== Vì sao thêm backend "gemini" =====
+# Team chưa có ngân sách cho ANTHROPIC_API_KEY (thẻ thanh toán) trong lúc dev/test
+# — Google AI Studio cấp API key MIỄN PHÍ. Thêm ở ĐÚNG MỘT chỗ (file này) là lý
+# do toàn bộ pattern adapter tồn tại (CLAUDE.md bất biến 1): qa.py, trake.py,
+# query_understanding.py không đổi một dòng nào khi đổi LLM_BACKEND.
 #
 # ===== Bốn thứ file này lo, để chỗ gọi khỏi phải lo =====
 # 1. CACHE trên đĩa theo hash(prompt+ảnh+model+tham số): cùng một truy vấn hỏi
@@ -23,10 +32,12 @@
 # 4. RETRY: lỗi mạng/429/5xx đã được SDK tự retry (backoff mũ). Ở đây chỉ retry
 #    thêm cho trường hợp output JSON hỏng — thứ SDK không biết là lỗi.
 #
-# ⚠️ `temperature` KHÔNG gửi lên API được nữa: Claude Opus 5 / Fable 5 / Sonnet 5
-# bỏ hẳn temperature/top_p/top_k, gửi lên là lỗi 400. Tham số vẫn còn trong chữ
-# ký hàm cho khớp BUILD_TASKS C0.1, nhưng bị BỎ QUA ở backend api (có cảnh báo).
-# Cần đa dạng đầu ra thì dùng n>1 + yêu cầu trong prompt, không dùng temperature.
+# ⚠️ `temperature` chỉ CÓ TÁC DỤNG ở backend "gemini". Ở backend "api": Claude
+# Opus 5 / Fable 5 / Sonnet 5 bỏ hẳn temperature/top_p/top_k, gửi lên là lỗi
+# 400 — tham số vẫn còn trong chữ ký hàm cho khớp BUILD_TASKS C0.1, nhưng bị
+# BỎ QUA (có cảnh báo). Cần đa dạng đầu ra ở backend "api" thì dùng n>1 + yêu
+# cầu trong prompt, không dùng temperature — nhưng ở "gemini" vẫn dùng được
+# temperature bình thường nếu muốn.
 
 from __future__ import annotations
 
@@ -42,13 +53,28 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_API_MODEL = "claude-opus-5"
 DEFAULT_LOCAL_MODEL = "qwen2.5:7b-instruct"
 
-# Giá USD / 1 triệu token (bảng giá Anthropic). Chỉ để ƯỚC LƯỢNG chi phí —
-# sai số vài % không quan trọng, biết đang đốt $0.2 hay $200 mới quan trọng.
+# "gemini-2.5-flash" — CỐ ĐỊNH, không dùng "-latest"/"-pro". Đo thật trên key
+# free-tier của team (14/08):
+#   - mọi model đuôi "-pro" (kể cả gemini-pro-latest) → 429 RESOURCE_EXHAUSTED,
+#     quota free tier = 0 cho tier Pro
+#   - "gemini-flash-latest" (alias) → hay 503 "quá tải", có lần TREO NHIỀU PHÚT
+#     không timeout (nghi alias đang trỏ model/route không ổn định phía Google)
+#   - "gemini-2.5-flash" (bản cố định) → nhanh, ổn định, JSON schema + ảnh đều
+#     chạy đúng — chọn bản này làm mặc định
+# Đổi model chỉ cần set LLM_GEMINI_MODEL, không sửa code.
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+
+# Giá USD / 1 triệu token. Claude: bảng giá Anthropic. Gemini: giá công khai
+# Google AI (flash) — CHỈ để ƯỚC LƯỢNG chi phí, sai số vài % không quan trọng,
+# biết đang đốt $0.2 hay $200 mới quan trọng. Model lạ không có trong bảng thì
+# _ghi_nhan() rơi về (0.0, 0.0), không crash.
 PRICING = {
     "claude-opus-5": (5.0, 25.0),
     "claude-fable-5": (10.0, 50.0),
     "claude-sonnet-5": (3.0, 15.0),
     "claude-haiku-4-5": (1.0, 5.0),
+    "gemini-flash-latest": (0.30, 2.50),
+    "gemini-2.5-flash": (0.30, 2.50),
 }
 
 # Mặc định effort thấp: việc của llm() trong đường ONLINE là dịch/mở rộng câu
@@ -58,6 +84,7 @@ DEFAULT_EFFORT = "low"
 DEFAULT_MAX_TOKENS = 2048
 
 _api_client = None
+_gemini_client_singleton = None
 _usage = {"calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "usd": 0.0}
 
 
@@ -102,11 +129,14 @@ def _cache_put(key: str, output: list[str], meta: dict) -> None:
 
 # ------------------------------------------------------------ đếm token & tiền
 
-def _ghi_nhan(model: str, usage) -> None:
-    """Cộng dồn token + ước lượng chi phí sau mỗi lần gọi API thật."""
-    vao = getattr(usage, "input_tokens", 0) or 0
-    ra = getattr(usage, "output_tokens", 0) or 0
-    doc_cache = getattr(usage, "cache_read_input_tokens", 0) or 0
+def _ghi_nhan(model: str, vao: int, ra: int, doc_cache: int = 0) -> None:
+    """Cộng dồn token + ước lượng chi phí sau mỗi lần gọi API thật.
+
+    Nhận SỐ ĐÃ TRÍCH SẴN, không nhận usage object thô: mỗi SDK đặt tên field
+    khác nhau (Anthropic: input_tokens/output_tokens, Gemini SDK:
+    prompt_token_count/candidates_token_count) — việc trích số làm ở _call_*
+    của từng backend, hàm này chỉ lo cộng dồn + tính tiền, không cần biết SDK.
+    """
     gia_vao, gia_ra = PRICING.get(model, (0.0, 0.0))
     _usage["input_tokens"] += vao + doc_cache
     _usage["output_tokens"] += ra
@@ -176,7 +206,8 @@ def _call_api(prompt: str, images, json_schema, model: str, effort: str,
         kwargs["output_config"]["format"] = {"type": "json_schema", "schema": json_schema}
 
     resp = client.messages.create(**kwargs)
-    _ghi_nhan(model, resp.usage)
+    _ghi_nhan(model, resp.usage.input_tokens or 0, resp.usage.output_tokens or 0,
+              getattr(resp.usage, "cache_read_input_tokens", 0) or 0)
 
     # Bộ lọc an toàn có thể từ chối: HTTP vẫn 200, content rỗng → phải kiểm
     # stop_reason TRƯỚC khi đọc content, nếu không sẽ IndexError khó hiểu.
@@ -185,6 +216,114 @@ def _call_api(prompt: str, images, json_schema, model: str, effort: str,
             f"Model từ chối yêu cầu (stop_reason=refusal). Đổi cách diễn đạt prompt."
         )
     return "".join(b.text for b in resp.content if b.type == "text").strip()
+
+
+def _gemini_client():
+    global _gemini_client_singleton
+    if _gemini_client_singleton is None:
+        if not os.environ.get("GEMINI_API_KEY"):
+            raise RuntimeError(
+                "Thiếu GEMINI_API_KEY. Lấy miễn phí tại aistudio.google.com/apikey, "
+                "rồi $env:GEMINI_API_KEY='AIzaSy...' (PowerShell) hoặc "
+                "export GEMINI_API_KEY='AIzaSy...' (bash/zsh)."
+            )
+        # Import lười: backend api/local không cần cài package google-genai.
+        from google import genai
+
+        _gemini_client_singleton = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    return _gemini_client_singleton
+
+
+def _gemini_parts(prompt: str, images: list | None) -> list:
+    """Dựng content parts cho Gemini — cùng quy ước ảnh với _noi_dung() (Claude):
+    nhận đường dẫn file hoặc bytes, đoán media type từ đuôi file."""
+    from google.genai import types
+
+    parts: list = []
+    for img in images or []:
+        raw = Path(img).read_bytes() if isinstance(img, (str, Path)) else img
+        duoi = str(img).lower() if isinstance(img, (str, Path)) else ".jpg"
+        media = "image/png" if duoi.endswith(".png") else "image/jpeg"
+        parts.append(types.Part.from_bytes(data=raw, mime_type=media))
+    parts.append(prompt)
+    return parts
+
+
+# Gemini response_schema dùng phương ngữ OpenAPI 3.0 (KHÔNG PHẢI JSON Schema
+# đầy đủ) — gửi thẳng schema viết cho Claude/local (chuẩn JSON Schema, có
+# additionalProperties) bị 400 INVALID_ARGUMENT ngay: "Unknown name
+# additional_properties". Đo thật trên PARSE_QUESTION_SCHEMA của qa.py (14/08).
+_GEMINI_UNSUPPORTED_SCHEMA_KEYS = {"additionalProperties", "$schema", "$id"}
+
+
+def _sanitize_schema_for_gemini(schema):
+    """Bỏ các khoá JSON Schema mà Gemini không hiểu, ĐỆ QUY qua properties/items/
+    anyOf. Trả bản SAO — không sửa schema gốc, vì cùng 1 schema constant (vd
+    PARSE_QUESTION_SCHEMA) còn dùng cho backend api/local, nơi chuẩn JSON Schema
+    đầy đủ vẫn cần additionalProperties để chặt chẽ."""
+    if isinstance(schema, dict):
+        return {
+            k: _sanitize_schema_for_gemini(v)
+            for k, v in schema.items()
+            if k not in _GEMINI_UNSUPPORTED_SCHEMA_KEYS
+        }
+    if isinstance(schema, list):
+        return [_sanitize_schema_for_gemini(v) for v in schema]
+    return schema
+
+
+def _call_gemini(prompt: str, images, json_schema, model: str, max_tokens: int,
+                  temperature: float | None) -> str:
+    """Gemini KHÔNG bỏ temperature như Claude — truyền thẳng khi có (khác Claude
+    ở llm(), xem nhánh backend=="gemini" không in cảnh báo "bỏ qua temperature")."""
+    from google.genai import types
+    from google.genai.errors import ServerError
+
+    client = _gemini_client()
+    cfg: dict = {"max_output_tokens": max_tokens}
+    if temperature is not None:
+        cfg["temperature"] = temperature
+    if json_schema is not None:
+        # Structured outputs — ép output khớp schema ngay phía server, giống
+        # output_config.format của backend api (Claude). Khử khoá JSON Schema
+        # Gemini không hiểu trước khi gửi (xem docstring _sanitize_schema_for_gemini).
+        cfg["response_mime_type"] = "application/json"
+        cfg["response_schema"] = _sanitize_schema_for_gemini(json_schema)
+
+    # google-genai tự retry 429/5xx qua tenacity, nhưng 503 "quá tải" đôi khi
+    # kéo dài hơn cửa sổ retry mặc định của SDK — thêm 1 lớp retry mỏng ở đây
+    # cho riêng lỗi tạm thời này (KHÁC RuntimeError/ValueError — những lỗi đó
+    # là lỗi thật, không nên retry).
+    resp = None
+    for lan in range(3):
+        try:
+            resp = client.models.generate_content(
+                model=model,
+                contents=_gemini_parts(prompt, images),
+                config=types.GenerateContentConfig(**cfg),
+            )
+            break
+        except ServerError as e:
+            if lan == 2:
+                raise RuntimeError(f"Gemini quá tải liên tục (503), thử lại sau: {e}") from e
+            time.sleep(2 ** lan)
+
+    u = resp.usage_metadata
+    _ghi_nhan(
+        model,
+        getattr(u, "prompt_token_count", 0) or 0,
+        getattr(u, "candidates_token_count", 0) or 0,
+        getattr(u, "cached_content_token_count", 0) or 0,
+    )
+
+    if not resp.text:
+        # Bộ lọc an toàn có thể chặn output mà HTTP vẫn 200 — đọc finish_reason
+        # để báo rõ vì sao thay vì để chỗ gọi nhận chuỗi rỗng khó hiểu.
+        finish = resp.candidates[0].finish_reason if resp.candidates else "UNKNOWN"
+        raise RuntimeError(
+            f"Gemini không trả nội dung (finish_reason={finish}). Đổi cách diễn đạt prompt."
+        )
+    return resp.text.strip()
 
 
 def _call_local(prompt: str, images, json_schema, model: str, max_tokens: int) -> str:
@@ -241,7 +380,8 @@ def llm(
     """Gọi LLM/VLM. Trả str khi n=1, list[str] khi n>1.
 
     json_schema: JSON Schema → output đảm bảo parse được bằng json.loads.
-    temperature: BỊ BỎ QUA ở backend api (model mới không nhận) — xem đầu file.
+    temperature: BỊ BỎ QUA ở backend "api" (model Claude mới không nhận), CÓ
+    tác dụng ở backend "gemini" — xem đầu file.
     """
     backend = os.environ.get("LLM_BACKEND", "api")
     if backend == "api":
@@ -249,14 +389,24 @@ def llm(
         if temperature not in (None, 0):
             print(f"[llm] bỏ qua temperature={temperature}: model {model} không nhận "
                   "tham số này. Cần đa dạng thì dùng n>1 hoặc mô tả trong prompt.")
+    elif backend == "gemini":
+        model = model or os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+        # Gemini NHẬN temperature bình thường (không như Claude) — không cảnh
+        # báo/bỏ qua ở đây.
     elif backend == "local":
         model = model or os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL)
     else:
-        raise ValueError(f"LLM_BACKEND={backend!r} không hợp lệ (chỉ 'api' hoặc 'local').")
+        raise ValueError(
+            f"LLM_BACKEND={backend!r} không hợp lệ (chỉ 'api', 'gemini' hoặc 'local')."
+        )
 
     key = _cache_key({
         "prompt": prompt, "schema": json_schema, "model": model, "n": n,
         "effort": effort, "max_tokens": max_tokens, "backend": backend,
+        # temperature ảnh hưởng thật tới output ở backend gemini (không như api,
+        # nơi nó bị bỏ qua) — phải vào hash, không thì đổi temperature mà vẫn
+        # trúng cache của lần gọi cũ.
+        "temperature": temperature,
         # ảnh vào hash theo nội dung, không theo đường dẫn: đổi tên file mà ảnh
         # y hệt thì vẫn phải trúng cache
         "images": [hashlib.sha256(
@@ -272,7 +422,7 @@ def llm(
 
     ket_qua: list[str] = []
     for _ in range(n):
-        text = _mot_lan(prompt, images, json_schema, backend, model, effort, max_tokens)
+        text = _mot_lan(prompt, images, json_schema, backend, model, effort, max_tokens, temperature)
         ket_qua.append(text)
         _usage["calls"] += 1
 
@@ -281,15 +431,18 @@ def llm(
     return ket_qua[0] if n == 1 else ket_qua
 
 
-def _mot_lan(prompt, images, json_schema, backend, model, effort, max_tokens) -> str:
+def _mot_lan(prompt, images, json_schema, backend, model, effort, max_tokens, temperature=None) -> str:
     """Một lần sinh, có retry riêng cho trường hợp JSON hỏng.
 
-    Vì sao chỉ retry JSON: lỗi mạng/429/5xx đã do SDK retry. Còn "trả về chữ
-    không phải JSON" thì SDK coi là thành công — chỉ mình mới biết đó là lỗi.
+    Vì sao chỉ retry JSON: lỗi mạng/429/5xx đã do SDK retry (Claude, Gemini) hoặc
+    do lớp retry mỏng riêng (Gemini 503 quá tải — xem _call_gemini). Còn "trả về
+    chữ không phải JSON" thì SDK coi là thành công — chỉ mình mới biết đó là lỗi.
     """
     for lan in range(2):
         if backend == "api":
             text = _call_api(prompt, images, json_schema, model, effort, max_tokens)
+        elif backend == "gemini":
+            text = _call_gemini(prompt, images, json_schema, model, max_tokens, temperature)
         else:
             text = _call_local(prompt, images, json_schema, model, max_tokens)
 

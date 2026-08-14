@@ -15,6 +15,11 @@ def load_frame_map() -> dict[str, int]:
     """
     Trả về dictionary ánh xạ từ kf_id (ví dụ: L26_V022#k0121 hoặc L26_V022_0001205) 
     sang frame_idx đã bù trừ offset (ví dụ: 1205).
+    
+    LƯU Ý QUAN TRỌNG: 18% keyframe của BTC bị lệch +1 frame (do lỗi decode). 
+    Cột `frame_idx` trong `frame_map.parquet` ĐÃ ĐƯỢC CHỮA KHỎI LỖI NÀY bằng 
+    phép kiểm chứng pixel (mse_best). Code bên dưới an toàn 100%, tuyệt đối không 
+    tự đọc lại file CSV gốc của BTC.
     """
     if not FRAME_MAP_PATH.exists():
         raise FileNotFoundError(

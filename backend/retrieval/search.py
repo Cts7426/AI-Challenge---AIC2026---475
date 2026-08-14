@@ -33,6 +33,17 @@
 #   python -m backend.retrieval.search "mô tả" --en "english" --top-k 10
 #   python -m backend.retrieval.search "..." --en "..." --branches vector,ocr
 #   python -m backend.retrieval.search "..." --en "..." --no-group-shot
+#   python -m backend.retrieval.search "..." --en "..." --filter-video-id L21_V001
+#
+# ===== filter_video_id (C4.4 — TRAKE fallback) =====
+# Ép search chỉ trả kết quả TRONG MỘT video đã biết (dùng khi đã chốt video ở
+# TRAKE giai đoạn 1, giờ chỉ cần định vị N khoảnh khắc trong video đó).
+# Mặc định None → KIS pipeline hiện có không đổi hành vi một chút nào — filter
+# chỉ thêm 1 điều kiện AND vào 4 nhánh mức-keyframe (vector/objects/ocr/asr),
+# không đổi contract trả về của search(). Nhánh `metadata` (mức video, xem
+# "quy về hạng" ở trên) không có gì để lọc — chỉ 1 video khớp exact — chỗ gọi
+# nên tự tắt nhánh này qua `branches={"metadata": False}` để đỡ tốn 1 query ES
+# vô ích, search() không tự tắt hộ vì đó là quyết định của người gọi.
 
 from __future__ import annotations
 
@@ -67,7 +78,7 @@ CLIP_KF_MAP = REPO_ROOT / "data" / "derived" / "clip_kf_map.parquet"
 # Quy ước chung: mỗi hàm trả list ĐÃ XẾP HẠNG (phần tử 0 = hạng 1).
 # Không hàm nào trả điểm thô ra ngoài — điểm chỉ dùng để sắp xếp bên trong nhánh.
 
-def _branch_vector(query_en: str, limit: int) -> list[dict]:
+def _branch_vector(query_en: str, limit: int, filter_video_id: str | None = None) -> list[dict]:
     """Milvus CLIP → [{keyframe_id, video_id, frame_idx, timestamp_ms}] theo hạng."""
     from backend.retrieval.text_query import encode_text
 
@@ -76,12 +87,23 @@ def _branch_vector(query_en: str, limit: int) -> list[dict]:
     assert_index_meta(strict=False)
 
     client = milvus_connect()
+    kwargs: dict = {}
+    if filter_video_id is not None:
+        kwargs["filter"] = f'video_id == "{filter_video_id}"'
     hits = client.search(
         COLLECTION_NAME,
         data=[encode_text(query_en).tolist()],
         limit=limit,
         output_fields=["video_id", "frame_idx", "timestamp_ms"],
-        search_params={"params": {"ef": 128}},
+        # HNSW đòi ef >= k (Milvus báo lỗi "ef should be larger than k" chứ
+        # không tự nới hộ) — 128 chỉ đủ cho top_k nhỏ (KIS thường limit<26 sau
+        # nhân CANDIDATE_MULTIPLIER). C3.2 (TRAKE stage 1) xin pool tới 1000 để
+        # gộp điểm video → phải nới ef theo limit, không hardcode. Đo thật
+        # (14/08): limit=1000 mà ef=128 → toàn bộ nhánh vector chết, search()
+        # vẫn chạy tiếp bằng 4 nhánh còn lại (an toàn) nhưng mất tín hiệu mạnh
+        # nhất — lỗi im lặng kiểu "chạy được nhưng kém đi" mà không ai để ý.
+        search_params={"params": {"ef": max(128, limit)}},
+        **kwargs,
     )
     return [
         {
@@ -112,13 +134,24 @@ def _branch_metadata(query_vi: str, limit: int) -> list[dict]:
     return [{"video_id": h["_source"]["video_id"]} for h in hits]
 
 
-def _branch_objects(query_en: str, limit: int) -> list[dict]:
+def _with_video_filter(query: dict, filter_video_id: str | None) -> dict:
+    """Bọc 1 query ES bằng bool.filter video_id — dùng chung cho 3 nhánh ES.
+
+    `filter` (không phải `must`) vì đây là điều kiện lọc CỨNG, không tham gia
+    tính _score — giữ nguyên thứ hạng theo độ khớp text, chỉ thu hẹp tập kết quả.
+    """
+    if filter_video_id is None:
+        return query
+    return {"bool": {"must": [query], "filter": [{"term": {"video_id": filter_video_id}}]}}
+
+
+def _branch_objects(query_en: str, limit: int, filter_video_id: str | None = None) -> list[dict]:
     """ES objects (mức KEYFRAME) → [{keyframe_id, video_id}]. Query tiếng Anh
     vì nhãn OpenImages là tiếng Anh."""
     es = es_connect()
     hits = es.search(
         index=OBJECTS_INDEX,
-        query={"match": {"labels.txt": query_en}},
+        query=_with_video_filter({"match": {"labels.txt": query_en}}, filter_video_id),
         size=limit,
     )["hits"]["hits"]
     return [
@@ -127,14 +160,16 @@ def _branch_objects(query_en: str, limit: int) -> list[dict]:
     ]
 
 
-def _branch_ocr(query_vi: str, limit: int) -> list[dict]:
+def _branch_ocr(query_vi: str, limit: int, filter_video_id: str | None = None) -> list[dict]:
     """ES ocr (mức KEYFRAME) → [{keyframe_id, video_id}]. Index chưa có → rỗng."""
     es = es_connect()
     if not es.indices.exists(index=OCR_INDEX):
         return []
     hits = es.search(
         index=OCR_INDEX,
-        query={"multi_match": {"query": query_vi, "fields": ["text.vi^2", "text"]}},
+        query=_with_video_filter(
+            {"multi_match": {"query": query_vi, "fields": ["text.vi^2", "text"]}}, filter_video_id
+        ),
         size=limit,
     )["hits"]["hits"]
     return [
@@ -143,14 +178,16 @@ def _branch_ocr(query_vi: str, limit: int) -> list[dict]:
     ]
 
 
-def _branch_asr(query_vi: str, limit: int) -> list[dict]:
+def _branch_asr(query_vi: str, limit: int, filter_video_id: str | None = None) -> list[dict]:
     """ES asr (mức ĐOẠN) → [{video_id, start_ms, end_ms}] theo hạng."""
     es = es_connect()
     if not es.indices.exists(index=ASR_INDEX):
         return []
     hits = es.search(
         index=ASR_INDEX,
-        query={"multi_match": {"query": query_vi, "fields": ["text.vi^2", "text"]}},
+        query=_with_video_filter(
+            {"multi_match": {"query": query_vi, "fields": ["text.vi^2", "text"]}}, filter_video_id
+        ),
         size=limit,
     )["hits"]["hits"]
     return [
@@ -257,11 +294,16 @@ def search(
     top_k: int = 10,
     branches: dict[str, bool] | None = None,
     group_by_shot: bool | None = None,
+    filter_video_id: str | None = None,
 ) -> list[dict]:
     """Search hợp nhất bằng RRF. Trả top-K, mỗi phần tử kèm thứ hạng từng nhánh.
 
     Mỗi kết quả: {keyframe_id, video_id, frame_idx, timestamp_ms, shot_id,
                   score, ranks: {nhánh: hạng}, contrib: {nhánh: đóng góp RRF}}
+
+    filter_video_id: ép mọi nhánh mức-keyframe chỉ tìm TRONG video này (C4.4 —
+    TRAKE fallback, khi giai đoạn 1 đã chốt video). None (mặc định) = KIS pipeline
+    y hệt trước khi có tham số này — không nhánh nào đổi hành vi.
     """
     if query_en is None:
         from backend.retrieval.text_query import translate_to_english
@@ -284,11 +326,15 @@ def search(
     # Các nhánh độc lập → bắn cùng lúc, đợi cái chậm nhất thay vì cộng dồn
     with ThreadPoolExecutor(max_workers=5) as pool_thread:
         f = {
-            "vector": pool_thread.submit(_an_toan, "vector", _branch_vector, query_en, pool),
+            "vector": pool_thread.submit(
+                _an_toan, "vector", _branch_vector, query_en, pool, filter_video_id
+            ),
             "metadata": pool_thread.submit(_an_toan, "metadata", _branch_metadata, query_vi, pool),
-            "objects": pool_thread.submit(_an_toan, "objects", _branch_objects, query_en, pool),
-            "ocr": pool_thread.submit(_an_toan, "ocr", _branch_ocr, query_vi, pool),
-            "asr": pool_thread.submit(_an_toan, "asr", _branch_asr, query_vi, pool),
+            "objects": pool_thread.submit(
+                _an_toan, "objects", _branch_objects, query_en, pool, filter_video_id
+            ),
+            "ocr": pool_thread.submit(_an_toan, "ocr", _branch_ocr, query_vi, pool, filter_video_id),
+            "asr": pool_thread.submit(_an_toan, "asr", _branch_asr, query_vi, pool, filter_video_id),
         }
     kq = {ten: fut.result() for ten, fut in f.items()}
 
@@ -398,6 +444,7 @@ def main() -> None:
     ap.add_argument("--top-k", type=int, default=10)
     ap.add_argument("--branches", help="chỉ bật các nhánh này, vd: vector,ocr")
     ap.add_argument("--no-group-shot", action="store_true", help="không gom theo shot")
+    ap.add_argument("--filter-video-id", metavar="VIDEO_ID", help="chỉ tìm trong 1 video (C4.4)")
     args = ap.parse_args()
 
     branches = None
@@ -410,7 +457,8 @@ def main() -> None:
 
     t0 = time.perf_counter()
     kq = search(args.query, query_en=args.en, top_k=args.top_k,
-                branches=branches, group_by_shot=not args.no_group_shot)
+                branches=branches, group_by_shot=not args.no_group_shot,
+                filter_video_id=args.filter_video_id)
     ms = (time.perf_counter() - t0) * 1000
 
     print(f'\nTop {len(kq)} cho: "{args.query}"' + (f'  (EN: "{args.en}")' if args.en else ""))

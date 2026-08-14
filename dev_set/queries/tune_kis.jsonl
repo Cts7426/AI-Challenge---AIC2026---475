@@ -1,0 +1,3 @@
+{"query_id": "Q1", "task_type": "KIS", "query_vi": "Query hợp lệ", "split": "tune"}
+{"query_id": "Q2", "task_type": "KIS", "query_vi": "Query ngoài biên video", "split": "tune"}
+{"query_id": "Q3", "task_type": "KIS", "query_vi": "Query có cửa sổ rộng", "split": "tune"}

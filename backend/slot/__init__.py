@@ -2,6 +2,6 @@
 #
 # Cho phép import gọn: from backend.slot import allocate
 
-from backend.slot.allocator import ShotHit, allocate
+from backend.slot.allocator import ShotHit, allocate, shot_bounds
 
-__all__ = ["ShotHit", "allocate"]
+__all__ = ["ShotHit", "allocate", "shot_bounds"]

@@ -10,7 +10,7 @@ from backend.indexing.es_client import connect as es_connect
 from backend.indexing.milvus_client import connect as milvus_connect
 from backend.retrieval.search import search
 from backend.indexing.frame_map import load_frame_map
-from backend.slot.allocator import allocate, ShotHit
+from backend.slot.allocator import allocate, ShotHit, shot_bounds
 from backend.export import write_submissions
 from backend.tasks.qa import qa_pipeline
 
@@ -217,7 +217,7 @@ def run_evaluation():
                     # không trả lại thứ hạng thô từng nhánh — chấp nhận mất
                     # tính năng debug phụ để giữ đúng hành vi production, đo
                     # ranks riêng cho QA là việc làm thêm sau nếu cần.
-                    hits, answer_text = qa_pipeline(q.query_vi)
+                    hits, answer_text = qa_pipeline(q.query_vi, query_en=q_en)
                 else:
                     res = search(q.query_vi, q_en, top_k=100, group_by_shot=True)
                     hits = _to_shot_hits(res)
@@ -258,6 +258,22 @@ def run_evaluation():
                             best_hit_ranks = row.get("ranks", {})
                             break
 
+                if fin >= 1.0:
+                    fc = "SUCCESS"
+                elif q.task_type == "QA":
+                    retrieval_success = False
+                    for h in hits:
+                        try:
+                            vid, start, end = shot_bounds(h.shot_id)
+                            if vid == gt.video_id and start <= gt.frame_idx <= end:
+                                retrieval_success = True
+                                break
+                        except KeyError:
+                            pass
+                    fc = "F_QA_REASONING_FAILED" if retrieval_success else "F_QA_RETRIEVAL_FAILED"
+                else:
+                    fc = get_failure_class(r_100)
+
                 record = {
                     "query_id": q.query_id,
                     "task_type": q.task_type,
@@ -267,7 +283,7 @@ def run_evaluation():
                     "r_at_50": r_50,
                     "r_at_100": r_100,
                     "final": fin,
-                    "failure_class": get_failure_class(r_100),
+                    "failure_class": fc,
                     "ranks": best_hit_ranks,
                 }
                 scores_f.write(json.dumps(record, ensure_ascii=False) + "\n")

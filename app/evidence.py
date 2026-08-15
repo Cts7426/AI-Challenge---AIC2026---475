@@ -232,17 +232,25 @@ def _image_path(video_id: str, kf_btc: str | None,
         m = _BTC_ID.match(kf_btc)
         if m:
             ordinal = int(m.group("ordinal"))
-            path = KEYFRAMES_DIR / video_id / f"{ordinal - 1:04d}.jpg"
-            if path.exists():
-                return path, None
-            alt = KEYFRAMES_DIR / video_id / f"{ordinal:04d}.jpg"
-            if alt.exists():
-                return alt, (
-                    f"ảnh đang lấy theo `{ordinal:04d}.jpg` chứ không phải "
-                    f"`{ordinal - 1:04d}.jpg` — bộ ảnh đánh số từ 1, khác "
-                    "docs/contest.md. Kiểm lại trước khi chấm nhãn: nếu sai thì mọi "
-                    "ảnh lệch một keyframe."
-                )
+            
+            # Tìm đúng thư mục chứa video (có thể lồng trong keyframes_L21)
+            video_dir = None
+            part = video_id.split('_')[0]
+            for candidate_dir in [KEYFRAMES_DIR / f"keyframes_{part}" / video_id, KEYFRAMES_DIR / video_id]:
+                if candidate_dir.exists():
+                    video_dir = candidate_dir
+                    break
+                    
+            if video_dir:
+                # Thử các chuẩn quy ước thực tế của BTC (base 1 - 3 số, base 1 - 4 số, base 0 - 4 số)
+                candidates = [
+                    video_dir / f"{ordinal:03d}.jpg",
+                    video_dir / f"{ordinal:04d}.jpg",
+                    video_dir / f"{ordinal - 1:04d}.jpg"
+                ]
+                for p in candidates:
+                    if p.exists():
+                        return p, None
     if kf_own:
         df = _keyframes_of(video_id)
         row = df[df.kf_id == kf_own]

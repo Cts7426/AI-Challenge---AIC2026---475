@@ -423,7 +423,7 @@ def _try_shot(hit: ShotHit, question_vi: str, evidence_type: str, needs_images: 
 
 # ------------------------------------------------------------------------- API chính
 
-def qa_pipeline(query_vi: str, top_k_shots: int = TOP_K_SHOTS) -> tuple[list[ShotHit], str]:
+def qa_pipeline(query_vi: str, top_k_shots: int = TOP_K_SHOTS, query_en: str | None = None) -> tuple[list[ShotHit], str]:
     """query VI → (mọi shot ứng viên đã xếp hạng, câu trả lời thắng cuộc).
 
     Chỗ gọi tự đưa 2 giá trị này vào backend.slot.allocate(hits, "QA",
@@ -432,7 +432,7 @@ def qa_pipeline(query_vi: str, top_k_shots: int = TOP_K_SHOTS) -> tuple[list[Sho
     parts = parse_question(query_vi)
     evidence_type, needs_images = route_question(parts.question_vi)
 
-    hits = search(parts.event_vi, top_k=top_k_shots)
+    hits = search(parts.event_vi, query_en=query_en, top_k=top_k_shots, group_by_shot=True)
     if not hits:
         raise RuntimeError(f"search() không trả shot nào cho sự kiện: '{parts.event_vi}'")
 

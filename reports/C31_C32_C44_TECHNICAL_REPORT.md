@@ -11,9 +11,10 @@
 > Minh Hoàng/Linh, dùng chung).
 >
 > **Trạng thái: CHẠY ĐƯỢC ĐẦU-CUỐI cả ba dạng pipeline, có LLM thật (Gemini),
-> có Milvus + ES thật, không mock.** 291 test xanh (46 test mới). 2 bug thật
+> có Milvus + ES thật, không mock.** 294 test xanh (49 test mới). 2 bug thật
 > trong đặc tả gốc + 1 bug thật trong code cũ (`search.py`) được tìm ra và sửa
-> — chi tiết ở §7.
+> — chi tiết ở §7. **Cập nhật 14/08 (sau code review của đồng đội): 3 bug
+> thật khác tìm thấy ở TẦNG CHẤM ĐIỂM (`dev_set/`) — đã sửa, xem §12.**
 
 ---
 
@@ -30,6 +31,7 @@
 9. [Giới hạn đã biết — chưa/không sửa](#9-giới-hạn-đã-biết--chưasửa)
 10. [Đối chiếu với đặc tả BUILD_TASKS](#10-đối-chiếu-với-đặc-tả-build_tasks)
 11. [Việc tiếp theo](#11-việc-tiếp-theo)
+12. [Cập nhật 14/08 — code review của đồng đội tìm ra 3 bug ở tầng chấm điểm](#12-cập-nhật-1408--code-review-của-đồng-đội-tìm-ra-3-bug-ở-tầng-chấm-điểm)
 
 ---
 
@@ -496,3 +498,144 @@ tests/ (5 file mới: test_answer_match, test_trake_fallback, test_trake,
    khi BTC cấp thêm batch objects mới (idempotent theo `keyframe_id`, batch 2
    nạp thêm không tạo trùng — nhưng chưa test đường "nạp thêm", chỉ test "nạp
    từ đầu").
+
+---
+
+## 12. Cập nhật 14/08 — code review của đồng đội tìm ra 3 bug ở tầng chấm điểm
+
+Một đồng đội review `dev_set/tools/scoring.py` + `run_evaluation.py` +
+`backend/common/answer_match.py` (viết/sửa ở phiên này) và báo 3 vấn đề kèm
+số liệu đo cụ thể. Đã xác minh LẠI TỪNG SỐ bằng cách chạy code thật (không
+tin lời báo cáo suông) — cả 3 đều **đúng, nghiêm trọng**, và đã sửa.
+
+### 12.1. 🔴 `recall_at_k()` sai công thức — Final Score lệch 2-5 lần cho MỌI dạng bài
+
+**Đo lại y hệt số đồng đội báo, xác nhận trước khi sửa:**
+
+| Ca | Code cũ | Đúng (docs/contest.md) |
+|:---|---:|---:|
+| Ví dụ CÓ ĐÁP SỐ của BTC (0.5/0.8/0.6 → 0.74) | 0.612 | **0.74** |
+| KIS đúng ở hạng 3 | 0.640 | **0.80** |
+| KIS đúng ở hạng 21 | 0.160 | **0.40** |
+| KIS đúng ở hạng 87 | 0.040 | **0.20** |
+
+**Gốc rễ:** `recall_at_k(rows, gt, task_type, k)` nhân `hit` (R-Score của
+dòng) với `_score_for_rank(rank)` — một hàm tra "bảng rút gọn" theo hạng.
+`docs/contest.md` nói rõ bảng đó là HỆ QUẢ của công thức `R@k = max R-Score`
+khi R-Score nhị phân, **không phải một phần của công thức**. Code cũ áp dụng
+bảng đó NGAY TRONG `recall_at_k`, rồi hàm `final_score` lại lấy trung bình 5
+lần giá trị ĐÃ tra bảng đó — tương đương "tra bảng rút gọn hai lần lồng
+nhau". Comment cũ trong code còn ghi sai: *"Với KIS/QA hit là nhị phân nên
+phép nhân không đổi gì (an toàn)"* — SAI, số đo trên chứng minh KIS cũng sai
+nặng, không chỉ TRAKE.
+
+**Sửa:** bỏ hẳn `_score_for_rank`/`RANK_BANDS` khỏi đường tính. `recall_at_k`
+giờ đúng nghĩa đen: `max(R-Score của rows[:k])`. Xác nhận lại toàn bộ 4 ca ở
+bảng trên đều khớp giá trị đúng sau khi sửa (đo thật, không phải suy luận).
+
+**Test:** `dev_set/tests/test_scoring.py` — sửa 2 assertion cũ đang CHỐT
+NHẦM theo bug (0.36→0.60, 0.16→0.40), thêm
+`test_final_score_VI_DU_CO_DAP_SO_cua_BTC` chốt cứng vĩnh viễn ví dụ gốc của
+BTC — không cho ai vô tình đưa bug này quay lại.
+
+### 12.2. 🔴 `run_evaluation.py` — Q&A tự so đáp án với chính nó
+
+**Đo lại xác nhận:** dòng 205-207 cũ gán thẳng
+`answer_text = gt.answer_text` rồi đưa vào `allocate()` → `rscore_qa` so
+`gt.answer_text` với `gt.answer_text`. Test 3 câu trả lời giả lập:
+
+```
+hệ (giả lập) sinh ra 'màu xanh'        → R@1 = 1.0
+hệ (giả lập) sinh ra 'CHUA_CO_ANSWER'  → R@1 = 1.0
+hệ (giả lập) sinh ra 'màu đỏ'          → R@1 = 1.0
+```
+
+Ba câu trả lời khác hẳn nhau, cùng một điểm — bộ đo Q&A **không đo được gì**,
+luôn báo gần như hoàn hảo bất kể hệ thật làm gì. Xác nhận thêm bằng
+`grep -n "backend.tasks" dev_set/tools/run_evaluation.py` → 0 kết quả:
+482 dòng của `qa.py` (§2.1) **chưa từng được đo qua bộ này một lần nào**.
+
+**Sửa:** nhánh QA gọi thẳng `backend.tasks.qa.qa_pipeline(q.query_vi)` —
+đúng pipeline production — lấy `(hits, answer_text)` thật thay vì mượn từ
+`gt`. KIS/TRAKE giữ nguyên đường cũ (`search()` chung + `allocate()`).
+
+**Kiểm chứng sống sau khi Docker + Gemini sẵn sàng lại** (không phải suy luận
+trên giấy):
+
+```python
+hits, answer_text = qa_pipeline("Kênh truyền hình phát sóng bản tin có tên là gì?")
+# answer_text = 'Báo Thanh Niên'  (hệ thật trả lời)
+ans = allocate(hits, "QA", answer_text=answer_text)
+
+# gt CỐ Ý sai với answer thật
+recall_at_k(ans, gt_sai, "QA", 100)   →  0.0   ✅ (trước đây sẽ ra ~1.0)
+# gt khớp đúng answer thật
+recall_at_k(ans, gt_dung, "QA", 100)  →  1.0   ✅
+```
+
+R-Score giờ phản ánh ĐÚNG câu trả lời hệ thống thật sự sinh ra.
+
+**Đánh đổi đã chấp nhận:** mất tính năng debug phụ `best_hit_ranks` (thứ hạng
+từng nhánh search) riêng cho QA — `qa_pipeline()` tự search trên `event_vi`
+đã tách (khác `q.query_vi` gốc), không trả lại ranks thô. Không phải bug,
+chỉ là phạm vi chưa làm — ghi ở §12.4.
+
+**Giới hạn CHƯA sửa (nói rõ để không ai tưởng đã xong):** TRAKE trong
+`run_evaluation.py` **vẫn** dùng `search()` chung + `allocate()` (lưới an
+toàn thống kê của D3.1), **chưa** gọi `trake_stage1()`/
+`trake_stage2_fallback()` (C3.2/C4.4) — cùng loại vấn đề với Q&A trước khi
+sửa, nhưng đồng đội không nêu cụ thể case này nên chưa động vào để giữ đúng
+phạm vi review lần này. `Query.event_descs` (đã có sẵn trong schema) đủ để
+nối, nhưng cần dựng thêm cầu nối video→shot-candidates cho `allocate()` mà
+`trake_stage1()` hiện chưa cấp — việc riêng, ước lượng ngoài phạm vi 2 ngày
+tới G3.
+
+### 12.3. 🔴 `answer_match.py` tầng 3 khớp nhầm tên riêng khác nhau
+
+**Đo lại xác nhận:** `answer_matches("Nguyễn Văn A", "Nguyễn Văn B", [])` →
+`(True, 3)`. `difflib.SequenceMatcher` tính ratio trên TOÀN CHUỖI — tiền tố
+chung dài `"nguyễn văn "` (10/12 ký tự) che mất đúng chỗ khác nhau (chữ cuối),
+ratio = 0.9167 > ngưỡng 0.85. Đúng như đồng đội chỉ ra: nguy hiểm cụ thể vì
+`data/config/qa_routing.py` định tuyến "tên/chức danh → OCR" — tên riêng là
+ca THƯỜNG GẶP của Q&A, không phải hiếm.
+
+**Sửa:** `_fuzzy_match()` mới — khi 2 chuỗi CÙNG SỐ TỪ, so ratio TỪNG CẶP TỪ,
+yêu cầu MỌI cặp đạt ngưỡng (không phải trung bình toàn chuỗi). Từ "a" vs "b"
+(1 ký tự, khác hẳn) có ratio 0.0, bắt được ngay — không còn bị các từ giống
+hệt xung quanh che đi. Số từ khác nhau (thiếu/thừa 1 từ) → lùi về so cả
+chuỗi như cũ.
+
+**Kiểm chứng cả 2 chiều** (không chỉ sửa cho qua ca nguy hiểm, phải giữ được
+ca hợp lệ):
+
+```python
+answer_matches("Nguyễn Văn A", "Nguyễn Văn B", [])          → (False, 0)  ✅ đã sửa
+answer_matches("Trần Thị C", "Trần Thị D", [])               → (False, 0)  ✅ đã sửa
+answer_matches("Highlands Coffee", "Higlands Coffee", [])    → (True, 3)   ✅ vẫn khớp (lỗi chính tả nhẹ)
+answer_matches("5", "năm", [])                                → (True, 2)   ✅ không đụng tầng 3
+```
+
+**Test:** `tests/test_answer_match.py` — thêm
+`test_answer_matches_KHONG_khop_nham_ten_rieng` (2 ca nguy hiểm) và
+`test_answer_matches_van_khop_loi_chinh_ta_nhe_cung_so_tu` (ca hợp lệ, chống
+sửa quá tay làm mất khả năng bắt lỗi chính tả thật).
+
+### 12.4. Hai việc nhỏ đồng đội nêu thêm
+
+| # | Việc | Xác minh | Đã làm |
+|:---|:---|:---|:---|
+| 1 | `dev_set/BLOCKERS.md` mô tả sai trạng thái (nói chưa có bridge, thực tế `_to_shot_hits()` đã có và `allocate()` đã được gọi đúng) | ✅ đúng, đã lỗi thời | Cập nhật `BLOCKERS.md`, đánh dấu ĐÃ XONG kèm ngày |
+| 2 | 3 tài liệu ghi 2 kiểu đánh số keyframe khác nhau (`B01_TECHNICAL_REPORT.md` dòng 27: `001.jpg` 1-based; `frame_convention.md` + `docs/contest.md`: `0000.jpg` 0-based) | ✅ đúng, xác nhận bằng cách đọc cả 3 file | **KHÔNG sửa** — `app/evidence.py::_image_path()` (không phải file của Thi) đã tự xử lý đúng: thử `ordinal-1` (0-based) trước, lùi về `ordinal` (1-based) kèm CẢNH BÁO nếu không thấy. Đây là ambiguity dữ liệu thật đã được code phòng thủ đúng cách, không phải bug — không sửa report của Công Lý (B01) vì đó là bản ghi lịch sử quan sát, không phải quy ước code hiện hành |
+
+### 12.5. Kết quả sau khi sửa cả 3
+
+```
+tests/ + dev_set/tests/  →  294 passed, 0 failed  (291 cũ + 3 test mới cho 2 bug này)
+```
+
+Ba bug này đều nằm ở **tầng chấm điểm/đo lường**, không phải tầng
+search/retrieval — đúng đúng loại rủi ro `E42_TECHNICAL_REPORT.md` §5.1 đã
+cảnh báo trước: *"lỗi trong thước đo tệ hơn lỗi trong search — thước đo sai
+thì sửa nhầm chỗ suốt hai tuần mà vẫn thấy số đẹp."* Sửa trước G3 (16/08)
+đúng như đồng đội đề nghị, vì cả nhóm sẽ chọn 3 việc cho tuần cuối dựa trên
+bảng điểm từ `run_evaluation.py`.

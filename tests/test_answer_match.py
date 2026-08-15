@@ -56,6 +56,22 @@ def test_answer_matches_chan_input_qua_dai():
     assert not match
 
 
+def test_answer_matches_KHONG_khop_nham_ten_rieng():
+    """⚠️ Bug thật tìm được qua code review (14/08): so ratio TOÀN CHUỖI khiến
+    2 tên khác nhau khớp nhầm ('nguyễn văn a' vs 'nguyễn văn b' ratio=0.92 >
+    0.85) vì tiền tố chung dài che mất chỗ khác nhau. contest.md định tuyến
+    "tên/chức danh → OCR" nên đây là ca THƯỜNG GẶP, không phải hiếm."""
+    assert answer_matches("Nguyễn Văn A", "Nguyễn Văn B", []) == (False, 0)
+    assert answer_matches("Trần Thị C", "Trần Thị D", []) == (False, 0)
+
+
+def test_answer_matches_van_khop_loi_chinh_ta_nhe_cung_so_tu():
+    """Sửa tầng 3 thành so-từng-từ KHÔNG được làm mất khả năng bắt lỗi chính tả
+    nhẹ hợp lệ (thiếu 1 ký tự trong 1 từ, số từ không đổi)."""
+    match, tier = answer_matches("Highlands Coffee", "Higlands Coffee", [])
+    assert match and tier == 3
+
+
 # ----------------------------------------------------------------- majority_answer
 
 def test_majority_gom_nhom_theo_nghia_khong_theo_chuoi():

@@ -63,9 +63,12 @@ class TestScoring(unittest.TestCase):
         answers_rank1 = [Answer(video_id="V1", frame_ids=(15,))] + answers_wrong[:99]
         self.assertEqual(final_score(answers_rank1, gt, "KIS"), 1.0)
         
-        # Đáp án đúng ở hạng 6 -> R@1=0, R@5=0, R@20=0.6, R@50=0.6, R@100=0.6 -> 1.8/5 = 0.36
+        # Đáp án đúng ở hạng 6 -> R@1=0, R@5=0, R@20=1, R@50=1, R@100=1 -> 3/5 = 0.60
+        # (SỬA 14/08: R@k là "có trúng trong k câu đầu hay không" — nhị phân theo
+        # k, KHÔNG tra bảng rút gọn theo hạng. Bản cũ ra 0.36 vì nhân nhầm với
+        # _score_for_rank(6)=0.6, xem lịch sử sửa ở scoring.py.)
         answers_rank6 = answers_wrong[:5] + [Answer(video_id="V1", frame_ids=(15,))] + answers_wrong[:94]
-        self.assertAlmostEqual(final_score(answers_rank6, gt, "KIS"), 0.36)
+        self.assertAlmostEqual(final_score(answers_rank6, gt, "KIS"), 0.60)
         
         # Đáp án đúng ở hạng 101 -> (nộp 101 dòng)
         answers_rank101 = answers_wrong[:100] + [Answer(video_id="V1", frame_ids=(15,))]
@@ -75,9 +78,37 @@ class TestScoring(unittest.TestCase):
         answers_short = answers_wrong[:40]
         self.assertEqual(final_score(answers_short, gt, "KIS"), 0.00)
         
-        # Đúng ở hạng 40 -> R@50=0.4, R@100=0.4 -> 0.8/5 = 0.16
+        # Đúng ở hạng 40 -> R@1=R@5=R@20=0, R@50=R@100=1 -> 2/5 = 0.40
         answers_short_hit = answers_wrong[:39] + [Answer(video_id="V1", frame_ids=(15,))]
-        self.assertAlmostEqual(final_score(answers_short_hit, gt, "KIS"), 0.16)
+        self.assertAlmostEqual(final_score(answers_short_hit, gt, "KIS"), 0.40)
+
+    def test_final_score_VI_DU_CO_DAP_SO_cua_BTC(self):
+        """docs/contest.md dòng 60-62 — ví dụ CÓ ĐÁP SỐ của chính BTC:
+        câu 1 = 0.5, câu 3 = 0.8 (cao nhất), câu 15 = 0.6 → Final = 0.74.
+
+        Test này CHỐT CỨNG công thức 2 tầng đúng (R@k = max R-Score trong k câu
+        đầu, Final = trung bình 5 R@k) — không cho phép ai "tối ưu" lại bằng
+        cách tra bảng rút gọn theo hạng như bug đã tìm thấy 14/08 (final_score
+        ra 0.612 thay vì 0.74 khi còn bug).
+        """
+        gt = GroundTruthTRAKE(
+            query_id="Q1", video_id="V1",
+            frames=[{"start": 0, "end": 100}],  # không dùng tới, rscore bị monkeypatch
+        )
+        scores_by_rank = {1: 0.5, 3: 0.8, 15: 0.6}
+        import dev_set.tools.scoring as sc
+        goc = sc.rscore_trake
+        try:
+            sc.rscore_trake = lambda video_id, frames, gt: scores_by_rank.get(frames[0], 0.0)
+            rows = [Answer(video_id="V1", frame_ids=(i,)) for i in range(1, 101)]
+            self.assertAlmostEqual(sc.recall_at_k(rows, gt, "TRAKE", 1), 0.5)
+            self.assertAlmostEqual(sc.recall_at_k(rows, gt, "TRAKE", 5), 0.8)
+            self.assertAlmostEqual(sc.recall_at_k(rows, gt, "TRAKE", 20), 0.8)
+            self.assertAlmostEqual(sc.recall_at_k(rows, gt, "TRAKE", 50), 0.8)
+            self.assertAlmostEqual(sc.recall_at_k(rows, gt, "TRAKE", 100), 0.8)
+            self.assertAlmostEqual(sc.final_score(rows, gt, "TRAKE"), 0.74)
+        finally:
+            sc.rscore_trake = goc
 
 if __name__ == '__main__':
     unittest.main()

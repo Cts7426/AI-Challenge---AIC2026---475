@@ -12,7 +12,10 @@ import json
 
 import pytest
 
-from app.labels import LabelIndex, Label, label_path, append_label, labels_of, load_labels
+from dataclasses import asdict
+
+from app.labels import (LabelIndex, Label, is_correct, label_path, append_label,
+                        labels_of, load_labels)
 
 
 def mot_nhan(**thay_doi) -> Label:
@@ -383,3 +386,67 @@ def test_dong_nhan_CU_thieu_o_khai_N_van_doc_duoc(tmp_path):
     p.write_text(json.dumps(dong, ensure_ascii=False) + "\n", encoding="utf-8")
     bn = LabelIndex(directory=tmp_path)
     assert len(bn) == 1 and bn.n_moments("q1") == 1 and not bn.n_is_declared("q1")
+
+
+def test_N_khai_khong_duoc_NHO_hon_so_khoanh_khac_da_cham():
+    """`__post_init__` chỉ kiểm `moment_idx < n` TRÊN CHÍNH DÒNG khai N.
+
+    Dòng khai N=2 và dòng `moment_idx=2` là hai dòng riêng nên qua được cửa đó —
+    mẫu số ra 2 trong khi có 3 khoảnh khắc, đúng kiểu thổi phồng mà ô này sinh ra
+    để chặn.
+    """
+    goc = dict(query_id="t", query_vi="?", task_type="TRAKE", video_id="L21_V001",
+               label="correct", labeler="test", frame_start=0, frame_end=9)
+    bn = LabelIndex([
+        Label(moment_idx=0, n_moments_total=2, **goc),
+        Label(moment_idx=1, n_moments_total=2, **goc),
+        Label(moment_idx=2, **goc),
+    ])
+    assert bn.n_moments("t") == 3
+
+
+def test_N_khai_LON_hon_so_da_cham_thi_giu_so_khai():
+    goc = dict(query_id="t", query_vi="?", task_type="TRAKE", video_id="L21_V001",
+               label="correct", labeler="test", frame_start=0, frame_end=9)
+    assert LabelIndex([Label(moment_idx=0, n_moments_total=6, **goc)]).n_moments("t") == 6
+
+
+# ===================== nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín
+
+def test_dong_trong_trong_file_bi_bo_qua(tmp_path):
+    p = label_path("tester", tmp_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(asdict(mot_nhan())) + "\n\n   \n", encoding="utf-8")
+    assert len(load_labels(tmp_path)) == 1
+
+
+def test_ts_KHONG_co_mui_gio_van_so_duoc(tmp_path):
+    """Dòng sửa tay thường mất offset — so với dòng có offset không được ném TypeError."""
+    append_label(mot_nhan(label="correct", ts="2026-08-14T10:00:00"), tmp_path)
+    append_label(mot_nhan(label="wrong", ts="2026-08-14T11:00:00+07:00"), tmp_path)
+    doc = load_labels(tmp_path)
+    assert len(doc) == 1 and doc[0].label == "wrong"
+
+
+def test_dong_CU_den_sau_khong_de_len_dong_moi(tmp_path):
+    """File của người A đọc sau file người B, mà nhãn của A lại cũ hơn."""
+    goc = dict(query_id="q1", video_id="L21_V001", frame_start=5, frame_end=5)
+    append_label(mot_nhan(labeler="aa", label="wrong", ts="2026-08-14T09:00:00+07:00", **goc), tmp_path)
+    append_label(mot_nhan(labeler="zz", label="correct", ts="2026-08-14T08:00:00+07:00", **goc), tmp_path)
+    assert LabelIndex(directory=tmp_path).is_correct("q1", "L21_V001", 5) is False
+
+
+def test_gop_giu_N_khai_khi_dong_moi_khong_khai(tmp_path):
+    goc = dict(query_id="t", task_type="TRAKE", video_id="L21_V001",
+               frame_start=1, frame_end=9, moment_idx=0)
+    append_label(mot_nhan(label="correct", n_moments_total=4,
+                          ts="2026-08-14T10:00:00+07:00", **goc), tmp_path)
+    append_label(mot_nhan(label="correct", answer_text="x", answer_correct=True,
+                          ts="2026-08-14T11:00:00+07:00", **goc), tmp_path)
+    assert LabelIndex(directory=tmp_path).n_moments("t") == 4
+
+
+def test_ham_is_correct_tien_tay(tmp_path):
+    append_label(mot_nhan(frame_start=100, frame_end=200), tmp_path)
+    assert is_correct("q001", "L21_V001", 150, directory=tmp_path)
+    assert not is_correct("q001", "L21_V001", 999, directory=tmp_path)

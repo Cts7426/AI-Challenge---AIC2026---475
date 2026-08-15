@@ -281,12 +281,12 @@ def draw_card(row: dict, cfg: dict, query_id: str, index: LabelIndex, key: str) 
             # riêng TRAKE là DƯỚI 10 frame (docs/contest.md). Nhãn rộng gấp ~7 lần đáp
             # án thật thì eval nhận cả những frame BTC loại → điểm cao hơn lúc thi.
             # Dùng cho KIS/Q&A khi không chắc frame nào trong shot; đừng dùng cho TRAKE.
-            rong = cfg["task"] == "TRAKE"
+            too_wide = cfg["task"] == "TRAKE"
             if ev.shot_bounds and st.button(
-                "✓ Cả shot", key=f"shot{key}", use_container_width=True, disabled=rong,
+                "✓ Cả shot", key=f"shot{key}", use_container_width=True, disabled=too_wide,
                 help=("TRAKE có cửa sổ dưới 10 frame — nhãn cả shot (~69 frame) sẽ "
                       "cho điểm cao hơn thật. Khoanh tay từng khoảnh khắc."
-                      if rong else
+                      if too_wide else
                       "Đánh dấu đúng cả khoảng shot — một cú bấm ra hàng chục frame nhãn"),
             ):
                 save("correct", *ev.shot_bounds)

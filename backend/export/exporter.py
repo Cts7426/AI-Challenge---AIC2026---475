@@ -415,6 +415,15 @@ def write_submissions(
     Ra: (danh sách file đã ghi, list Issue của bước kiểm file).
     Bất biến: validate=True (mặc định) thì KHÔNG BAO GIỜ ghi dữ liệu sai ra đĩa —
     thà gãy to còn hơn sinh ra file trông hợp lệ mà sai.
+
+    ⚠️ Dựng ĐỦ tên file và nội dung TRƯỚC, ghi đĩa sau. Vòng lặp vừa dựng vừa ghi
+    thì một truy vấn hỏng ở giữa để lại thư mục ghi DỞ DANG — vài file đã có, phần
+    còn lại không, mà hàm thì ném exception nên không trả về danh sách nào cả.
+    Người vận hành nhìn thư mục thấy có file, tưởng xong. Đo được: 4 truy vấn với
+    `query_id="a/b"` ở vị trí 3 → 2 file nằm lại trên đĩa.
+
+    Hai bước dựng đều raise được: `suggest_filename()` chặn query_id không thành
+    tên file, `to_submission()` chặn sai cấu trúc dòng.
     """
     if validate:
         issues = validate_all(subs, expect_answers=expect_answers, expected_n=expected_n)
@@ -426,14 +435,22 @@ def write_submissions(
             )
 
     out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Dựng hết trước — hỏng thì gãy khi chưa chạm đĩa
+    planned = [(out_dir / suggest_filename(s.query_id), to_submission(s)) for s in subs]
+
+    trung = [p for p, _ in planned if [q for q, _ in planned].count(p) > 1]
+    if trung:
+        # query_id trùng đã bị `validate_all` bắt, nhưng chỉ khi validate=True —
+        # gọi với validate=False thì file sau ghi đè file trước, mất bài nộp im lặng.
+        raise ValueError(f"Hai truy vấn cùng ra một tên file: {sorted({p.name for p in trung})}")
+
+    out_dir.mkdir(parents=True, exist_ok=True)
     da_ghi: list[Path] = []
     loi_file: list[Issue] = []
-    for s in subs:
-        p = out_dir / suggest_filename(s.query_id)
+    for p, noi_dung in planned:
         # encoding="utf-8" (KHÔNG utf-8-sig) + newline="" → không BOM, không \r\n
-        p.write_text(to_submission(s), encoding="utf-8", newline="")
+        p.write_text(noi_dung, encoding="utf-8", newline="")
         da_ghi.append(p)
         loi_file += validate_file(p)
     return da_ghi, loi_file

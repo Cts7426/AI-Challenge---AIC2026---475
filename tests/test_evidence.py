@@ -288,3 +288,37 @@ def test_chua_co_anh_thi_tra_None_chu_khong_sap(tmp_path, monkeypatch):
 
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path / "khong_ton_tai")
     assert ev._image_path("L21_V001", "L21_V001#k0001", None) == (None, None)
+
+
+# ===================== nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín
+
+def test_thieu_bang_thi_bao_LUOC_DO_chu_khong_im(tmp_path, monkeypatch):
+    """Thiếu file → panel trống. Trống mà im lặng bị đọc thành 'frame này không có
+    OCR' rồi người ta chấm nhãn theo đó."""
+    import app.evidence as ev_mod
+    monkeypatch.setattr(ev_mod, "DERIVED", tmp_path)
+    ev_mod.clear_cache(); ev_mod._SCHEMA_ERRORS.clear()
+    ev = ev_mod.evidence_of("L21_V001#k0001")
+    assert any("chờ Data Factory giao" in w for w in ev.warnings)
+    ev_mod.clear_cache(); ev_mod._SCHEMA_ERRORS.clear()
+
+
+def test_file_parquet_hong_khong_lam_sap_UI(tmp_path, monkeypatch):
+    import app.evidence as ev_mod
+    (tmp_path / "frame_map.parquet").write_bytes(b"day khong phai parquet")
+    monkeypatch.setattr(ev_mod, "DERIVED", tmp_path)
+    ev_mod.clear_cache(); ev_mod._SCHEMA_ERRORS.clear()
+    ev = ev_mod.evidence_of("L21_V001#k0001")
+    assert any("không đọc nổi lược đồ" in w or "chờ Data Factory" in w for w in ev.warnings)
+    ev_mod.clear_cache(); ev_mod._SCHEMA_ERRORS.clear()
+
+
+def test_id_khong_khop_he_nao_thi_CANH_BAO():
+    ev = evidence_of("day_la_id_bay_ba")
+    assert any("không khớp hệ tên nào" in w for w in ev.warnings)
+
+
+def test_frame_idx_suy_tu_hau_to_id_TU_TRICH():
+    """kf_id tự trích không có trong frame_map → hậu tố CHÍNH LÀ frame_idx."""
+    ev = evidence_of("L21_V001_0000090")
+    assert ev.frame_idx == 90

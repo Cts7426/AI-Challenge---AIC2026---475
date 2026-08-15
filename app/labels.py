@@ -182,7 +182,7 @@ def _ts_key(label: Label) -> datetime:
     return moc
 
 
-def _merge(cu: Label, moi: Label) -> Label:
+def _merge(old: Label, new: Label) -> Label:
     """Gộp hai lượt chấm CÙNG khoá: dòng mới thắng, nhưng không xoá ô nó không nói tới.
 
     Q&A có hai cửa tử ĐỘC LẬP (frame và answer) nên UI có hai nhóm nút, mà cả hai lại
@@ -193,13 +193,13 @@ def _merge(cu: Label, moi: Label) -> Label:
     Quy ước: `answer_text`/`answer_correct` bằng `None` nghĩa là lượt chấm này KHÔNG
     nói gì về câu trả lời, không phải "câu trả lời rỗng" — nên lấy lại giá trị cũ.
     """
-    if moi.answer_text is not None or moi.answer_correct is not None:
-        moi_du = moi
+    if new.answer_text is not None or new.answer_correct is not None:
+        merged = new
     else:
-        moi_du = replace(moi, answer_text=cu.answer_text, answer_correct=cu.answer_correct)
-    if moi_du.n_moments_total is None and cu.n_moments_total is not None:
-        moi_du = replace(moi_du, n_moments_total=cu.n_moments_total)
-    return moi_du
+        merged = replace(new, answer_text=old.answer_text, answer_correct=old.answer_correct)
+    if merged.n_moments_total is None and old.n_moments_total is not None:
+        merged = replace(merged, n_moments_total=old.n_moments_total)
+    return merged
 
 
 def load_labels(directory: Path | None = None) -> list[Label]:
@@ -308,15 +308,24 @@ class LabelIndex:
         Lấy từ ĐÁP ÁN chứ không lấy số frame mình nộp: nộp thiếu khoảnh khắc mà chia
         cho số mình nộp thì trúng 1/1 ra 1.0 thay vì 0.25 — nộp càng ít điểm càng cao.
         """
-        cua_query = [n for n in self.labels if n.query_id == query_id]
-        khai = [n.n_moments_total for n in cua_query if n.n_moments_total is not None]
-        if khai:
-            # Hai người khai lệch nhau → lấy số LỚN NHẤT. Mẫu số lớn cho điểm THẤP hơn,
-            # mà thước đo sai lệch về phía thấp thì người đọc đi soi, còn sai lệch về
-            # phía cao thì không ai soi.
-            return max(khai)
-        idx = [n.moment_idx for n in cua_query if n.moment_idx is not None]
-        return max(idx) + 1 if idx else None
+        of_query = [n for n in self.labels if n.query_id == query_id]
+        declared = [n.n_moments_total for n in of_query if n.n_moments_total is not None]
+        idx = [n.moment_idx for n in of_query if n.moment_idx is not None]
+        inferred = max(idx) + 1 if idx else None
+
+        if not declared:
+            return inferred
+
+        # Hai người khai lệch nhau → lấy số LỚN NHẤT. Mẫu số lớn cho điểm THẤP hơn,
+        # mà thước đo sai lệch về phía thấp thì người đọc đi soi, còn sai lệch về
+        # phía cao thì không ai soi.
+        #
+        # ⚠️ Và số khai KHÔNG BAO GIỜ được nhỏ hơn số khoảnh khắc đã chấm thật.
+        # `Label.__post_init__` chỉ kiểm `moment_idx < n` TRÊN CHÍNH DÒNG có khai N;
+        # dòng khai N=2 với dòng `moment_idx=2` là hai dòng riêng nên qua được cửa đó.
+        # Không kẹp ở đây thì mẫu số ra 2 trong khi có 3 khoảnh khắc — đúng kiểu thổi
+        # phồng mà cả ô `n_moments_total` sinh ra để chặn.
+        return max(max(declared), inferred or 0)
 
     def n_is_declared(self, query_id: str) -> bool:
         """N của truy vấn này là do người chấm KHAI, hay chỉ suy từ số nhãn đang có?

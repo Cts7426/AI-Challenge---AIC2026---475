@@ -18,6 +18,7 @@ from app.eval import (
     score_query,
     read_runs,
     format_report,
+    from_submissions,
     r_score_trake,
 )
 from app.labels import LabelIndex, Label
@@ -346,3 +347,78 @@ def test_canh_bao_N_khong_dinh_toi_KIS_va_QA():
     bn = LabelIndex([_nhan(query_id="q1")])
     bc = score_runs([_lo("KIS", [_kis()], qid="q1")], bn)
     assert bc.scores[0].trake_n_inferred is None
+
+
+# ============================ M1: task_type lạ KHÔNG được rơi xuống nhánh KIS
+# `score_query()` phân nhánh bằng == rồi `else` là KIS, nên chuỗi lạ lệch CẢ HAI
+# CHIỀU: QA mất cửa answer (điểm vống), TRAKE mất khớp theo vị trí (điểm dìm).
+
+@pytest.mark.parametrize("task_type", ["qa", "QA ", "Q&A", "trake", "Trake", "kis", "", "banana"])
+def test_task_type_la_bi_chan_ngay_luc_dung(task_type):
+    with pytest.raises(ValueError, match="task_type"):
+        QueryRun("q1", task_type, (_kis(),))
+
+
+def test_bao_loi_goi_y_dung_HOA_THUONG():
+    """Ca hay gặp nhất là gõ thường — báo lỗi phải chỉ thẳng ra."""
+    with pytest.raises(ValueError, match="QA"):
+        QueryRun("q1", "qa", (_kis(),))
+
+
+def test_task_type_dung_van_dung_duoc():
+    for t in ("KIS", "QA", "TRAKE"):
+        assert QueryRun("q1", t, (_kis(),)).task_type == t
+
+
+def test_read_runs_bo_qua_dong_task_type_la_va_BAO(tmp_path, capsys):
+    """Cả file viết `"qa"` thì mọi dòng QA biến mất — phải nói ra, không im."""
+    p = tmp_path / "runs.jsonl"
+    p.write_text(
+        json.dumps({"query_id": "q1", "task_type": "KIS",
+                    "answers": [{"video_id": "L01_V001", "frame_ids": [505]}]}) + "\n"
+        + json.dumps({"query_id": "q2", "task_type": "qa",
+                      "answers": [{"video_id": "L01_V001", "frame_ids": [505]}]}) + "\n",
+        encoding="utf-8",
+    )
+    runs = read_runs(p)
+    assert len(runs) == 1 and runs[0].query_id == "q1"
+    ra = capsys.readouterr().out
+    assert "task_type" in ra and "BỎ QUA 1/2" in ra
+
+
+def test_from_submissions_cung_bi_chan(tmp_path):
+    """Đường thứ hai dựng QueryRun — cùng một chốt chặn, không phải vá riêng."""
+    class _Sub:
+        query_id, task_type, answers = "q1", "qa", ()
+    with pytest.raises(ValueError, match="task_type"):
+        from_submissions([_Sub()])
+
+
+# ===================== nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín
+
+def test_dong_KHONG_co_frame_nao_ra_0_chu_khong_sap():
+    """Dữ liệu hỏng từ tầng trên: `frame_ids` rỗng. Phải ra 0, không IndexError."""
+    bn = LabelIndex([_nhan()])
+    assert score_runs([_lo("KIS", [SubmittedRow("L01_V001", ())], qid="q1")], bn).scores[0].final == 0.0
+
+
+def test_trake_khong_co_N_va_khong_co_frame_ra_0():
+    bn = LabelIndex([_nhan(task_type="TRAKE")])
+    r = r_score_trake(SubmittedRow("L01_V001", ()), "q1", bn)
+    assert r == 0.0
+
+
+def test_read_runs_bo_qua_dong_trong(tmp_path):
+    p = tmp_path / "runs.jsonl"
+    p.write_text(
+        json.dumps({"query_id": "q1", "task_type": "KIS",
+                    "answers": [{"video_id": "L01_V001", "frame_ids": [505]}]}) + "\n\n   \n",
+        encoding="utf-8")
+    assert len(read_runs(p)) == 1
+
+
+def test_bao_cao_neu_ro_truy_van_CHUA_CO_NHAN():
+    bn = LabelIndex([_nhan(query_id="q1")])
+    bc = score_runs([_lo("KIS", [_kis()], qid="q1"), _lo("KIS", [_kis()], qid="q_chua_cham")], bn)
+    assert bc.skipped == ["q_chua_cham"]
+    assert "chưa có nhãn nào" in format_report(bc)

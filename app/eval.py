@@ -42,6 +42,35 @@ class QueryRun:
     answers: tuple[SubmittedRow, ...]
     query_vi: str = ""
 
+    def __post_init__(self) -> None:
+        """Chặn `task_type` lạ NGAY LÚC DỰNG, không đợi tới lúc chấm.
+
+        `score_query()` phân nhánh bằng `== "QA"` / `== "TRAKE"` rồi `else` là KIS —
+        nên MỌI chuỗi khác rơi xuống KIS mà không báo gì, và lệch CẢ HAI CHIỀU:
+
+          Q&A  gõ `"qa"`    → bỏ qua cửa answer  → 1.0 trong khi BTC chấm 0
+          TRAKE gõ `"trake"` → bỏ khớp theo vị trí → 0.0 trong khi đúng là 0.25
+
+        Báo cáo gần như không lộ: `by_task()` lọc khớp tuyệt đối nên dòng đó biến
+        mất khỏi bảng theo dạng bài nhưng vẫn cộng vào CHUNG.
+
+        Chặn ở đây (chứ không chỉ ở `read_runs`) vì đây là chỗ DUY NHẤT mọi đường
+        dựng `QueryRun` đi qua — đọc file, `from_submissions()`, hay dựng tay trong
+        test. Vá riêng `read_runs` thì đường khác vẫn lọt.
+
+        Cùng luật này `backend/export/exporter.py` và `data/config/submit_format.py`
+        đã gác từ D0.2; tầng ĐO là chỗ duy nhất còn hở.
+        """
+        if self.task_type not in TASK_TYPES:
+            hint = ""
+            if self.task_type and self.task_type.upper() in TASK_TYPES:
+                hint = f" Có phải ý bạn là '{self.task_type.upper()}'? Phân biệt HOA/thường."
+            raise ValueError(
+                f"[{self.query_id}] task_type '{self.task_type}' lạ, phải là một trong "
+                f"{TASK_TYPES}.{hint} Chuỗi lạ sẽ bị chấm như KIS và cho ra điểm SAI "
+                "mà không báo gì."
+            )
+
 
 # ------------------------------------------------------------------- kết quả ra
 
@@ -158,9 +187,9 @@ def score_query(run: QueryRun, index: LabelIndex) -> QueryScore:
     # TRAKE chấm bằng mẫu số N. Nếu không ai khai N thì nó đang bằng số khoảnh khắc
     # ĐÃ CHẤM — chấm dở 3/4 thì mẫu số 3 và điểm ra 1.0 thay vì 0.75. Đếm để báo,
     # cùng lý do với `answer_unjudged`: thước đo lệch về phía CAO thì không ai đi soi.
-    n_suy = None
+    inferred_n = None
     if run.task_type == "TRAKE" and not index.n_is_declared(run.query_id):
-        n_suy = index.n_moments(run.query_id)
+        inferred_n = index.n_moments(run.query_id)
 
     rank = next((i for i, v in enumerate(r_scores, 1) if v > 0), None)
     return QueryScore(
@@ -173,7 +202,7 @@ def score_query(run: QueryRun, index: LabelIndex) -> QueryScore:
         first_hit_rank=rank,
         n_rows=len(rows),
         answer_unjudged=unjudged,
-        trake_n_inferred=n_suy,
+        trake_n_inferred=inferred_n,
     )
 
 
@@ -212,6 +241,7 @@ def read_runs(path: str | Path) -> list[QueryRun]:
         raise FileNotFoundError(f"không có file runs: {p}")
 
     out: list[QueryRun] = []
+    n_skipped = 0
     for i, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
         line = line.strip()
         if not line:
@@ -232,7 +262,15 @@ def read_runs(path: str | Path) -> list[QueryRun]:
                 ),
             ))
         except Exception as e:
+            n_skipped += 1
             print(f"  [cảnh báo] {p.name}:{i} bỏ qua dòng hỏng — {type(e).__name__}: {e}")
+
+    # Tổng kết riêng: một dòng hỏng lẻ thì dễ thấy, nhưng cả file viết `"qa"` thường
+    # thì mọi dòng Q&A biến mất và báo cáo chỉ trông như "ít truy vấn hơn" — đúng
+    # loại im lặng mà thước đo không được phép có.
+    if n_skipped:
+        print(f"  [cảnh báo] {p.name}: BỎ QUA {n_skipped}/{n_skipped + len(out)} dòng. "
+              "Những truy vấn này KHÔNG có trong báo cáo.")
     return out
 
 
@@ -275,13 +313,13 @@ def format_report(report: Report, n_worst: int = 10) -> str:
         out.append(f"\n⚠️  {unjudged} dòng Q&A có frame ĐÚNG nhưng answer CHƯA AI CHẤM "
                    f"→ đang tính 0. Điểm Q&A thật có thể cao hơn.")
 
-    suy = [s for s in report.scores if s.trake_n_inferred is not None]
-    if suy:
+    inferred = [s for s in report.scores if s.trake_n_inferred is not None]
+    if inferred:
         out.append(
-            f"\n⚠️  {len(suy)} truy vấn TRAKE chưa ai khai N → mẫu số đang lấy bằng số "
+            f"\n⚠️  {len(inferred)} truy vấn TRAKE chưa ai khai N → mẫu số đang lấy bằng số "
             "khoảnh khắc ĐÃ CHẤM. Chấm thiếu thì điểm CAO HƠN THẬT: "
-            + ", ".join(f"{s.query_id}(N={s.trake_n_inferred})" for s in suy[:5])
-            + ("…" if len(suy) > 5 else "")
+            + ", ".join(f"{s.query_id}(N={s.trake_n_inferred})" for s in inferred[:5])
+            + ("…" if len(inferred) > 5 else "")
             + "\n    Khai N ở ô 'Tổng số khoảnh khắc' trong UI debug rồi chấm lại."
         )
     if report.skipped:

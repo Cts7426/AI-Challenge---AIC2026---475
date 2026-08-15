@@ -188,11 +188,45 @@ def build_submission(query_id: str, task_type: str, answers: list[Answer]) -> st
     return FORMATS[fmt](task_type, rows, len(answers[0].frame_ids))
 
 
+# Ký tự không được có trong `query_id` vì nó đi thẳng vào TÊN FILE.
+# `/` `\` thoát khỏi thư mục ra; `: * ? " < > |` là ký tự cấm của Windows — cả nhóm
+# đang chạy Windows nên chúng làm `write_text()` ném OSError khó đọc.
+_FORBIDDEN_CHARS = set('/\\:*?"<>|\0')
+
+
 def suggest_filename(query_id: str) -> str:
     """Tên file nộp cho một truy vấn. Đuôi file suy từ SUBMIT_FORMAT.
 
+    Bất biến: KẾT QUẢ LUÔN LÀ MỘT TÊN FILE, không bao giờ là đường dẫn.
+
+    Vì sao phải gác: `write_submissions()` ghi ra `out_dir / suggest_filename(qid)`.
+    Ghép chuỗi trần thì `query_id="../../evil"` cho `"../../evil.csv"` — file nộp
+    rơi ra NGOÀI thư mục ra mà hàm vẫn báo thành công và trả về đường dẫn đó. Không
+    phải chuyện bảo mật (chạy local), mà là bài nộp nằm ở chỗ không ai nhìn: lúc
+    kiểm lại trước hạn sẽ thấy thư mục thiếu file mà không hiểu vì sao.
+
+    Đường tới được: `backend/api/main.py` nhận `query_id` thẳng từ body request.
+
+    Raise chứ không tự làm sạch: tầng format KHÔNG tự suy ra gì (luật W0.2). Đổi
+    thầm tên file là mất luôn đường map ngược bài nộp về truy vấn.
+
     TODO: BTC — quy ước đặt tên chưa công bố. Tạm dùng "<query_id>.<đuôi>".
     """
+    if not query_id or not query_id.strip():
+        raise ValueError("query_id rỗng — không dựng được tên file nộp")
+    # Kèm cả ký tự điều khiển (\n, \t, \b…): chúng làm hỏng tên file mà MẮT THƯỜNG
+    # KHÔNG THẤY — một query_id dán từ chỗ khác rất dễ dính chúng ở đầu hoặc cuối.
+    bad_chars = sorted(c for c in set(query_id) if c in _FORBIDDEN_CHARS or ord(c) < 32)
+    if bad_chars:
+        raise ValueError(
+            f"query_id {query_id!r} chứa ký tự không dùng được trong tên file: "
+            f"{bad_chars!r}. "
+            "Tầng format không tự làm sạch — sửa query_id ở tầng gọi."
+        )
+    if query_id.strip(".") == "":
+        # "." và ".." là thư mục, không phải tên file
+        raise ValueError(f"query_id '{query_id}' là tên thư mục đặc biệt, không phải id")
+
     duoi = "json" if SUBMIT_FORMAT.startswith("json") else "csv"
     return f"{query_id}.{duoi}"
 

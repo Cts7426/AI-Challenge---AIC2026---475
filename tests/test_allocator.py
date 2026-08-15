@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+import itertools
+
 import pytest
 
 from backend.export import QuerySubmission, n_frames_of, validate_submission
@@ -503,3 +505,184 @@ def test_trake_shot_can_giua_chung_van_du_100_dong(monkeypatch):
     assert len(answers) == ANSWERS_PER_QUERY
     assert all(len(a.frame_ids) == 4 for a in answers)
     assert len({(a.video_id, a.frame_ids) for a in answers}) == ANSWERS_PER_QUERY
+
+
+# ===================== M3: shot_id TRÙNG phải được gộp, không phá luật xen kẽ
+# Cơ chế xen kẽ đứng trên giả định "mỗi nguồn là MỘT shot khác nhau". Hai ShotHit
+# cùng shot_id thành hai nguồn riêng, và vì `used` chỉ khử theo (video, frame),
+# nguồn thứ hai lặng lẽ nhả frame KẾ TIẾP của cùng shot đó.
+
+def test_shot_id_trung_duoc_gop_giu_ban_diem_cao(real_videos):
+    vid = real_videos[0][0]
+    goc = hits_of([vid])[:5]
+    trung = [goc[0], ShotHit(goc[0].shot_id, 0.1), goc[1], goc[2]]
+
+    a = allocate(trung, "KIS")
+    assert len(a) == ANSWERS_PER_QUERY
+    # 3 slot đầu phải là 3 shot phân biệt — đúng bằng số shot_id phân biệt đưa vào
+    assert len({x.frame_ids[0] for x in a[:3]}) == 3
+    # và phải trùng đúng 3 slot đầu của bản KHÔNG có trùng lặp
+    assert [x.frame_ids[0] for x in a[:3]] == [x.frame_ids[0] for x in allocate(goc[:3], "KIS")[:3]]
+
+
+def test_shot_id_trung_khong_lam_5_slot_dau_ve_cung_mot_shot(real_videos):
+    """Ca hỏng thật: search trả mức keyframe → nhiều dòng cùng shot_id.
+
+    Không gộp thì slot 1-2-3 là ba frame LIỀN NHAU của một shot; shot đó sai là
+    mất trắng cả R@1 lẫn R@5.
+    """
+    vid = real_videos[0][0]
+    ids = [h.shot_id for h in hits_of([vid])[:3]]
+    a = allocate([ShotHit(s, 1.0 - i * 0.01) for i, s in enumerate([ids[0]] * 4 + ids[1:])], "KIS")
+
+    dau = [x.frame_ids[0] for x in a[:3]]
+    assert len(set(dau)) == 3
+    assert max(dau) - min(dau) > 3, f"3 slot đầu vẫn dính nhau trong một shot: {dau}"
+
+
+def test_gop_shot_trung_co_CANH_BAO(real_videos, capsys):
+    """Gộp im lặng thì không ai biết tầng search đang trả sai mức."""
+    vid = real_videos[0][0]
+    h = hits_of([vid])[:2]
+    allocate([h[0], ShotHit(h[0].shot_id, 0.5), h[1]], "KIS")
+    assert "trùng shot_id" in capsys.readouterr().out
+
+
+def test_khong_trung_thi_KHONG_canh_bao(real_videos, capsys):
+    allocate(hits_of([real_videos[0][0]])[:5], "KIS")
+    assert "trùng shot_id" not in capsys.readouterr().out
+
+
+def test_trake_cung_duoc_gop(nhieu_video):
+    """TRAKE xếp theo video nên trùng shot làm lệch cả phép chia đoạn."""
+    goc = hits_of(nhieu_video, 2)
+    a = allocate(goc + [ShotHit(goc[0].shot_id, 0.01)], "TRAKE", n_trake=4)
+    assert len(a) == ANSWERS_PER_QUERY
+    assert len({(x.video_id, x.frame_ids) for x in a}) == ANSWERS_PER_QUERY
+
+
+# ================== TRAKE chỉ có MỘT shot ứng viên — bất biến 100 dòng
+# Ca hay gặp thật: TRAKE nhắm tìm MỘT video, nên search rất dễ trả toàn shot của
+# cùng một video → `_allocate_trake` chỉ thấy 1 nguồn.
+
+@pytest.mark.parametrize("n", [2, 3, 4, 6])
+def test_trake_MOT_shot_van_du_100_dong(n):
+    """Máy phát của N khoảnh khắc dùng chung một video nên sẽ chồng lấn và sinh lại
+    tuple đã dùng. Coi một lần trùng là hết đường thì raise ở dòng 33/100.
+    """
+    answers = allocate([ShotHit("L21_V001#s0006", 1.0)], "TRAKE", n_trake=n)
+    assert len(answers) == ANSWERS_PER_QUERY
+    assert len({a.frame_ids for a in answers}) == ANSWERS_PER_QUERY
+    n_frames = n_frames_of(answers[0].video_id)
+    for a in answers:
+        assert len(a.frame_ids) == n
+        assert all(0 <= f < n_frames for f in a.frame_ids)
+        assert all(x < y for x, y in zip(a.frame_ids, a.frame_ids[1:]))
+
+
+def test_trake_moi_shot_ngan_deu_du_100_dong():
+    """Quét shot NGẮN NHẤT dataset — nơi máy phát chồng lấn sớm nhất."""
+    for r in _shots_df().nsmallest(15, "n_frames").itertuples(index=False):
+        answers = allocate([ShotHit(r.shot_id, 1.0)], "TRAKE", n_trake=4)
+        assert len(answers) == ANSWERS_PER_QUERY, f"{r.shot_id} chỉ ra {len(answers)}"
+
+
+# ============ nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín
+# Phần lớn là chốt chặn phòng thủ. Chốt chặn chưa ai chạy là chốt chặn chưa ai
+# biết đúng hay sai — mà đây là file cấp `frame_idx` cuối cùng trước khi nộp.
+
+@pytest.mark.parametrize("a, b, m, mong_doi", [
+    (10, 20, 0, []),          # không xin điểm nào
+    (10, 20, -1, []),
+    (20, 10, 3, []),          # biên ngược
+    (10, 20, 1, [15]),        # 1 điểm → điểm giữa
+    (10, 20, 2, [10, 20]),    # 2 điểm → hai đầu
+])
+def test_spread_evenly_moi_nhanh(a, b, m, mong_doi):
+    from backend.slot.allocator import _spread_evenly
+    assert _spread_evenly(a, b, m) == mong_doi
+
+
+@pytest.mark.parametrize("m", [0, 1])
+def test_segment_bounds_mot_doan_thi_tra_nguyen_shot(m):
+    from backend.slot.allocator import _segment_bounds
+    assert _segment_bounds(100, 200, 0, m) == (100, 200)
+
+
+def test_segment_bounds_khong_chong_lan_va_phu_kin():
+    from backend.slot.allocator import _segment_bounds
+    doan = [_segment_bounds(0, 41, k, 4) for k in range(4)]
+    assert doan[0][0] == 0 and doan[-1][1] == 41
+    for (_, b), (a, _) in zip(doan, doan[1:]):
+        assert a == b + 1, f"đoạn hở hoặc chồng lấn: {doan}"
+
+
+def test_shot_qua_NGAN_de_thut_bien_van_phat_du():
+    """span × 10% < 1 → không thụt được, phải dùng nguyên shot chứ không ra rỗng."""
+    from backend.slot.allocator import _frames_of_shot
+    ra = list(itertools.islice(_frames_of_shot(100, 103, 4, None, 10_000), 4))
+    assert len(ra) == 4 and len(set(ra)) == 4
+
+
+def test_may_phat_KHONG_dung_som_khi_frame_da_phat(real_videos):
+    """Mức ④ nới ra hai phía: gặp frame hợp lệ nhưng đã phát thì phải ĐI TIẾP,
+    không được coi là cạn."""
+    from backend.slot.allocator import _frames_of_shot
+    ra = list(itertools.islice(_frames_of_shot(50, 60, 200, None, 10_000), 200))
+    assert len(ra) == 200 and len(set(ra)) == 200
+
+
+def test_shot_bounds_tra_dung_bien(real_videos):
+    from backend.slot import shot_bounds
+    sid = hits_of([real_videos[0][0]])[0].shot_id
+    vid, s, e = shot_bounds(sid)
+    assert vid == real_videos[0][0] and s <= e
+
+
+def test_shot_bounds_id_la_bao_loi_ro_rang():
+    from backend.slot import shot_bounds
+    with pytest.raises(KeyError, match="hai bản shot khác nhau"):
+        shot_bounds("KHONG_CO_THAT")
+
+
+def test_keyframe_NGOAI_doan_TRAKE_bi_bo(real_videos, monkeypatch):
+    """Khoảnh khắc ở đoạn giữa shot không được nhận keyframe của đoạn đầu — nếu
+    không thì N khoảnh khắc chụm hết về một chỗ."""
+    import backend.slot.allocator as al
+    vid = real_videos[0][0]
+    h = hits_of([vid])[0]
+    _, start, _ = al._bounds_of(h)
+    monkeypatch.setattr(al, "_frame_of_keyframe", lambda kf: start)
+    gen, best = al._make_generator(
+        ShotHit(h.shot_id, 1.0, "L21_V001#k0001"), 4, (start + 20, start + 30))
+    assert best is None
+
+
+# ---------------------------------------- TRAKE: nhánh cạn kiệt và nới hạn mức
+
+def _fake_world(monkeypatch, bounds, n_frames):
+    import backend.slot.allocator as al
+    monkeypatch.setattr(al, "_shots", lambda: bounds)
+    monkeypatch.setattr(al, "n_frames_of", lambda v: n_frames[v])
+
+
+def test_trake_video_qua_ngan_thi_GAY_TO_chu_khong_tra_thieu(monkeypatch):
+    """20 frame không thể đẻ 100 dòng (mỗi máy phát chỉ phát tối đa n_frames giá
+    trị). Phải raise, KHÔNG được lặng lẽ trả 19 dòng.
+
+    Dữ liệu thật không có video nào < 933 frame nên đây là chốt chặn, không phải
+    đường chạy — nhưng chốt chặn im lặng thì tệ hơn không có.
+    """
+    _fake_world(monkeypatch, {"s0": ("VTI", 0, 19)}, {"VTI": 20})
+    with pytest.raises(RuntimeError, match="Cạn phương án TRAKE"):
+        allocate([ShotHit("s0", 1.0)], "TRAKE", n_trake=4)
+
+
+def test_trake_mot_video_chet_som_video_khac_ganh_du_100(monkeypatch):
+    """Video ngắn cạn sau vài dòng → phần còn lại phải do video dài gánh."""
+    _fake_world(monkeypatch, {"s0": ("VTI", 0, 4), "s1": ("VDAI", 0, 4000)},
+                {"VTI": 5, "VDAI": 5000})
+    a = allocate([ShotHit("s0", 1.0), ShotHit("s1", 0.9)], "TRAKE", n_trake=4)
+    assert len(a) == ANSWERS_PER_QUERY
+    assert len({(x.video_id, x.frame_ids) for x in a}) == ANSWERS_PER_QUERY
+    assert {x.video_id for x in a} == {"VTI", "VDAI"}

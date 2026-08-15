@@ -5,7 +5,12 @@
 
 from __future__ import annotations
 
+import pytest
+
+from pathlib import Path
+
 from backend.export import validate_all, validate_file, validate_submission
+from data.config.submit_format import suggest_filename
 from tests.conftest import cat_bot, replace_answer, rules_of
 
 
@@ -269,3 +274,105 @@ def test_validator_khong_bao_nham_tren_20_video_that():
         if da_kiem == 20:
             break
     assert da_kiem == 20, f"chỉ kiểm được {da_kiem} video, cần 20"
+
+
+# ================== M2: query_id đi vào TÊN FILE, không được thành đường dẫn
+# `write_submissions()` ghi ra `out_dir / suggest_filename(qid)`. Ghép chuỗi trần
+# thì "../../evil" cho file nộp rơi RA NGOÀI out_dir mà hàm vẫn báo thành công.
+
+@pytest.mark.parametrize("query_id", [
+    "../../evil", "a/b", r"a\b", "con:flict", "sao*", "hoi?", 'nhay"', "lon<hon",
+    "be>hon", "ong|", "", "   ", ".", "..",
+    "a\bb", "a\nb", "a\tb",   # ký tự điều khiển: tên file hỏng, mắt thường không thấy
+])
+def test_query_id_nguy_hiem_bi_tu_choi(query_id):
+    with pytest.raises(ValueError):
+        suggest_filename(query_id)
+
+
+@pytest.mark.parametrize("query_id", ["q_ab12", "kis_001", "q-1.2", "câu_1", "Q1"])
+def test_query_id_binh_thuong_van_chay(query_id):
+    ten = suggest_filename(query_id)
+    assert ten.startswith(query_id) and "/" not in ten and "\\" not in ten
+
+
+def test_ket_qua_luon_la_TEN_FILE_khong_phai_duong_dan():
+    """Bất biến: ghép vào thư mục nào cũng phải nằm TRONG thư mục đó."""
+    goc = Path("submissions").resolve()
+    p = (goc / suggest_filename("q_ab12")).resolve()
+    assert p.parent == goc
+
+
+# ============ write_submissions: hỏng ở giữa KHÔNG được để lại file ghi dở
+def test_query_id_hong_o_giua_thi_KHONG_ghi_file_nao(tmp_path, real_videos):
+    """Vòng lặp vừa dựng vừa ghi thì truy vấn hỏng ở vị trí 3 vẫn để lại 2 file trên
+    đĩa — người vận hành nhìn thư mục thấy có file, tưởng xong.
+    """
+    from backend.export import QuerySubmission, write_submissions
+    from data.config.submit_format import Answer
+
+    v, _ = real_videos[0]
+    def sub(qid):
+        return QuerySubmission(qid, "KIS", tuple(Answer(v, (i,)) for i in range(100)))
+
+    with pytest.raises(ValueError):
+        write_submissions([sub("ok_1"), sub("ok_2"), sub("a/b"), sub("ok_3")], tmp_path)
+    assert list(tmp_path.glob("*")) == [], "không được để lại file nào"
+
+
+def test_hai_truy_van_cung_ten_file_bi_chan(tmp_path, real_videos):
+    """validate=False bỏ qua luật query_duplicate → file sau ghi đè file trước."""
+    from backend.export import QuerySubmission, write_submissions
+    from data.config.submit_format import Answer
+
+    v, _ = real_videos[0]
+    s = QuerySubmission("q1", "KIS", tuple(Answer(v, (i,)) for i in range(100)))
+    with pytest.raises(ValueError, match="một tên file"):
+        write_submissions([s, s], tmp_path, validate=False)
+
+
+# ===================== nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín
+
+def test_trake_chi_1_frame_bi_bat(trake):
+    """Luật `frame_count` của TRAKE chưa từng chạy — chưa ai biết nó đúng hay sai."""
+    from backend.export import validate_submission
+    sub = replace_answer(trake, 0, frame_ids=(trake.answers[0].frame_ids[0],))
+    assert "frame_count" in rules_of(validate_submission(sub))
+
+
+def test_format_issues_khi_SACH():
+    from backend.export import format_issues
+    assert "HỢP LỆ" in format_issues([])
+
+
+def test_format_issues_gom_khi_QUA_3_loi(kis):
+    """Nhóm > 3 lỗi phải in 'và N lỗi nữa', không xổ hết ra màn hình."""
+    from backend.export import format_issues, validate_submission
+    sub = kis
+    for i in range(5):
+        sub = replace_answer(sub, i, video_id="L99_V999")
+    ra = format_issues(validate_submission(sub))
+    assert "lỗi nữa" in ra
+
+
+def test_build_submission_bao_loi_khi_sai_cau_truc():
+    from data.config.submit_format import build_submission, Answer
+    with pytest.raises(ValueError, match="sai định dạng"):
+        build_submission("q", "KIS", [Answer("L21_V001", (1, 2))])
+
+
+@pytest.mark.parametrize("task, rows, khoa", [
+    ("KIS",   [], "không có dòng nào"),
+    ("KIS",   [["v", 1, 2]], "đúng 1 frame"),
+    ("TRAKE", [["v", 1]], "ít nhất 2 frame"),
+    ("QA",    [["v", 1, 5]], "cột answer dạng chuỗi"),
+])
+def test_validate_format_moi_nhanh(task, rows, khoa):
+    from data.config.submit_format import validate_format
+    assert any(khoa in e for e in validate_format(task, rows)), validate_format(task, rows)
+
+
+def test_budget_per_shot_total_duoi_1_bi_chan():
+    from data.config.slot_budget import budget_per_shot
+    with pytest.raises(ValueError):
+        budget_per_shot(5, total=0)

@@ -231,3 +231,42 @@ def test_tra_duoc_cum_tu_co_that_trong_kho(kho_nho):
 def _doc_cua(lat, kf_id: str) -> str:
     hang = lat[lat.kf_id == kf_id]
     return "" if hang.empty else str(hang.iloc[0].doc_text)
+
+
+# ===================== nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín
+
+def test_snippet_khi_khong_tu_nao_khop():
+    from app.offline_search import _snippet
+    assert _snippet("xin chào thế giới", ["khongcotu"]) == "xin chào thế giới"
+
+
+def test_o_rong_parquet_KHONG_thanh_chuoi_nan():
+    """`str(NaN)` ra chuỗi 'nan' rồi trôi thẳng vào file nhãn, không ai nhận ra."""
+    from app.offline_search import _str_or_none
+    assert _str_or_none(float("nan")) is None
+    assert _str_or_none(None) is None
+    assert _str_or_none("L21_V001#s0001") == "L21_V001#s0001"
+
+
+def test_kho_rong_tra_ve_rong(tmp_path):
+    """docs_bm25 rỗng → trả [] chứ không chia cho 0 ở avg_len."""
+    import pandas as pd
+    p = tmp_path / "docs_bm25.parquet"
+    pd.DataFrame({"kf_id": [], "video_id": [], "shot_id": [], "frame_idx": [],
+                  "doc_text": []}).astype(
+        {"kf_id": "object", "video_id": "object", "shot_id": "object",
+         "frame_idx": "int64", "doc_text": "object"}).to_parquet(p)
+    assert search("thủ môn", docs_path=p) == []
+
+
+def test_doc_text_toan_rong_tra_ve_rong(tmp_path):
+    """avg_len == 0 → phép chia `lengths / avg_len` sẽ ra inf/NaN nếu không chặn."""
+    import pandas as pd
+    p = tmp_path / "docs_bm25.parquet"
+    pd.DataFrame({"kf_id": ["a"], "video_id": ["V"], "shot_id": ["s"],
+                  "frame_idx": [1], "doc_text": [""]}).to_parquet(p)
+    assert search("thủ môn", docs_path=p) == []
+
+
+def test_file_khong_ton_tai_tra_ve_rong(tmp_path):
+    assert search("thủ môn", docs_path=tmp_path / "khong_co.parquet") == []

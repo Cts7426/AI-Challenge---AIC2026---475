@@ -155,7 +155,12 @@ def _frames_of_shot(
     span = end - start + 1
     inset = int(span * SHOT_EDGE_INSET)
     a, b = start + inset, end - inset
-    if b < a:  # shot quá ngắn để thụt được → dùng nguyên shot
+    # Thụt quá tay thì vùng rải rỗng → lùi về dùng nguyên shot.
+    # ⚠️ ĐỪNG XOÁ dù đo độ phủ báo là chưa bao giờ chạy: điều kiện `b < a` tương đương
+    # `span - 1 < 2·int(span·INSET)`, vô nghiệm với mọi `SHOT_EDGE_INSET <= 0.4` nhưng
+    # có nghiệm từ 0.5 trở lên (quét span 1..4999). D4.1 là task tune đúng hằng đó,
+    # nên đây là chốt chặn cho tương lai gần, không phải code chết.
+    if b < a:
         a, b = start, end
 
     # ② — trừ 1 CHỈ KHI mức ① thật sự đã phát (có `best_frame` mà nó nằm ngoài
@@ -318,7 +323,7 @@ def allocate(
         # answer — hai bên cùng "đúng" mà kết quả không như ai nghĩ.
         raise ValueError(f"{task_type} không được có answer_text (chỉ Q&A mới có)")
 
-    ranked = sorted(hits, key=lambda h: h.score, reverse=True)
+    ranked = _dedupe_shots(sorted(hits, key=lambda h: h.score, reverse=True))
     if task_type == "TRAKE":
         # `is None` chứ KHÔNG dùng `or`: n_trake=0 là số 0 falsy, `or` sẽ âm thầm
         # thay bằng 4 thay vì báo lỗi — đúng kiểu thay số lặng lẽ mà W0.2 cấm.
@@ -350,6 +355,45 @@ def shot_bounds(shot_id: str) -> tuple[str, int, int]:
             f"shot_id '{shot_id}' không có trong shots.parquet. "
             "Tầng search và Data Factory đang dùng hai bản shot khác nhau."
         ) from None
+
+
+def _dedupe_shots(ranked: list[ShotHit]) -> list[ShotHit]:
+    """Bỏ ShotHit trùng `shot_id`, giữ bản điểm cao nhất. `ranked` đã sắp giảm dần
+    nên bản gặp đầu tiên chính là bản điểm cao nhất, và thứ hạng còn lại giữ nguyên.
+
+    Vì sao cần: cả cơ chế xen kẽ đứng trên giả định "mỗi nguồn là MỘT shot khác
+    nhau". Đưa vào hai ShotHit cùng `shot_id` thì chúng thành hai nguồn riêng, hai
+    máy phát riêng — và vì `used` chỉ khử trùng theo (video, frame), nguồn thứ hai
+    lặng lẽ nhả frame KẾ TIẾP của cùng shot đó. Đo được:
+
+        shot_id khác nhau : [34, 350, 388, 415, 463]   ← 5 shot, đúng luật
+        shot_id trùng lặp : [34, 48, 62, 350, 388]     ← 3 slot đầu CÙNG một shot
+
+    Shot đó sai là mất trắng cả R@1 lẫn R@5 — đúng thứ luật xen kẽ sinh ra để tránh,
+    mà không có exception nào, không có dòng log nào.
+
+    Đường tới được: `search(group_by_shot=False)` trả kết quả mức KEYFRAME, nhiều
+    keyframe cùng một shot. `GROUP_BY_SHOT=True` trong data/config/search_weights.py
+    nên hiện tại an toàn — nhưng `backend/tasks/qa.py` gọi `search()` KHÔNG truyền
+    tham số đó (trong khi `trake.py` truyền tường minh), nên nó ăn theo một hằng
+    nằm trong file *tunable*. Lật hằng đó là hỏng, mà lật hằng tunable là chuyện
+    người ta làm hằng ngày.
+
+    Vì sao KHỬ TRÙNG chứ không raise: gộp lại cho ra ĐÚNG thứ lẽ ra phải nhận —
+    n shot phân biệt — và `budget_per_shot()` xử lý số lượng nào cũng được. Raise
+    thì mất cả bài nộp cho một tình huống sửa được trọn vẹn. Cùng lối nghĩ với
+    `_frame_of_keyframe()` trả None thay vì raise.
+    """
+    unique: dict[str, ShotHit] = {}
+    for h in ranked:
+        unique.setdefault(h.shot_id, h)
+    if len(unique) != len(ranked):
+        print(
+            f"  [cảnh báo] slot allocator: {len(ranked) - len(unique)}/{len(ranked)} shot ứng "
+            f"viên trùng shot_id, đã gộp còn {len(unique)}. Tầng search nhiều khả năng "
+            "trả kết quả mức keyframe — kiểm search(group_by_shot=True)."
+        )
+    return list(unique.values())
 
 
 def _video_of(h: ShotHit) -> str:
@@ -444,13 +488,13 @@ def _allocate_trake(
         for i, vid in enumerate(videos):
             if i in dead or drawn[i] >= quotas[i]:
                 continue
-            frames = _trake_row(generators[vid], n_frames_of(vid))
-            if frames is None:
+            frames, can_kiet = _draw_fresh_row(generators[vid], n_frames_of(vid), vid, used)
+            if can_kiet:
                 dead.add(i)
                 continue
+            if frames is None:
+                continue  # trùng liên tục — vòng sau thử lại, CHƯA phải hết đường
             key = (vid, frames)
-            if key in used:
-                continue  # trùng — máy phát đã tiến, vòng sau thử lại
             used.add(key)
             rows.append(Answer(video_id=vid, frame_ids=frames))
             drawn[i] += 1
@@ -473,6 +517,43 @@ def _allocate_trake(
                 f"Cạn phương án TRAKE ở dòng {len(rows)}/{total} — cần thêm video ứng viên"
             )
     return rows
+
+
+# Số lần rút lại khi tuple vừa rút đã dùng rồi. Đây là hằng CƠ CHẾ (thuộc allocator),
+# không phải chiến thuật (slot_budget) — nó không đổi khi tune bảng ngân sách.
+MAX_DUPLICATE_RETRIES = 200
+
+
+def _draw_fresh_row(
+    gens: list[Iterator[int]], n_frames_video: int, video_id: str,
+    used: set[tuple[str, tuple[int, ...]]],
+) -> tuple[tuple[int, ...] | None, bool]:
+    """Rút một tuple CHƯA DÙNG từ nhóm máy phát. Ra: (tuple | None, máy_phát_đã_cạn).
+
+    Vì sao phải rút lại thay vì bỏ lượt: các máy phát của một video dùng chung một
+    video, nên khi chúng cạn segment riêng và tràn sang mức ④ (nới ra ngoài biên) thì
+    bắt đầu chồng lấn — `_trake_row` sắp xếp rồi đẩy trùng lên 1 nên sinh lại đúng
+    tuple đã dùng. Đo trên shot `L21_V001#s0006` (42 frame, N=4): 20 tuple phân biệt
+    rồi lượt 21 trùng.
+
+    Bản trước coi MỘT lần trùng là "hết đường" — `progress` không bật, và với video
+    duy nhất thì `_allocate_trake` raise ngay ở dòng 33/100, dù mỗi máy phát còn hàng
+    chục nghìn frame chưa dùng. Vi phạm bất biến số một của D3.1 ("KHÔNG BAO GIỜ trả
+    < 100 dòng"), và chỉ lộ khi TRAKE chỉ có một video ứng viên — đúng ca hay gặp,
+    vì TRAKE vốn nhắm tìm MỘT video.
+
+    Có chặn số lần rút: máy phát cạn thì tự dừng, nhưng để nó rút vô hạn là đặt một
+    vòng lặp không biên vào đường chạy online (CLAUDE.md bất biến 10 — mọi thứ phải
+    đo được độ trễ). Hết lượt rút mà vẫn trùng thì trả None-không-cạn: chỗ gọi bỏ
+    lượt này và thử lại ở vòng sau, không giết nguồn.
+    """
+    for _ in range(MAX_DUPLICATE_RETRIES):
+        frames = _trake_row(gens, n_frames_video)
+        if frames is None:
+            return None, True
+        if (video_id, frames) not in used:
+            return frames, False
+    return None, False
 
 
 def _trake_row(gens: list[Iterator[int]], n_frames_video: int) -> tuple[int, ...] | None:

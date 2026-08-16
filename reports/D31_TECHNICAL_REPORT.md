@@ -532,11 +532,10 @@ lần đầu sẽ hiểu ngược hoàn toàn.
 | 2 | `allocator.py` tham số `--shots` | Số shot ứng viên giả lập | Chỉ có ở CLI demo |
 | 3 | `exporter._demo_subs()` + `--demo` | Sinh bài nộp giả từ video thật (D0.2) | Như trên |
 | 4 | `write_submissions(..., validate=False)` | Đường thoát để ghi dữ liệu hỏng ra soi | ⚠️ **TUYỆT ĐỐI không dùng ngày nộp.** Mặc định là `True`; nếu ai đó đặt `False` thì bài nộp sai vẫn ra file trông hợp lệ |
-| 5 | `csv_header_v0` · `json_v0` | Hai trong ba format là **phỏng đoán dự phòng** | BTC chốt format → **xoá hai cái không dùng**, giữ đúng một. Để lại ba cái là để lại ba cách nộp sai |
-| 6 | `SUBMIT_FORMAT = "csv_v0"` | Đang chọn đại một trong ba | Sửa đúng dòng này khi BTC trả lời |
-| 7 | `allocate(total=...)` | Tham số cho phép khác 100 | Chỉ dùng để test. Lúc thi **luôn 100** (`BUILD_TASKS` D3.1). Từ 09/08 `total < 1` bị raise |
-| 8 | `allocate(table=...)` | Cho truyền bảng ngân sách khác | Dùng ở D4.1 để tune. Lúc thi để mặc định |
-| 9 | `tests/conftest.py`: `hits_of()`, `build_sub()`, `shots_of()` | Dựng dữ liệu test | Nằm trong `tests/`, không bao giờ chạy lúc thi |
+| 5 | ~~`csv_header_v0` · `json_v0` · `SUBMIT_FORMAT`~~ | — | ✅ **Đã xoá 16/08** sau khi BTC chốt CSV không header — xem `D02_W02_TECHNICAL_REPORT.md` §10.2 |
+| 6 | `allocate(total=...)` | Tham số cho phép khác 100 | Chỉ dùng để test. Lúc thi **luôn 100** (`BUILD_TASKS` D3.1). Từ 09/08 `total < 1` bị raise |
+| 7 | `allocate(table=...)` | Cho truyền bảng ngân sách khác | Dùng ở D4.1 để tune. Lúc thi để mặc định |
+| 8 | `tests/conftest.py`: `hits_of()`, `build_sub()`, `shots_of()` | Dựng dữ liệu test | Nằm trong `tests/`, không bao giờ chạy lúc thi |
 
 **Điểm 4 và 5 là hai chỗ dễ gây tai nạn nhất** — cả hai đều tạo ra file nộp *trông* hợp
 lệ mà sai.

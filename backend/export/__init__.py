@@ -6,6 +6,7 @@
 from backend.export.exporter import (
     ANSWERS_PER_QUERY,
     REPO_ROOT,
+    SUBMISSION_DIR_NAME,
     Issue,
     QuerySubmission,
     all_video_ids,
@@ -15,12 +16,15 @@ from backend.export.exporter import (
     validate_all,
     validate_file,
     validate_submission,
+    validate_zip,
+    write_submission_zip,
     write_submissions,
 )
 
 __all__ = [
     "ANSWERS_PER_QUERY",
     "REPO_ROOT",
+    "SUBMISSION_DIR_NAME",
     "Issue",
     "QuerySubmission",
     "all_video_ids",
@@ -30,5 +34,7 @@ __all__ = [
     "validate_all",
     "validate_file",
     "validate_submission",
+    "validate_zip",
+    "write_submission_zip",
     "write_submissions",
 ]

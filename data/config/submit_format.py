@@ -10,36 +10,39 @@
 #
 # Thứ hạng = THỨ TỰ dòng, mỗi truy vấn là 1 file riêng.
 #
-# ĐÃ CHỐT (tài liệu BTC "Thông tin vòng Sơ tuyển", mục 2.1):
+# ĐÃ CHỐT — nguồn: trang thi Codabench của BTC, hai trang "Hướng dẫn nộp bài sơ tuyển"
+# và "Phương pháp đánh giá" (đọc 16/08):
+#   · **CSV, KHÔNG header**, phân cách bằng dấu phẩy, UTF-8
 #   · thứ tự ô đúng như trên, Q&A có thêm cột answer ở CUỐI
-#   · answer chấp nhận tiếng Việt HOẶC tiếng Anh
-#   · tối đa 100 câu trả lời mỗi truy vấn (mục 2)
+#   · answer: tiếng Việt HOẶC tiếng Anh, **tối đa 100 ký tự**
+#   · tối đa 100 dòng mỗi truy vấn
+#   · `video_id` ghi TRẦN, **không có đuôi `.mp4`** — BTC: "L00_V000"
+#   · tên file = ĐÚNG tên gói truy vấn BTC phát, chỉ đổi đuôi `.txt` → `.csv`
+#     (BTC phát `query-1-kis.txt` → mình nộp `query-1-kis.csv`)
+#   · cả 3 file gói trong thư mục `submission/` rồi nén `.zip` — xem
+#     `backend/export/exporter.py::write_submission_zip`
 #
-# TODO: BTC — chưa công bố: CSV hay JSON · có header không · frame_id đếm từ 0 hay 1 ·
-# quy ước đặt tên file · có gộp zip không. Ba format dưới là PHỎNG ĐOÁN (hậu tố _v0).
+# Vì sao chỉ còn MỘT bộ ghi: trước 16/08 chưa biết BTC muốn CSV hay JSON, có header
+# hay không, nên chỗ này có 3 format đăng ký qua `@register` để lật bằng một hằng.
+# BTC đã chốt → hai format kia là đường chưa bao giờ dùng tới, và một nhánh code
+# không ai chạy là một nhánh không ai kiểm. Xoá.
 #
-# TODO: BTC — ⚠️ `video_id` CÓ ĐUÔI `.mp4` KHÔNG? Tài liệu BTC viết ví dụ là
-# `video_id = video_abc(.mp4)` — dấu ngoặc không nói rõ là tuỳ chọn hay bắt buộc.
-# Tầng này đang ghi nguyên `video_id` như trong `shots.parquet`, tức KHÔNG đuôi
-# (`L21_V001`). Nếu BTC đòi `L21_V001.mp4` thì SAI TOÀN BỘ bài nộp mà validator vẫn
-# xanh — cùng hạng nguy hiểm với việc `frame_id` đếm từ 0 hay 1. Hỏi cùng lượt.
+# TODO: BTC — `frame_id` đếm từ 0 hay 1 vẫn CHƯA chốt bằng văn bản. Trang chính thức
+# chỉ ghi "Frame ID sẽ được so sánh dưới dạng số nguyên". Ghi chú buổi họp nói BTC
+# đếm từ 1 nhưng châm chước lệch 1 frame. Tầng này đang ghi nguyên con số tầng trên
+# đưa xuống (0-based, theo `data/config/frame_convention.md`) — CHƯA sửa, chờ chốt.
 
 from __future__ import annotations
 
 import csv
 import io
-import json
 import operator
-from collections.abc import Callable
 from dataclasses import dataclass
 
-# Format đang dùng. BTC chốt thì đổi ĐÚNG DÒNG NÀY, không chỗ nào khác.
-#
-# Cố ý KHÔNG cho chọn format bằng tham số: lúc thi chỉ có một định dạng đúng.
-# Để nó thành tuỳ chọn là mở đường cho việc nộp nhầm format mà không ai biết.
-SUBMIT_FORMAT = "csv_v0"
-
 TASK_TYPES = ("KIS", "QA", "TRAKE")
+
+# Đuôi file nộp. BTC chốt CSV → hằng chứ không suy từ tên format nữa.
+SUBMIT_EXT = "csv"
 
 # Số câu trả lời mỗi truy vấn. BTC cho TỐI ĐA 100 và nộp sai KHÔNG bị trừ điểm
 # → luôn nộp đủ 100 (BUILD_TASKS D3.1: "KHÔNG BAO GIỜ trả < 100 dòng").
@@ -48,6 +51,13 @@ TASK_TYPES = ("KIS", "QA", "TRAKE")
 # (backend/export) lẫn slot allocator (data/config/slot_budget) đều đọc từ đúng chỗ này —
 # hai bản sao của cùng một con số là cách chắc chắn nhất để chúng lệch nhau về sau.
 ANSWERS_PER_QUERY = 100
+
+# Độ dài tối đa của ô `answer` (Q&A). BTC: "Độ dài tối đa: 100 ký tự".
+#
+# ⚠️ KHÔNG phải `MAX_ANSWER_LEN = 500` của `backend/common/answer_match.py` — con số
+# đó là chặn đầu vào cho `difflib` (chống chậm bậc hai), thuộc tầng so khớp. Đây là
+# LUẬT BTC, đo trên chuỗi sẽ ghi ra file. Hai số, hai mục đích, đừng gộp.
+ANSWER_MAX_CHARS = 100
 
 
 @dataclass(frozen=True)
@@ -104,64 +114,17 @@ def answer_to_cells(task_type: str, a: Answer) -> list:
     return cells
 
 
-def _header_for(task_type: str, n_frames_per_row: int) -> list[str]:
-    """Tên cột — chỉ dùng cho format có header. TODO: BTC xác nhận tên thật."""
-    cols = ["video_id"]
-    cols += ["frame_id"] if n_frames_per_row == 1 else [
-        f"frame_id_{i}" for i in range(1, n_frames_per_row + 1)
-    ]
-    if task_type == "QA":
-        cols.append("answer")
-    return cols
+def _csv_text(rows: list[list]) -> str:
+    """Các ô → nội dung CSV không header, đúng thứ BTC nhận.
 
-
-# ---------------------------------------------------------------- kho định dạng
-
-FORMATS: dict[str, Callable[[str, list[list], int], str]] = {}
-
-
-def register(name: str) -> Callable:
-    """Đăng ký một bộ ghi. Thêm format mới = thêm 1 hàm + 1 dòng decorator."""
-
-    def deco(fn: Callable) -> Callable:
-        FORMATS[name] = fn
-        return fn
-
-    return deco
-
-
-def _csv_text(rows: list[list], header: list[str] | None) -> str:
+    `lineterminator="\\n"`: mặc định của module `csv` là `\\r\\n`, mà `write_text()`
+    còn dịch `\\n` → `\\r\\n` lần nữa trên Windows → ra `\\r\\r\\n`. BTC nhận cả CRLF
+    lẫn LF nhưng KHÔNG nhận `\\r\\r\\n`.
+    """
     buf = io.StringIO()
-    # lineterminator="\n": mặc định của csv là "\r\n" → trên Windows thành \r\r\n
     w = csv.writer(buf, lineterminator="\n")
-    if header:
-        w.writerow(header)
     w.writerows(rows)
     return buf.getvalue()
-
-
-@register("csv_v0")
-def _fmt_csv_v0(task_type: str, rows: list[list], n_frames_per_row: int) -> str:
-    """CSV không header — sát nhất với mục 2.1 của BTC."""
-    return _csv_text(rows, None)
-
-
-@register("csv_header_v0")
-def _fmt_csv_header_v0(task_type: str, rows: list[list], n_frames_per_row: int) -> str:
-    """CSV có header, phòng khi BTC yêu cầu tên cột."""
-    return _csv_text(rows, _header_for(task_type, n_frames_per_row))
-
-
-@register("json_v0")
-def _fmt_json_v0(task_type: str, rows: list[list], n_frames_per_row: int) -> str:
-    """JSON — giữ frame_ids dạng list, dễ đọc lại khi debug."""
-    out = []
-    for r in rows:
-        item: dict = {"video_id": r[0], "frame_ids": r[1 : 1 + n_frames_per_row]}
-        if task_type == "QA":
-            item["answer"] = r[-1]
-        out.append(item)
-    return json.dumps(out, ensure_ascii=False, indent=2) + "\n"
 
 
 # -------------------------------------------------------------------- API chính
@@ -173,7 +136,7 @@ def build_submission(query_id: str, task_type: str, answers: list[Answer]) -> st
       query_id  — chỉ để báo lỗi cho dễ truy; KHÔNG xuất hiện trong file.
       task_type — "KIS" | "QA" | "TRAKE"
       answers   — thứ tự CHÍNH LÀ thứ hạng, phần tử đầu = hạng 1
-    Output: chuỗi nội dung file, theo SUBMIT_FORMAT.
+    Output: chuỗi nội dung file CSV không header.
     Bất biến: không tra bảng, không suy diễn — mọi frame_id phải do tầng trên đưa xuống.
 
     ⚠️ KHÔNG nhận `frame_map`, và sẽ không bao giờ nhận. Tra keyframe_id → frame_idx
@@ -182,12 +145,6 @@ def build_submission(query_id: str, task_type: str, answers: list[Answer]) -> st
     """
     if task_type not in TASK_TYPES:
         raise ValueError(f"[{query_id}] task_type '{task_type}' không hợp lệ, phải là {TASK_TYPES}")
-    fmt = SUBMIT_FORMAT
-    if fmt not in FORMATS:
-        raise ValueError(
-            f"SUBMIT_FORMAT='{fmt}' chưa đăng ký. Đang có: {sorted(FORMATS)}. "
-            "Thêm bằng @register('ten') trong data/config/submit_format.py."
-        )
     if not answers:
         raise ValueError(f"[{query_id}] không có câu trả lời nào để nộp")
 
@@ -196,7 +153,7 @@ def build_submission(query_id: str, task_type: str, answers: list[Answer]) -> st
     if loi:
         raise ValueError(f"[{query_id}] sai định dạng: " + " · ".join(loi[:3]))
 
-    return FORMATS[fmt](task_type, rows, len(answers[0].frame_ids))
+    return _csv_text(rows)
 
 
 # Ký tự không được có trong `query_id` vì nó đi thẳng vào TÊN FILE.
@@ -206,7 +163,13 @@ _FORBIDDEN_CHARS = set('/\\:*?"<>|\0')
 
 
 def suggest_filename(query_id: str) -> str:
-    """Tên file nộp cho một truy vấn. Đuôi file suy từ SUBMIT_FORMAT.
+    """Tên file nộp cho một truy vấn: `<query_id>.csv`.
+
+    ⚠️ `query_id` PHẢI là tên gói BTC phát, gõ y nguyên. BTC phát
+    `query-1-kis.txt` … `query-4-trake.txt` thì bài nộp phải là `query-1-kis.csv` …
+    `query-4-trake.csv`. Tự đặt id kiểu `kis_001` là nộp sai tên file — BTC không
+    ghép được đáp án với câu hỏi, và không có thông báo lỗi nào.
+    Dấu `-` hợp lệ, không nằm trong `_FORBIDDEN_CHARS`.
 
     Bất biến: KẾT QUẢ LUÔN LÀ MỘT TÊN FILE, không bao giờ là đường dẫn.
 
@@ -220,8 +183,6 @@ def suggest_filename(query_id: str) -> str:
 
     Raise chứ không tự làm sạch: tầng format KHÔNG tự suy ra gì (luật W0.2). Đổi
     thầm tên file là mất luôn đường map ngược bài nộp về truy vấn.
-
-    TODO: BTC — quy ước đặt tên chưa công bố. Tạm dùng "<query_id>.<đuôi>".
     """
     if not query_id or not query_id.strip():
         raise ValueError("query_id rỗng — không dựng được tên file nộp")
@@ -238,8 +199,7 @@ def suggest_filename(query_id: str) -> str:
         # "." và ".." là thư mục, không phải tên file
         raise ValueError(f"query_id '{query_id}' là tên thư mục đặc biệt, không phải id")
 
-    duoi = "json" if SUBMIT_FORMAT.startswith("json") else "csv"
-    return f"{query_id}.{duoi}"
+    return f"{query_id}.{SUBMIT_EXT}"
 
 
 # ----------------------------------------------------- validator TẦNG ĐỊNH DẠNG

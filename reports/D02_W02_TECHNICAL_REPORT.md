@@ -83,7 +83,7 @@ flowchart TD
     F --> G["answer_to_cells()<br/>sắp ô theo mục 2.1 BTC"]
     G --> H{"validate_format()<br/>TẦNG ĐỊNH DẠNG"}
     H -->|"sai cột/kiểu"| E
-    H -->|"đúng"| I["FORMATS[SUBMIT_FORMAT]<br/>serialize"]
+    H -->|"đúng"| I["_csv_text()<br/>CSV không header"]
     I --> J["write_text<br/>utf-8, newline=''"]
     J --> K{"validate_file()"}
     K -->|"có BOM / sai mã"| L["⚠️ báo lỗi"]
@@ -136,32 +136,22 @@ Ba quyết định đi kèm:
 - **`query_id` không xuất hiện trong file** — tài liệu BTC mục 2.1 không có cột đó.
   Nó chỉ dùng để đặt tên file, vì mỗi truy vấn là một file riêng.
 
-### Bước 3 — Dựng kho định dạng, chuyển bằng đúng 1 dòng hằng
+### Bước 3 — Một bộ ghi duy nhất: CSV không header
 
-```python
-FORMATS: dict[str, Callable] = {}
+> **Cập nhật 16/08 — BTC đã chốt.** Bản trước có ba format đăng ký sẵn qua
+> `@register` (`csv_v0`, `csv_header_v0`, `json_v0`) vì chưa biết BTC muốn CSV hay
+> JSON, có header hay không. Trang thi Codabench đã trả lời: **CSV, không header,
+> dấu phẩy, UTF-8**. Hai format kia là đường chưa bao giờ chạy → đã xoá cùng cả
+> registry. Một nhánh code không ai chạy là một nhánh không ai kiểm, và để lại ba
+> format là để lại ba cách nộp sai.
 
-@register("csv_v0")
-def _fmt_csv_v0(task_type, rows, n_frames_per_row) -> str: ...
-```
-
-Ba format đăng ký sẵn — **tất cả đều là phỏng đoán**, hậu tố `_v0` để không ai nhầm
-là đã chốt:
-
-| Tên | Hình dạng |
-|:---|:---|
-| `csv_v0` | CSV không header — sát nhất với mục 2.1 |
-| `csv_header_v0` | CSV có dòng tên cột |
-| `json_v0` | JSON, mảng object |
-
-BTC công bố format thật → thêm 1 hàm, dán 1 dòng `@register`, đổi `SUBMIT_FORMAT`.
-Không sửa gì khác — đúng yêu cầu *"format tách rời hoàn toàn khỏi pipeline"* của `BUILD_TASKS`.
+`build_submission()` giờ gọi thẳng `_csv_text(rows)`. Tầng định dạng vẫn tách rời
+hoàn toàn khỏi pipeline — BTC đổi ý thì sửa đúng file này, không chỗ nào khác.
 
 ⚠️ Cố ý **không** cho chọn format bằng tham số hàm. `BUILD_TASKS` chốt chữ ký
 `build_submission(query_id, task_type, answers)` — đúng ba tham số. Lúc thi chỉ có một
 định dạng đúng; biến nó thành tuỳ chọn là mở đường cho việc nộp nhầm format mà không ai
-biết. Điểm chuyển duy nhất là hằng `SUBMIT_FORMAT`, và test
-`test_build_submission_dung_3_tham_so` canh cho chữ ký không lệch lại.
+biết. Test `test_build_submission_dung_3_tham_so` canh cho chữ ký không lệch lại.
 
 ### Bước 4 — Validator chia hai tầng
 
@@ -195,10 +185,9 @@ path.write_text(noi_dung, encoding="utf-8", newline="")
 | `Answer` | Một câu trả lời. `frozen=True` → hashable → luật kiểm trùng lặp chỉ cần `set()`. |
 | `Answer.__post_init__()` | **Chốt an toàn ở cửa vào.** Chuẩn hoá `frame_ids` về `tuple[int]` bằng `operator.index()`. |
 | `answer_to_cells()` | `Answer` → list ô, đúng thứ tự cột BTC mục 2.1. Không tính toán, chỉ sắp xếp. |
-| `register(name)` | Decorator đăng ký bộ ghi vào `FORMATS`. |
-| `_fmt_csv_v0` · `_fmt_csv_header_v0` · `_fmt_json_v0` | Ba bộ ghi phỏng đoán. |
+| `_csv_text()` | Các ô → CSV không header. Bộ ghi DUY NHẤT (BTC chốt 16/08). |
 | `build_submission()` | **Cửa vào duy nhất.** Sắp ô → kiểm định dạng → serialize. |
-| `suggest_filename()` | Tên file cho một truy vấn. `TODO: BTC` — quy ước chưa công bố. |
+| `suggest_filename()` | `<query_id>.csv`. `query_id` phải gõ ĐÚNG tên gói BTC phát (`query-1-kis`). |
 | `validate_format()` | Validator tầng định dạng: số cột nhất quán, `frame_id` là số nguyên, `video_id` khác rỗng. |
 
 ### 4.2. `backend/export/exporter.py`
@@ -228,7 +217,7 @@ thức trượt hạn.
 
 ---
 
-## 5. Bảy luật của validator
+## 5. Chín luật của validator
 
 
 | # | Luật | Tầng | Slug `Issue` |
@@ -239,7 +228,9 @@ thức trượt hạn.
 | 4 | Không dòng trùng lặp hoàn toàn | ngữ nghĩa | `duplicate_answer` |
 | 5 | TRAKE đúng N frame, **tăng dần ngặt** | ngữ nghĩa | `trake_not_increasing`, `trake_n_inconsistent`, `trake_n_mismatch` |
 | 6 | Q&A có `answer` không rỗng | ngữ nghĩa | `answer_empty` |
-| 7 | File UTF-8, **không BOM, không CRLF** | file | `bom`, `not_utf8`, `crlf` |
+| 7 | Q&A `answer` **≤ 100 ký tự** *(mới 16/08)* | ngữ nghĩa | `answer_too_long` |
+| 8 | File UTF-8, **không BOM** | file | `bom`, `not_utf8`, `cr_don_le` |
+| 9 | Zip có lớp thư mục `submission/` *(mới 16/08)* | zip | `zip_no_submission_dir`, `zip_corrupt`, `zip_empty`, `zip_missing` |
 
 Kèm bốn luật phụ phát sinh khi cài đặt: `task_type` hợp lệ · `query_id` không trùng ·
 KIS/Q&A đúng 1 frame · dạng không phải Q&A thì không được có `answer`.
@@ -249,22 +240,38 @@ KIS/Q&A đúng 1 frame · dạng không phải Q&A thì không được có `ans
 > **báo lỗi**, tuyệt đối không lặng lẽ bỏ qua. Bỏ qua = cho trôi dòng sai mà không ai
 > biết — đúng loại lỗi im lặng mà cả dự án đang phòng.
 
-### Vì sao luật 7 phải nằm trong validator, không chỉ nằm trong test
+### Luật 7 — đếm KÝ TỰ, không đếm byte
 
-`write_submissions()` ghi bằng `newline=""` nên file **nó** sinh ra luôn dùng LF — test
-đọc byte và xác nhận điều đó. Nhưng D6.1 (preflight) chạy `validate_file()` lên **file
-cuối cùng trước khi nộp**, mà file đó có thể do UI, script tay, hoặc một lần copy qua
-PowerShell ghi ra. Nếu luật chỉ sống trong test thì con đường đó không ai canh.
+BTC: *"Độ dài tối đa: 100 ký tự"*. `"ố" * 100` là 100 ký tự nhưng **200 byte** UTF-8 —
+đếm byte thì mọi câu trả lời tiếng Việt có dấu đều bị báo nhầm. Con số này **không**
+liên quan tới `MAX_ANSWER_LEN = 500` của `backend/common/answer_match.py` (đó là chặn
+đầu vào cho `difflib`, thuộc tầng so khớp).
+
+### Luật 8 — CRLF KHÔNG còn là lỗi *(sửa 16/08)*
+
+Bản trước bắt CRLF là `Issue`. Trang BTC ghi rõ *"CRLF **or** LF line endings"* — cả
+hai đều nhận, nên luật cũ là **báo động giả**. Preflight D6.1 chạy ngay trước giờ nộp
+mà báo đỏ một file hợp lệ thì người vận hành đi sửa thứ không hỏng, đúng lúc không còn
+thời gian.
+
+Còn giữ `\r` **đơn lẻ** (không kèm `\n`) — newline kiểu Mac cổ, không nằm trong hai
+kiểu BTC nhận, và không lộ ra khi mở file bằng mắt:
 
 ```
-b"L21_V001,100\r\n..."   →  crlf: có 2 dòng kết thúc bằng CRLF — phải ghi LF
-b"L21_V001,100\r..."     →  crlf: có 2 ký tự \r đơn lẻ — phải ghi LF
-b"L21_V001,100\n..."     →  []   (LF thuần: im lặng)
+b"L21_V001,100\r\n..."   →  []           (CRLF: BTC nhận, im lặng)
+b"L21_V001,100\n..."     →  []           (LF: im lặng)
+b"L21_V001,100\r..."     →  cr_don_le: có 2 ký tự \r đơn lẻ
+b"\xef\xbb\xbfL21_..."   →  bom          (vẫn là lỗi — làm hỏng ô đầu tiên)
 ```
 
-Báo kèm **số dòng dính** để phân biệt "một dòng lẻ bị dán vào" với "cả file sai
-newline" — hai thứ này cần hai cách xử lý khác nhau. `\r` đơn lẻ (newline kiểu Mac cổ)
-cũng bị bắt, vì nó không lộ ra khi mở file bằng mắt.
+### Luật 9 — vì sao phải đọc lại file zip vừa ghi
+
+Kiểm cái mình vừa làm thì gần như vô nghĩa. Giá trị nằm ở chỗ `validate_zip()` chạy
+được trên file **người khác nén tay** — đúng ca hay hỏng nhất: trên Windows, chọn 3
+file CSV rồi *Send to → Compressed folder* tạo zip chứa **thẳng 3 file, không có lớp
+`submission/`**. Mở ra vẫn thấy đủ tên đúng nội dung đúng, và BTC từ chối. Phải chọn
+đúng **thư mục** rồi mới nén. Mỗi gói chỉ được nộp **3 lần**, nên một lần nộp hỏng vì
+thao tác nén là mất 1/3 cơ hội.
 
 ---
 
@@ -432,8 +439,8 @@ Việc thực sự chạy mỗi lần nộp là **0.20 ms**. Tầng này không 
 | Một hàm chung cho cả 3 dạng bài | ✅ |
 | Validator *định dạng* cạnh `submit_format.py` | ✅ |
 | Validator *ngữ nghĩa* trong `export.py` | ✅ |
-| 7 luật validator | ✅ |
-| Format tách rời hoàn toàn, đổi = 1 dòng `SUBMIT_FORMAT` | ✅ |
+| 9 luật validator | ✅ |
+| Format tách rời hoàn toàn khỏi pipeline | ✅ Trọn trong `submit_format.py` |
 
 ### 9.2. `BUILD_TASKS.md` — W0.2
 
@@ -470,7 +477,7 @@ chỗ nào có thể lệch khi BTC công bố định dạng thật.
 | # | Việc | Chủ | Ảnh hưởng |
 |:---:|:---|:---|:---|
 | 1 | ~~`backend/indexing/frame_map.py` import module đã bị xoá khỏi git~~ | **Công Lý** | ✅ **Đã thông 13/08** — toàn bộ test xanh trở lại, xem `D31_TECHNICAL_REPORT.md` §10.5 |
-| 2 | Định dạng nộp thật của BTC | **Linh** → BTC | Thêm 1 hàm vào `FORMATS` là xong — chi tiết mục 10.2 |
+| 2 | ~~Định dạng nộp thật của BTC~~ | **Linh** → BTC | ✅ **Đã có 16/08** từ trang thi Codabench — đối chiếu ở mục 10.2. Còn treo mỗi `frame_id` 0/1-based |
 | 3 | Ai gọi tầng này thì phải đưa `list[QuerySubmission]`, không phải `dict` | — | 🟡 **đã xảy ra một lần** — `run_evaluation.py` gọi `write_submissions(dict)` và nổ ở dòng cuối cùng của cả lần chạy. Sửa 16/08, xem `D31_TECHNICAL_REPORT.md` §10.1 |
 
 ### 10.1. Ai gọi tầng này, và gọi thế nào
@@ -501,48 +508,39 @@ luật đó thuộc về allocator, không thuộc về tầng ghi file.
 > Đây là **lỗi im lặng** — file vẫn mở được bằng mắt. `write_submissions()` xử lý sẵn,
 > và `validate_file()` bắt lại lần nữa (luật 7) cho những file do đường khác ghi ra.
 
-### 10.2. Phần đang chạy trên GIẢ ĐỊNH — sẽ phải sửa
+### 10.2. Đối chiếu với trang thi Codabench của BTC *(đọc 16/08)*
 
-| #   | Chỗ                                                      | Đang giả định gì                            | Chờ ai         | Nếu sai thì sao                                                                              |
-| :---:| :---------------------------------------------------------| :--------------------------------------------| :---------------| :---------------------------------------------------------------------------------------------|
-| 1   | `SUBMIT_FORMAT = "csv_v0"`                               | BTC nhận CSV không header                   | **Linh** → BTC | Sửa **đúng một dòng**. Ba format đã đăng ký sẵn                                              |
-| 2   | `_header_for()` tên cột `video_id`, `frame_id`, `answer` | Chỉ dùng khi BTC đòi header                 | **Linh** → BTC | Không dùng thì không ảnh hưởng                                                               |
-| 3   | `suggest_filename()` = `"<query_id>.<đuôi>"`             | Quy ước đặt tên file                        | **Linh** → BTC | Đặt sai tên file có thể bị loại bài — **cần hỏi sớm**                                        |
-| 4   | `frame_id` đếm từ **0**                                  | `[0, n_frames)` như frame index trong video | **Linh** → BTC | Nếu BTC đếm từ 1 thì **lệch hệ thống mọi câu**. Ca lỗi im lặng nguy hiểm nhất |
-| 5   | ~~`expect_answers = 100`~~                               | Tối đa 100 đáp án mỗi truy vấn              | —              | ✅ **Đã chốt** — tài liệu BTC mục 2 |
-| 6   | `video_id` ghi **không có đuôi** (`L21_V001`)            | BTC nhận id trần                            | **Linh** → BTC | 🔴 **MỚI 16/08** — xem dưới |
+Bảng "đang chạy trên giả định" của bản trước có 6 dòng. BTC đã trả lời 5, còn 1.
 
-#### ⚠️ Điểm 6 — `video_id` có đuôi `.mp4` không? (phát hiện khi đọc kỹ tài liệu BTC)
+| Từng giả định | BTC nói gì | Kết quả |
+|:---|:---|:---|
+| CSV hay JSON, có header không | CSV, **không header**, dấu phẩy, UTF-8 | ✅ đoán đúng — đã xoá 2 format thừa |
+| `video_id` có đuôi `.mp4` không | `L00_V000` — **không đuôi** | ✅ đoán đúng — không sửa gì |
+| Quy ước đặt tên file | = tên gói BTC phát, đổi `.txt` → `.csv` | ✅ `suggest_filename()` đã đúng sẵn |
+| Tối đa 100 dòng | đúng 100 | ✅ |
+| Có gộp zip không | **có** — thư mục `submission/` trong `.zip` | 🔴 thiếu hẳn → đã bổ sung `write_submission_zip()` |
+| `frame_id` đếm từ 0 hay 1 | *chưa trả lời bằng văn bản* | 🟠 **còn treo** — xem dưới |
 
-Tài liệu BTC mục 1.1 và 1.2 viết ví dụ kết quả nộp là:
+Thêm hai luật mới BTC nêu mà bản trước chưa có: **answer ≤ 100 ký tự** và
+**CRLF được chấp nhận** (luật 7, 8 ở mục 5).
 
-```
-video_id = video_abc(.mp4), frame_id = 1500
-video_id = video_xyz(.mp4), frame_id = 3450, answer = "5"
-```
+#### 🟠 Còn treo — `frame_id` đếm từ 0 hay 1
 
-Dấu ngoặc quanh `.mp4` **không nói rõ** là tuỳ chọn hay bắt buộc. Tầng này đang ghi
-nguyên `video_id` như trong `shots.parquet`, tức **không đuôi** (`L21_V001`).
+Trang chính thức chỉ ghi *"Frame ID sẽ được so sánh dưới dạng số nguyên"*, **không
+nói cơ số, không nói dung sai**. Ghi chú buổi họp nói BTC đếm từ 1 nhưng châm chước
+lệch 1 frame.
 
-Nếu BTC đòi `L21_V001.mp4` thì **sai toàn bộ bài nộp** — mà `validate_submission()` vẫn
-báo hợp lệ, vì luật `video_unknown` tra đúng cái bảng dùng id trần. Cùng hạng nguy hiểm
-với điểm 4, và **rẻ hơn nhiều để sửa nếu biết trước** (một dòng trong `answer_to_cells`).
+Tầng này **chưa sửa** — vẫn ghi nguyên con số 0-based tầng trên đưa xuống
+(`data/config/frame_convention.md`). Ước lượng thiệt hại nếu BTC thật sự 1-based và
+KHÔNG châm chước: lệch 1 làm mất frame đầu cửa sổ nhưng lại được frame ngay sau cửa
+sổ, nên xấp xỉ triệt tiêu — tỉ lệ chạm biên ≈ `1/w` với `w` là độ rộng cửa sổ.
 
-→ Đã ghi `# TODO: BTC` ngay trong `data/config/submit_format.py`. **Hỏi cùng lượt với
-điểm 4.**
+- KIS / Q&A (cửa sổ rộng) → **~1%, coi như không đáng kể**
+- TRAKE (cửa sổ **dưới 10 frame**, `docs/contest.md`) → **10–20% mỗi khoảnh khắc**
 
-#### ✅ Ba thứ tài liệu BTC ĐÃ chốt (rà lại 16/08)
-
-| Thứ | Nguồn |
-|:---|:---|
-| Thứ tự ô: `<video_id>, <frame_id>` · Q&A thêm `answer` ở **cuối** · TRAKE nhiều `frame_id` | mục 2.1.1–2.1.3 |
-| `answer` chấp nhận **tiếng Việt hoặc tiếng Anh** | mục 1.2 |
-| Tối đa **100** câu trả lời mỗi truy vấn | mục 2 |
-
-Ba thứ này khớp đúng thứ `answer_to_cells()` đang sinh ra — không phải sửa gì.
-
-**Điểm 4 và 6 là hai thứ duy nhất còn lại có thể làm 0 điểm toàn giải mà không báo
-lỗi.** Cả hai đều chỉ BTC trả lời được.
+Cách sửa nếu chốt: thêm hằng `FRAME_ID_BASE = 1`, áp trong `answer_to_cells()`, nới
+luật 3 thành `[1, n_frames]`. Nội bộ giữ nguyên 0-based. **Chờ Thạch duyệt** (quyền
+phủ quyết schema) và chờ BTC xác nhận dung sai có văn bản.
 
 ---
 
@@ -554,12 +552,10 @@ lỗi.** Cả hai đều chỉ BTC trả lời được.
 |:---:|:---|:---|:---|
 | 1 | `_demo_subs()` + cờ `--demo` | Dựng shot ứng viên **giả lập** từ `shots.parquet` rồi đưa qua allocator thật | **Giữ tới G2** — chạy được cả hai tầng mà không cần Milvus/ES. Không nằm trong đường chạy lúc thi |
 | 2 | `write_submissions(..., validate=False)` | Đường thoát ghi dữ liệu hỏng ra soi | ⚠️ **TUYỆT ĐỐI không dùng ngày nộp.** Mặc định `True`; đặt `False` là sinh ra file trông hợp lệ mà sai |
-| 3 | `csv_header_v0` · `json_v0` | Hai trong ba format là **phỏng đoán dự phòng** | BTC chốt → **xoá hai cái không dùng**. Để lại ba cái là để lại ba cách nộp sai |
-| 4 | `build_submission` kiểm `fmt not in FORMATS` | Chốt chặn cho lúc gõ nhầm tên format | Giữ — rẻ và bắt được lỗi cấu hình |
-| 5 | `tests/conftest.py` — `build_sub()`, `frames_of()`, `replace_answer()`, `cat_bot()` | Dựng dữ liệu test | Nằm trong `tests/`, không bao giờ chạy lúc thi |
+| 3 | ~~`csv_header_v0` · `json_v0`~~ | — | ✅ **Đã xoá 16/08** cùng cả registry `FORMATS`, sau khi BTC chốt CSV không header |
+| 4 | `tests/conftest.py` — `build_sub()`, `frames_of()`, `replace_answer()`, `cat_bot()` | Dựng dữ liệu test | Nằm trong `tests/`, không bao giờ chạy lúc thi |
 
-**Điểm 2 và 3 là hai chỗ dễ gây tai nạn nhất** — cả hai đều tạo ra file nộp *trông* hợp
-lệ mà sai.
+**Điểm 2 là chỗ dễ gây tai nạn nhất** — nó tạo ra file nộp *trông* hợp lệ mà sai.
 
 ---
 
@@ -571,10 +567,12 @@ lệ mà sai.
 |:---|:---|
 | Bug `frame_id` (W0.2) | ✅ Gỡ tận gốc, không phải vá |
 | Interface `build_submission` theo chốt của Thạch | ✅ |
-| 7 luật validator | ✅ Đủ, chia đúng hai tầng |
-| Kho định dạng chuyển bằng 1 dòng hằng | ✅ 3 format phỏng đoán đăng ký sẵn |
+| 9 luật validator | ✅ Đủ, chia đúng ba tầng (định dạng · ngữ nghĩa · file+zip) |
+| Định dạng khớp trang thi BTC | ✅ CSV không header, `video_id` không đuôi — đối chiếu 16/08, mục 10.2 |
+| **Đóng gói `.zip` có thư mục `submission/`** | ✅ `write_submission_zip()` + `validate_zip()` — mục 5 luật 9 |
 | File nộp đúng mục 2.1 của BTC | ✅ Đã sinh và kiểm byte |
-| UTF-8 không BOM, không CRLF | ✅ Luật nằm trong `validate_file()`, không chỉ nằm trong test — mục 5 |
+| UTF-8 không BOM | ✅ Luật nằm trong `validate_file()`, không chỉ nằm trong test — mục 5 |
+| `frame_id` 0-based hay 1-based | 🟠 **Còn treo** — mục 10.2, chờ Thạch + BTC |
 | Nối với slot allocator (D3.1) | ✅ `--demo` chạy thật cả hai tầng nối nhau — mục 6.4 |
 | Hạ tầng test cho repo | ✅ 66 test (2 test quét toàn bộ 177.321 keyframe thật), kiểm chứng bằng cách phá code |
 | Hai bug tiềm ẩn của D3.1 | ✅ Chặn trước khi nổ — mục 7 |
@@ -590,6 +588,17 @@ lệ mà sai.
 | `tests/test_validator.py` | 34 test cho validator | 271 |
 | `tests/test_export.py` | 32 test cho định dạng + ghi file | 296 |
 | `backend/requirements.txt` | Thêm `pandas`, `pyarrow`, `pytest` | +6 |
+
+### Sửa 16/08 — sau khi đọc trang thi Codabench của BTC
+
+| File | Thay đổi |
+|:---|:---|
+| `data/config/submit_format.py` | Xoá registry `FORMATS` + `csv_header_v0` + `json_v0` + `_header_for()` · xoá 2 khối `TODO: BTC` đã có đáp án · thêm `ANSWER_MAX_CHARS = 100`, `SUBMIT_EXT` |
+| `backend/export/exporter.py` | **Thêm `write_submission_zip()` + `validate_zip()`** · thêm luật `answer_too_long` · CRLF hết là lỗi, giữ `cr_don_le` · CLI `--demo` giờ xuất ra `.zip` |
+| `backend/export/__init__.py` | Xuất thêm `write_submission_zip`, `validate_zip`, `SUBMISSION_DIR_NAME` |
+| `tests/test_export.py` | Bỏ 4 test của 2 format đã xoá · thêm 15 test (zip · 100 ký tự · CRLF · tên file BTC) |
+
+Bộ test: **425 → 437 pass**.
 
 **Đã xoá:** `backend/frame_lookup.py`, `backend/validator.py` — gộp vào `export.py`
 sau khi rà thấy 3/6 hàm không có nơi nào gọi.

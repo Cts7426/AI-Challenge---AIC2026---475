@@ -17,8 +17,13 @@
 #   Nếu raise từng cái thì sửa một lỗi,chạy lại, lòi lỗi tiếp.
 #   Trước hạn nộp thì đó là công thức trượt hạn.
 #
-# Định dạng KHÔNG phải tham số của bất kỳ hàm nào ở đây — nó là hằng SUBMIT_FORMAT
-# bên submit_format.py. BTC công bố thì sửa đúng một dòng đó.
+# Định dạng KHÔNG phải tham số của bất kỳ hàm nào ở đây — nó nằm trọn trong
+# submit_format.py. BTC đã chốt CSV không header (16/08), nên chỗ đó giờ chỉ còn
+# MỘT bộ ghi thay vì ba format đăng ký sẵn.
+#
+# Đường ra cuối cùng là `write_submission_zip()`, KHÔNG phải `write_submissions()`:
+# BTC nhận file .zip có lớp thư mục `submission/` bên trong. Ghi file rời chỉ là
+# bước giữa, để soi bằng mắt.
 #
 # Chạy thử (từ thư mục gốc repo):
 #     python -m backend.export --demo
@@ -26,14 +31,16 @@
 from __future__ import annotations
 
 import argparse
+import zipfile
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
 from data.config.submit_format import (
+    ANSWER_MAX_CHARS,
     ANSWERS_PER_QUERY,
-    SUBMIT_FORMAT,
+    SUBMIT_EXT,
     TASK_TYPES,
     Answer,
     build_submission,
@@ -42,6 +49,10 @@ from data.config.submit_format import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VIDEO_INFO_PATH = REPO_ROOT / "data" / "derived" / "video_info.parquet"
+
+# Tên thư mục BTC BẮT BUỘC phải có bên trong file zip. Nén thẳng 3 file CSV mà
+# không có lớp thư mục này thì bài nộp bị từ chối — xem `write_submission_zip`.
+SUBMISSION_DIR_NAME = "submission"
 
 # ANSWERS_PER_QUERY nhập từ submit_format — luật BTC, khai báo đúng MỘT chỗ.
 # Re-export ở đây cho quen tay (đã dùng ở D0.2 trước khi gom về một mối).
@@ -289,6 +300,17 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
                 "answer_empty",
                 "Q&A bắt buộc có answer — answer sai/rỗng thì frame đúng cũng 0 điểm", q, i,
             ))
+        # BTC: "Độ dài tối đa: 100 ký tự". Dài hơn thì BTC cắt hoặc loại, mà mình
+        # thì không biết — đúng loại lỗi im lặng. Đếm KÝ TỰ (len của str Python),
+        # không đếm byte: "màu xanh" là 8 ký tự, 11 byte UTF-8; đếm byte sẽ báo
+        # nhầm cho mọi câu trả lời tiếng Việt có dấu.
+        if task == "QA" and a.answer_text is not None and len(a.answer_text) > ANSWER_MAX_CHARS:
+            out.append(Issue(
+                "answer_too_long",
+                f"answer dài {len(a.answer_text)} ký tự, BTC cho tối đa {ANSWER_MAX_CHARS}. "
+                "Rút ngắn ở tầng Q&A — tầng nộp không tự cắt hộ.",
+                q, i,
+            ))
         if task != "QA" and a.answer_text is not None:
             out.append(Issue("answer_unexpected", f"{task} không được có answer", q, i))
     return out
@@ -329,18 +351,24 @@ def _check_video_and_frames(sub: QuerySubmission) -> list[Issue]:
 # ------------------------------------------------------------- kiểm file đã ghi
 
 def validate_file(path: str | Path) -> list[Issue]:
-    """File nộp phải là UTF-8, KHÔNG BOM, KHÔNG CRLF.
+    """File nộp phải là UTF-8, KHÔNG BOM, xuống dòng bằng LF hoặc CRLF.
 
     Vào: đường dẫn file đã ghi. Ra: list[Issue], rỗng = file sạch.
-    Bốn slug: `file_missing` · `bom` · `not_utf8` · `crlf` · `file_empty`.
+    Năm slug: `file_missing` · `bom` · `not_utf8` · `cr_don_le` · `file_empty`.
 
     Ghi bằng PowerShell (Out-File / Set-Content) trên Windows chèn 3 byte BOM
     \\xef\\xbb\\xbf. Mở bằng mắt không thấy, nhưng bộ chấm đọc cột đầu ra rác.
+    BOM vẫn là LỖI — BTC không nhắc tới nó, và nó làm hỏng ô đầu tiên.
 
-    Vì sao kiểm CRLF Ở ĐÂY chứ không chỉ tin test: `write_submissions()` ghi
-    đúng (newline="") nên test đi qua — nhưng D6.1 chạy hàm này lên file CUỐI
-    CÙNG trước khi nộp, mà file đó có thể do UI, script tay, hoặc một lần copy
-    qua PowerShell ghi ra. Không có luật này thì CRLF lọt im lặng.
+    ⚠️ SỬA 16/08: CRLF KHÔNG còn là lỗi. Trang BTC ghi rõ "CSV specifications:
+    UTF-8 encoding, comma delimiter, **CRLF or LF** line endings" — cả hai đều
+    nhận. Luật cũ báo `crlf` cho một file hoàn toàn hợp lệ; chạy preflight D6.1
+    ngay trước giờ nộp mà thấy báo đỏ thì người vận hành sẽ đi sửa một thứ không
+    hỏng, đúng lúc không còn thời gian. Báo động giả trước hạn nộp tốn đúng thứ
+    đắt nhất lúc đó.
+
+    Còn giữ `\\r` ĐƠN LẺ (không đi kèm `\\n`): đó là newline kiểu Mac cổ, KHÔNG
+    nằm trong hai kiểu BTC nhận, và thường là dấu hiệu file đã qua một công cụ lạ.
     """
     path = Path(path)
     if not path.exists():
@@ -355,18 +383,15 @@ def validate_file(path: str | Path) -> list[Issue]:
     except UnicodeDecodeError as e:
         out.append(Issue("not_utf8", f"{path.name} không phải UTF-8 hợp lệ: {e}"))
 
-    # Đếm để báo được mức độ: 1 dòng lẻ dính CRLF khác hẳn cả file sai newline.
-    n_crlf = raw.count(b"\r\n")
-    n_cr = raw.count(b"\r")
-    if n_crlf:
+    # `\r` KHÔNG đi kèm `\n`. Trừ đi số cặp CRLF (hợp lệ) để chỉ còn `\r` đơn lẻ.
+    n_cr_don_le = raw.count(b"\r") - raw.count(b"\r\n")
+    if n_cr_don_le > 0:
         out.append(Issue(
-            "crlf",
-            f"{path.name} có {n_crlf} dòng kết thúc bằng CRLF (\\r\\n) — phải ghi LF. "
-            "Ghi bằng open(..., newline='') hoặc Path.write_text(..., newline='').",
+            "cr_don_le",
+            f"{path.name} có {n_cr_don_le} ký tự \\r đơn lẻ (không đi kèm \\n) — BTC nhận "
+            "LF hoặc CRLF, không nhận CR. Ghi lại bằng "
+            "Path.write_text(..., encoding='utf-8', newline='').",
         ))
-    elif n_cr:
-        # \r đơn lẻ: newline kiểu Mac cổ, hoặc file bị sửa bằng công cụ lạ
-        out.append(Issue("crlf", f"{path.name} có {n_cr} ký tự \\r đơn lẻ — phải ghi LF"))
 
     if not raw.strip():
         out.append(Issue("file_empty", f"{path.name} rỗng"))
@@ -395,8 +420,8 @@ def format_issues(issues: list[Issue]) -> str:
 def to_submission(sub: QuerySubmission) -> str:
     """Nội dung file nộp của MỘT truy vấn. Uỷ quyền toàn bộ định dạng cho submit_format.
 
-    Không có tham số chọn format: định dạng do hằng SUBMIT_FORMAT quyết định.
-    Đổi format = sửa một dòng trong data/config/submit_format.py.
+    Không có tham số chọn format: BTC chỉ nhận một định dạng, để nó thành tuỳ chọn
+    là mở đường cho việc nộp nhầm format mà không ai biết.
     """
     return build_submission(sub.query_id, sub.task_type, list(sub.answers))
 
@@ -456,6 +481,107 @@ def write_submissions(
     return da_ghi, loi_file
 
 
+# --------------------------------------------------------------- đóng gói .zip
+
+def write_submission_zip(
+    subs: list[QuerySubmission],
+    out_dir: str | Path,
+    *,
+    zip_name: str = "submission.zip",
+    validate: bool = True,
+    expect_answers: int = ANSWERS_PER_QUERY,
+    expected_n: dict[str, int] | None = None,
+) -> tuple[Path, list[Issue]]:
+    """Dựng ĐÚNG file .zip nộp được cho BTC. Đây là hàm cuối đường nộp.
+
+    Vào: danh sách QuerySubmission · thư mục làm việc.
+    Ra: (đường dẫn file .zip, list[Issue] của bước kiểm file + kiểm zip).
+
+    Cấu trúc BTC BẮT BUỘC — trang "Hướng dẫn nộp bài sơ tuyển":
+
+        submission.zip
+        └── submission/          ← "PHẢI có thư mục submission bên trong file zip"
+            ├── query-1-kis.csv
+            ├── query-2-qa.csv
+            └── query-3-trake.csv
+
+    Vì sao phải có hàm này chứ không nén tay: nén tay trên Windows (chuột phải →
+    Send to → Compressed folder) trên MỘT NHÓM FILE ĐANG CHỌN sẽ tạo zip chứa
+    THẲNG 3 file CSV, **không có lớp thư mục `submission/`**. File mở ra nhìn vẫn
+    thấy đủ 3 file, tên đúng, nội dung đúng — và BTC từ chối. Phải chọn đúng
+    THƯ MỤC rồi mới nén. Đây là thao tác sai không có dấu hiệu gì, và mỗi gói chỉ
+    được nộp 3 lần.
+
+    Để lại luôn thư mục `submission/` chưa nén cạnh file zip: người vận hành mở
+    CSV ra soi bằng mắt trước khi nộp mà không phải giải nén.
+    """
+    out_dir = Path(out_dir)
+    stage = out_dir / SUBMISSION_DIR_NAME
+    files, loi = write_submissions(
+        subs, stage, validate=validate,
+        expect_answers=expect_answers, expected_n=expected_n,
+    )
+
+    # File .csv lạ còn sót trong `submission/` từ LẦN CHẠY TRƯỚC. `write_submissions`
+    # chỉ ghi đè file cùng tên, không dọn file cũ — mà `ZipFile` dưới đây chỉ nén
+    # `files`, nên file lạ không lọt vào zip. Vẫn phải báo: người vận hành mở thư mục
+    # ra soi sẽ thấy một file thừa và không biết bản nào là bản đang nộp.
+    du_thua = sorted(set(stage.glob(f"*.{SUBMIT_EXT}")) - set(files))
+    for p in du_thua:
+        loi.append(Issue(
+            "stale_file",
+            f"{SUBMISSION_DIR_NAME}/{p.name} còn sót từ lần chạy trước, KHÔNG nằm trong "
+            "zip lần này. Xoá đi để khỏi nhầm khi soi lại.",
+        ))
+
+    zip_path = out_dir / zip_name
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(files):
+            # arcname luôn dùng "/" — đúng đặc tả zip, kể cả khi đang chạy Windows
+            z.write(p, arcname=f"{SUBMISSION_DIR_NAME}/{p.name}")
+
+    return zip_path, loi + validate_zip(zip_path)
+
+
+def validate_zip(path: str | Path) -> list[Issue]:
+    """Mở LẠI file zip vừa ghi và kiểm đúng thứ BTC sẽ thấy.
+
+    Vào: đường dẫn .zip. Ra: list[Issue], rỗng = nộp được.
+    Bốn slug: `zip_missing` · `zip_corrupt` · `zip_no_submission_dir` · `zip_empty`.
+
+    Vì sao đọc lại thay vì tin hàm vừa ghi: đây là chốt chặn CUỐI CÙNG trước khi
+    file rời khỏi máy, và nó cũng chạy được trên file người khác nén tay — đúng ca
+    hay hỏng nhất (xem `write_submission_zip`). Kiểm cái mình vừa làm thì vô nghĩa;
+    giá trị nằm ở chỗ kiểm được cái mình KHÔNG làm.
+    """
+    path = Path(path)
+    if not path.exists():
+        return [Issue("zip_missing", f"không tìm thấy file zip: {path}")]
+
+    try:
+        with zipfile.ZipFile(path) as z:
+            hong = z.testzip()
+            if hong is not None:
+                return [Issue("zip_corrupt", f"{path.name} hỏng ở mục '{hong}'")]
+            ten = [n for n in z.namelist() if not n.endswith("/")]
+    except zipfile.BadZipFile as e:
+        return [Issue("zip_corrupt", f"{path.name} không phải file zip hợp lệ: {e}")]
+
+    if not ten:
+        return [Issue("zip_empty", f"{path.name} không chứa file nào")]
+
+    tien_to = f"{SUBMISSION_DIR_NAME}/"
+    sai_cho = [n for n in ten if not n.startswith(tien_to)]
+    if sai_cho:
+        return [Issue(
+            "zip_no_submission_dir",
+            f"{path.name}: {len(sai_cho)} mục KHÔNG nằm trong thư mục '{SUBMISSION_DIR_NAME}/' "
+            f"(ví dụ: {sai_cho[:3]}). BTC bắt buộc phải có lớp thư mục này — nhiều khả năng "
+            "file zip được nén bằng cách chọn các file CSV thay vì chọn thư mục.",
+        )]
+    return []
+
+
 # ------------------------------------------------------------------------- demo
 
 def _demo_subs(n_answers: int = ANSWERS_PER_QUERY) -> list[QuerySubmission]:
@@ -513,7 +639,7 @@ def main() -> int:
         return 0
 
     subs = _demo_subs(args.answers)
-    out_dir = Path(args.out) if args.out else REPO_ROOT / "submissions" / f"demo_{SUBMIT_FORMAT}"
+    out_dir = Path(args.out) if args.out else REPO_ROOT / "submissions" / "demo"
 
     print("== Kiểm ngữ nghĩa ==")
     issues_ = validate_all(subs, expect_answers=args.answers)
@@ -521,11 +647,13 @@ def main() -> int:
     if issues_:
         return 1
 
-    files, loi_file = write_submissions(subs, out_dir, expect_answers=args.answers)
-    print(f"\n== Đã ghi {len(files)} file vào {out_dir.relative_to(REPO_ROOT)} ==")
-    for p in files:
-        print(f"   {p.name}  ({p.stat().st_size} byte)")
-    print("== Kiểm file ==")
+    zip_path, loi_file = write_submission_zip(subs, out_dir, expect_answers=args.answers)
+    print(f"\n== Đã đóng gói {zip_path.relative_to(REPO_ROOT)} "
+          f"({zip_path.stat().st_size:,} byte) ==")
+    with zipfile.ZipFile(zip_path) as z:
+        for n in sorted(z.namelist()):
+            print(f"   {n}")
+    print("== Kiểm file + kiểm zip ==")
     print(format_issues(loi_file))
     return 1 if loi_file else 0
 

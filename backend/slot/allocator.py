@@ -373,11 +373,11 @@ def _dedupe_shots(ranked: list[ShotHit]) -> list[ShotHit]:
     mà không có exception nào, không có dòng log nào.
 
     Đường tới được: `search(group_by_shot=False)` trả kết quả mức KEYFRAME, nhiều
-    keyframe cùng một shot. `GROUP_BY_SHOT=True` trong data/config/search_weights.py
-    nên hiện tại an toàn — nhưng `backend/tasks/qa.py` gọi `search()` KHÔNG truyền
-    tham số đó (trong khi `trake.py` truyền tường minh), nên nó ăn theo một hằng
-    nằm trong file *tunable*. Lật hằng đó là hỏng, mà lật hằng tunable là chuyện
-    người ta làm hằng ngày.
+    keyframe cùng một shot. Mọi chỗ gọi hiện tại đều truyền `group_by_shot=True`
+    tường minh (`qa.py:435`, `trake.py`, `run_evaluation.py`) nên chưa ai chạm tới —
+    nhưng mặc định của `search()` vẫn đọc hằng `GROUP_BY_SHOT` nằm trong
+    data/config/search_weights.py, một file *tunable*. Người thêm chỗ gọi mới mà
+    quên tham số sẽ ăn theo hằng đó, và lật hằng tunable là chuyện làm hằng ngày.
 
     Vì sao KHỬ TRÙNG chứ không raise: gộp lại cho ra ĐÚNG thứ lẽ ra phải nhận —
     n shot phân biệt — và `budget_per_shot()` xử lý số lượng nào cũng được. Raise

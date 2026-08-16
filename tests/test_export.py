@@ -1,21 +1,33 @@
-# tests/test_export.py — tầng định dạng + ghi file
+# tests/test_export.py — tầng định dạng + ghi file + đóng gói zip
 #
 # Trọng tâm:
 #   1. File nộp đúng cột như tài liệu BTC
 #   2. Thứ hạng = thứ tự dòng
-#   3. Ghi ra UTF-8 không BOM, không CRLF — hai thứ dễ hỏng nhất trên Windows
-#   4. "Đổi format = sửa 1 dòng SUBMIT_FORMAT" là thật (không có tham số fmt)
+#   3. Ghi ra UTF-8 không BOM — thứ dễ hỏng nhất trên Windows
+#   4. File .zip có ĐÚNG lớp thư mục `submission/` mà BTC bắt buộc
 
 from __future__ import annotations
 
 import csv
 import io
-import json
+import zipfile
 
 import pytest
 
-from backend.export import Issue, to_submission, validate_file, write_submissions
-from data.config.submit_format import FORMATS, Answer, build_submission, validate_format
+from backend.export import (
+    Issue,
+    to_submission,
+    validate_file,
+    validate_zip,
+    write_submission_zip,
+    write_submissions,
+)
+from data.config.submit_format import (
+    ANSWER_MAX_CHARS,
+    Answer,
+    build_submission,
+    validate_format,
+)
 from tests.conftest import cat_bot, replace_answer, rules_of
 
 
@@ -64,32 +76,29 @@ def test_thu_tu_dong_chinh_la_thu_hang(kis):
     assert nguoc[0] == goc[-1] and nguoc[-1] == goc[0]
 
 
-# --------------------------------------------------------------- kho định dạng
+# --------------------------------------------------------------- định dạng CSV
 
-def dat_format(monkeypatch, ten: str) -> None:
-    """Đổi định dạng bài nộp — mô phỏng đúng thao tác lúc BTC công bố format.
-
-    Không có tham số `fmt` nào để truyền: cách duy nhất đổi format là sửa hằng
-    SUBMIT_FORMAT. Test này chứng minh đúng một dòng đó là đủ.
-    """
-    import data.config.submit_format as sf
-
-    monkeypatch.setattr(sf, "SUBMIT_FORMAT", ten)
+def test_khong_co_dong_header(all_subs):
+    """BTC: "CSV, no header row". Dòng đầu tiên phải LÀ dữ liệu, không phải tên cột."""
+    for sub in all_subs:
+        dong_dau = doc_csv(to_submission(sub))[0]
+        assert dong_dau[0].startswith("L"), f"{sub.task_type}: dòng 1 trông như header"
+        assert dong_dau[1].isdigit(), f"{sub.task_type}: ô 2 phải là frame_id"
 
 
-def test_moi_format_deu_xuat_duoc(all_subs, monkeypatch):
-    """Sửa mỗi hằng SUBMIT_FORMAT là đủ — không format nào cần sửa gì thêm."""
-    for fmt in FORMATS:
-        dat_format(monkeypatch, fmt)
-        for sub in all_subs:
-            assert to_submission(sub).strip(), f"{fmt} xuất ra rỗng"
+def test_video_id_khong_co_duoi_mp4(all_subs):
+    """BTC ghi video_id dạng `L00_V000` — có đuôi `.mp4` là sai toàn bộ bài nộp."""
+    for sub in all_subs:
+        for dong in doc_csv(to_submission(sub)):
+            assert not dong[0].endswith(".mp4")
 
 
-def test_format_la_bi_tu_choi(kis, monkeypatch):
-    """Gõ sai tên format phải gãy to ngay, không âm thầm rơi về mặc định."""
-    dat_format(monkeypatch, "format_khong_ton_tai")
-    with pytest.raises(ValueError, match="chưa đăng ký"):
-        to_submission(kis)
+def test_ten_file_dung_ten_goi_cua_btc():
+    """BTC phát `query-1-kis.txt` → mình nộp `query-1-kis.csv`. Dấu `-` phải qua được."""
+    from data.config.submit_format import suggest_filename
+
+    assert suggest_filename("query-1-kis") == "query-1-kis.csv"
+    assert suggest_filename("query-4-trake") == "query-4-trake.csv"
 
 
 def test_build_submission_dung_3_tham_so():
@@ -114,22 +123,6 @@ def test_task_type_la_bi_tu_choi(kis):
 
     with pytest.raises(ValueError, match="task_type"):
         to_submission(dataclasses.replace(kis, task_type="AVS"))
-
-
-def test_csv_co_header_thi_nhieu_hon_dung_1_dong(kis, monkeypatch):
-    khong = to_submission(kis).splitlines()
-    dat_format(monkeypatch, "csv_header_v0")
-    co = to_submission(kis).splitlines()
-    assert len(co) == len(khong) + 1
-    assert co[0].startswith("video_id,frame_id")
-
-
-def test_json_doc_lai_duoc(trake, monkeypatch):
-    dat_format(monkeypatch, "json_v0")
-    data = json.loads(to_submission(trake))
-    assert len(data) == 100
-    assert set(data[0]) == {"video_id", "frame_ids"}
-    assert len(data[0]["frame_ids"]) == 4
 
 
 # ------------------------------------- tầng định dạng KHÔNG được tự tính gì
@@ -227,25 +220,23 @@ def test_demo_lay_frame_tu_slot_allocator():
     assert validate_all(subs) == []
 
 
-def test_validate_file_bat_crlf(tmp_path):
-    """File CRLF phải bị BẮT, không phải chỉ được test gián tiếp.
+def test_validate_file_crlf_KHONG_con_la_loi(tmp_path):
+    """BTC nhận "CRLF or LF" — báo lỗi cho CRLF là BÁO ĐỘNG GIẢ.
 
-    Trước 10/08 luật này không tồn tại: `write_submissions()` ghi đúng nên test
-    xanh, nhưng `validate_file()` im lặng trước file CRLF. D6.1 chạy hàm này lên
-    file cuối cùng — file đó có thể do UI hay PowerShell ghi ra.
+    Luật cũ (trước 16/08) bắt CRLF là `Issue`. Preflight D6.1 chạy ngay trước giờ
+    nộp mà báo đỏ một file hoàn toàn hợp lệ thì người vận hành đi sửa thứ không
+    hỏng, đúng lúc không còn thời gian.
     """
     p = tmp_path / "crlf.csv"
     p.write_bytes(b"L21_V001,100\r\nL21_V001,200\r\n")
-    loi = validate_file(p)
-    assert rules_of(loi) == {"crlf"}
-    assert "2" in str(loi[0]), "phải nói rõ có bao nhiêu dòng dính CRLF"
+    assert validate_file(p) == []
 
 
 def test_validate_file_bat_cr_don_le(tmp_path):
-    """\\r đơn lẻ (newline kiểu Mac cổ) cũng không được lọt."""
+    """`\\r` KHÔNG đi kèm `\\n` (Mac cổ) không nằm trong hai kiểu BTC nhận."""
     p = tmp_path / "cr.csv"
     p.write_bytes(b"L21_V001,100\rL21_V001,200\r")
-    assert rules_of(validate_file(p)) == {"crlf"}
+    assert rules_of(validate_file(p)) == {"cr_don_le"}
 
 
 def test_validate_file_lf_thi_im_lang(tmp_path):
@@ -253,6 +244,115 @@ def test_validate_file_lf_thi_im_lang(tmp_path):
     p = tmp_path / "lf.csv"
     p.write_bytes(b"L21_V001,100\nL21_V001,200\n")
     assert validate_file(p) == []
+
+
+def test_bom_van_la_loi_du_da_bo_luat_crlf(tmp_path):
+    """Nới CRLF không được nới nhầm BOM — BOM làm hỏng ô đầu tiên."""
+    p = tmp_path / "bom.csv"
+    p.write_bytes(b"\xef\xbb\xbfL21_V001,100\n")
+    assert "bom" in rules_of(validate_file(p))
+
+
+# --------------------------------------------------- luật answer <= 100 ký tự
+
+def test_answer_qua_100_ky_tu_bi_bat(qa):
+    """BTC: "Độ dài tối đa: 100 ký tự"."""
+    from backend.export import validate_submission
+
+    sub = replace_answer(qa, 0, answer_text="a" * 101)
+    loi = validate_submission(sub)
+    assert "answer_too_long" in rules_of(loi)
+    assert loi[0].position == 1, "phải chỉ đúng hạng nào sai"
+
+
+def test_answer_dung_100_ky_tu_van_hop_le(qa):
+    """Biên trên là ĐƯỢC PHÉP — 100 ký tự đúng bằng giới hạn, không phải vượt."""
+    from backend.export import validate_submission
+
+    assert validate_submission(replace_answer(qa, 0, answer_text="a" * 100)) == []
+
+
+def test_dem_ky_tu_khong_dem_byte(qa):
+    """Tiếng Việt có dấu: 100 ký tự nhưng ~140 byte UTF-8. Đếm byte là báo nhầm."""
+    from backend.export import validate_submission
+
+    tieng_viet = "ố" * 100          # 100 ký tự, 200 byte
+    assert len(tieng_viet.encode("utf-8")) > ANSWER_MAX_CHARS
+    assert validate_submission(replace_answer(qa, 0, answer_text=tieng_viet)) == []
+
+
+# ------------------------------------------------------------- đóng gói .zip
+
+def test_zip_co_dung_lop_thu_muc_submission(all_subs, tmp_path):
+    """Bất biến số một của bước nộp: BTC bắt buộc có thư mục `submission/` trong zip."""
+    zip_path, loi = write_submission_zip(all_subs, tmp_path)
+    assert loi == []
+    with zipfile.ZipFile(zip_path) as z:
+        ten = sorted(z.namelist())
+    assert ten == [
+        "submission/kis_001.csv",
+        "submission/qa_001.csv",
+        "submission/trake_001.csv",
+    ]
+
+
+def test_zip_doc_lai_ra_dung_noi_dung(kis, tmp_path):
+    """Nội dung trong zip phải khớp nguyên văn thứ `to_submission()` sinh ra."""
+    zip_path, _ = write_submission_zip([kis], tmp_path)
+    with zipfile.ZipFile(zip_path) as z:
+        trong_zip = z.read("submission/kis_001.csv").decode("utf-8")
+    assert trong_zip == to_submission(kis)
+
+
+def test_zip_de_lai_thu_muc_chua_nen_de_soi(all_subs, tmp_path):
+    """Người vận hành phải mở CSV soi được mà không phải giải nén."""
+    write_submission_zip(all_subs, tmp_path)
+    assert (tmp_path / "submission" / "kis_001.csv").exists()
+
+
+def test_validate_zip_bat_zip_thieu_thu_muc(all_subs, tmp_path):
+    """Ca hỏng hay gặp nhất: nén bằng cách CHỌN FILE thay vì chọn thư mục.
+
+    Zip mở ra vẫn thấy đủ 3 file, tên đúng, nội dung đúng — và BTC từ chối.
+    """
+    write_submission_zip(all_subs, tmp_path)
+    sai = tmp_path / "nen_tay.zip"
+    with zipfile.ZipFile(sai, "w") as z:
+        for p in sorted((tmp_path / "submission").glob("*.csv")):
+            z.write(p, arcname=p.name)   # KHÔNG có lớp "submission/"
+    assert rules_of(validate_zip(sai)) == {"zip_no_submission_dir"}
+
+
+def test_validate_zip_bat_file_hong(tmp_path):
+    p = tmp_path / "hong.zip"
+    p.write_bytes(b"day khong phai zip")
+    assert rules_of(validate_zip(p)) == {"zip_corrupt"}
+
+
+def test_validate_zip_bat_zip_rong(tmp_path):
+    p = tmp_path / "rong.zip"
+    with zipfile.ZipFile(p, "w"):
+        pass
+    assert rules_of(validate_zip(p)) == {"zip_empty"}
+
+
+def test_validate_zip_bat_file_thieu(tmp_path):
+    assert rules_of(validate_zip(tmp_path / "khong_co.zip")) == {"zip_missing"}
+
+
+def test_zip_bao_file_csv_con_sot_tu_lan_truoc(all_subs, tmp_path):
+    """Chỉ được nộp 3 lần/gói — một file cũ nằm lẫn là một lần nộp nhầm."""
+    (tmp_path / "submission").mkdir()
+    (tmp_path / "submission" / "query-cu.csv").write_text("L21_V001,1\n", encoding="utf-8")
+    _, loi = write_submission_zip(all_subs, tmp_path)
+    assert "stale_file" in rules_of(loi)
+
+
+def test_zip_khong_duoc_tao_khi_du_lieu_sai(kis, tmp_path):
+    """Cùng bất biến với `write_submissions`: không sinh bài nộp từ dữ liệu sai."""
+    with pytest.raises(ValueError, match="KHÔNG ghi file"):
+        write_submission_zip([cat_bot(kis, 50)], tmp_path)
+    assert not list(tmp_path.glob("*.zip"))
 
 
 def test_issue_giu_position_khi_khong_co_query_id():

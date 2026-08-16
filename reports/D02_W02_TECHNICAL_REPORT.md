@@ -469,8 +469,9 @@ chỗ nào có thể lệch khi BTC công bố định dạng thật.
 
 | # | Việc | Chủ | Ảnh hưởng |
 |:---:|:---|:---|:---|
-| 1 | `backend/indexing/frame_map.py` import module đã bị xoá khỏi git | **Công Lý** | 3 test của D3.1 đỏ; đường tra `keyframe_id → frame_idx` chết khi chạy thật |
+| 1 | ~~`backend/indexing/frame_map.py` import module đã bị xoá khỏi git~~ | **Công Lý** | ✅ **Đã thông 13/08** — toàn bộ test xanh trở lại, xem `D31_TECHNICAL_REPORT.md` §10.5 |
 | 2 | Định dạng nộp thật của BTC | **Linh** → BTC | Thêm 1 hàm vào `FORMATS` là xong — chi tiết mục 10.2 |
+| 3 | Ai gọi tầng này thì phải đưa `list[QuerySubmission]`, không phải `dict` | — | 🟡 **đã xảy ra một lần** — `run_evaluation.py` gọi `write_submissions(dict)` và nổ ở dòng cuối cùng của cả lần chạy. Sửa 16/08, xem `D31_TECHNICAL_REPORT.md` §10.1 |
 
 ### 10.1. Ai gọi tầng này, và gọi thế nào
 
@@ -507,12 +508,41 @@ luật đó thuộc về allocator, không thuộc về tầng ghi file.
 | 1   | `SUBMIT_FORMAT = "csv_v0"`                               | BTC nhận CSV không header                   | **Linh** → BTC | Sửa **đúng một dòng**. Ba format đã đăng ký sẵn                                              |
 | 2   | `_header_for()` tên cột `video_id`, `frame_id`, `answer` | Chỉ dùng khi BTC đòi header                 | **Linh** → BTC | Không dùng thì không ảnh hưởng                                                               |
 | 3   | `suggest_filename()` = `"<query_id>.<đuôi>"`             | Quy ước đặt tên file                        | **Linh** → BTC | Đặt sai tên file có thể bị loại bài — **cần hỏi sớm**                                        |
-| 4   | `frame_id` đếm từ **0**                                  | `[0, n_frames)` như frame index trong video | **Linh** → BTC | Nếu BTC đếm từ 1 thì **lệch hệ thống mọi câu**. Đây là ca lỗi im lặng nguy hiểm nhất còn lại |
-| 5   | `expect_answers = 100`                                   | Tối đa 100 đáp án mỗi truy vấn              | —              | Đã xác nhận trong tài liệu BTC mục cách chấm                                                 |
+| 4   | `frame_id` đếm từ **0**                                  | `[0, n_frames)` như frame index trong video | **Linh** → BTC | Nếu BTC đếm từ 1 thì **lệch hệ thống mọi câu**. Ca lỗi im lặng nguy hiểm nhất |
+| 5   | ~~`expect_answers = 100`~~                               | Tối đa 100 đáp án mỗi truy vấn              | —              | ✅ **Đã chốt** — tài liệu BTC mục 2 |
+| 6   | `video_id` ghi **không có đuôi** (`L21_V001`)            | BTC nhận id trần                            | **Linh** → BTC | 🔴 **MỚI 16/08** — xem dưới |
 
-Điểm 4 là thứ duy nhất trong danh sách này có thể làm **0 điểm toàn giải mà không báo
-lỗi**. Validator hiện kiểm `frame_id ∈ [0, n_frames)`; nếu BTC đếm từ 1 thì luật đó vẫn
-xanh trong khi mọi đáp án lệch 1.
+#### ⚠️ Điểm 6 — `video_id` có đuôi `.mp4` không? (phát hiện khi đọc kỹ tài liệu BTC)
+
+Tài liệu BTC mục 1.1 và 1.2 viết ví dụ kết quả nộp là:
+
+```
+video_id = video_abc(.mp4), frame_id = 1500
+video_id = video_xyz(.mp4), frame_id = 3450, answer = "5"
+```
+
+Dấu ngoặc quanh `.mp4` **không nói rõ** là tuỳ chọn hay bắt buộc. Tầng này đang ghi
+nguyên `video_id` như trong `shots.parquet`, tức **không đuôi** (`L21_V001`).
+
+Nếu BTC đòi `L21_V001.mp4` thì **sai toàn bộ bài nộp** — mà `validate_submission()` vẫn
+báo hợp lệ, vì luật `video_unknown` tra đúng cái bảng dùng id trần. Cùng hạng nguy hiểm
+với điểm 4, và **rẻ hơn nhiều để sửa nếu biết trước** (một dòng trong `answer_to_cells`).
+
+→ Đã ghi `# TODO: BTC` ngay trong `data/config/submit_format.py`. **Hỏi cùng lượt với
+điểm 4.**
+
+#### ✅ Ba thứ tài liệu BTC ĐÃ chốt (rà lại 16/08)
+
+| Thứ | Nguồn |
+|:---|:---|
+| Thứ tự ô: `<video_id>, <frame_id>` · Q&A thêm `answer` ở **cuối** · TRAKE nhiều `frame_id` | mục 2.1.1–2.1.3 |
+| `answer` chấp nhận **tiếng Việt hoặc tiếng Anh** | mục 1.2 |
+| Tối đa **100** câu trả lời mỗi truy vấn | mục 2 |
+
+Ba thứ này khớp đúng thứ `answer_to_cells()` đang sinh ra — không phải sửa gì.
+
+**Điểm 4 và 6 là hai thứ duy nhất còn lại có thể làm 0 điểm toàn giải mà không báo
+lỗi.** Cả hai đều chỉ BTC trả lời được.
 
 ---
 
@@ -568,10 +598,14 @@ sau khi rà thấy 3/6 hàm không có nơi nào gọi.
 
 ```powershell
 python -m pytest tests/test_export.py tests/test_validator.py -q   # 66 passed (D0.2)
-python -m pytest -q                                                # 103 passed, 3 failed
-#   3 đỏ nằm ở D3.1: backend/indexing/frame_map.py (ModuleNotFoundError) — mục 10, dòng 1
+python -m pytest tests dev_set/tests -q                            # 409 passed (16/08)
 python -m backend.export --demo              # sinh file nộp mẫu qua allocator thật
 ```
+
+> Bản 10/08 ghi *"103 passed, 3 failed — 3 đỏ ở `backend/indexing/frame_map.py`"*. Đã
+> thông. Lưu ý `python -m pytest -q` trần vẫn **gãy lúc thu thập** vì
+> `preprocessing/test_opencv_parity.py` cần gói `yaml` chưa cài — không liên quan tầng
+> nộp bài, nhưng nó chặn cả lượt chạy nên nhớ chỉ định thư mục như trên.
 
 ### Task tiếp theo
 

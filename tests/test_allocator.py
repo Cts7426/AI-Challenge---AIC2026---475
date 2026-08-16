@@ -686,3 +686,32 @@ def test_trake_mot_video_chet_som_video_khac_ganh_du_100(monkeypatch):
     assert len(a) == ANSWERS_PER_QUERY
     assert len({(x.video_id, x.frame_ids) for x in a}) == ANSWERS_PER_QUERY
     assert {x.video_id for x in a} == {"VTI", "VDAI"}
+
+
+def test_day_TRAN_khoi_video_chi_bo_MOT_DONG_khong_giet_ca_video():
+    """Đẩy tăng dần ngặt làm tràn khỏi video ≠ máy phát đã cạn.
+
+    Bản trước gộp hai ca vào cùng một `None`, và `_draw_fresh_row` coi cả hai là
+    "cạn" → một lần tràn ở cuối video giết luôn video đó khỏi danh sách ứng viên.
+    Với TRAKE (vốn nhắm tìm MỘT video) thì mất video duy nhất = raise giữa chừng =
+    bài nộp DƯỚI 100 dòng, phá bất biến số một của D3.1.
+    """
+    from backend.slot.allocator import _draw_fresh_row, _trake_row
+
+    assert _trake_row([iter([]), iter([])], 1000) == (None, True), "hết frame = cạn thật"
+    assert _trake_row([iter([998]), iter([998])], 999) == (None, False), \
+        "998 và 998 đẩy thành 998,999 = tràn khỏi video 999 frame — nhưng CHƯA cạn"
+
+    # Lượt đầu tràn, lượt sau phải rút lại được chứ không báo cạn
+    gens = [iter([998, 500, 400]), iter([998, 501, 401])]
+    frames, can_kiet = _draw_fresh_row(gens, 999, "V", set())
+    assert not can_kiet and frames == (500, 501)
+
+
+def test_trake_shot_sat_CUOI_video_van_du_100_dong(monkeypatch):
+    """Shot ngắn nằm sát biên cuối — chỗ phép đẩy +1 dễ tràn nhất."""
+    _fake_world(monkeypatch, {"s0": ("VC", 4970, 4990)}, {"VC": 4991})
+    a = allocate([ShotHit("s0", 1.0)], "TRAKE", n_trake=4)
+    assert len(a) == ANSWERS_PER_QUERY
+    assert all(x.frame_ids[-1] < 4991 for x in a), "có frame vượt khỏi độ dài video"
+    assert all(list(x.frame_ids) == sorted(set(x.frame_ids)) for x in a), "phải tăng dần ngặt"

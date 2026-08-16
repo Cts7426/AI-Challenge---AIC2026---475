@@ -605,28 +605,56 @@ Thứ chỉ lộ ra lúc chạy (Milvus trả `frame_idx` kiểu gì, `ranks` c�
 
 | Việc | Chờ ai |
 |:---|:---|
-| Ảnh keyframe → thay thẻ xám bằng ảnh thật | Data Factory (§4.2) |
+| Ảnh keyframe → thay thẻ xám bằng ảnh thật | Data Factory (§4.2) — 🟡 **có trên máy Công Lý** (bản vá 15/08 cho `_image_path` nhắc lớp bọc `keyframes_LXX/`), máy này chưa có `data/keyframes/`. Quy ước tên file **đã chốt**, xem §9.4 |
 | File `.npy` `clip-features-32` → nhánh `vector` mới chạy | Data Factory (§10.2) |
 | Panel `objects` | BTC cho sẵn, **chưa tải** (§9.0.1) — cùng gói W0.5 |
 | Panel `caption` mức frame | BTC không phát, **chưa ai được giao** (§9.0.1) — cần người quyết |
 | Tab "Sau rerank" | A2.4 của Thạch |
 | Một lượt `live` chạy thật | hạ tầng — xem §9.2 |
 
-### 9.4. Quy ước tên file ảnh
+### 9.4. Quy ước tên file ảnh — ✅ ĐÃ CHỐT bằng dữ liệu thật (cập nhật 15/08)
 
-Quy ước tên file tra từ hai nguồn đã chốt, không đoán:
+> Mục này **đã đảo kết luận**. Bản 10/08 suy quy ước từ `docs/contest.md` và chốt
+> `#k0001 → 0000.jpg`. **Sai.** Dữ liệu thật nói ngược lại.
 
-| Nguồn | Nói gì |
+| Nguồn | Nói gì | Trọng lượng |
+|:---|:---|:---|
+| `docs/contest.md` §Dữ liệu BTC | thư mục Keyframes dạng `L01_V001/0000.jpg`, đánh số **từ 0** | mô tả, **không khớp bộ ảnh đang cầm** |
+| `reports/B01_TECHNICAL_REPORT.md` §1 · §4.3 | ảnh BTC là `001.jpg`, `002.jpg`… đánh số **từ 1**, 3 chữ số; `get_kf_path(vid, ord_idx)` tra theo đúng `ordinal` | **đã kiểm bằng pixel** trên 873 video |
+| `frame_map.parquet` | `btc_ordinal` nhỏ nhất là **1**, khớp hậu tố `#k0001` | ✅ nhất quán với B0.1 |
+
+→ `#k0001` ứng với `001.jpg`. Con số này đứng trên `docs/contest.md` vì B0.1 đã so ảnh
+với frame trích từ MP4, còn `docs/contest.md` chỉ mô tả.
+
+**Cách cài đặt cũng đổi, không chỉ đổi thứ tự thử.** Bản trước thử lần lượt vài mẫu tên
+rồi lấy cái nào `exists()` trước. Cách đó **không phân biệt nổi hai quy ước**: trong bộ
+đếm từ 0 (`0000.jpg`, `0001.jpg`…) thì `f"{ordinal:04d}.jpg"` của `#k0001` **vẫn tồn
+tại** — nó chỉ là ảnh của keyframe kế tiếp. Thử theo thứ tự là lệch một keyframe mà
+không có dấu hiệu gì, đúng loại lỗi mục này sinh ra để chặn.
+
+Nay `_image_naming()` **đọc cách đánh số từ chính tên file trong thư mục**: file nhỏ
+nhất là `0000.jpg` ⇒ đếm từ 0, không có ⇒ đếm từ 1; độ rộng (3 hay 4 chữ số) cũng lấy
+từ file thật. Rồi tính **đúng một** tên file, không thử mò.
+
+| Ca | Xử lý |
 |:---|:---|
-| `docs/contest.md` §Dữ liệu BTC | thư mục Keyframes dạng `L01_V001/0000.jpg`, đánh số **từ 0** |
-| `frame_map.parquet` | `btc_ordinal` nhỏ nhất là **1**, khớp hậu tố `#k0001` |
+| Bộ ảnh BTC thật (`001.jpg`, đếm từ 1) | dùng thẳng, không cảnh báo |
+| Bộ đếm từ 0 (`0000.jpg`) | vẫn dùng được (`ordinal - 1`) nhưng **kèm cảnh báo lên UI** — bộ ảnh đang cầm khác bộ B0.1 đã kiểm |
+| Thư mục có ảnh nhưng thiếu đúng ordinal đó | trả `None` **kèm cảnh báo** "ảnh và frame_map lệch phiên bản" — trước đây im lặng thành thẻ xám |
+| Thư mục còn nguyên lớp bọc `keyframes_L21/L21_V001/` | tìm ra (giữ phần Công Lý thêm 15/08) |
 
-→ `#k0001` ứng với `0000.jpg`, tức `ordinal - 1`. Đây là thứ tự **duy nhất** được thử
-đầu tiên. Vẫn còn đường lui sang `ordinal` vì quy ước còn mang dấu `# TODO: BTC`, nhưng
-đường lui **luôn kèm cảnh báo hiện lên UI** — rơi vào đó nghĩa là mọi ảnh lệch một
-keyframe, và lệch im lặng thì người chấm ngồi soi nhầm frame suốt buổi.
+5 test khoá lại (`test_ten_file_anh_theo_BO_ANH_THAT_cua_BTC_dem_tu_1` và 4 test kèm).
 
-Có 3 test khoá lại (`test_ten_file_anh_theo_QUY_UOC_dem_tu_0` và hai test kèm).
+> [!CAUTION]
+> **Bản vá 15/08 của Công Lý (L4) từng làm hỏng đúng chỗ này.** Nó thêm được hai thứ
+> đúng — hỗ trợ 3 chữ số và lớp bọc `keyframes_LXX/` — nhưng thay danh sách thử thành
+> `[{ordinal:03d}, {ordinal:04d}, {ordinal-1:04d}]` và **bỏ hẳn cảnh báo**. Hệ quả:
+> với bộ ảnh đếm từ 0, `#k0001` lấy nhầm `0001.jpg` (keyframe thứ hai) và trả về
+> `warning = None`. Hai test bắt được ngay (đỏ từ 15/08 tới 16/08). Đã sửa bằng cách
+> giữ hai thứ đúng, bỏ cách thử mò.
+>
+> Bài học không phải "đừng sửa file người khác" mà là: **`exists()` không phải bằng
+> chứng về quy ước**. Có hai quy ước cùng khớp thì phải hỏi dữ liệu, không hỏi thứ tự.
 
 ### 9.5. Một chỗ lệch nằm NGOÀI D2.1
 

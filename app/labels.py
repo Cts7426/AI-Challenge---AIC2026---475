@@ -233,15 +233,23 @@ def labels_of(query_id: str, directory: Path | None = None) -> list[Label]:
 
 # -------------------------------------------------------- tra cứu để CHẤM ĐIỂM
 
-def _normalize(text: str | None) -> str | None:
-    """Chuẩn hoá answer trước khi so: gộp khoảng trắng, viết thường.
+def _answer_tier(pred: str, da_cham: str) -> int:
+    """Câu hệ sinh ra so với câu đã có người chấm → tầng khớp (1/2/3), 0 = không khớp.
 
-    Không bỏ dấu: "màu xanh" và "mau xanh" là hai câu khác nhau. BTC chấm ngữ nghĩa
-    chứ không chấm chuỗi — mình không được tự nới rộng thay họ.
+    Dùng `backend/common/answer_match.py` — CÙNG bộ luật mà `dev_set/tools/scoring.py`
+    dùng để chấm và `backend/tasks/qa.py` dùng để gom phiếu self-consistency. Hai định
+    nghĩa "thế nào là hai câu trả lời giống nhau" là hai con số khác nhau, mà một trong
+    hai sẽ là con số nhóm nhìn vào để quyết định.
+
+    ⚠️ Đây KHÔNG phải tự phán "answer này đúng". Phán quyết vẫn là của người chấm; chỗ
+    này chỉ trả lời "câu vừa sinh ra có phải câu người ta đã phán không". Bản trước so
+    chuỗi nguyên văn nên "5 người" không nhận ra phán quyết đã có cho "5", rồi báo
+    "chưa chấm" → `eval.py` tính 0 và điểm Q&A tụt theo số cách diễn đạt, im lặng.
     """
-    if text is None:
-        return None
-    return " ".join(text.split()).lower() or None
+    from backend.common.answer_match import answer_matches
+
+    khop, tang = answer_matches(pred, da_cham, [])
+    return tang if khop else 0
 
 
 class LabelIndex:
@@ -283,15 +291,24 @@ class LabelIndex:
         Ba giá trị: True/False nếu có người chấm · **None nếu chưa ai chấm**. Gộp
         "chưa chấm" vào False thì điểm Q&A tụt theo số nhãn còn thiếu, nhìn như hệ
         thống dở — eval.py phải đếm riêng và báo ra.
+
+        Tra theo TẦNG KHỚP TĂNG DẦN, không theo thứ tự dòng nhãn: dòng khớp nguyên
+        văn (tầng 1) luôn thắng dòng chỉ khớp gần đúng (tầng 3). Nếu không, bộ nhãn
+        có cả "màu xanh"=Đúng lẫn "màu xanh lá"=Sai thì phán quyết trả về phụ thuộc
+        dòng nào đọc trước — tức phụ thuộc thứ tự file trên đĩa.
         """
-        want = _normalize(answer_text)
-        if want is None:
+        if not (answer_text or "").strip():
             return None
+        tot_nhat, phan_quyet = 0, None
         for n in self.labels:
-            if (n.query_id == query_id and n.answer_correct is not None
-                    and _normalize(n.answer_text) == want):
-                return n.answer_correct
-        return None
+            if n.query_id != query_id or n.answer_correct is None or not n.answer_text:
+                continue
+            tang = _answer_tier(answer_text, n.answer_text)
+            if tang and (tot_nhat == 0 or tang < tot_nhat):
+                tot_nhat, phan_quyet = tang, n.answer_correct
+                if tang == 1:
+                    break
+        return phan_quyet
 
     def n_moments(self, query_id: str) -> int | None:
         """N của một truy vấn TRAKE. None nếu không phải TRAKE.

@@ -250,13 +250,34 @@ def test_keyframe_cung_shot_tang_dan_va_chua_chinh_no(cap_id):
 
 # --------------------------------------------------------------- đường dẫn ảnh
 
-def test_ten_file_anh_theo_QUY_UOC_dem_tu_0(tmp_path, monkeypatch):
-    """`#k0001` phải trỏ tới `0000.jpg`, không phải `0001.jpg`.
+def test_ten_file_anh_theo_BO_ANH_THAT_cua_BTC_dem_tu_1(tmp_path, monkeypatch):
+    """`#k0001` → `001.jpg`: bộ ảnh THẬT của BTC đánh số từ 1, 3 chữ số.
 
-    Hai nguồn đã chốt việc này: docs/contest.md ghi thư mục Keyframes dạng
-    `L01_V001/0000.jpg` đánh số TỪ 0, còn `frame_map.btc_ordinal` nhỏ nhất là 1 và
-    khớp với hậu tố `#k0001`. Lệch một keyframe là người chấm nhãn soi nhầm frame
-    suốt buổi mà không có dấu hiệu gì.
+    Đây là con số đã kiểm bằng pixel ở B0.1 (`get_kf_path()` tra theo đúng `ordinal`,
+    reports/B01_TECHNICAL_REPORT.md §1 và §4.3), nên nó thắng dòng `L01_V001/0000.jpg`
+    trong docs/contest.md — tài liệu đó mô tả sai. Lệch một keyframe là người chấm
+    nhãn soi nhầm frame suốt buổi mà không có dấu hiệu gì.
+    """
+    import app.evidence as ev
+
+    (tmp_path / "L21_V001").mkdir()
+    for ten in ("001.jpg", "002.jpg"):
+        (tmp_path / "L21_V001" / ten).write_bytes(b"x")
+    monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
+    ev.clear_cache()
+
+    p, warnings = ev._image_path("L21_V001", "L21_V001#k0001", None)
+    assert p is not None and p.name == "001.jpg", "đang lệch một keyframe"
+    assert warnings is None
+
+
+def test_bo_anh_dem_tu_0_thi_dung_duoc_nhung_phai_BAO(tmp_path, monkeypatch):
+    """Bộ đánh số từ 0 vẫn dùng được, nhưng KHÔNG được im lặng.
+
+    `exists()` không phân biệt nổi hai quy ước — trong bộ đếm từ 0 thì `0001.jpg`
+    của `#k0001` vẫn tồn tại, nó chỉ là ảnh keyframe KẾ TIẾP. Nên phải suy quy ước
+    từ file nhỏ nhất (`0000.jpg` có ⇒ đếm từ 0), và báo ra vì bộ ảnh này khác bộ
+    B0.1 đã kiểm.
     """
     import app.evidence as ev
 
@@ -264,29 +285,46 @@ def test_ten_file_anh_theo_QUY_UOC_dem_tu_0(tmp_path, monkeypatch):
     for ten in ("0000.jpg", "0001.jpg"):
         (tmp_path / "L21_V001" / ten).write_bytes(b"x")
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
+    ev.clear_cache()
 
     p, warnings = ev._image_path("L21_V001", "L21_V001#k0001", None)
     assert p is not None and p.name == "0000.jpg", "đang lệch một keyframe"
+    assert warnings and "0000.jpg" in warnings, "dùng bộ ảnh khác mà im lặng"
+
+
+def test_anh_nam_trong_lop_boc_keyframes_LXX(tmp_path, monkeypatch):
+    """Bộ tải theo lô của BTC còn nguyên lớp `keyframes_L21/` — vẫn phải tìm ra."""
+    import app.evidence as ev
+
+    (tmp_path / "keyframes_L21" / "L21_V001").mkdir(parents=True)
+    (tmp_path / "keyframes_L21" / "L21_V001" / "003.jpg").write_bytes(b"x")
+    monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
+    ev.clear_cache()
+
+    p, warnings = ev._image_path("L21_V001", "L21_V001#k0003", None)
+    assert p is not None and p.name == "003.jpg"
     assert warnings is None
 
 
-def test_bo_anh_dem_tu_1_thi_dung_duoc_nhung_phai_BAO(tmp_path, monkeypatch):
-    """Đường lui phải kèm cảnh báo — quy ước còn là `# TODO: BTC`, chưa kiểm bằng ảnh thật."""
+def test_thu_muc_co_anh_nhung_thieu_dung_ordinal_thi_BAO(tmp_path, monkeypatch):
+    """Ảnh và frame_map lệch phiên bản → nói ra, đừng để panel trống không lý do."""
     import app.evidence as ev
 
     (tmp_path / "L21_V001").mkdir()
-    (tmp_path / "L21_V001" / "0001.jpg").write_bytes(b"x")  # chỉ có bản đếm từ 1
+    (tmp_path / "L21_V001" / "001.jpg").write_bytes(b"x")
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path)
+    ev.clear_cache()
 
-    p, warnings = ev._image_path("L21_V001", "L21_V001#k0001", None)
-    assert p is not None and p.name == "0001.jpg"
-    assert warnings and "0001.jpg" in warnings, "dùng đường lui mà im lặng"
+    p, warnings = ev._image_path("L21_V001", "L21_V001#k0009", None)
+    assert p is None
+    assert warnings and "009.jpg" in warnings
 
 
 def test_chua_co_anh_thi_tra_None_chu_khong_sap(tmp_path, monkeypatch):
     import app.evidence as ev
 
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path / "khong_ton_tai")
+    ev.clear_cache()
     assert ev._image_path("L21_V001", "L21_V001#k0001", None) == (None, None)
 
 

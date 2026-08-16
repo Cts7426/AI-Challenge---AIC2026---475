@@ -11,7 +11,7 @@ from backend.indexing.milvus_client import connect as milvus_connect
 from backend.retrieval.search import search
 from backend.indexing.frame_map import load_frame_map
 from backend.slot.allocator import allocate, ShotHit, shot_bounds
-from backend.export import write_submissions
+from backend.export import QuerySubmission, write_submissions
 from backend.tasks.qa import qa_pipeline
 
 from data.config.submit_format import Answer
@@ -166,6 +166,11 @@ def run_evaluation():
 
     scores_jsonl_path = out_dir / "scores.jsonl"
     answers_jsonl_path = out_dir / "answers.jsonl"
+    # NGUYÊN LIỆU cho app/score_simulator.py (D3.5): danh sách shot ứng viên TRƯỚC khi
+    # allocate() đóng gói thành 100 dòng. Không lưu lại thì muốn thử bảng slot khác
+    # phải chạy lại cả vòng search (hàng chục phút, cần Milvus + ES + LLM) — mà cái
+    # cần thử lại chỉ là phép chia slot, tốn vài giây.
+    candidates_jsonl_path = out_dir / "candidates.jsonl"
 
     # Tiến độ cũ: CHỈ coi "đã xong" các câu THÀNH CÔNG — câu từng crash được
     # thử lại (lỗi lần trước có thể chỉ là ES/Milvus chập chờn, không phải bug).
@@ -187,7 +192,8 @@ def run_evaluation():
 
     print("Bắt đầu truy xuất...")
     with open(scores_jsonl_path, "a", encoding="utf-8") as scores_f, \
-         open(answers_jsonl_path, "a", encoding="utf-8") as answers_f:
+         open(answers_jsonl_path, "a", encoding="utf-8") as answers_f, \
+         open(candidates_jsonl_path, "a", encoding="utf-8") as candidates_f:
 
         for q in tqdm(queries):
             if q.query_id not in gts:
@@ -297,6 +303,21 @@ def run_evaluation():
                 }, ensure_ascii=False) + "\n")
                 answers_f.flush()
 
+                # Ghi NGUYÊN LIỆU ngay cạnh kết quả, cùng một lần chạy — ghi sau ở
+                # một job riêng thì tầng search có thể đã đổi và nguyên liệu không
+                # còn khớp bộ điểm nằm cạnh nó.
+                candidates_f.write(json.dumps({
+                    "query_id": q.query_id,
+                    "task_type": q.task_type,
+                    "answer_text": answer_text,
+                    "n_trake": n_trake,
+                    "candidates": [
+                        {"shot_id": h.shot_id, "score": float(h.score),
+                         "best_keyframe_id": h.best_keyframe_id} for h in hits
+                    ],
+                }, ensure_ascii=False) + "\n")
+                candidates_f.flush()
+
             except Exception as e:
                 err_count += 1
                 print(f"\n[LỖI] Query {q.query_id} ném ngoại lệ:")
@@ -338,7 +359,13 @@ def run_evaluation():
         json.dumps(scores, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    ans_dict: dict[str, list[Answer]] = {}
+    # write_submissions() nhận list[QuerySubmission], KHÔNG nhận dict — bản trước
+    # đưa thẳng dict vào nên nó lặp qua các KHOÁ (chuỗi) và ném
+    # `AttributeError: 'str' object has no attribute 'query_id'` ở dòng cuối cùng
+    # của cả lần chạy, sau khi đã tốn toàn bộ thời gian search. Và `task_type` là
+    # bắt buộc: thiếu nó thì tầng nộp không biết dòng TRAKE khác dòng KIS chỗ nào.
+    task_of = {q.query_id: q.task_type for q in queries}
+    subs: list[QuerySubmission] = []
     for line in answers_jsonl_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -349,10 +376,21 @@ def run_evaluation():
         # crash) thì đừng nộp answers cũ của nó.
         if qid not in per_query_by_id or per_query_by_id[qid]["failure_class"] == "F0_CRASH":
             continue
-        ans_dict[qid] = [_answer_from_dict(d) for d in rec["answers"]]
+        subs.append(QuerySubmission(
+            query_id=qid,
+            task_type=task_of.get(qid, per_query_by_id[qid]["task_type"]),
+            answers=tuple(_answer_from_dict(d) for d in rec["answers"]),
+        ))
 
-    if ans_dict:
-        write_submissions(ans_dict, str(out_dir))
+    if subs:
+        # Bỏ bản ghi cũ của cùng query_id khi resume: file JSONL chỉ nối thêm, mà
+        # `validate_all()` coi query_id lặp lại là lỗi và từ chối ghi CẢ LÔ.
+        subs = list({s.query_id: s for s in subs}.values())
+        _, loi_file = write_submissions(subs, str(out_dir))
+        if loi_file:
+            print("CẢNH BÁO: file nộp có vấn đề:")
+            for i in loi_file:
+                print(f"  {i}")
 
     print(f"\nĐã hoàn thành! Kết quả lưu tại: {out_dir}")
     print(f"Tổng query lỗi (lần chạy này): {err_count} / {len(queries) - len(done_qids)}")

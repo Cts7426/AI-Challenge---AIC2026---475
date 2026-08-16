@@ -264,6 +264,38 @@ def test_answer_dung_tra_ba_gia_tri():
     assert bn.is_answer_correct("q1", None) is None
 
 
+def test_answer_khop_theo_LUAT_CHUNG_khong_so_chuoi_nguyen_van():
+    """Cùng bộ luật với dev_set/tools/scoring.py và majority voting của qa.py.
+
+    Người chấm phán trên MỘT cách diễn đạt ("5"); hệ thật trả về cách khác ("5 người",
+    "Năm"). So chuỗi nguyên văn thì phán quyết đã có không được nhận ra → báo "chưa
+    chấm" → eval.py tính 0. Điểm Q&A tụt theo số cách diễn đạt chứ không theo chất
+    lượng hệ thống, và không có dấu hiệu gì.
+    """
+    goc = dict(query_id="q1", query_vi="mấy người?", task_type="QA",
+               video_id="L01_V001", frame_start=0, frame_end=9, labeler="test")
+    bn = LabelIndex([Label(label="correct", answer_text="5", answer_correct=True, **goc)])
+
+    assert bn.is_answer_correct("q1", "5.") is True, "tầng 1 — dấu câu"
+    assert bn.is_answer_correct("q1", "Năm") is True, "tầng 2 — số ↔ chữ"
+    assert bn.is_answer_correct("q1", "7") is None, "khác nghĩa thì vẫn phải là chưa chấm"
+
+
+def test_answer_dong_khop_NGUYEN_VAN_thang_dong_khop_gan_dung():
+    """Tầng khớp quyết định, không phải thứ tự dòng nhãn trên đĩa."""
+    goc = dict(query_id="q1", query_vi="?", task_type="QA", video_id="L01_V001",
+               frame_start=0, frame_end=9, labeler="test")
+    nhan = [
+        Label(label="wrong", answer_text="ông nguyễn văn ba",
+              answer_correct=False, **goc),
+        Label(label="correct", answer_text="ông nguyễn văn bảo",
+              answer_correct=True, **goc),
+    ]
+    # Cùng nội dung nhãn, đảo thứ tự đọc → phán quyết phải không đổi
+    assert LabelIndex(nhan).is_answer_correct("q1", "ông nguyễn văn bảo") is True
+    assert LabelIndex(nhan[::-1]).is_answer_correct("q1", "ông nguyễn văn bảo") is True
+
+
 def test_so_khoanh_khac_None_cho_KIS():
     """Truy vấn không phải TRAKE thì không có N — đừng trả 0 rồi chia cho 0."""
     bn = LabelIndex([Label(query_id="q1", query_vi="?", task_type="KIS",

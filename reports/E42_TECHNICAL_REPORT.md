@@ -2,13 +2,22 @@
 
 > **Ngày:** 13/08/2026 · **Hạn:** 13/08/2026
 >
-> **Người thực hiện:** Minh Hoàng (Linh đặc tả — chưa nhận được, đã tự dựng từ tài liệu BTC)
+> **Người thực hiện:** Minh Hoàng (Linh đặc tả — đặc tả về 16/08, đối chiếu **khớp
+> tuyệt đối** cả ba ví dụ có đáp số của BTC, xem §8)
 >
 > **Phạm vi:** `app/eval.py` + `data/config/scoring.py` + mở rộng `app/labels.py`
 > và `app/debug_ui.py` + `tests/test_eval.py`
 >
-> **Trạng thái: CHẠY ĐƯỢC ĐẦU-CUỐI cho cả ba dạng bài.** 233 test xanh.
-> Chưa dùng thật được vì `dev_set/` còn rỗng — xem §7.
+> **Trạng thái: CHẠY ĐƯỢC ĐẦU-CUỐI cho cả ba dạng bài.** 233 test xanh (toàn repo
+> 16/08: **409 xanh**).
+>
+> **Cập nhật 15/08** — §7 đã viết lại. Ba pipeline phần C đã ship, và cách so khớp
+> `answer` **đã sửa** để dùng chung `backend/common/answer_match.py` với tầng chấm
+> dev_set và majority voting của Q&A.
+>
+> 🔴 **Chặn cứng còn lại: `dev_set/` vẫn rỗng trên thực tế** — 3 dòng dữ liệu giả trong
+> đường chạy thật (§7.1). Bộ đo *chạy được và ra số*, nhưng số đó vô nghĩa. D3.5 và
+> D4.1 đứng sau nút thắt này.
 
 ---
 
@@ -299,51 +308,150 @@ không thấy gì lạ.
 
 ## 7. Phần TREO và phần chờ người khác
 
-### 7.1. 🔴 `dev_set/` đang RỖNG — chưa dùng thật được
+> **Cập nhật 16/08.** Ba trong bốn mục dưới đã được code đồng đội pull về gỡ. Mục 7.3
+> đã **sửa xong trong code**; 7.1 và 7.2 đã thông nhưng đổi hình dạng — đọc kỹ, phần
+> còn lại không giống phần cũ.
 
-`find dev_set -name "*.jsonl"` → **0 file**. `eval.py` chạy đúng nhưng chưa có gì để chấm.
+### 7.1. 🔴 `dev_set/` VẪN RỖNG — có file, nhưng nội dung là dữ liệu giả
 
-Chấm nhãn tử tế cần **ảnh keyframe** (đang chờ Công Lý, W0.5). Không có ảnh thì chỉ
-chấm được câu nào lời giải nằm trong OCR/ASR — mà chấm kiểu đó làm **lệch bộ nhãn**,
-xem `D21_TECHNICAL_REPORT.md` §10.3.
+Bản 13/08 ghi *"`find dev_set -name "*.jsonl"` → 0 file"*. Nay **có file**, nhưng mở ra
+xem thì đây là toàn bộ nội dung:
 
-### 7.2. 🔴 Hai dạng bài chưa có gì để đo
+```jsonl
+{"query_id": "Q1", "task_type": "KIS", "query_vi": "Query hợp lệ", "split": "tune"}
+{"query_id": "Q2", "task_type": "KIS", "query_vi": "Query ngoài biên video", "split": "tune"}
+{"query_id": "Q3", "task_type": "KIS", "query_vi": "Query có cửa sổ rộng", "split": "tune"}
+```
 
-| Task | Người | Hạn | Trạng thái |
+Ba dòng, cả ba là **mô tả ca kiểm thử chứ không phải câu hỏi**, đáp án đều trỏ vào
+`L21_V001` với cửa sổ tròn trịa `[10,20] · [30,40] · [50,60]`. Không có file
+`tune_qa.jsonl` lẫn `tune_trake.jsonl` nào, dù commit tạo ra chúng ghi *"thêm bộ đề và
+ground truth cho KIS/Q&A"*.
+
+Đây là **chặn cứng và bị nguỵ trang**: `dev_set/queries/` là đúng đường mà
+`run_evaluation.py:112` đọc, nên bộ đo *chạy được* và *ra số* — chỉ là số đó vô nghĩa.
+Đối chiếu `dev_set/README.md` tự đặt ra: **KIS 25/10 · QA 20/8 · TRAKE 15/6**
+(tune/holdout). Đang có **3/25 câu KIS, 0 câu QA, 0 câu TRAKE**.
+
+Hệ quả dây chuyền: **D3.5 và D4.1 không có gì để chạy**. Tune bảng `SLOT_BUDGET` trên
+3 câu giả là tự lừa — mỗi câu đổi ±1 hạng là Final nhảy 0.33.
+
+**Việc của Linh (nội dung dev set) + Công Lý (GT), không tự gỡ được từ phần D/E.**
+
+Còn treo tiếp: **ảnh keyframe để chấm nhãn bằng mắt**. Công Lý đã có bộ ảnh trên máy
+mình (bản vá 15/08 cho `app/evidence.py` nhắc tới lớp bọc `keyframes_L21/`), nhưng máy
+này chưa có `data/keyframes/`.
+
+> [!NOTE]
+> Ngay cả khi có đề thật, `python -m app.eval` vẫn báo *"chưa có nhãn nào"* — bộ đáp án
+> của dev_set theo `dev_set/tools/schema.py` (`GroundTruthKIS/QA/TRAKE`), khác
+> `app/labels.py::Label` mà `eval.py` đọc. **Hai định dạng đáp án song song**, xem §7.4.
+
+### 7.2. ✅ Ba pipeline đã ship — đo được cả ba dạng bài
+
+| Task | Người | Trạng thái 16/08 |
+|:---|:---|:---|
+| C3.1 — pipeline Q&A | Thi | ✅ `backend/tasks/qa.py` |
+| C3.2 — TRAKE giai đoạn 1 | Thi | ✅ `backend/tasks/trake.py` |
+| C4.4 — fallback TRAKE | Thi | ✅ `backend/tasks/trake_fallback.py` |
+
+Mốc 🚩G3 16/08 (*"ba dạng bài đều có điểm chưa?"*) đã có đủ nguồn sinh câu trả lời.
+
+> [!WARNING]
+> **Một cửa tử mới lộ ra khi đo Q&A.** `qa_pipeline()` **raise `RuntimeError`** khi
+> không suy luận được câu trả lời đủ tin cậy (`backend/tasks/qa.py:457`). Trên đường
+> chạy của `run_evaluation.py` thì câu đó thành `F0_CRASH` và **không nộp dòng nào** —
+> tức 0 điểm, trong khi retrieval có thể đã trúng shot.
+>
+> Luật số 1 của cách chấm (`CLAUDE.md` §6) là *"LUÔN nộp đủ 100 slot, câu sai không bị
+> trừ điểm"*. Không trả lời được thì vẫn nên nộp 100 dòng với một answer đoán — 100
+> dòng có frame đúng mà answer sai được 0, y hệt bỏ trống, **nhưng không mất gì cả**,
+> còn nếu answer đoán trúng thì được điểm. Thuộc file của **Thi**, không sửa từ đây.
+
+### 7.3. ✅ ĐÃ SỬA — `answer` khớp theo LUẬT CHUNG của nhóm, không so chuỗi nguyên văn
+
+Bản 13/08: `LabelIndex.is_answer_correct()` so chuỗi sau khi chuẩn hoá khoảng trắng +
+viết thường, và ghi rằng nới rộng thay BTC là "tự cho mình điểm".
+
+**Điều đã đổi:** nhóm nay đã có `backend/common/answer_match.py` — một nguồn sự thật
+DUY NHẤT cho *"thế nào là hai câu trả lời giống nhau"*, đang được dùng ở hai chỗ khác:
+
+| Nơi dùng | Việc |
+|:---|:---|
+| `dev_set/tools/scoring.py::rscore_qa` | chấm câu Q&A so với ground truth |
+| `backend/tasks/qa.py` (majority voting) | gom phiếu self-consistency |
+
+Nên `is_answer_correct()` **đã chuyển sang gọi đúng module đó**. Đây không còn là "tự
+nới rộng thay BTC": ba tầng khớp (chuẩn hoá → số ↔ chữ → fuzzy 0.85) là luật nhóm đang
+dùng để chấm, và một tầng đo mà định nghĩa "giống nhau" khác tầng chấm thì hai con số
+sẽ trôi xa nhau, mà một trong hai là con số nhóm nhìn để ra quyết định.
+
+Vẫn giữ nguyên hai bất biến cũ:
+
+- **Phán quyết vẫn là của NGƯỜI.** Module chỉ trả lời "câu vừa sinh ra có phải câu
+  người ta đã phán không", không tự phán đúng/sai.
+- **Ba giá trị True/False/None.** Chưa ai chấm vẫn là `None`, `eval.py` vẫn đếm riêng.
+
+Cái được: người chấm phán một lần trên `"5"`, hệ trả `"5 người"` hay `"Năm"` thì phán
+quyết đó **được nhận ra**. Trước đây rơi hết vào "chưa chấm" → `eval.py` tính 0 → điểm
+Q&A tụt theo số cách diễn đạt chứ không theo chất lượng hệ thống.
+
+Thêm chốt chặn: tra theo **tầng khớp tăng dần** (khớp nguyên văn thắng khớp gần đúng),
+không theo thứ tự dòng nhãn — nếu không, bộ nhãn có cả `"màu xanh"=Đúng` lẫn
+`"màu xanh lá"=Sai` thì kết quả phụ thuộc dòng nào đọc trước, tức phụ thuộc thứ tự file
+trên đĩa. 3 test khoá lại trong `tests/test_labels.py`.
+
+### 7.4. 🔴 Đã có đường đo — nhưng nhóm đang có HAI tầng chấm điểm song song
+
+`run_evaluation.py` (dev_set) nay chạy đủ vòng: search → `allocate()` → chấm → ghi file
+nộp. Nhưng nó **không gọi `app/eval.py`**; nó dùng `dev_set/tools/scoring.py`.
+
+| | `app/eval.py` + `data/config/scoring.py` (E4.2) | `dev_set/tools/scoring.py` |
+|:---|:---|:---|
+| Nguồn đáp án | `app/labels.py::Label` — người chấm qua UI debug | `ground_truth/*.jsonl` — soạn tay theo schema riêng |
+| Công thức Final | `mean(R@k)` ✅ | `mean(R@k)` ✅ — **hai bên khớp nhau** |
+| TRAKE nộp thiếu khoảnh khắc | chấm từng phần, mẫu số lấy từ đáp án | trả thẳng `0.0` nếu `len(frames) != N` |
+| Q&A chưa ai phán | `None` → đếm riêng, báo ra | không có khái niệm này (đáp án có sẵn) |
+| Báo cáo | tách theo dạng bài, liệt kê câu tệ nhất, chẩn đoán recall/ranking | `scores.json` thô + `failure_class` |
+
+Công thức gốc thì **khớp** — cả hai đều đã sửa cùng một bug "bảng rút gọn" (E4.2 từ
+đầu, dev_set sửa 14/08).
+
+### 7.4.1. Đo lại 16/08 — phần trùng NHỎ hơn nhiều so với bản ghi hôm 15/08
+
+> Bản trước ghi *"hai tầng chấm song song, gộp lại mất nửa ngày"*. Rà bằng `grep` từng
+> chỗ import thì con số thật khác hẳn. Ghi lại cho đúng.
+
+Tầng chấm chia làm **hai lớp**, và chỉ **một** lớp trùng:
+
+| Lớp | `data/config/scoring.py` | `dev_set/tools/scoring.py` | Trùng? |
 |:---|:---|:---|:---|
-| C3.1 — pipeline Q&A | Thi | 14/08 | ❌ `backend/tasks/` chưa tồn tại |
-| C3.2 — TRAKE giai đoạn 1 | Thi | 16/08 | ❌ |
-| C4.4 — fallback TRAKE | Thi | 16/08 | ❌ |
+| **Công thức R@k + Final** (BTC mục 2.2) | `r_at_k` · `final_score` | `recall_at_k` · `final_score` | 🔴 **TRÙNG THẬT — ~26 dòng** |
+| **R-Score từng dòng** (BTC mục 2.1) | — | `rscore_kis/qa/trake` (nhận `GroundTruth*`) | 🟢 không trùng — `app/eval.py` có bản nhận `LabelIndex`, **hai định dạng đáp án khác nhau** |
 
-`eval.py` đo được cả ba dạng, nhưng **hai trong ba dạng chưa có ai sinh ra câu trả
-lời**. Mốc 🚩G3 ngày 16/08 hỏi *"ba dạng bài đều có điểm chưa?"*.
+Nghĩa là việc phải làm chỉ là: **`dev_set/tools/scoring.py` import `r_at_k`/`final_score`
+từ `data/config/scoring.py` thay vì tự viết.** Khoảng 26 dòng, không phải nửa ngày. Phần
+`rscore_*` giữ nguyên — nó bám định dạng ground truth của dev set, không phải bản sao.
 
-Ghi ở đây không phải để đổ lỗi mà để **thước đo sẵn sàng trước**: lúc C3.1 ship là đo
-được ngay, không mất thêm một vòng.
+### 7.4.2. 🔴 Sự thật khó chịu hơn: `app/eval.py` hiện KHÔNG ai gọi
 
-### 7.3. 🟡 Cách so khớp `answer` là so CHUỖI, BTC so NGỮ NGHĨA
+```
+grep "from app.eval import" → chỉ tests/test_eval.py
+```
 
-BTC chấm `aᵢ = GTₐ` theo **ngữ nghĩa** — `"5"` và `"Năm"` đều được tính đúng.
+Đường chấm đang sống là `run_evaluation.py` → `dev_set/tools/scoring.py`. `app/eval.py`
+không nằm trên đó, vì nó đọc nhãn từ `app/labels.py` mà **chưa ai chấm nhãn nào**
+(`dev_set/labels.*.jsonl` → 0 file), do chưa có ảnh keyframe để chấm bằng mắt.
 
-`LabelIndex.answer_correct()` so chuỗi sau khi chuẩn hoá khoảng trắng + viết thường. Nghĩa
-là người chấm phán trên **một chuỗi cụ thể**; hệ sinh ra chuỗi khác về nghĩa giống
-nhau sẽ bị coi là "chưa chấm" (`None`), không phải "sai".
+**Không xoá**, vì hai đường phục vụ hai việc khác nhau:
 
-Chọn cách này có chủ ý: nới rộng thay BTC (bỏ dấu, so gần đúng, hỏi LLM) là **tự cho
-mình điểm** mà lúc thi không có. Báo "chưa chấm" rồi để người phán là an toàn hơn.
+| Đường | Nguồn đáp án | Sống khi nào |
+|:---|:---|:---|
+| `run_evaluation.py` + `dev_set/tools/scoring.py` | đề soạn sẵn + GT | **đang chạy** |
+| `app/eval.py` + `app/labels.py` + UI debug | người ngồi chấm từng frame | khi có ảnh keyframe (W0.5) |
 
-Đường nâng cấp nếu bộ nhãn phình to: cho `answer_correct()` gọi `llm()` để so ngữ nghĩa,
-nhưng phải là **tuỳ chọn tắt được** và kết quả ghi lại thành nhãn, không phán lại mỗi
-lần chạy.
-
-### 7.4. 🟡 Chưa có ai gọi `eval.py` trong pipeline
-
-`run_minimal.py` chưa xuất file `runs.jsonl`. Hiện phải tự dựng file đó, hoặc gọi
-`from_submissions()` từ script.
-
-Thêm ~5 dòng vào `run_minimal.py` là xong, nhưng đó là **file của Thạch** — cùng chỗ
-với vấn đề `run_minimal.py` không gọi `allocate()` đã ghi ở `D31_TECHNICAL_REPORT.md`
-§10.1. Nên gộp hai việc vào một lần sửa.
+Nhưng **ngừng đầu tư vào `app/eval.py`** cho tới khi ảnh về. Mọi tính năng đo mới thêm
+vào đường đang chạy, không thêm vào đường chưa có dữ liệu.
 
 ---
 
@@ -357,13 +465,36 @@ với vấn đề `run_minimal.py` không gọi `allocate()` đã ghi ở `D31_T
 | Tách theo dạng bài | ✅ ba dòng KIS / QA / TRAKE riêng |
 | **Xuất riêng R@1, R@5, R@20, R@50, R@100** | ✅ năm cột |
 | Biết đang yếu ở recall hay ranking | ✅ §6 — ví dụ thật cho ra chẩn đoán "bệnh ranking" |
-| *"Linh đặc tả"* | ⚠️ **chưa nhận được đặc tả**. Đã tự dựng từ tài liệu BTC gốc, mọi con số đều neo vào ví dụ của BTC (§6). Linh nên rà lại |
+| *"Linh đặc tả"* | ✅ **Đóng 16/08** — đặc tả chính là tài liệu BTC *"Thông tin vòng Sơ tuyển"*, đã có. Đối chiếu xong, xem dưới |
 
-### Ba việc cần người khác
+#### ✅ Đối chiếu với tài liệu BTC — cả ba ví dụ CÓ ĐÁP SỐ đều khớp tuyệt đối (16/08)
 
-1. **Công Lý** — tải data (ảnh keyframe) để chấm nhãn được.
-2. **Thi** — C3.1/C3.2/C4.4, nếu không thì Q&A và TRAKE mãi không có gì để đo.
-3. **Thạch** — cho `run_minimal.py` xuất `runs.jsonl`, gộp với việc gọi `allocate()`.
+Tài liệu BTC cho ba ví dụ kèm đáp số. Chạy thẳng bằng code của nhóm:
+
+| Ví dụ của BTC | BTC nói | Code ra | |
+|:---|:---|:---|:--:|
+| Mục 2.2 — câu 1 = 0.5, câu 3 = 0.8, câu 15 = 0.6 | Final = **0.74** | `final_score()` → **0.74** | ✅ |
+| Mục 2.1.3 — TRAKE `(101, 156, 203, 251)` khớp 3/4 | R-Score = **0.75** | `rscore_trake()` → **0.75** | ✅ |
+| Mục 2.1.3 — TRAKE sai video | R-Score = **0** | `rscore_trake()` → **0.0** | ✅ |
+
+Trung gian cũng khớp: `R@1 = 0.5` · `R@5 = R@20 = R@50 = R@100 = 0.8`, đúng như tài liệu
+mô tả (*"câu số 3 vẫn là cao nhất trong mọi ngưỡng từ 5 trở lên"*).
+
+Ba thứ khác trong tài liệu cũng đã xác nhận: **tối đa 100 câu** mỗi truy vấn (mục 2),
+**answer chấp nhận tiếng Việt hoặc tiếng Anh** (mục 1.2), và **hai cửa tử độc lập** của
+Q&A (mục 2.1.2) — cả ba đều đã cài đúng từ đầu.
+
+Nên phần *"chưa nhận được đặc tả"* của bản 13/08 **không còn là rủi ro**: thứ tự dựng
+ngược (code trước, tài liệu sau) hoá ra không sinh sai lệch nào.
+
+### Ba việc cần người khác — cập nhật 16/08
+
+| # | Việc | Ai | Trạng thái |
+|:--:|:---|:---|:---|
+| 1 | Ảnh keyframe để chấm nhãn bằng mắt | Công Lý | 🟡 có trên máy Lý, máy này chưa có `data/keyframes/` |
+| 2 | C3.1 / C3.2 / C4.4 sinh câu trả lời Q&A + TRAKE | Thi | ✅ xong — §7.2 |
+| 3 | `run_minimal.py` xuất `runs.jsonl` + gọi `allocate()` | Thạch | 🟡 `run_evaluation.py` đã đi đường `allocate()`, `run_minimal.py` thì chưa — xem `D31_TECHNICAL_REPORT.md` §10.1 |
+| 4 | **Chốt một tầng chấm điểm** thay vì hai | Linh + Minh Hoàng | 🔴 mới — §7.4, làm trước D4.1 |
 
 ### Việc tiếp theo của Minh Hoàng
 

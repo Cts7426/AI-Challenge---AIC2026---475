@@ -10,8 +10,19 @@
 #
 # Thứ hạng = THỨ TỰ dòng, mỗi truy vấn là 1 file riêng.
 #
+# ĐÃ CHỐT (tài liệu BTC "Thông tin vòng Sơ tuyển", mục 2.1):
+#   · thứ tự ô đúng như trên, Q&A có thêm cột answer ở CUỐI
+#   · answer chấp nhận tiếng Việt HOẶC tiếng Anh
+#   · tối đa 100 câu trả lời mỗi truy vấn (mục 2)
+#
 # TODO: BTC — chưa công bố: CSV hay JSON · có header không · frame_id đếm từ 0 hay 1 ·
 # quy ước đặt tên file · có gộp zip không. Ba format dưới là PHỎNG ĐOÁN (hậu tố _v0).
+#
+# TODO: BTC — ⚠️ `video_id` CÓ ĐUÔI `.mp4` KHÔNG? Tài liệu BTC viết ví dụ là
+# `video_id = video_abc(.mp4)` — dấu ngoặc không nói rõ là tuỳ chọn hay bắt buộc.
+# Tầng này đang ghi nguyên `video_id` như trong `shots.parquet`, tức KHÔNG đuôi
+# (`L21_V001`). Nếu BTC đòi `L21_V001.mp4` thì SAI TOÀN BỘ bài nộp mà validator vẫn
+# xanh — cùng hạng nguy hiểm với việc `frame_id` đếm từ 0 hay 1. Hỏi cùng lượt.
 
 from __future__ import annotations
 

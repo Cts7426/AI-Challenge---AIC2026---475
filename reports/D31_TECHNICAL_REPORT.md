@@ -306,6 +306,36 @@ video từ `video_info.parquet` — đều là dữ liệu Data Factory đã gia
 | Bỏ bù slot khi ít shot hơn bảng | 2 đỏ |
 | Phục hồi | **103 xanh** (3 đỏ là lỗi ngoài, mục 10.5) |
 
+### 8.2.1. 🐛 Bug tìm thêm khi rà lại 16/08 — `_trake_row` gộp hai trạng thái
+
+`_trake_row()` trả `None` cho **hai ca hoàn toàn khác nhau**, và `_draw_fresh_row()`
+coi cả hai là *"máy phát đã cạn"*:
+
+| Ca | Ý nghĩa thật | Bản cũ hiểu thành |
+|:---|:---|:---|
+| Máy phát hết frame | video này không cấp thêm được gì | cạn ✅ đúng |
+| Phép đẩy +1 làm tràn khỏi video | **chỉ dòng này hỏng**, máy phát còn hàng chục nghìn frame | cạn ❌ **sai** |
+
+Hệ quả: một lần tràn ở cuối video **giết luôn video đó** khỏi danh sách ứng viên. Với
+TRAKE — dạng bài vốn nhắm tìm MỘT video — mất video duy nhất nghĩa là `_allocate_trake`
+raise giữa chừng, tức **bài nộp dưới 100 dòng**. Phá đúng bất biến số một của D3.1.
+
+Đo được sau khi sửa:
+
+```
+máy phát cạn thật            → (None, True)
+998 và 998 đẩy thành 998,999 → (None, False)   ← video 999 frame: tràn, nhưng CHƯA cạn
+rút lại sau khi tràn         → (500, 501)      ← bản cũ trả "cạn", mất luôn video
+```
+
+**Trung thực về mức độ:** đã quét 7 shot ngắn nằm sát biên cuối video × `n_trake` 2–6
+trên dữ liệu thật — **không ca nào chạm tới**. Đây là bug **tiềm ẩn**, không phải bug
+đang cháy. Vẫn sửa vì nó chỉ cần một shot sát biên và hai máy phát cùng chạm frame
+cuối, mà cái giá là bài nộp thiếu dòng không có dấu hiệu gì.
+
+2 test khoá lại: `test_day_TRAN_khoi_video_chi_bo_MOT_DONG_khong_giet_ca_video` và
+`test_trake_shot_sat_CUOI_video_van_du_100_dong`.
+
 ### 8.3. Quét ngẫu nhiên 120 kịch bản
 
 Ngoài test cố định, đã chạy 40 lần bốc ngẫu nhiên × 3 dạng bài:
@@ -385,13 +415,35 @@ hits = [ShotHit(r["shot_id"], r["score"], r["keyframe_id"]) for r in search(...)
 Nó thuộc `run_minimal.py` (A6.2-early của Thạch). Không viết vào allocator vì đó là việc
 của tầng điều phối, không phải của tầng cấp phát.
 
-> [!CAUTION]
-> **Rà soát 13/08 — vấn đề nặng hơn "chưa ai nối dây".** `run_minimal.py` đã tồn tại và
-> đã chạy được đầu-cuối, nhưng nó **không gọi `allocate()`**. Nó tự chia slot bằng
-> `_chia_slot()` + `_don_cho_du()` của riêng nó.
+> [!NOTE]
+> **Cập nhật 16/08 — dây đã nối được một nửa.** `dev_set/tools/run_evaluation.py` (bộ
+> đo của Linh/Thi) nay đi **đúng đường D3.1**:
 >
-> Kiểm chứng: `grep -rn "backend.slot" --include=*.py .` chỉ ra hai chỗ — hàm demo của
-> `exporter.py` và CLI `python -m backend.slot`. **Không có chỗ nào trên đường nộp bài.**
+> ```python
+> hits = _to_shot_hits(res)                    # dòng 44-53, đúng mẩu keo dán ở trên
+> ans  = allocate(hits, q.task_type, answer_text=answer_text, n_trake=n_trake)
+> ...
+> write_submissions(subs, str(out_dir))        # thẳng vào tầng D0.2
+> ```
+>
+> Nghĩa là **phần đào sâu theo shot đã thật sự chạy** trên đường đo, và **D4.1 (tune
+> `SLOT_BUDGET`) không còn vô nghĩa** — bảng ngân sách giờ có người đọc tới. `qa.py`
+> và `trake_fallback.py` cũng viết docstring quanh giả định gọi `allocate()`.
+>
+> **Một bug thật ở điểm nối đã sửa (16/08):** khối cuối `run_evaluation.py` gọi
+> `write_submissions(ans_dict, …)` với một **dict**, trong khi hàm nhận
+> `list[QuerySubmission]`. Lặp qua dict cho ra các KHOÁ (chuỗi) → `AttributeError:
+> 'str' object has no attribute 'query_id'` ở **dòng cuối cùng của cả lần chạy**, sau
+> khi đã tốn toàn bộ thời gian search. Và `task_type` bị mất hẳn — tầng nộp không phân
+> biệt được dòng TRAKE với dòng KIS. Đã sửa: dựng `QuerySubmission` đủ ba trường, khử
+> `query_id` trùng (file JSONL chỉ nối thêm, resume là sinh dòng lặp và `validate_all()`
+> từ chối cả lô), và in `Issue` của bước kiểm file thay vì bỏ đi.
+
+> [!CAUTION]
+> **`run_minimal.py` thì vẫn CHƯA nối** (kiểm lại 16/08). Nó tự chia slot bằng
+> `_chia_slot()` + `_don_cho_du()` của riêng nó — tức **kịch bản sự cố lúc thi**
+> (`CLAUDE.md` §2: *"hệ thống treo giữa buổi thi thì bấm là chạy được ngay"*) đang chạy
+> bằng cách chia slot **nông hơn** đường đo. Đo một đằng, cứu hộ một nẻo.
 >
 > Hai cách chia slot khác nhau về bản chất:
 >
@@ -402,15 +454,17 @@ của tầng điều phối, không phải của tầng cấp phát.
 > | Xen kẽ theo shot | có, theo bảng ngân sách | không, theo thứ hạng search |
 > | Khi thiếu slot | nới ra ngoài biên shot | độn `frame 0` của video chưa dùng |
 >
-> Hệ quả:
-> 1. **Toàn bộ phần đào sâu theo shot đang không chạy.** Đặc tả D3.1 ghi *"`frame_idx`
->    không cần là keyframe đã index — độ sâu là miễn phí"*. Đường nộp thật đang bỏ
->    đúng thứ đó.
-> 2. **D4.1 (17/08 — tune bảng ngân sách) sẽ vô nghĩa** nếu nối dây không xong trước.
->    Tune một bảng mà đường nộp không đọc tới.
-> 3. Phần độn: `allocate()` độn bằng frame sâu trong shot ứng viên (còn cơ hội đúng),
->    `_don_cho_du()` độn bằng `frame 0` của video chưa dùng (*"gần như chắc sai"* —
->    lời chú thích trong chính file đó).
+> Hệ quả (đã thu hẹp so với bản 13/08):
+> 1. ~~Toàn bộ phần đào sâu theo shot đang không chạy~~ → **đã chạy trên đường đo**
+>    (`run_evaluation.py`), chỉ còn `run_minimal.py` là bỏ.
+> 2. ~~D4.1 sẽ vô nghĩa~~ → **không còn**: bảng ngân sách đã có người đọc tới, tune
+>    xong là đo lại được ngay.
+> 3. **Còn nguyên:** hai cách chia slot cho ra hai bộ 100 dòng khác nhau, mà
+>    `run_minimal.py` chính là đường chạy lúc sự cố. Phần độn của nó là `frame 0` của
+>    video chưa dùng (*"gần như chắc sai"* — lời chú thích trong chính file đó), trong
+>    khi `allocate()` độn bằng frame sâu trong shot ứng viên (còn cơ hội đúng).
+>    Việc cần làm: đổi `_chia_slot()` + `_don_cho_du()` thành `_to_shot_hits()` +
+>    `allocate()`, y hệt `run_evaluation.py` đã làm. Thuộc **Thạch**.
 >
 > Đây **không phải lỗi của ai**: `run_minimal.py` là A6.2-**early**, viết ra để ghép ống
 > cho pipeline chạy hết đường trước khi D3.1 xong. Nhưng giờ D3.1 xong rồi mà chưa ai
@@ -420,7 +474,7 @@ của tầng điều phối, không phải của tầng cấp phát.
 
 | # | Chỗ | Đang giả định gì | Chờ ai | Nếu sai thì sao |
 |:---:|:---|:---|:---|:---|
-| 1 | `SLOT_BUDGET = [(3,8),(7,5),(10,3),(11,1)]` | Cửa sổ `[s,e]` của BTC vừa phải | **Linh → BTC** | CLAUDE.md mục *Điều CHƯA chốt* liệt đây là thứ BTC phải trả lời. Cửa sổ rộng → nên rải rộng; hẹp → nên đào sâu. **D4.1 (17/08) là task tune bảng này** |
+| 1 | `SLOT_BUDGET = [(3,8),(7,5),(10,3),(11,1)]` | Cửa sổ `[s,e]` của BTC vừa phải | **Linh → BTC** | **Đã đo bằng số 16/08 — xem `D35_TECHNICAL_REPORT.md` §6.** Chọn bảng chỉ chênh ~0,02 điểm, nhưng **độ rộng cửa sổ** kéo điểm từ 0,25 lên 0,69 (gấp 20 lần). Và bảng thắng **lật hoàn toàn** theo hạng shot đúng: `sâu 2×20` được 0,702 khi search giỏi nhưng **0,000** khi shot đúng ở hạng 25. Bảng hiện tại phủ 31 shot → không thắng ở đâu nhưng cũng không sập ở đâu, **giữ nguyên nếu phải chốt mù** |
 | 2 | `TRAKE_DEFAULT_N = 4` | Đề TRAKE không công bố N | **Linh → BTC** | Sai N → validator bắt được (`trake_n_mismatch`), không phải lỗi im lặng |
 | 3 | `SHOT_EDGE_INSET = 0.10` | 10% mỗi đầu là đủ tránh frame chuyển cảnh | tôi | Con số cảm tính, chưa đo. D4.1 tune cùng bảng ngân sách |
 
@@ -457,14 +511,15 @@ vá 13/08. Hiện `import` sạch, toàn bộ test xanh.
 > báo "HỢP LỆ", chỉ đường chạy thật mới nổ. Demo xanh không chứng minh được gì về
 > đường có `best_keyframe_id` — đừng dùng nó làm phép kiểm cuối trước khi nộp.
 
-### 10.6. 🔵 `CLAUDE.md` mô tả ngược thiết kế hiện tại
+### 10.6. ✅ `CLAUDE.md` mô tả ngược thiết kế — ĐÃ SỬA
 
-```
-| Format submit | data/config/submit_format.py | frame_id = hậu tố keyframe_id |
-```
+Bản v3 có dòng `frame_id = hậu tố keyframe_id`, đúng cái W0.2 đã xoá khỏi code — ai đọc
+lần đầu sẽ hiểu ngược hoàn toàn.
 
-Đúng cái W0.2 đã xoá khỏi code. Ai đọc `CLAUDE.md` lần đầu sẽ hiểu ngược hoàn toàn:
-tầng format **không** suy `frame_id` từ `keyframe_id`, và sẽ không bao giờ suy nữa.
+**`CLAUDE.md` v4 (01/08) đã bỏ hẳn dòng đó.** Kiểm 16/08:
+`grep -n "hậu tố keyframe_id" CLAUDE.md` → không còn dòng nào. Mục 7 của v4 nay nói
+đúng thiết kế: *"`frame_id` KHÔNG cần là keyframe đã index… slot allocator phát ra
+`frame_idx` bất kỳ trong shot thắng cuộc"*.
 
 ## 11. 🧪 Code chỉ để thử nghiệm — bỏ khi vào thi
 

@@ -216,41 +216,81 @@ def split_id(kf_id: str) -> tuple[str, str | None, str | None]:
     return video, None, None
 
 
+@lru_cache(maxsize=32)
+def _keyframe_dir(video_id: str) -> Path | None:
+    """Thư mục ảnh của một video, hoặc None nếu chưa có.
+
+    Hai bố cục cùng tồn tại: bộ giải nén thẳng (`<KEYFRAMES_DIR>/L21_V001/`) và bộ
+    tải theo lô của BTC còn nguyên lớp bọc (`<KEYFRAMES_DIR>/keyframes_L21/L21_V001/`).
+    """
+    part = video_id.split("_")[0]
+    for ung_vien in (KEYFRAMES_DIR / f"keyframes_{part}" / video_id,
+                     KEYFRAMES_DIR / video_id):
+        if ung_vien.is_dir():
+            return ung_vien
+    return None
+
+
+@lru_cache(maxsize=32)
+def _image_naming(video_dir: Path) -> tuple[int, int] | None:
+    """Quy ước đánh số của một thư mục ảnh → (số đầu tiên, độ rộng). None = chưa có ảnh.
+
+    ĐỌC TỪ CHÍNH TÊN FILE thay vì thử lần lượt vài mẫu đoán. Lý do: `ordinal` và
+    `ordinal - 1` KHÔNG phân biệt được bằng phép `exists()` — trong bộ đếm từ 0
+    (`0000.jpg`, `0001.jpg`…) thì `f"{ordinal:04d}.jpg"` của `#k0001` vẫn tồn tại,
+    nó chỉ là ảnh của keyframe KẾ TIẾP. Thử theo thứ tự là lệch một keyframe mà
+    không có dấu hiệu gì. Chỗ duy nhất phân biệt được là **file nhỏ nhất** trong
+    thư mục: bộ đếm từ 0 có `0000.jpg`, bộ đếm từ 1 thì không.
+
+    Độ rộng cũng lấy từ file thật — BTC dùng 3 số (`001.jpg`, xem
+    reports/B01_TECHNICAL_REPORT.md §1), bản giải nén khác dùng 4.
+    """
+    ten = [p.stem for p in video_dir.glob("*.jpg") if p.stem.isdigit()]
+    if not ten:
+        return None
+    dau = min(ten, key=int)
+    # Kẹp về 0/1: thiếu đúng ảnh đầu tiên của bộ đếm từ 1 thì `min` ra 2, và tin nó
+    # là "base 2" sẽ đẩy lệch toàn bộ. Ngoài 0 thì luôn hiểu là đếm từ 1.
+    return (0 if int(dau) == 0 else 1), len(dau)
+
+
 def _image_path(video_id: str, kf_btc: str | None,
                 kf_own: str | None) -> tuple[Path | None, str | None]:
     """Tìm file ảnh của keyframe → (đường dẫn, cảnh báo).
 
-    Quy ước tên file KHÔNG đoán, tra từ hai nguồn đã chốt: docs/contest.md ghi thư
-    mục Keyframes dạng `L01_V001/0000.jpg` đánh số TỪ 0, còn `frame_map.btc_ordinal`
-    nhỏ nhất là 1 và khớp hậu tố `#k0001`. → `#k0001` ứng với `0000.jpg`.
+    Quy ước tên file KHÔNG đoán, và cũng không thử lần lượt vài mẫu: đọc thẳng cách
+    đánh số của thư mục (`_image_naming`) rồi tính đúng một tên file.
 
-    Vẫn thử `ordinal` nếu không thấy, vì quy ước còn là `# TODO: BTC`. Nhưng lần thử
-    thứ hai LUÔN kèm cảnh báo: rơi vào đó nghĩa là mọi ảnh lệch một keyframe, và lệch
-    im lặng thì người chấm ngồi soi nhầm frame suốt buổi.
+    Bộ ảnh THẬT của BTC đánh số **từ 1**, 3 chữ số: `#k0001` → `001.jpg`. Đây là con
+    số đã kiểm bằng pixel trong B0.1 (`get_kf_path()` tra theo đúng `ordinal`), nên nó
+    thắng dòng `L01_V001/0000.jpg` trong `docs/contest.md` — tài liệu đó mô tả sai.
+
+    Gặp bộ đánh số từ 0 thì VẪN dùng được (tính `ordinal - 1`) nhưng LUÔN kèm cảnh
+    báo: bộ ảnh đang cầm khác bộ B0.1 đã kiểm, mà lệch một keyframe thì người chấm
+    ngồi soi nhầm frame suốt buổi và không có dấu hiệu gì.
     """
     if kf_btc:
         m = _BTC_ID.match(kf_btc)
         if m:
             ordinal = int(m.group("ordinal"))
-            
-            # Tìm đúng thư mục chứa video (có thể lồng trong keyframes_L21)
-            video_dir = None
-            part = video_id.split('_')[0]
-            for candidate_dir in [KEYFRAMES_DIR / f"keyframes_{part}" / video_id, KEYFRAMES_DIR / video_id]:
-                if candidate_dir.exists():
-                    video_dir = candidate_dir
-                    break
-                    
-            if video_dir:
-                # Thử các chuẩn quy ước thực tế của BTC (base 1 - 3 số, base 1 - 4 số, base 0 - 4 số)
-                candidates = [
-                    video_dir / f"{ordinal:03d}.jpg",
-                    video_dir / f"{ordinal:04d}.jpg",
-                    video_dir / f"{ordinal - 1:04d}.jpg"
-                ]
-                for p in candidates:
-                    if p.exists():
-                        return p, None
+            video_dir = _keyframe_dir(video_id)
+            naming = _image_naming(video_dir) if video_dir else None
+            if naming:
+                base, do_rong = naming
+                path = video_dir / f"{ordinal - 1 + base:0{do_rong}d}.jpg"
+                if path.exists():
+                    if base == 0:
+                        return path, (
+                            f"ảnh đang lấy theo `{path.name}` (bộ đánh số TỪ 0) — khác bộ "
+                            "ảnh BTC mà B0.1 đã kiểm bằng pixel (đánh số từ 1: `001.jpg` "
+                            f"ứng với `#k0001`). Kiểm lại trước khi chấm nhãn: nếu bộ ảnh "
+                            "này thật ra đếm từ 1 thì mọi ảnh lệch một keyframe."
+                        )
+                    return path, None
+                return None, (
+                    f"thư mục {video_dir.name} có ảnh nhưng thiếu `{path.name}` "
+                    f"(ordinal {ordinal}) — bộ ảnh và frame_map lệch phiên bản"
+                )
     if kf_own:
         df = _keyframes_of(video_id)
         row = df[df.kf_id == kf_own]
@@ -363,5 +403,6 @@ def keyframes_in_shot(video_id: str, shot_id: str) -> list[dict]:
 def clear_cache() -> None:
     """Quên hết bảng đã nạp. Dùng khi Data Factory giao bản dữ liệu mới giữa phiên."""
     for f in (_id_bridge, _frame_map_of, _shots_of, _video_meta,
-              _ocr_of, _asr_of, _docs_of, _keyframes_of):
+              _ocr_of, _asr_of, _docs_of, _keyframes_of,
+              _keyframe_dir, _image_naming):
         f.cache_clear()

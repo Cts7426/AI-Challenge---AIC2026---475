@@ -548,35 +548,53 @@ def _draw_fresh_row(
     lượt này và thử lại ở vòng sau, không giết nguồn.
     """
     for _ in range(MAX_DUPLICATE_RETRIES):
-        frames = _trake_row(gens, n_frames_video)
-        if frames is None:
+        frames, can_kiet = _trake_row(gens, n_frames_video)
+        if can_kiet:
             return None, True
-        if (video_id, frames) not in used:
+        # `frames is None` = dòng vừa dựng bị đẩy tràn khỏi video → BỎ DÒNG, rút lại.
+        # Máy phát vẫn còn frame (nó xả theo thứ tự nới dần, lượt sau ra số thấp hơn).
+        if frames is not None and (video_id, frames) not in used:
             return frames, False
     return None, False
 
 
-def _trake_row(gens: list[Iterator[int]], n_frames_video: int) -> tuple[int, ...] | None:
-    """Rút một khoảnh khắc từ mỗi máy phát → tuple tăng dần NGẶT, hoặc None nếu cạn.
+def _trake_row(gens: list[Iterator[int]], n_frames_video: int
+               ) -> tuple[tuple[int, ...] | None, bool]:
+    """Rút một khoảnh khắc từ mỗi máy phát → (tuple tăng dần NGẶT | None, máy_phát_đã_cạn).
 
     Sau khi sắp tăng dần vẫn có thể có hai khoảnh khắc trùng frame (khi hai máy phát
     dùng chung một shot). Đẩy lên 1 đơn vị cho tách ra — thà lệch 1 frame còn hơn nộp
     dòng bị validator loại vì không tăng dần ngặt.
+
+    ⚠️ Phải trả về HAI trạng thái, không gộp vào một `None`. Bản trước trả `None` cho
+    cả hai ca, và `_draw_fresh_row` coi cả hai là "máy phát đã cạn":
+
+        máy phát hết frame     → cạn thật, video này không cấp thêm được gì
+        đẩy tràn khỏi video    → CHỈ dòng này hỏng; máy phát còn hàng chục nghìn frame
+
+    Gộp lại thì một lần tràn ở cuối video **giết luôn video đó** khỏi danh sách ứng
+    viên. Với TRAKE — dạng bài vốn nhắm tìm MỘT video — mất video duy nhất là
+    `_allocate_trake` raise ở giữa chừng, tức bài nộp **dưới 100 dòng**, phá đúng bất
+    biến số một của D3.1.
+
+    Chưa quét ra ca nào chạm tới trên dữ liệu hiện tại (thử 7 shot ngắn nằm sát cuối
+    video × n_trake 2–6, không ca nào nổ) — nhưng nó chỉ cần một shot sát biên và hai
+    máy phát cùng chạm frame cuối. Đây là chốt chặn, không phải code chết.
     """
     picked = []
     for g in gens:
         f = next(g, None)
         if f is None:
-            return None
+            return None, True
         picked.append(f)
 
     picked.sort()
     for i in range(1, len(picked)):
         if picked[i] <= picked[i - 1]:
             picked[i] = picked[i - 1] + 1
-    if picked[-1] >= n_frames_video:  # đẩy tràn khỏi video → dòng này bỏ
-        return None
-    return tuple(picked)
+    if picked[-1] >= n_frames_video:  # đẩy tràn khỏi video → bỏ dòng, KHÔNG phải cạn
+        return None, False
+    return tuple(picked), False
 
 
 # ------------------------------------------------------------------------- demo

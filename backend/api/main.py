@@ -40,8 +40,10 @@ from data.config.submit_format import Answer
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Thư mục ảnh keyframe BTC cấp (chưa có → mount tự tắt, URL trả 404 nhưng
 # API vẫn chạy). Đổi chỗ chỉ cần set env, không sửa code (CLAUDE.md mục 7).
-KEYFRAMES_DIR = Path(os.environ.get("KEYFRAMES_DIR", str(REPO_ROOT / "data" / "keyframes")))
+KEYFRAMES_DIR = Path(os.environ.get("KEYFRAMES_DIR", str(REPO_ROOT / "data" / "raw" / "btc" / "keyframes")))
 
+
+_video_paths: dict[str, str] = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,6 +61,20 @@ async def lifespan(app: FastAPI):
         print(f"Đã preload bảng shot: {len(_shot_map())} keyframe.")
     except Exception as e:
         print(f"[cảnh báo] Không preload được bảng shot: {e}")
+        
+    # Xây dựng bảng tra đường dẫn video (xử lý vụ L26 bị chia thành L26a, L26b...)
+    try:
+        if KEYFRAMES_DIR.is_dir():
+            print(f"Đang quét thư mục ảnh: {KEYFRAMES_DIR}")
+            for parent_dir in KEYFRAMES_DIR.iterdir():
+                if parent_dir.is_dir() and parent_dir.name.startswith("keyframes_"):
+                    for video_dir in parent_dir.iterdir():
+                        if video_dir.is_dir():
+                            _video_paths[video_dir.name] = f"{parent_dir.name}/{video_dir.name}"
+            print(f"Đã tìm thấy {len(_video_paths)} thư mục video.")
+    except Exception as e:
+        print(f"[cảnh báo] Không quét được thư mục ảnh: {e}")
+        
     yield
 
 
@@ -84,6 +100,7 @@ class SearchRequest(BaseModel):
     # Bản dịch EN thủ công — bỏ qua bước llm() dịch. Dùng khi chưa set
     # ANTHROPIC_API_KEY hoặc muốn tự kiểm soát câu đưa vào CLIP.
     query_en: str | None = None
+    task_type: Literal["KIS", "QA", "TRAKE"] = "KIS"
 
 
 class SearchHit(BaseModel):
@@ -98,12 +115,52 @@ class SearchHit(BaseModel):
     # thành đoán mò. Nhánh không xếp hạng kết quả này thì vắng mặt trong dict.
     ranks: dict[str, int]
     thumbnail_url: str
+    # Chỉ TRAKE: vị trí sự kiện (0-based) mà hit này định vị — None ở KIS/QA.
+    # Frontend gom các hit CÙNG video_id, sắp theo event_index để hiển thị đủ
+    # N khoảnh khắc thay vì 1 ảnh đại diện duy nhất (SỬA 16/08).
+    event_index: int | None = None
+    # Chỉ TRAKE: vị trí này có bằng chứng thật hay bị nội suy (trake.py
+    # ::_fill_missing) — UI cần biết để không hiển thị nội suy như đã "tìm thấy".
+    is_interpolated: bool | None = None
 
 
-@app.post("/search", response_model=list[SearchHit])
-def post_search(req: SearchRequest) -> list[SearchHit]:
+class SearchResponse(BaseModel):
+    hits: list[SearchHit]
+    answer_text: str | None = None
+
+@app.post("/search", response_model=SearchResponse)
+def post_search(req: SearchRequest) -> SearchResponse:
     try:
-        results = fused_search(req.query, query_en=req.query_en, top_k=req.top_k)
+        answer_text = None
+        if req.task_type == "QA":
+            from backend.tasks.qa import qa_pipeline
+            results, answer_text = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en)
+        elif req.task_type == "TRAKE":
+            from backend.tasks.trake import parse_events, trake_search
+            events = parse_events(req.query)
+            candidates = trake_search(events, top_videos=10)
+
+            # Trả ĐỦ N hit mỗi video (không chỉ 1 ảnh đại diện như bản cũ) —
+            # frontend gom theo video_id + event_index để người thao tác thấy
+            # đúng chuỗi đã định vị, không phải đoán mò. Vị trí bị nội suy
+            # (không có bằng chứng thật) dùng keyframe_id GIẢ (không có trong
+            # frame_map) — /submit chấp nhận nhờ SubmitItem.frame_idx tường
+            # minh (xem post_submit), KHÔNG tra frame_map cho các vị trí này.
+            results = []
+            for c in candidates:
+                for j, (frame_idx, kf) in enumerate(zip(c.frame_ids, c.keyframe_ids)):
+                    results.append({
+                        "keyframe_id": kf or f"{c.video_id}#interp{j}",
+                        "video_id": c.video_id,
+                        "frame_idx": frame_idx,
+                        "timestamp_ms": 0,
+                        "score": c.score,
+                        "ranks": {"trake": 1},
+                        "event_index": j,
+                        "is_interpolated": kf is None,
+                    })
+        else:
+            results = fused_search(req.query, query_en=req.query_en, top_k=req.top_k)
     except RuntimeError as e:
         # Thiếu API key khi cần dịch — lỗi phía cấu hình người dùng → 400 kèm cách khắc phục
         raise HTTPException(
@@ -114,27 +171,37 @@ def post_search(req: SearchRequest) -> list[SearchHit]:
         # Milvus/ES chết cả → 503 để frontend phân biệt "hệ thống sập" với "query sai"
         raise HTTPException(status_code=503, detail=f"Search thất bại: {e}")
 
-    return [
+    hits = [
         SearchHit(
             keyframe_id=r["keyframe_id"],
             video_id=r["video_id"],
             frame_idx=r.get("frame_idx"),
             shot_id=r.get("shot_id"),
             ranks=r.get("ranks", {}),
-            timestamp_ms=r["timestamp_ms"],
+            timestamp_ms=r.get("timestamp_ms", 0),
             score=r["score"],
-            # Quy ước đường dẫn ảnh: <video_id>/<keyframe_id>.jpg trong KEYFRAMES_DIR.
-            # TODO: BTC — chỉnh khi biết cấu trúc thư mục Keyframes thật
-            thumbnail_url=f"/thumbnails/{r['video_id']}/{r['keyframe_id']}.jpg",
+            event_index=r.get("event_index"),
+            is_interpolated=r.get("is_interpolated"),
+            thumbnail_url=(
+                f"/thumbnails/{_video_paths.get(r['video_id'], f'keyframes_{r['video_id'].split('_')[0]}/{r['video_id']}')}/"
+                f"{int(r['keyframe_id'].split('#k')[-1]):03d}.jpg"
+                if "#k" in r['keyframe_id'] else f"/thumbnails/{r['video_id']}/{r['keyframe_id']}.jpg"
+            ),
         )
         for r in results
     ]
+    return SearchResponse(hits=hits, answer_text=answer_text)
 
 
 class SubmitItem(BaseModel):
     keyframe_id: str
     video_id: str
     timestamp_ms: int | None = None
+    # Chỉ cần cho TRAKE khi keyframe_id là vị trí NỘI SUY (trake.py::_fill_missing
+    # — không có bằng chứng thật nên không có mặt trong frame_map). Frontend gửi
+    # kèm frame_idx đã biết từ /search; KIS/QA/TRAKE-có-bằng-chứng-thật bỏ qua
+    # trường này, vẫn tra frame_map như cũ (nguồn sự thật ưu tiên hơn client).
+    frame_idx: int | None = None
 
 
 class SubmitRequest(BaseModel):
@@ -164,13 +231,20 @@ def post_submit(req: SubmitRequest) -> dict:
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=f"Chưa có frame_map: {e}")
 
-    def to_frame(kf_id: str) -> int:
-        if kf_id not in frame_map:
-            raise HTTPException(
-                status_code=400,
-                detail=f"keyframe '{kf_id}' không có trong frame_map — id lạ hoặc map chưa phủ video này.",
-            )
-        return frame_map[kf_id]
+    def to_frame(it: SubmitItem) -> int:
+        if it.keyframe_id in frame_map:
+            return frame_map[it.keyframe_id]
+        # keyframe lạ với frame_map: chỉ TRAKE mới được phép, và CHỈ khi client
+        # gửi kèm frame_idx tường minh — đây là ca vị trí bị nội suy (trake.py
+        # ::_fill_missing, không có bằng chứng thật nên không thể có trong
+        # frame_map). KIS/QA không có lối thoát này — chúng LUÔN phải là bằng
+        # chứng thật, id lạ ở đó là lỗi, không phải nội suy hợp lệ.
+        if req.task_type == "TRAKE" and it.frame_idx is not None:
+            return it.frame_idx
+        raise HTTPException(
+            status_code=400,
+            detail=f"keyframe '{it.keyframe_id}' không có trong frame_map — id lạ hoặc map chưa phủ video này.",
+        )
 
     if req.task_type == "TRAKE":
         # TRAKE: N khoảnh khắc của CÙNG MỘT video → 1 dòng duy nhất
@@ -183,7 +257,7 @@ def post_submit(req: SubmitRequest) -> dict:
         if len(req.items) < 2:
             raise HTTPException(status_code=400, detail="TRAKE cần ít nhất 2 khoảnh khắc.")
         # Khoảnh khắc theo thời gian trong video = frame index tăng dần
-        frames = tuple(sorted(to_frame(it.keyframe_id) for it in req.items))
+        frames = tuple(sorted(to_frame(it) for it in req.items))
         answers = [Answer(video_id=req.items[0].video_id, frame_ids=frames,
                           keyframe_id=req.items[0].keyframe_id)]
     else:
@@ -191,7 +265,7 @@ def post_submit(req: SubmitRequest) -> dict:
         answers = [
             Answer(
                 video_id=it.video_id,
-                frame_ids=(to_frame(it.keyframe_id),),
+                frame_ids=(to_frame(it),),
                 answer_text=req.answer_text if req.task_type == "QA" else None,
                 keyframe_id=it.keyframe_id,
             )

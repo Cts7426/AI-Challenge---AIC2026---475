@@ -23,9 +23,21 @@ BRANCHES = {
     "metadata": True,   # BM25 title/description/keywords (mức VIDEO)
     "objects": True,    # nhãn OpenImages (mức KEYFRAME)
     "ocr": True,        # chữ trên hình (mức KEYFRAME)
-    "asr": True,        # lời nói (mức ĐOẠN THỜI GIAN)
+    "asr": True,        # lời thoại tiếng Việt (mức ĐOẠN THỜI GIAN)
 }
 
+# Trọng số RRF cho từng nhánh (Weighted RRF).
+# Các nhánh nhiễu như OCR/ASR thường sinh ra nhiều kết quả ảo do khớp từng từ,
+# trong khi Vector (CLIP) mới là giá trị cốt lõi. Cần áp trọng số để Vector không bị chìm.
+BRANCH_WEIGHTS = {
+    "vector": 1.0,
+    "objects": 0.7,
+    "ocr": 0.6,
+    "asr": 0.6,
+    "metadata": 0.4,
+}
+
+# ----------------- Gom nhóm theo shot (B0.1) -----------------
 # Mỗi nhánh lấy top_k * hệ số này làm ứng viên. Rộng hơn top_k để keyframe mạnh
 # ở nhánh phụ vẫn lọt vào bảng hợp nhất; rộng quá thì tốn thời gian vô ích.
 CANDIDATE_MULTIPLIER = 5
@@ -55,10 +67,31 @@ ASR_NOMINATE_SEGMENTS = 5
 # kiếm) vẫn phải còn cơ hội lọt top-10, chỉ là xếp thấp hơn video khớp thứ tự
 # hoàn hảo. Sai video ở TRAKE là 0 điểm tuyệt đối (docs/contest.md) — loại nhầm
 # 1 video đúng khỏi top-10 vì phạt quá tay còn tệ hơn xếp nó hạng 8 thay vì hạng 2.
-TRAKE_ORDER_BONUS = 1.5
+TRAKE_ORDER_BONUS = 5.0
 
 # Mỗi sự kiện TRAKE lấy top bấy nhiêu shot khi search() riêng (KHÔNG nối chuỗi
 # N sự kiện thành 1 câu — vi phạm giới hạn 77 token của CLIP, xem
 # backend/tasks/trake.py). Rộng hơn top-10 video cuối cùng để video đúng mà
 # chỉ khớp yếu 1-2 sự kiện vẫn có cơ hội lọt vào bảng gộp điểm.
-TRAKE_EVENT_SEARCH_POOL = 200
+TRAKE_EVENT_SEARCH_POOL = 1000
+
+# Trong TỪNG video ứng viên, mỗi sự kiện giữ lại tối đa bấy nhiêu khung hình
+# điểm cao nhất làm ứng viên cho DP xếp chuỗi tăng dần (backend/tasks/trake.py
+# ::_align_events_in_video). >1 (khác bản cũ chỉ giữ đúng 1) để DP có phương án
+# B khi ứng viên điểm cao nhất của một sự kiện phá thứ tự — không phải "+1
+# nudge" giả tạo lên bằng chứng thật. DP là O((N·K)²) nên K lớn vẫn rẻ; 6 đủ
+# rộng cho N TRAKE thường gặp (2-6 sự kiện) mà không làm chậm search.
+TRAKE_CANDIDATES_PER_EVENT = 6
+
+# Khoảng cách FRAME tối thiểu giữa 2 vị trí LIÊN TIẾP mà DP chọn (backend/tasks/
+# trake.py::_align_events_in_video). Đo thật: CLIP không phân biệt nổi "đổ
+# muối vào nước" với "đổ rau vào nước" bằng caption ngắn — cả hai ra CÙNG 1
+# khung hình top-1 (cách nhau ~19 frame), khiến DP ghép chúng thành "2 sự kiện"
+# dù đó chỉ là 1 khoảnh khắc CLIP nhầm lẫn. Ràng buộc này không sửa được lỗi
+# CLIP (cần "tầng tinh" — docs/contest.md), chỉ ép DP bỏ qua tổ hợp chụm 1 chỗ.
+#
+# TODO: BTC/D4.1 — chưa biết fps thật của video (docs/contest.md), nên đây là
+# số frame THÔ, chưa quy đổi ra giây. 30 là ước lượng "đủ để không phải cùng 1
+# khoảnh khắc nhầm lẫn" nhưng "đủ nhỏ để không loại nhầm 2 hành động cắt nhanh
+# thật" — cần tune trên dev_set khi có video có timestamp thật để đối chiếu.
+TRAKE_MIN_FRAME_GAP = 30

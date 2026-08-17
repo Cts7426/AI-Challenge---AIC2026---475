@@ -236,13 +236,42 @@ def run_evaluation():
                     # tính năng debug phụ để giữ đúng hành vi production, đo
                     # ranks riêng cho QA là việc làm thêm sau nếu cần.
                     hits, answer_text = qa_pipeline(q.query_vi, query_en=q_en)
+                    ans = allocate(hits, q.task_type, answer_text=answer_text)
+                elif q.task_type == "TRAKE":
+                    # ⚠️ SỬA 16/08: bản cũ KHÔNG hề gọi pipeline TRAKE thật
+                    # (parse_events + trake_search) — nó ném cả câu multi-event
+                    # vào search() NHƯ MỘT CÂU KIS ĐƠN (vi phạm giới hạn 77
+                    # token của CLIP, xem backend/tasks/trake.py), rồi để
+                    # allocate()/_allocate_trake() tự bịa N khoảnh khắc từ 1
+                    # shot của search đơn đó. Nghĩa là MỌI số liệu TRAKE trên
+                    # dev_set trước đây đo một pipeline khác hẳn production —
+                    # đây chính là gốc rễ "TRAKE hoạt động y hệt KIS" đo được.
+                    #
+                    # event_descs (nếu dev_set/queries/*_trake.jsonl có sẵn) ưu
+                    # tiên hơn parse_events(): tránh gọi LLM lặp lại mỗi lần
+                    # tune (tốn tiền + không xác định), và tách sự kiện thủ
+                    # công luôn đáng tin hơn LLM đoán trên đúng 1 câu ngắn.
+                    from backend.tasks.trake import pad_answers, parse_events, to_answers, trake_search
+                    events = q.event_descs if q.event_descs else parse_events(q.query_vi)
+                    candidates = trake_search(events, top_videos=100)
+                    if not candidates:
+                        raise RuntimeError("trake_search() không tìm được video ứng viên nào")
+                    ans = to_answers(candidates)
+                    if len(ans) < 100:
+                        ans = pad_answers(candidates, 100)
+                    answer_text = None
+                    # Debug: hạng của ĐÚNG VIDEO trong danh sách ứng viên TRAKE
+                    # — TRAKE xếp hạng theo video (sai video = 0 điểm tuyệt
+                    # đối), không phải hạng 1 keyframe đơn lẻ như KIS.
+                    for rank, c in enumerate(candidates, 1):
+                        if c.video_id == gt.video_id:
+                            best_hit_ranks = {"trake_video_rank": rank}
+                            break
                 else:
                     res = search(q.query_vi, q_en, top_k=100, group_by_shot=True)
                     hits = _to_shot_hits(res)
                     answer_text = None
-
-                n_trake = q.n_events if q.task_type == "TRAKE" else None
-                ans = allocate(hits, q.task_type, answer_text=answer_text, n_trake=n_trake)
+                    ans = allocate(hits, q.task_type, answer_text=answer_text)
 
                 r_1 = recall_at_k(ans, gt, q.task_type, 1)
                 r_5 = recall_at_k(ans, gt, q.task_type, 5)
@@ -252,9 +281,10 @@ def run_evaluation():
                 fin = final_score(ans, gt, q.task_type)
 
                 # Thứ hạng của câu đúng trên từng nhánh search — để debug thất
-                # bại. Chỉ có cho KIS/TRAKE (dùng res thô của q.query_vi gốc);
-                # QA xem comment ở trên.
-                if q.task_type != "QA":
+                # bại. Chỉ có ý nghĩa cho KIS (dùng res thô của q.query_vi gốc);
+                # QA xem comment ở trên, TRAKE đã tự tính best_hit_ranks riêng
+                # ở nhánh xử lý của nó (hạng VIDEO, không phải hạng keyframe).
+                if q.task_type == "KIS":
                     for row in res:
                         video_id = row["video_id"]
                         kf = row["keyframe_id"]
@@ -262,17 +292,7 @@ def run_evaluation():
                             continue
                         frame_idx = fmap[kf]
 
-                        hit = False
-                        if q.task_type == "KIS":
-                            hit = (rscore_kis(video_id, frame_idx, gt) > 0)
-                        elif q.task_type == "TRAKE":
-                            if video_id == gt.video_id:
-                                for w in gt.frames:
-                                    if w["start"] <= frame_idx <= w["end"]:
-                                        hit = True
-                                        break
-
-                        if hit:
+                        if rscore_kis(video_id, frame_idx, gt) > 0:
                             best_hit_ranks = row.get("ranks", {})
                             break
 

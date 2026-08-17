@@ -389,6 +389,7 @@ def search(
     # hiển thị, TRAKE cần định vị. gom_shot chỉ quyết định có LỌC bớt hay không.
     shots = _shot_map()
     ket_qua = []
+    from data.config.search_weights import BRANCH_WEIGHTS
     for kf, info in candidates.items():
         ranks: dict[str, int] = {}
         for ten in ("vector", "objects", "ocr"):
@@ -400,9 +401,8 @@ def search(
         if r_asr is not None:
             ranks["asr"] = r_asr
 
-        # Cộng giá trị THÔ rồi mới làm tròn: cộng các số đã tròn sẽ lệch ở chữ
-        # số cuối, đủ để đảo thứ tự hai kết quả sát nhau và làm sai bảng xếp hạng.
-        contrib_tho = {ten: _rrf(h) for ten, h in ranks.items()}
+        # Cộng giá trị THÔ (đã nhân trọng số) rồi mới làm tròn
+        contrib_tho = {ten: BRANCH_WEIGHTS.get(ten, 1.0) * (1.0 / (RRF_K + h)) for ten, h in ranks.items()}
         contrib = {ten: round(v, 6) for ten, v in contrib_tho.items()}
         ket_qua.append({
             "keyframe_id": kf,

@@ -75,6 +75,10 @@ button:hover { filter: brightness(1.1); }
 .card.marked { border-color: var(--mark); }
 .card.marked.selected { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 7px rgba(46,204,113,.35); }
 
+/* TRAKE: vị trí bị nội suy (trake.py::_fill_missing) — không có bằng chứng
+   thật, viền đứt để người thao tác biết cần tự kiểm tra lại trước khi nộp. */
+.card.interpolated { border-style: dashed; border-color: var(--dim); }
+
 #mode-btn { background: #2a313b; color: var(--text); }
 #mode-btn.avs { background: #7c4dff; color: #fff; }
 #submit-btn { background: var(--mark); color: #06281a; }

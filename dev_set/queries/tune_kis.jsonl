@@ -1,3 +1,5 @@
-{"query_id": "Q1", "task_type": "KIS", "query_vi": "Query hợp lệ", "split": "tune"}
-{"query_id": "Q2", "task_type": "KIS", "query_vi": "Query ngoài biên video", "split": "tune"}
-{"query_id": "Q3", "task_type": "KIS", "query_vi": "Query có cửa sổ rộng", "split": "tune"}
+{"query_id": "Q1", "task_type": "KIS", "query_vi": "xe máy đi qua ngã tư", "query_en": "motorcycle crossing intersection", "split": "tune"}
+{"query_id": "Q2", "task_type": "KIS", "query_vi": "người đàn ông mặc áo đỏ", "query_en": "man wearing red shirt", "split": "tune"}
+{"query_id": "Q3", "task_type": "KIS", "query_vi": "con chó chạy trên cỏ", "query_en": "dog running on grass", "split": "tune"}
+{"query_id": "Q4", "task_type": "KIS", "query_vi": "tai nạn giao thông trên đường", "query_en": "traffic accident on the road", "split": "tune"}
+{"query_id": "Q5", "task_type": "KIS", "query_vi": "trẻ em chơi bóng đá", "query_en": "children playing football", "split": "tune"}

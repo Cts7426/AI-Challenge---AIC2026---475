@@ -51,13 +51,17 @@ async function search() {
     const res = await fetch("/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, top_k: 50, query_en: qEn.value.trim() || null }),
+      body: JSON.stringify({ query, top_k: 50, query_en: qEn.value.trim() || null, task_type: mode }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
-    hits = await res.json();
+    const data = await res.json();
+    hits = data.hits;
+    if (mode === "QA" && data.answer_text) {
+      answerEl.value = data.answer_text;
+    }
     // Đo và HIỂN THỊ độ trễ — cuộc thi trừ điểm theo thời gian, phải luôn nhìn thấy số này
     statusEl.textContent = `${hits.length} kết quả · ${Math.round(performance.now() - t0)} ms`;
     marked = [];               // kết quả mới = ván mới, dấu cũ trỏ vào ảnh đã biến mất
@@ -85,8 +89,16 @@ function render() {
     img.onerror = () => { img.onerror = null; img.src = placeholder(hit); };
     img.src = hit.thumbnail_url;
     const cap = document.createElement("figcaption");
-    cap.innerHTML = `<span class="kf">${hit.keyframe_id} · ${fmtTime(hit.timestamp_ms)}</span>
+    // TRAKE: hit mang event_index (vị trí sự kiện, 0-based) — hiện rõ "sự kiện
+    // mấy" thay vì chỉ 1 ảnh đại diện mơ hồ như trước. is_interpolated = vị trí
+    // không có bằng chứng thật (trake.py::_fill_missing) — cảnh báo để người
+    // thao tác biết cần tự kiểm tra lại, không phải kết quả tìm thấy thật.
+    const trakeTag = hit.event_index != null
+      ? ` · sự kiện ${hit.event_index + 1}${hit.is_interpolated ? " (nội suy)" : ""}`
+      : "";
+    cap.innerHTML = `<span class="kf">${hit.keyframe_id} · ${fmtTime(hit.timestamp_ms)}${trakeTag}</span>
                      <span class="score">${hit.score.toFixed(2)}</span>`;
+    if (hit.is_interpolated) card.classList.add("interpolated");
     const badge = document.createElement("span");
     badge.className = "badge";
     card.append(badge, img, cap);
@@ -153,7 +165,9 @@ async function submit() {
   }
   const items = marked.map((kf) => {
     const h = hits.find((x) => x.keyframe_id === kf);
-    return { keyframe_id: h.keyframe_id, video_id: h.video_id, timestamp_ms: h.timestamp_ms };
+    // frame_idx đi kèm để /submit có đường thoát khi keyframe_id là vị trí
+    // TRAKE bị nội suy (không có trong frame_map) — xem backend/api/main.py::to_frame.
+    return { keyframe_id: h.keyframe_id, video_id: h.video_id, timestamp_ms: h.timestamp_ms, frame_idx: h.frame_idx };
   });
   try {
     const res = await fetch("/submit", {

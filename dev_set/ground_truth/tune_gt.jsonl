@@ -1,3 +1,5 @@
-{"query_id": "Q1", "video_id": "L21_V001", "frame_start": 10, "frame_end": 20, "task_type": "KIS"}
-{"query_id": "Q2", "video_id": "L21_V001", "frame_start": 30, "frame_end": 40, "task_type": "KIS"}
-{"query_id": "Q3", "video_id": "L21_V001", "frame_start": 50, "frame_end": 60, "task_type": "KIS"}
+{"query_id": "Q1", "task_type": "KIS", "video_id": "L23_V013", "frame_start": 5286, "frame_end": 5386}
+{"query_id": "Q2", "task_type": "KIS", "video_id": "L21_V011", "frame_start": 13660, "frame_end": 13760}
+{"query_id": "Q3", "task_type": "KIS", "video_id": "L27_V014", "frame_start": 7957, "frame_end": 8057}
+{"query_id": "Q4", "task_type": "KIS", "video_id": "L22_V006", "frame_start": 696, "frame_end": 796}
+{"query_id": "Q5", "task_type": "KIS", "video_id": "L30_V072", "frame_start": 1048, "frame_end": 1148}

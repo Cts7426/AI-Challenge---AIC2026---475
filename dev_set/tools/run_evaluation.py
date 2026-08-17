@@ -217,8 +217,14 @@ def run_evaluation():
             gt = gts[q.query_id]
 
             try:
-                q_en = q.query_en or q.query_vi
+                # KHÔNG fallback về query_vi: search()/qa_pipeline() coi
+                # query_en=None là tín hiệu "tự dịch qua llm()" (đúng đường
+                # sống thật, xem backend/api/main.py::post_search) — nếu dev
+                # set không có sẵn bản dịch tay thì để None, đừng đút thẳng
+                # tiếng Việt vào CLIP (huấn luyện trên caption tiếng Anh).
+                q_en = q.query_en
                 best_hit_ranks = {}
+                n_trake = None
 
                 if q.task_type == "QA":
                     # ⚠️ SỬA 14/08 (code review phát hiện): bản cũ gán
@@ -253,6 +259,7 @@ def run_evaluation():
                     # công luôn đáng tin hơn LLM đoán trên đúng 1 câu ngắn.
                     from backend.tasks.trake import pad_answers, parse_events, to_answers, trake_search
                     events = q.event_descs if q.event_descs else parse_events(q.query_vi)
+                    n_trake = len(events)
                     candidates = trake_search(events, top_videos=100)
                     if not candidates:
                         raise RuntimeError("trake_search() không tìm được video ứng viên nào")
@@ -260,6 +267,7 @@ def run_evaluation():
                     if len(ans) < 100:
                         ans = pad_answers(candidates, 100)
                     answer_text = None
+                    hits = []  # TRAKE không dùng ShotHit — candidates_f ghi từ `candidates` riêng bên dưới
                     # Debug: hạng của ĐÚNG VIDEO trong danh sách ứng viên TRAKE
                     # — TRAKE xếp hạng theo video (sai video = 0 điểm tuyệt
                     # đối), không phải hạng 1 keyframe đơn lẻ như KIS.
@@ -354,15 +362,23 @@ def run_evaluation():
                 # Ghi NGUYÊN LIỆU ngay cạnh kết quả, cùng một lần chạy — ghi sau ở
                 # một job riêng thì tầng search có thể đã đổi và nguyên liệu không
                 # còn khớp bộ điểm nằm cạnh nó.
+                if q.task_type == "TRAKE":
+                    cand_list = [
+                        {"video_id": c.video_id, "score": float(c.score),
+                         "n_hit_events": c.n_hit_events, "has_full_order": c.has_full_order}
+                        for c in candidates
+                    ]
+                else:
+                    cand_list = [
+                        {"shot_id": h.shot_id, "score": float(h.score),
+                         "best_keyframe_id": h.best_keyframe_id} for h in hits
+                    ]
                 candidates_f.write(json.dumps({
                     "query_id": q.query_id,
                     "task_type": q.task_type,
                     "answer_text": answer_text,
                     "n_trake": n_trake,
-                    "candidates": [
-                        {"shot_id": h.shot_id, "score": float(h.score),
-                         "best_keyframe_id": h.best_keyframe_id} for h in hits
-                    ],
+                    "candidates": cand_list,
                 }, ensure_ascii=False) + "\n")
                 candidates_f.flush()
 

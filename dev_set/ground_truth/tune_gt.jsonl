@@ -3,3 +3,28 @@
 {"query_id": "Q3", "task_type": "KIS", "video_id": "L27_V014", "frame_start": 7957, "frame_end": 8057}
 {"query_id": "Q4", "task_type": "KIS", "video_id": "L22_V006", "frame_start": 696, "frame_end": 796}
 {"query_id": "Q5", "task_type": "KIS", "video_id": "L30_V072", "frame_start": 1048, "frame_end": 1148}
+{"query_id": "K01", "task_type": "KIS", "video_id": "L21_V023", "frame_start": 17516, "frame_end": 17579}
+{"query_id": "K02", "task_type": "KIS", "video_id": "L21_V005", "frame_start": 14812, "frame_end": 14875}
+{"query_id": "K03", "task_type": "KIS", "video_id": "L22_V001", "frame_start": 15632, "frame_end": 15710}
+{"query_id": "K04", "task_type": "KIS", "video_id": "L22_V024", "frame_start": 13083, "frame_end": 13234}
+{"query_id": "K05", "task_type": "KIS", "video_id": "L23_V008", "frame_start": 3639, "frame_end": 3798}
+{"query_id": "K06", "task_type": "KIS", "video_id": "L24_V010", "frame_start": 6056, "frame_end": 6148}
+{"query_id": "K07", "task_type": "KIS", "video_id": "L24_V016", "frame_start": 6903, "frame_end": 6992}
+{"query_id": "K08", "task_type": "KIS", "video_id": "L25_V014", "frame_start": 18358, "frame_end": 18420}
+{"query_id": "K09", "task_type": "KIS", "video_id": "L25_V087", "frame_start": 20637, "frame_end": 20783}
+{"query_id": "K10", "task_type": "KIS", "video_id": "L26_V458", "frame_start": 3677, "frame_end": 3757}
+{"query_id": "K11", "task_type": "KIS", "video_id": "L27_V003", "frame_start": 5713, "frame_end": 5827}
+{"query_id": "K12", "task_type": "KIS", "video_id": "L27_V010", "frame_start": 7097, "frame_end": 7216}
+{"query_id": "K13", "task_type": "KIS", "video_id": "L28_V014", "frame_start": 13289, "frame_end": 13350}
+{"query_id": "K14", "task_type": "KIS", "video_id": "L28_V002", "frame_start": 13545, "frame_end": 13616}
+{"query_id": "K15", "task_type": "KIS", "video_id": "L29_V001", "frame_start": 14127, "frame_end": 14225}
+{"query_id": "K16", "task_type": "KIS", "video_id": "L29_V003", "frame_start": 14458, "frame_end": 14591}
+{"query_id": "K17", "task_type": "KIS", "video_id": "L30_V028", "frame_start": 2641, "frame_end": 2733}
+{"query_id": "K18", "task_type": "KIS", "video_id": "L30_V030", "frame_start": 3918, "frame_end": 4009}
+{"query_id": "QA01", "task_type": "QA", "video_id": "L26_V380", "frame_start": 7329, "frame_end": 7449, "answer_text": "400g", "answer_variants": ["400g", "400 g", "400 gram"]}
+{"query_id": "QA02", "task_type": "QA", "video_id": "L26_V380", "frame_start": 4038, "frame_end": 4100, "answer_text": "nước lạnh", "answer_variants": ["nước lạnh", "nước lã", "lạnh"]}
+{"query_id": "QA03", "task_type": "QA", "video_id": "L26_V458", "frame_start": 6896, "frame_end": 7016, "answer_text": "60g", "answer_variants": ["60g", "60 g", "60 gram"]}
+{"query_id": "QA04", "task_type": "QA", "video_id": "L28_V014", "frame_start": 20542, "frame_end": 20678, "answer_text": "2969.4m", "answer_variants": ["2969.4m", "2,969.4m", "2969,4m", "gần 2970m"]}
+{"query_id": "QA05", "task_type": "QA", "video_id": "L28_V014", "frame_start": 19858, "frame_end": 20179, "answer_text": "bến phà Vàm Cống", "answer_variants": ["bến phà Vàm Cống", "phà Vàm Cống", "Vàm Cống"]}
+{"query_id": "TR01", "task_type": "TRAKE", "video_id": "L26_V380", "frames": [{"start": 2090, "end": 2185, "desc": "sườn non chặt khúc"}, {"start": 3828, "end": 3887, "desc": "đổ nước vào nồi"}, {"start": 4329, "end": 4384, "desc": "mít non cắt miếng"}, {"start": 4488, "end": 4646, "desc": "trái vả cắt miếng"}]}
+{"query_id": "TR02", "task_type": "TRAKE", "video_id": "L26_V458", "frames": [{"start": 1835, "end": 1880, "desc": "gà ướp gia vị"}, {"start": 2424, "end": 2446, "desc": "cà chua cắt"}, {"start": 2793, "end": 2890, "desc": "rau om ngò gai cắt khúc"}]}

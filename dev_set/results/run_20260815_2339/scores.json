@@ -1,0 +1,43 @@
+{
+  "run_id": "20260815_2339",
+  "commit": "808ebf3",
+  "split": "tune",
+  "per_query": [
+    {
+      "query_id": "Q1",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "Q2",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "Q3",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    }
+  ]
+}

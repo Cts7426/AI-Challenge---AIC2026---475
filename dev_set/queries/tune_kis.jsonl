@@ -3,3 +3,21 @@
 {"query_id": "Q3", "task_type": "KIS", "query_vi": "con chó chạy trên cỏ", "query_en": "dog running on grass", "split": "tune"}
 {"query_id": "Q4", "task_type": "KIS", "query_vi": "tai nạn giao thông trên đường", "query_en": "traffic accident on the road", "split": "tune"}
 {"query_id": "Q5", "task_type": "KIS", "query_vi": "trẻ em chơi bóng đá", "query_en": "children playing football", "split": "tune"}
+{"query_id": "K01", "task_type": "KIS", "query_vi": "bác sĩ đeo khẩu trang thăm khám bệnh nhân trong phòng bệnh", "split": "tune"}
+{"query_id": "K02", "task_type": "KIS", "query_vi": "nhiều đồng hồ đeo tay đặt cạnh tiền giấy Việt Nam trên bàn", "split": "tune"}
+{"query_id": "K03", "task_type": "KIS", "query_vi": "bức tranh vẽ bút bi hình xe buýt và tòa nhà cao tầng", "split": "tune"}
+{"query_id": "K04", "task_type": "KIS", "query_vi": "các thiếu nữ mặc trang phục truyền thống quỳ trong sảnh có tượng đá", "split": "tune"}
+{"query_id": "K05", "task_type": "KIS", "query_vi": "đoàn đua xe đạp nhìn từ trên cao băng qua ngã tư đường phố", "split": "tune"}
+{"query_id": "K06", "task_type": "KIS", "query_vi": "đầu lân sư nhiều màu sắc cận cảnh trong buổi biểu diễn", "split": "tune"}
+{"query_id": "K07", "task_type": "KIS", "query_vi": "quả cầu trang trí bằng dây ruy băng đỏ xanh treo trên cột sắt ban đêm", "split": "tune"}
+{"query_id": "K08", "task_type": "KIS", "query_vi": "hai nữ sinh mặc đồng phục đỏ ngồi nói chuyện dưới bóng cây", "split": "tune"}
+{"query_id": "K09", "task_type": "KIS", "query_vi": "các em nhỏ đội mũ đỏ đứng trong thư viện lấy sách trên kệ", "split": "tune"}
+{"query_id": "K10", "task_type": "KIS", "query_vi": "thịt và cà chua trong nồi thủy tinh trên bếp, có đũa khuấy", "split": "tune"}
+{"query_id": "K11", "task_type": "KIS", "query_vi": "bàn tay cho giá đỗ vào chảo trứng đang xào trên bếp", "split": "tune"}
+{"query_id": "K12", "task_type": "KIS", "query_vi": "bàn thờ sơn son thếp vàng với hai lọng vàng hai bên", "split": "tune"}
+{"query_id": "K13", "task_type": "KIS", "query_vi": "hai bàn tay sửa chữa bộ phận phanh xe máy cận cảnh", "split": "tune"}
+{"query_id": "K14", "task_type": "KIS", "query_vi": "kho hàng ven sông với cờ đỏ sao vàng và các bao tải xếp trên bến", "split": "tune"}
+{"query_id": "K15", "task_type": "KIS", "query_vi": "hai người phụ nữ ngồi đan lát bằng cói trên ghế nhựa đỏ", "split": "tune"}
+{"query_id": "K16", "task_type": "KIS", "query_vi": "một phụ nữ phỏng vấn một người đàn ông ngoài trời giữa cây xanh", "split": "tune"}
+{"query_id": "K17", "task_type": "KIS", "query_vi": "động cơ Honda màu đỏ gắn trên xe tự chế", "split": "tune"}
+{"query_id": "K18", "task_type": "KIS", "query_vi": "thầy giáo cầm sách đứng cạnh bàn học sinh trong lớp học", "split": "tune"}

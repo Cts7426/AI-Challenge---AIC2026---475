@@ -1,0 +1,4 @@
+{"query_id": "T1", "task_type": "KIS", "query_vi": "xe máy đi qua ngã tư", "query_en": "motorcycle crosses intersection"}
+{"query_id": "T2", "task_type": "QA", "query_vi": "biển số xe màu đỏ là gì?", "query_en": "what is the license plate of the red car?"}
+{"query_id": "T3", "task_type": "TRAKE", "query_vi": "người đàn ông bước vào . gọi món", "query_en": "man enters . orders food"}
+{"query_id": "T4_EMPTY", "task_type": "KIS", "query_vi": "khôngthểtìmnàorađược"}

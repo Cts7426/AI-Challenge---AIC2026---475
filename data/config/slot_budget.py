@@ -15,12 +15,14 @@
 from data.config.submit_format import ANSWERS_PER_QUERY
 
 # (số shot, số slot mỗi shot), xếp theo hạng shot giảm dần.
-# 3×8 + 7×5 + 10×3 + 11×1 = 100 slot, phủ 31 shot.
-#   hạng 1–3   : 8 slot — tin nhất, đào sâu cho chắc trúng cửa sổ
-#   hạng 4–10  : 5 slot
-#   hạng 11–20 : 3 slot
-#   hạng 21–31 : 1 slot — vé số, nhưng ô 51–100 bỏ trống cũng là vứt điểm miễn phí
-SLOT_BUDGET: list[tuple[int, int]] = [(3, 8), (7, 5), (10, 3), (11, 1)]
+# 1×6 + 4×4 + 10×2 + 58×1 = 100 slot, phủ 73 shot.
+# Phát hiện thực tế (17/08): shot đúng của các câu KIS có thể rơi vào hạng 32-100,
+# bảng [3x8, 7x5...] cũ bị chặt cụt quá sớm khiến mất recall. Cần mở rộng đuôi.
+#   hạng 1      : 6 slot — tin nhất
+#   hạng 2–5    : 4 slot
+#   hạng 6–15   : 2 slot
+#   hạng 16–73  : 1 slot — bao phủ diện rộng để vớt vát các shot hạng thấp
+SLOT_BUDGET: list[tuple[int, int]] = [(1, 6), (4, 4), (10, 2), (58, 1)]
 
 # Thụt vào mỗi đầu shot khi rải frame, theo tỉ lệ độ dài shot. Frame sát biên hay
 # dính chuyển cảnh (mờ, lẫn hai cảnh). Frame ĐẦU TIÊN của shot không chịu luật này —

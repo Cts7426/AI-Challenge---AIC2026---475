@@ -37,15 +37,48 @@ def searchable_text() -> dict:
 
 
 def connect() -> Elasticsearch:
+    """Kết nối ES, và khi hỏng thì nói ĐÚNG nguyên nhân.
+
+    ⚠️ SỬA 16/08. Bản trước mọi lỗi đều ra một câu "Đã chạy `docker compose up -d`
+    chưa?". Đo thật hôm nay: container ES **đang chạy hoàn toàn bình thường**
+    (8.13.4, trả JSON qua curl), nhưng client cài nhầm major 9.5.0 nên ES từ chối
+    header:
+
+        media_type_header_exception — Accept version must be either version 8 or 7,
+        but found 9
+
+    `es.ping()` nuốt lỗi này thành `False`, rồi thông báo đẩy người vận hành đi
+    khởi động lại docker — thứ đã chạy sẵn. Lúc thi mỗi câu chỉ có 6 phút; đuổi
+    người ta sai hướng còn tệ hơn không báo gì.
+
+    `backend/requirements.txt` ghi đúng `elasticsearch>=8.13,<9`; môi trường lệch
+    là do venv được nâng cấp sau, không phải do file requirements sai.
+    """
     es = Elasticsearch(ES_URL, request_timeout=30)
-    if not es.ping():
-        try:
-            es.info()
-        except Exception as e:
-            print(f"Chi tiết lỗi kết nối: {type(e).__name__}: {e}")
-            
+    if es.ping():
+        return es
+
+    chi_tiet = ""
+    try:
+        es.info()
+    except Exception as e:
+        chi_tiet = f"{type(e).__name__}: {e}"
+
+    # Server sống nhưng từ chối client → lệch major, KHÔNG phải chưa bật docker
+    if "media_type_header_exception" in chi_tiet or "Accept version must be" in chi_tiet:
+        import elasticsearch as _es_pkg
+
         raise ConnectionError(
-            f"Không kết nối được Elasticsearch tại {ES_URL}. "
-            "Đã chạy `docker compose up -d` chưa? (container cần ~30s để lên)"
+            f"Elasticsearch tại {ES_URL} ĐANG CHẠY nhưng từ chối client: lệch phiên bản.\n"
+            f"  client python : {'.'.join(map(str, _es_pkg.__version__))}\n"
+            f"  server yêu cầu: major 7 hoặc 8 (docker-compose.yml dùng 8.13.4)\n"
+            "  Sửa: pip install 'elasticsearch>=8.13,<9'   "
+            "(backend/requirements.txt đã ghi đúng ràng buộc này)\n"
+            f"  Chi tiết: {chi_tiet}"
         )
-    return es
+
+    raise ConnectionError(
+        f"Không kết nối được Elasticsearch tại {ES_URL}. "
+        "Đã chạy `docker compose up -d` chưa? (container cần ~30s để lên)"
+        + (f"\n  Chi tiết: {chi_tiet}" if chi_tiet else "")
+    )

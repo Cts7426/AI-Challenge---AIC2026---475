@@ -50,6 +50,72 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], bool]] = [
 DEFAULT_EVIDENCE_TYPE = "text_first"
 
 
+# ---------------------------------------------------------------- nhãn đối tượng
+#
+# `backend/tasks/qa.py::_object_count` đếm detection theo nhãn. Nhãn nó đem đi so
+# đến từ `query_understanding.extract_constraints()` — LLM sinh DANH TỪ TIẾNG ANH
+# TỰ DO, không hề bị ràng buộc vào 600 lớp OpenImages V4 của detector.
+#
+# Bản trước so bằng `==` chính xác nên "people" ≠ "Person", "cars" ≠ "Car" →
+# `sum(...)` ra **0**, mà 0 lại KHÁC None nên `_try_shot` coi đó là đếm thành công
+# và nộp thẳng answer "0". Câu "có bao nhiêu người" trả lời "0", với confidence
+# tuyệt đối, vì `CLAUDE.md` §5.2 quy định "đếm → detector, KHÔNG hỏi VLM" nên
+# đường này được tin không hỏi lại.
+#
+# Bảng dưới ưu tiên GIAO THÔNG và THỂ THAO — BTC đã công bố đó là nội dung chính
+# của vòng sơ tuyển. Thiếu nhãn nào thì bổ sung ở đây, không sửa qa.py.
+#
+# Một từ khoá có thể ra NHIỀU nhãn: "người" trong ảnh có thể được detector gán
+# Person / Man / Woman / Boy / Girl tuỳ tư thế — đếm gộp mới ra con số người ta
+# nhìn thấy bằng mắt.
+OBJECT_LABEL_ALIASES: dict[str, tuple[str, ...]] = {
+    # người
+    "person": ("Person", "Man", "Woman", "Boy", "Girl"),
+    "people": ("Person", "Man", "Woman", "Boy", "Girl"),
+    "human": ("Person", "Man", "Woman", "Boy", "Girl"),
+    "man": ("Man", "Person"),
+    "men": ("Man", "Person"),
+    "woman": ("Woman", "Person"),
+    "women": ("Woman", "Person"),
+    "child": ("Boy", "Girl", "Person"),
+    "children": ("Boy", "Girl", "Person"),
+    "player": ("Person", "Man", "Woman"),
+    "players": ("Person", "Man", "Woman"),
+    # giao thông
+    "car": ("Car",), "cars": ("Car",),
+    "vehicle": ("Car", "Truck", "Bus", "Van"),
+    "vehicles": ("Car", "Truck", "Bus", "Van"),
+    "bus": ("Bus",), "buses": ("Bus",),
+    "truck": ("Truck",), "trucks": ("Truck",),
+    "motorcycle": ("Motorcycle",), "motorcycles": ("Motorcycle",),
+    "motorbike": ("Motorcycle",), "motorbikes": ("Motorcycle",),
+    "bike": ("Bicycle", "Motorcycle"), "bikes": ("Bicycle", "Motorcycle"),
+    "bicycle": ("Bicycle",), "bicycles": ("Bicycle",),
+    "traffic light": ("Traffic light",), "traffic lights": ("Traffic light",),
+    "traffic sign": ("Traffic sign",), "traffic signs": ("Traffic sign",),
+    "boat": ("Boat",), "boats": ("Boat",),
+    "train": ("Train",), "trains": ("Train",),
+    "airplane": ("Airplane",), "airplanes": ("Airplane",), "plane": ("Airplane",),
+    # thể thao
+    "ball": ("Ball", "Football"), "balls": ("Ball", "Football"),
+    "football": ("Football", "Ball"), "soccer ball": ("Football", "Ball"),
+    "helmet": ("Helmet",), "helmets": ("Helmet",),
+}
+
+
+def resolve_object_labels(label_en: str) -> tuple[str, ...]:
+    """Nhãn LLM sinh tự do → các nhãn OpenImages nên đếm gộp.
+
+    Không có trong bảng → trả về chính nó (viết hoa chữ đầu, đúng quy ước
+    OpenImages). Chỗ gọi vẫn so không phân biệt hoa/thường, nên đây chỉ là đường
+    lui hợp lý chứ không phải phép đoán.
+    """
+    key = " ".join(label_en.lower().split())
+    if key in OBJECT_LABEL_ALIASES:
+        return OBJECT_LABEL_ALIASES[key]
+    return (label_en.strip().capitalize(),) if label_en.strip() else ()
+
+
 def route_question(question_vi: str) -> tuple[str, bool]:
     """Câu hỏi (phần "cần trả lời", KHÔNG phải phần "sự kiện") → (evidence_type, cần_ảnh_ngay).
 

@@ -82,7 +82,19 @@ QA_ASR_WINDOW_MS = 3000        # ±3s quanh keyframe đại diện shot — KHÁ
 SELF_CONSISTENCY_N = 3
 LOW_CONFIDENCE = 0.5           # dưới ngưỡng này (thang [0,1] model tự báo) mới thử thêm ảnh
 MAX_SHOTS_TRIED = 3            # thử tối đa bấy nhiêu shot trước khi bỏ cuộc
-TOP_K_SHOTS = 5                # BUILD_TASKS C3.1: "top 5 shots"
+TOP_K_SHOTS = 5                # BUILD_TASKS C3.1: "top 5 shots" — chỉ để SUY LUẬN
+
+# Số shot lấy về để CẤP SLOT. Tách hẳn khỏi TOP_K_SHOTS vì hai việc khác nhau:
+#
+#   suy luận  — chỉ cần vài shot tốt nhất, mỗi shot tốn 3-6 lần gọi LLM
+#   cấp slot  — càng nhiều shot càng phủ rộng, KHÔNG tốn thêm đồng nào
+#
+# Bản trước dùng chung TOP_K_SHOTS=5 cho cả hai → `allocate()` chỉ nhận 5 shot và
+# `budget_per_shot(5)` chia [22,21,21,18,18]: 22 slot nhồi vào MỘT shot dài trung
+# vị 69 frame, trong khi KIS (top_k=100) phủ 31 shot. Shot đúng nằm ngoài top-5 là
+# R@20/R@50/R@100 bằng 0 với 95 slot còn lại bỏ không — mà `CLAUDE.md` §6 luật 1
+# nói thẳng "bỏ trống ô 51-100 là vứt điểm miễn phí".
+TOP_K_SHOTS_FOR_SLOTS = 100
 OBJECT_COUNT_MIN_SCORE = 0.5   # ngưỡng score detection tính vào phép đếm
 
 
@@ -221,24 +233,61 @@ def _keyframe_timestamp_ms(keyframe_id: str) -> int | None:
     return rows[0].get("timestamp_ms") if rows else None
 
 
+OCR_PAGE_SIZE = 1000   # số dòng mỗi trang khi quét OCR của một video
+
+
 def _ocr_for_shot(es, video_id: str, start_frame: int, end_frame: int) -> list[str]:
     """OCR text của mọi keyframe đã OCR nằm trong biên shot.
 
     Index `ocr` không lưu shot_id/frame_idx (chỉ keyframe_id) — tra frame_idx
     qua frame_map.py (nguồn DUY NHẤT, bất biến 5) rồi lọc trong Python, không
     lọc được thẳng bằng ES query.
+
+    ⚠️ SỬA 16/08 — phải QUÉT HẾT, không cắt ở 500 dòng đầu.
+
+    Bản trước gọi `es.search(..., size=500)` một lần, không `sort`. Video có hơn
+    500 keyframe đã OCR (≈ hơn 8 phút ở 1 fps) thì phần dư bị bỏ — và vì không
+    sort, thứ tự do Lucene quyết định, nên keyframe của shot đang xét có thể nằm
+    ngoài 500 dòng đầu một cách hoàn toàn ngẫu nhiên. Kết quả: `ocr_texts = []`
+    cho một shot THẬT SỰ CÓ CHỮ, không exception, không cảnh báo.
+
+    Đây là ca khó lần nhất trong Q&A: `route_question` chọn đúng đường "ocr" cho
+    câu hỏi về tên/biển số/tỉ số, rồi đưa xuống bằng chứng rỗng, rồi LLM đoán bừa.
+
+    Dùng `search_after` thay vì `from`/`size`: `from` sâu bị ES chặn ở
+    `max_result_window` = 10.000.
+
+    Sắp theo `keyframe_id` (kiểu `keyword`, xem mapping ở
+    `backend/indexing/load_ocr.py`) chứ KHÔNG theo `_doc`: `search_after` cần một
+    khoá sắp xếp DUY NHẤT và ổn định. `_doc` chỉ ổn định trong một shard và có
+    thể đổi khi segment merge giữa chừng — lúc đó trang sau nhảy cóc hoặc lặp,
+    và mình lại mất OCR y như bug đang sửa, chỉ khó tái hiện hơn.
     """
     if not es.indices.exists(index=OCR_INDEX):
         return []
-    hits = es.search(
-        index=OCR_INDEX, query={"term": {"video_id": video_id}}, size=500,
-    )["hits"]["hits"]
+
     fm = load_frame_map()
-    out = []
-    for h in hits:
-        fidx = fm.get(h["_source"]["keyframe_id"])
-        if fidx is not None and start_frame <= fidx <= end_frame:
-            out.append(h["_source"]["text"])
+    out: list[str] = []
+    search_after = None
+    while True:
+        body = {
+            "index": OCR_INDEX,
+            "query": {"term": {"video_id": video_id}},
+            "size": OCR_PAGE_SIZE,
+            "sort": [{"keyframe_id": "asc"}],
+        }
+        if search_after is not None:
+            body["search_after"] = search_after
+        hits = es.search(**body)["hits"]["hits"]
+        if not hits:
+            break
+        for h in hits:
+            fidx = fm.get(h["_source"]["keyframe_id"])
+            if fidx is not None and start_frame <= fidx <= end_frame:
+                out.append(h["_source"]["text"])
+        if len(hits) < OCR_PAGE_SIZE:
+            break
+        search_after = hits[-1]["sort"]
     return out
 
 
@@ -269,15 +318,48 @@ def _metadata_for_video(es, video_id: str) -> str:
 
 def _object_count(es, keyframe_id: str, label_en: str) -> int | None:
     """Đếm detection nhãn label_en trên MỘT keyframe (không tracker — xem
-    giới hạn đã biết ở data/config/qa_routing.py)."""
+    giới hạn đã biết ở data/config/qa_routing.py).
+
+    Trả None = KHÔNG ĐẾM ĐƯỢC (chỗ gọi phải lùi về hỏi LLM), khác hẳn 0 = đếm
+    được và đúng là không có gì.
+
+    ⚠️ SỬA 16/08 — hai lỗi chồng nhau ở bản trước:
+
+    1. So nhãn bằng `==` chính xác, trong khi `label_en` là danh từ tiếng Anh do
+       LLM sinh TỰ DO (`query_understanding.extract_constraints`), không ràng buộc
+       vào 600 lớp OpenImages. "people" ≠ "Person", "cars" ≠ "Car" → đếm ra 0.
+       Giờ đi qua `resolve_object_labels()` để gộp các nhãn đồng nghĩa.
+
+    2. Không phân biệt "đếm được 0" với "không khớp nhãn nào". Cả hai đều ra 0,
+       mà 0 khác None nên `_try_shot` nộp thẳng answer "0" — câu "có bao nhiêu
+       người" trả lời "0" và KHÔNG BAO GIỜ hỏi LLM, vì `CLAUDE.md` §5.2 quy định
+       "đếm → detector, KHÔNG hỏi VLM" nên đường này được tin tuyệt đối.
+       Giờ: keyframe không có detection nào mang nhãn cần đếm → trả None.
+    """
     try:
         doc = es.get(index=OBJECTS_INDEX, id=keyframe_id)["_source"]
     except Exception:
         return None
+
+    from data.config.qa_routing import resolve_object_labels
+
+    muc_tieu = {n.lower() for n in resolve_object_labels(label_en)}
+    if not muc_tieu:
+        return None
+
     dets = doc.get("detections", [])
+    # Có nhãn cần đếm xuất hiện trong ảnh không (BẤT KỂ điểm tin cậy)? Dùng để
+    # phân biệt "detector không thấy gì" với "chỉ thấy mờ, dưới ngưỡng".
+    co_nhan = any(d.get("label", "").lower() in muc_tieu for d in dets)
+    if not co_nhan:
+        # Không có detection nào mang nhãn này → detector KHÔNG BIẾT, không phải
+        # "có 0 cái". Lùi về LLM thay vì nộp "0".
+        return None
+
     return sum(
         1 for d in dets
-        if d.get("label", "").lower() == label_en.lower() and d.get("score", 0) >= OBJECT_COUNT_MIN_SCORE
+        if d.get("label", "").lower() in muc_tieu
+        and d.get("score", 0) >= OBJECT_COUNT_MIN_SCORE
     )
 
 
@@ -392,14 +474,29 @@ def ask_llm(question_vi: str, ev: Evidence) -> list[QAResult]:
     return results
 
 
-def _try_shot(hit: ShotHit, question_vi: str, evidence_type: str, needs_images: bool) -> str | None:
-    """Thử suy luận trên MỘT shot. Trả None nếu bằng chứng không đủ để chốt câu
-    trả lời (chỗ gọi thử shot kế tiếp)."""
+def _try_shot(
+    hit: ShotHit, question_vi: str, evidence_type: str, needs_images: bool
+) -> tuple[str, int | None] | None:
+    """Thử suy luận trên MỘT shot. Trả `(answer, evidence_frame_idx)`, hoặc None
+    nếu bằng chứng không đủ để chốt (chỗ gọi thử shot kế tiếp).
+
+    ⚠️ SỬA 16/08 — bản trước chỉ trả `str`, nên `evidence_frame_idx` mà `ask_llm()`
+    đã cất công kẹp về tập frame CÓ THẬT (xem "hai cửa tử độc lập" đầu file) bị
+    VỨT ĐI ngay tại đây. `reports/C31_C32_C44_TECHNICAL_REPORT.md` §93 khẳng định
+    cơ chế kẹp đó bảo vệ cửa frame của Q&A — thực tế nó chưa từng rời khỏi hàm này,
+    và frame nộp hoàn toàn do thứ hạng shot của allocator quyết định.
+    """
     ev = collect_evidence(hit, question_vi, evidence_type, needs_images)
 
     if evidence_type == "count":
-        if ev.object_count is not None:
-            return str(ev.object_count)  # detector, KHÔNG hỏi VLM (BUILD_TASKS C3.1)
+        # `object_count == 0` KHÔNG còn tới được đây: `_object_count()` trả None khi
+        # detector không thấy nhãn nào, thay vì 0. Giữ điều kiện `> 0` làm chốt chặn
+        # thứ hai — nộp "0" cho câu "có bao nhiêu…" gần như luôn là dấu hiệu nhãn
+        # không khớp, không phải sự thật.
+        if ev.object_count is not None and ev.object_count > 0:
+            # detector, KHÔNG hỏi VLM (BUILD_TASKS C3.1). Bằng chứng nằm ở đúng
+            # keyframe vừa đếm.
+            return str(ev.object_count), ev.best_frame_idx
         print(f"  [cảnh báo] shot {hit.shot_id}: không đếm được bằng detector, hỏi LLM (kém tin cậy hơn)")
 
     results = ask_llm(question_vi, ev)
@@ -418,16 +515,37 @@ def _try_shot(hit: ShotHit, question_vi: str, evidence_type: str, needs_images: 
     answer, votes = majority_answer([r.answer for r in results])
     if votes == 1 and len(results) > 1:
         return None  # self-consistency không đồng thuận — không đủ tin để chốt ở shot này
-    return answer
+
+    # frame của ĐÚNG lượt sinh đã thắng phiếu, không phải lượt đầu tiên trong list
+    frame = next((r.evidence_frame_idx for r in results if r.answer == answer), None)
+    if frame is None:
+        frame = results[0].evidence_frame_idx
+    return answer, frame
 
 
 # ------------------------------------------------------------------------- API chính
 
-def qa_pipeline(query_vi: str, top_k_shots: int = TOP_K_SHOTS, query_en: str | None = None) -> tuple[list[ShotHit], str]:
+def qa_pipeline(
+    query_vi: str,
+    top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
+    query_en: str | None = None,
+) -> tuple[list[ShotHit], str]:
     """query VI → (mọi shot ứng viên đã xếp hạng, câu trả lời thắng cuộc).
 
     Chỗ gọi tự đưa 2 giá trị này vào backend.slot.allocate(hits, "QA",
     answer_text=...) để ra đủ 100 dòng nộp — xem docstring đầu file.
+
+    ⚠️ SỬA 16/08 — hai thay đổi về SỐ SHOT và THỨ TỰ SHOT:
+
+    · `top_k_shots` mặc định thành TOP_K_SHOTS_FOR_SLOTS (100), không còn là
+      TOP_K_SHOTS (5). Chỉ MAX_SHOTS_TRIED shot đầu được đem đi suy luận nên chi
+      phí LLM không đổi, nhưng allocator có đủ shot để phủ rộng.
+
+    · Shot suy ra được câu trả lời được ĐẨY LÊN HẠNG 1. Bản trước trả nguyên thứ
+      tự search, nên khi shot #3 mới cho ra answer thì slot hạng 1 vẫn rơi vào
+      shot #1 — chính cái shot pipeline vừa kết luận là không đủ bằng chứng.
+      Q&A có hai cửa tử ĐỘC LẬP (frame và answer): ghép answer của shot #3 với
+      frame của shot #1 là tự tay phá cửa thứ nhất trong khi cửa thứ hai đã đúng.
     """
     parts = parse_question(query_vi)
     evidence_type, needs_images = route_question(parts.question_vi)
@@ -445,19 +563,41 @@ def qa_pipeline(query_vi: str, top_k_shots: int = TOP_K_SHOTS, query_en: str | N
             "search() có kết quả nhưng không shot nào có shot_id — kiểm tra clip_kf_map.parquet"
         )
 
-    for hit in candidate_shots[:MAX_SHOTS_TRIED]:
+    for i, hit in enumerate(candidate_shots[:MAX_SHOTS_TRIED]):
         try:
-            answer = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
+            ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
         except Exception as e:
             print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A, thử shot kế tiếp: {e}")
             continue
-        if answer is not None:
-            return candidate_shots, answer
+        if ket_qua is None:
+            continue
+        answer, _frame = ket_qua
+        if i > 0:
+            print(f"  shot thắng là hạng {i + 1} ({hit.shot_id}) — đẩy lên hạng 1 để "
+                  "frame nộp khớp với shot đã sinh ra câu trả lời")
+        return _dua_len_dau(candidate_shots, i), answer
 
     raise RuntimeError(
         f"Thử {min(MAX_SHOTS_TRIED, len(candidate_shots))} shot đều không suy luận được câu "
         "trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không."
     )
+
+
+def _dua_len_dau(shots: list[ShotHit], i: int) -> list[ShotHit]:
+    """Đưa phần tử thứ i lên đầu, GIỮ NGUYÊN thứ tự tương đối của phần còn lại.
+
+    Không sửa `score`: allocator tự `sorted(hits, key=score, reverse=True)` nên
+    đổi chỗ trong list là chưa đủ — nhưng bịa điểm cho shot thắng thì làm hỏng
+    mọi thứ đọc `score` về sau (score_simulator, log phân tích). Thay vào đó gán
+    lại điểm shot thắng = điểm cao nhất + một khoảng nhỏ, và ghi rõ trong log.
+    """
+    if i == 0:
+        return shots
+    thang = shots[i]
+    con_lai = shots[:i] + shots[i + 1:]
+    diem_cao_nhat = max(s.score for s in shots)
+    # +1e-6: đủ để thắng sorted() mà không làm biến dạng thang điểm RRF (~0.01-0.03)
+    return [ShotHit(thang.shot_id, diem_cao_nhat + 1e-6, thang.best_keyframe_id)] + con_lai
 
 
 def main() -> None:

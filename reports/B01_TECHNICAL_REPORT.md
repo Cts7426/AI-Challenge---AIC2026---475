@@ -292,7 +292,22 @@ Mỗi ảnh ghép: **BÊN TRÁI = Ảnh BTC gốc** | **BÊN PHẢI = Frame trí
 | `match_run_length` | int / null | Số frame liên tiếp khớp MSE < 20 |
 | `recovery_confidence` | str / null | `"high"` / `"medium"` / `"low"` |
 | `cosine` | float / null | Dự phòng cho CLIP verification (hiện = null) |
-| **`frame_idx_corrected`** | **int** | **CHỈ SỐ FRAME CUỐI CÙNG. TẤT CẢ MODULE PHẢI DÙNG CỘT NÀY.** |
+| **`frame_idx_corrected`** | **int** | **CHỈ SỐ FRAME CUỐI CÙNG.** ⚠️ xem ghi chú 16/08 ngay dưới |
+
+> [!NOTE]
+> **Cập nhật 16/08 — dòng trên KHÔNG còn đúng nguyên văn.**
+>
+> Từ commit `2b1380d` (10/08, dựng lại `frame_map.parquet`) và `7cc8b20` (14/08),
+> cột **`frame_idx` ĐÃ LÀ cột đã chữa** — docstring của
+> `backend/indexing/frame_map.py` ghi rõ: *"Cột `frame_idx` … ĐÃ ĐƯỢC CHỮA KHỎI
+> LỖI NÀY bằng phép kiểm chứng pixel (mse_best)"*.
+>
+> Đo trên file hiện tại: **0 / 177.321 dòng** có `frame_idx != frame_idx_corrected`.
+> Hai cột trùng khít; `frame_idx_corrected` giữ lại cho tương thích với Spec cũ.
+>
+> Nên `backend/indexing/frame_map.py` đọc `frame_idx` là **đúng**, không phải bug.
+> Câu "TẤT CẢ MODULE PHẢI DÙNG CỘT NÀY" là di sản của bản trước khi đồng bộ tên
+> cột — để nguyên sẽ khiến người đọc sau tưởng code đang sai và đi "sửa" nhầm.
 
 **Thứ tự ưu tiên khi tính `frame_idx_corrected`:**
 

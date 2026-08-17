@@ -16,7 +16,7 @@ from backend.tasks.qa import qa_pipeline
 
 from data.config.submit_format import Answer
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
-from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis, rscore_trake
+from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis
 
 
 def load_jsonl(path: Path):
@@ -120,21 +120,33 @@ def run_evaluation():
             except Exception as e:
                 print(f"LỖI parse Query {row.get('query_id')}: {e} — bỏ qua dòng này")
 
+    # MỘT nguồn sự thật cho task_type: FILE QUERY.
+    #
+    # Bản trước dựng lớp GT theo `row["task_type"]` (file GT) nhưng lại CHẤM theo
+    # `q.task_type` (file query) — hai file lệch nhau thì một `GroundTruthKIS` rơi
+    # vào `rscore_qa()` và nổ `AttributeError: answer_text` giữa vòng lặp, rồi bị
+    # `except` ngoài cùng ghi thành F0_CRASH. Câu đó biến mất khỏi bài nộp mà
+    # nguyên nhân thật (hai file khai khác nhau) không hiện ra ở đâu cả.
+    task_of = {q.query_id: q.task_type for q in queries}
+    GT_CLASS = {"KIS": GroundTruthKIS, "QA": GroundTruthQA, "TRAKE": GroundTruthTRAKE}
+
     gt_path = Path(f"dev_set/ground_truth/{args.split}_gt.jsonl")
     gts = {}
     for row in load_jsonl(gt_path):
         qid = row.get("query_id")
         try:
+            t = task_of.get(qid)
+            if t is None:
+                raise ValueError("không có query nào mang query_id này")
+            # `task_type` trong file GT chỉ còn vai trò ĐỐI CHỨNG. Có mà lệch thì
+            # báo lỗi tường minh, không im lặng chọn một trong hai.
+            t_gt = row.get("task_type")
+            if t_gt is not None and t_gt != t:
+                raise ValueError(
+                    f"task_type mâu thuẫn — file query ghi '{t}', file GT ghi '{t_gt}'"
+                )
             row_clean = {k: v for k, v in row.items() if k != "task_type"}
-            t = row.get("task_type")
-            if t == "KIS":
-                gts[qid] = GroundTruthKIS(**row_clean)
-            elif t == "QA":
-                gts[qid] = GroundTruthQA(**row_clean)
-            elif t == "TRAKE":
-                gts[qid] = GroundTruthTRAKE(**row_clean)
-            else:
-                raise ValueError(f"task_type lạ: {t}")
+            gts[qid] = GT_CLASS[t](**row_clean)
         except Exception as e:
             print(f"LỖI parse GT {qid}: {e} — bỏ qua dòng này")
 
@@ -267,11 +279,27 @@ def run_evaluation():
                 if fin >= 1.0:
                     fc = "SUCCESS"
                 elif q.task_type == "QA":
+                    # Retrieval coi là THÀNH CÔNG khi có shot ứng viên GIAO với cửa
+                    # sổ đáp án — trượt là do suy luận, không do tìm kiếm.
+                    #
+                    # ⚠️ Bản trước viết `gt.frame_idx`, mà `GroundTruthQA` chỉ có
+                    # `frame_start`/`frame_end` (xem dev_set/tools/schema.py) → mọi
+                    # câu QA KHÔNG đạt 1.0 đều ném AttributeError ngay tại đây, sau
+                    # khi đã tính xong r_1..r_100, rồi bị `except` ngoài cùng ghi đè
+                    # thành F0_CRASH với toàn số 0. Điểm QA thật bị vứt, và câu đó
+                    # không được ghi vào answers.jsonl. Chỉ câu QA HOÀN HẢO thoát
+                    # được, vì nhánh `fin >= 1.0` chạy trước và không đi qua dòng này
+                    # → bảng điểm QA chỉ có 0.0 và 1.0, không bao giờ có giá trị giữa.
+                    #
+                    # Dùng phép GIAO chứ không phải CHỨA: shot chỉ cần chạm cửa sổ
+                    # đáp án là người thao tác đã nhìn thấy khoảnh khắc đúng.
                     retrieval_success = False
                     for h in hits:
                         try:
                             vid, start, end = shot_bounds(h.shot_id)
-                            if vid == gt.video_id and start <= gt.frame_idx <= end:
+                            if (vid == gt.video_id
+                                    and start <= gt.frame_end
+                                    and gt.frame_start <= end):
                                 retrieval_success = True
                                 break
                         except KeyError:
@@ -364,7 +392,8 @@ def run_evaluation():
     # `AttributeError: 'str' object has no attribute 'query_id'` ở dòng cuối cùng
     # của cả lần chạy, sau khi đã tốn toàn bộ thời gian search. Và `task_type` là
     # bắt buộc: thiếu nó thì tầng nộp không biết dòng TRAKE khác dòng KIS chỗ nào.
-    task_of = {q.query_id: q.task_type for q in queries}
+    # `task_of` đã dựng ở bước nạp ground truth phía trên — dùng lại, không dựng
+    # bản thứ hai (hai bản của cùng một bảng tra là cách chắc nhất để chúng lệch).
     subs: list[QuerySubmission] = []
     for line in answers_jsonl_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -386,7 +415,17 @@ def run_evaluation():
         # Bỏ bản ghi cũ của cùng query_id khi resume: file JSONL chỉ nối thêm, mà
         # `validate_all()` coi query_id lặp lại là lỗi và từ chối ghi CẢ LÔ.
         subs = list({s.query_id: s for s in subs}.values())
-        _, loi_file = write_submissions(subs, str(out_dir))
+        # Luật `trake_n_mismatch` (D0.2) có sẵn từ đầu nhưng CHƯA AI TRUYỀN GIÁ TRỊ
+        # — kiểm 16/08: `expected_n` chỉ xuất hiện trong test, 0 chỗ gọi sản xuất,
+        # nên luật đó luôn ngủ. Nguồn sự thật ở ngay đây: `Query.n_events` là số
+        # khoảnh khắc đề TRAKE công bố. Không nối thì allocator nộp sai số frame
+        # mà validator vẫn xanh, và `rscore_trake` cho 0 TUYỆT ĐỐI khi lệch N.
+        expected_n = {
+            q.query_id: q.n_events
+            for q in queries
+            if q.task_type == "TRAKE" and q.n_events
+        }
+        _, loi_file = write_submissions(subs, str(out_dir), expected_n=expected_n)
         if loi_file:
             print("CẢNH BÁO: file nộp có vấn đề:")
             for i in loi_file:

@@ -3,11 +3,18 @@ import argparse
 import sys
 from pathlib import Path
 import pandas as pd
-import cv2
-import numpy as np
-from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE, GroundTruth
-from backend.export.exporter import n_frames_of
-from dev_set.tools.video_utils import extract_frame_exact
+from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
+
+# ⚠️ KHÔNG import cv2/numpy/video_utils ở đây.
+#
+# Chúng chỉ cần cho phần SINH ẢNH contact sheet — phần phụ, và là phần duy nhất
+# cần video gốc trên đĩa. Import ở top-level thì máy chưa cài opencv sẽ chết ngay
+# dòng đầu, kéo theo cả những phép kiểm KHÔNG cần ảnh: trùng query_id, GT thiếu
+# query, n_events lệch số cửa sổ, frame vượt nb_frames_decoded, cửa sổ không nằm
+# gọn trong shot. Đó mới là các phép kiểm chặn tiến độ, và chúng chạy được bằng
+# pandas thuần.
+#
+# Đo thật 16/08: máy dev chưa có cv2 → `check_gt.py` không chạy nổi một dòng nào.
 
 def load_jsonl(path: Path):
     if not path.exists():
@@ -77,6 +84,19 @@ def check_gt():
             continue
             
         q = queries_dict[qid]
+
+        # `q.task_type` (file query) là nguồn sự thật DUY NHẤT — `run_evaluation.py`
+        # cũng dựng GT theo nó. Cột `task_type` trong file GT chỉ còn để đối chứng.
+        # Lệch nhau mà không bắt ở đây thì lúc chạy đo, GT sai lớp rơi vào hàm chấm
+        # của dạng khác và nổ AttributeError giữa chừng — bị ghi thành F0_CRASH,
+        # nguyên nhân thật không hiện ra ở đâu.
+        t_gt = row.get("task_type")
+        if t_gt is not None and t_gt != q.task_type:
+            print(f"LỖI: {qid} task_type mâu thuẫn — Query ghi '{q.task_type}', "
+                  f"GT ghi '{t_gt}'. Sửa cho khớp trước khi chạy run_evaluation.py")
+            errors += 1
+            continue
+
         try:
             row_clean = {k: v for k, v in row.items() if k != "task_type"}
             if q.task_type == "KIS":
@@ -109,6 +129,8 @@ def check_gt():
         # Check bounds
         vid = gt.video_id
         try:
+            from backend.export.exporter import n_frames_of
+
             nb_frames = n_frames_of(vid)
             for w in windows:
                 if w[1] >= nb_frames:
@@ -128,10 +150,16 @@ def check_gt():
                     print(f"CẢNH BÁO: {qid} cửa sổ {w} không nằm gọn trong 1 shot!")
                     warnings += 1
 
-        # Generate contact sheet
+        # Generate contact sheet — phần PHỤ, cần cv2 + video gốc. Thiếu thứ nào thì
+        # bỏ qua đúng phần này, các phép kiểm ở trên đã chạy xong rồi.
         vid_path = Path(f"data/video/{vid}.mp4")
         if vid_path.exists():
             try:
+                import cv2
+                import numpy as np
+
+                from dev_set.tools.video_utils import extract_frame_exact
+
                 out_path = preview_dir / f"{qid}.jpg"
                 if not out_path.exists():
                     f1 = extract_frame_exact(str(vid_path), windows[0][0])
@@ -144,7 +172,13 @@ def check_gt():
                         if h1 != h2:
                             f2 = cv2.resize(f2, (int(w2 * h1 / h2), h1))
                         contact = np.concatenate((f1, f2), axis=1)
-                        cv2.imwrite(str(out_path), contact)
+                        # ⚠️ `extract_frame_exact()` trả RGB (nó tự cvtColor BGR2RGB),
+                        # còn `cv2.imwrite()` MONG BGR. Ghi thẳng là hoán đổi kênh
+                        # đỏ ↔ xanh dương: ảnh vẫn mở được, vẫn đúng khung hình, chỉ
+                        # sai màu. Người soạn ground truth cho câu "áo màu gì" /
+                        # "xe màu gì" (BTC: nội dung giao thông + thể thao) sẽ khoanh
+                        # đáp án theo màu sai mà không có dấu hiệu nào.
+                        cv2.imwrite(str(out_path), cv2.cvtColor(contact, cv2.COLOR_RGB2BGR))
             except Exception as e:
                 print(f"CẢNH BÁO: Lỗi trích xuất contact sheet cho {qid}: {e}")
                 warnings += 1

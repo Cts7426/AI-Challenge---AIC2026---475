@@ -48,3 +48,28 @@ def test_khong_dau_roi_ve_default_khong_crash():
     AN TOÀN (text-first), không crash, không route sai sang loại tốn kém hơn."""
     evidence_type, _ = route_question("mau gi vay")
     assert evidence_type == DEFAULT_EVIDENCE_TYPE
+
+
+# ------------------------------------ nhãn đối tượng cho phép đếm (sửa 16/08)
+
+from data.config.qa_routing import resolve_object_labels
+
+
+def test_nhan_llm_tu_do_khop_duoc_lop_openimages():
+    """`extract_constraints()` sinh danh từ tiếng Anh TỰ DO, detector dùng nhãn
+    OpenImages. So `==` chính xác thì "people" ≠ "Person" → đếm ra 0 → `_try_shot`
+    nộp thẳng answer "0" cho câu "có bao nhiêu người"."""
+    assert "Person" in resolve_object_labels("people")
+    assert "Car" in resolve_object_labels("cars")
+    assert "Motorcycle" in resolve_object_labels("motorbikes")
+
+
+def test_nguoi_dem_gop_nhieu_lop():
+    """Detector gán Person/Man/Woman/Boy/Girl tuỳ tư thế — đếm gộp mới ra con số
+    người ta nhìn thấy bằng mắt."""
+    assert {"Person", "Man", "Woman"} <= set(resolve_object_labels("people"))
+
+
+def test_nhan_la_van_tra_ve_chinh_no_khong_crash():
+    assert resolve_object_labels("zebra crossing") == ("Zebra crossing",)
+    assert resolve_object_labels("") == ()

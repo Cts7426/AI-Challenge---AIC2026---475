@@ -11,12 +11,16 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from backend.slot import ShotHit
 from backend.tasks.qa import (
     MAX_SHOTS_TRIED,
     TOP_K_SHOTS,
     TOP_K_SHOTS_FOR_SLOTS,
+    Evidence,
     _dua_len_dau,
+    ask_llm,
 )
 
 
@@ -83,9 +87,39 @@ def test_chi_MAX_SHOTS_TRIED_shot_duoc_suy_luan():
 
 
 def test_100_shot_phu_rong_hon_han_5_shot():
-    """Con số cụ thể của lỗi: 5 shot → 22 slot nhồi vào MỘT shot median 69 frame."""
+    """Bằng chứng cho lý do TOP_K_SHOTS_FOR_SLOTS tách khỏi TOP_K_SHOTS: chỉ 5 shot
+    ứng viên thì one-fifth cả bài nộp (>=20/100 dòng) dồn vào MỘT shot — rủi ro
+    cao nếu shot đó sai — trong khi 100 shot ứng viên phủ rộng hơn hẳn.
+
+    ⚠️ SỬA 18/08: không còn pin con số "22" — đó là số của bảng SLOT_BUDGET đợt
+    trước D4.1 (17/08) và cách chia round-robin cũ. San bằng shot thấp nhất
+    trước (data/config/slot_budget.py::budget_per_shot) làm 5 shot chia ĐỀU
+    đúng 20 mỗi shot với bảng hiện tại (100/5 chia hết) — max luôn >= 20 bởi
+    nguyên lý chuồng bồ câu (pigeonhole) bất kể bảng SLOT_BUDGET đổi ra sao,
+    nên dùng mốc đó thay vì hardcode số của một bảng cụ thể."""
     from data.config.slot_budget import budget_per_shot
 
     it, nhieu = budget_per_shot(5), budget_per_shot(TOP_K_SHOTS_FOR_SLOTS)
-    assert max(it) > 20, "bằng chứng: 5 shot thì 1 shot ôm hơn 20 slot"
+    assert max(it) >= 20, "bằng chứng: 5 shot thì 1 shot ôm ít nhất 1/5 cả bài nộp"
     assert sum(1 for x in nhieu if x) > 6 * sum(1 for x in it if x)
+
+
+# --------------------------------------------------- effort của bước suy luận
+
+def test_ask_llm_dung_effort_high():
+    """SỬA 18/08 — adapter.py (DEFAULT_EFFORT) ghi rõ ý đồ thiết kế: "Task nào
+    cần nghĩ kỹ (Q&A suy luận) thì tự truyền effort='high'". ask_llm() CHÍNH LÀ
+    bước đó nhưng trước bản sửa không hề truyền — luôn chạy effort THẤP NHẤT
+    (mặc định của llm(), dành cho dịch/mở rộng câu ngắn) trên backend "api"
+    (Claude — backend dùng lúc thi thật). Không crash (effort="low" vẫn hợp
+    lệ) nên không lộ qua test hạ tầng nào khác — lỗi CHẤT LƯỢNG câu trả lời im
+    lặng, chỉ mock trực tiếp mới bắt được mà không cần ES/Milvus/LLM thật."""
+    ev = Evidence(
+        shot_id="s0", video_id="V1", ocr_texts=[], asr_texts=[],
+        metadata_text="", object_count=None, frames=[], best_frame_idx=10,
+    )
+    fake = '{"answer": "5", "answer_vi": "5", "answer_en": "5", ' \
+           '"evidence_frame_idx": 10, "confidence": 0.9}'
+    with patch("backend.tasks.qa.llm", return_value=fake) as m:
+        ask_llm("câu hỏi bất kỳ", ev)
+    assert m.call_args.kwargs.get("effort") == "high"

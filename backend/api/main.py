@@ -133,8 +133,36 @@ def post_search(req: SearchRequest) -> SearchResponse:
     try:
         answer_text = None
         if req.task_type == "QA":
+            from backend.slot.allocator import shot_bounds
             from backend.tasks.qa import qa_pipeline
-            results, answer_text = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en)
+
+            # ⚠️ SỬA 18/08 — bug NGHIÊM TRỌNG, MỌI truy vấn QA qua /search đều
+            # 500: qa_pipeline() trả list[ShotHit] (dataclass 3 trường: shot_id,
+            # score, best_keyframe_id — KHÔNG có video_id/frame_idx, KHÔNG
+            # subscriptable), trong khi khối dựng `hits` bên dưới (dùng chung
+            # cho cả 3 dạng bài) đọc kiểu dict (`r["keyframe_id"]`, `r["video_id"]`).
+            # Nhánh TRAKE thêm cùng đợt (638495d) đã tự chuyển sang dict đúng —
+            # nhánh QA thì quên, nên bay TypeError chưa từng bị try/except phía
+            # trên bắt (khối dựng `hits` nằm NGOÀI try/except) → FastAPI trả
+            # thẳng 500 trần trụi, không phải lỗi truy vấn hay lỗi hạ tầng.
+            #
+            # video_id/frame_idx không có sẵn trong ShotHit — tra qua
+            # shot_bounds() (allocator, API công khai) và load_frame_map()
+            # (đã lru_cache, tra lại không tốn gì).
+            shots, answer_text = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en)
+            fm = load_frame_map()
+            results = []
+            for h in shots:
+                vid, _s, _e = shot_bounds(h.shot_id)
+                results.append({
+                    "keyframe_id": h.best_keyframe_id or "",
+                    "video_id": vid,
+                    "frame_idx": fm.get(h.best_keyframe_id) if h.best_keyframe_id else None,
+                    "timestamp_ms": 0,
+                    "shot_id": h.shot_id,
+                    "score": h.score,
+                    "ranks": {"qa": 1},
+                })
         elif req.task_type == "TRAKE":
             from backend.tasks.trake import parse_events, trake_search
             events = parse_events(req.query)

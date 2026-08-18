@@ -229,8 +229,23 @@ def _gemini_client():
             )
         # Import lười: backend api/local không cần cài package google-genai.
         from google import genai
+        from google.genai import types
 
-        _gemini_client_singleton = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        # ⚠️ SỬA 18/08 — đo thật: một request `generate_content()` TREO hơn 78
+        # phút, CPU gần như 0% (chờ I/O thuần), không raise gì để nhánh retry
+        # 429/503 phía trên có cơ hội chạy — client không có timeout NÀO thì
+        # một request Gemini bị treo phía server chặn đứng CẢ TIẾN TRÌNH vô
+        # thời hạn. Comment cũ (DEFAULT_GEMINI_MODEL) từng ghi nhận đúng triệu
+        # chứng này ("có lần TREO NHIỀU PHÚT không timeout") nhưng quy hết cho
+        # alias "-latest" không ổn định — chốt model "gemini-2.5-flash" không
+        # xoá được gốc rễ: KHÔNG timeout ở tầng client thì DÙ model nào cũng có
+        # thể treo. `_anthropic_client()` đã có `timeout=120.0` — cho Gemini
+        # cùng ngân sách để nhất quán, và để nhánh retry 429/503 phía trên
+        # (_call_gemini) có cơ hội chạy thay vì không bao giờ được gọi tới.
+        _gemini_client_singleton = genai.Client(
+            api_key=os.environ["GEMINI_API_KEY"],
+            http_options=types.HttpOptions(timeout=120_000),  # ms
+        )
     return _gemini_client_singleton
 
 
@@ -277,7 +292,7 @@ def _call_gemini(prompt: str, images, json_schema, model: str, max_tokens: int,
     """Gemini KHÔNG bỏ temperature như Claude — truyền thẳng khi có (khác Claude
     ở llm(), xem nhánh backend=="gemini" không in cảnh báo "bỏ qua temperature")."""
     from google.genai import types
-    from google.genai.errors import ServerError
+    from google.genai.errors import ClientError, ServerError
 
     client = _gemini_client()
     cfg: dict = {"max_output_tokens": max_tokens}
@@ -290,23 +305,52 @@ def _call_gemini(prompt: str, images, json_schema, model: str, max_tokens: int,
         cfg["response_mime_type"] = "application/json"
         cfg["response_schema"] = _sanitize_schema_for_gemini(json_schema)
 
-    # google-genai tự retry 429/5xx qua tenacity, nhưng 503 "quá tải" đôi khi
-    # kéo dài hơn cửa sổ retry mặc định của SDK — thêm 1 lớp retry mỏng ở đây
-    # cho riêng lỗi tạm thời này (KHÁC RuntimeError/ValueError — những lỗi đó
-    # là lỗi thật, không nên retry).
+    # ⚠️ SỬA 18/08 — comment cũ ("google-genai tự retry 429/5xx qua tenacity") SAI:
+    # đọc thẳng source `google.genai._api_client.retry_args()` (v2.18.1) — khi
+    # `Client(...)` dựng KHÔNG truyền `http_options.retry_options` (đúng như
+    # `_gemini_client()` ở đây), hàm trả `tenacity.stop_after_attempt(1)`, tức
+    # KHÔNG retry gì cả phía SDK. Toàn bộ việc retry là của lớp này.
+    #
+    # Và bản trước chỉ bắt `ServerError` (5xx) — 429 RESOURCE_EXHAUSTED (rate
+    # limit free-tier: 5 request/phút, xem DEFAULT_GEMINI_MODEL ở đầu file) ném
+    # `ClientError` (4xx, theo `APIError.raise_error()`), KHÔNG PHẢI `ServerError`,
+    # nên bay thẳng ra ngoài KHÔNG retry giây nào. Đây là nguyên nhân chính khiến
+    # Q&A (nhiều lệnh gọi llm() nhất/câu — parse + tới 3 shot × self-consistency
+    # n=3 ± ảnh) luôn crash trên key free-tier: chạm 429 ở lệnh gọi thứ 2-3 là
+    # ném lỗi ngay, không có cơ hội đợi qua cửa sổ 1 phút.
+    #
+    # 429 dùng backoff DÀI (15s, 30s, 60s) vì hạn mức free-tier reset THEO PHÚT —
+    # backoff kiểu 503 (1s, 2s) sẽ không bao giờ đợi đủ lâu. Các mã 4xx khác
+    # (400 sai request, vd schema hỏng) KHÔNG retry — đó là lỗi thật, retry chỉ
+    # tốn thời gian mà kết quả không đổi.
+    RATE_LIMIT_BACKOFF = (15, 30, 60)
     resp = None
-    for lan in range(3):
+    rate_limit_tries = 0
+    server_error_tries = 0
+    while resp is None:
         try:
             resp = client.models.generate_content(
                 model=model,
                 contents=_gemini_parts(prompt, images),
                 config=types.GenerateContentConfig(**cfg),
             )
-            break
         except ServerError as e:
-            if lan == 2:
+            if server_error_tries >= 2:
                 raise RuntimeError(f"Gemini quá tải liên tục (503), thử lại sau: {e}") from e
-            time.sleep(2 ** lan)
+            time.sleep(2 ** server_error_tries)
+            server_error_tries += 1
+        except ClientError as e:
+            if e.code != 429:
+                raise  # lỗi 4xx thật (vd schema hỏng) — retry không sửa được gì
+            if rate_limit_tries >= len(RATE_LIMIT_BACKOFF):
+                raise RuntimeError(
+                    f"Gemini rate limit (429) liên tục sau {rate_limit_tries} lần đợi — "
+                    f"key free-tier có thể đã hết hạn mức phút này: {e}"
+                ) from e
+            print(f"  [llm] Gemini 429 rate limit, đợi {RATE_LIMIT_BACKOFF[rate_limit_tries]}s "
+                  f"(lần {rate_limit_tries + 1}/{len(RATE_LIMIT_BACKOFF)})...")
+            time.sleep(RATE_LIMIT_BACKOFF[rate_limit_tries])
+            rate_limit_tries += 1
 
     u = resp.usage_metadata
     _ghi_nhan(

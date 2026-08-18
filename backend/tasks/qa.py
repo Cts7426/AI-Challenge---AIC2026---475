@@ -445,7 +445,16 @@ def ask_llm(question_vi: str, ev: Evidence) -> list[QAResult]:
     xem "hai cửa tử độc lập" ở đầu file)."""
     images = [str(p) for _, p in ev.frames] or None
     prompt = _build_prompt(question_vi, ev)
-    raw = llm(prompt, images=images, json_schema=QA_RESULT_SCHEMA, n=SELF_CONSISTENCY_N)
+    # ⚠️ SỬA 18/08 — adapter.py (DEFAULT_EFFORT) ghi rõ: "Task nào cần nghĩ kỹ
+    # (Q&A suy luận) thì tự truyền effort='high'". Đây CHÍNH LÀ bước suy luận
+    # đó — mọi lệnh gọi trong qa.py trước bản sửa này đều để mặc định "low"
+    # (dịch/mở rộng câu ngắn), tức bước quan trọng nhất của Q&A đang chạy ở
+    # effort THẤP NHẤT trên backend "api" (Claude — backend thi thật, xem
+    # CLAUDE.md mục 11 "Chưa chốt: internet lúc thi"). Không crash, không lộ ở
+    # backend "gemini" (effort không ảnh hưởng gì bên đó) — lỗi im lặng thuần
+    # chất lượng câu trả lời, chỉ lộ ra khi đổi ANTHROPIC_API_KEY lúc thi.
+    raw = llm(prompt, images=images, json_schema=QA_RESULT_SCHEMA, n=SELF_CONSISTENCY_N,
+              effort="high")
     raw_list = raw if isinstance(raw, list) else [raw]
 
     valid_frames = {fi for fi, _ in ev.frames} or ({ev.best_frame_idx} if ev.best_frame_idx is not None else set())

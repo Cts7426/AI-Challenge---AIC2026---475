@@ -73,12 +73,24 @@ def budget_per_shot(
         quota[deepest] -= 1
         surplus -= 1
 
-    # Thiếu slot → rải vòng tròn từ hạng cao xuống, không dồn hết vào shot 1.
+    # Thiếu slot → san bằng shot đang THẤP NHẤT trước (hoà thì ưu tiên hạng cao),
+    # không round-robin từ index 0.
+    #
+    # ⚠️ SỬA 18/08 — bản cũ round-robin cố định từ j=0: `quota[j % n_shots] += 1`.
+    # Khi bảng ban đầu ĐÃ lệch (vd n_shots=3 với SLOT_BUDGET hạng-1 riêng: quota
+    # mồi = [6,4,4]), vòng lặp này CỘNG THÊM gần đều lên trên nền đã lệch — độ
+    # lệch không được san bằng mà CHỒNG lên nhau: 86 slot thiếu chia 3 vòng tròn
+    # ra [+29,+29,+28] → kết quả [35,33,32], lệch 3 thay vì 1. Đúng cái sai mà
+    # cơ chế xen kẽ (docstring allocator.py) đang tránh — 3 slot thừa dồn hẳn
+    # vào shot hạng 1 là quay lại lối gom cũ.
+    #
+    # San bằng thấp nhất trước: 4 vòng đầu kéo [6,4,4] → [6,6,6] (bù đúng độ
+    # lệch mồi), rồi mới round-robin đều từ đó — [34,33,33] giống kết quả bảng
+    # cũ (n_shot đều nhau), đúng ý "rải đều khi ít shot" của docstring.
     missing = total - sum(quota)
-    j = 0
     while missing > 0:
-        quota[j % n_shots] += 1
+        thap_nhat = min(range(n_shots), key=lambda x: (quota[x], x))
+        quota[thap_nhat] += 1
         missing -= 1
-        j += 1
 
     return quota

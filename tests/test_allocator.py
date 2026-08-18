@@ -344,10 +344,18 @@ def test_keyframe_id_chi_gan_cho_dong_lay_dung_keyframe(real_videos, monkeypatch
 def test_khong_tra_frame_map_cho_shot_khong_dung_toi(real_videos, monkeypatch):
     """Shot hạng thấp (hạn mức 0) KHÔNG được tra frame_map — dựng máy phát phải LƯỜI.
 
-    Search trả 200 shot mà bảng chỉ phủ 31: tra cả 200 là 169 lượt đọc vô ích, và mở
-    rộng bề mặt lỗi sang những shot không hề được dùng.
+    Search trả 200 shot mà bảng chỉ phủ N_COVERED shot: tra cả 200 là (200 - N_COVERED)
+    lượt đọc vô ích, và mở rộng bề mặt lỗi sang những shot không hề được dùng.
+
+    ⚠️ N_COVERED đọc THẲNG từ SLOT_BUDGET, không hardcode: D4.1 (17/08) mở bảng từ
+    31 lên 73 shot phủ và số hardcode cũ (31) làm test đỏ dù hành vi ĐÚNG — bảng
+    tune chiến thuật đổi, ngưỡng "lười" trong test này phải đổi theo, không phải
+    hằng số riêng dễ trôi khỏi thực tế.
     """
     import backend.slot.allocator as al
+    from data.config.slot_budget import SLOT_BUDGET
+
+    n_covered = sum(n_shot for n_shot, _ in SLOT_BUDGET)
 
     dem = {"n": 0}
 
@@ -357,10 +365,10 @@ def test_khong_tra_frame_map_cho_shot_khong_dung_toi(real_videos, monkeypatch):
 
     monkeypatch.setattr(al, "_frame_of_keyframe", dem_tra)
     hits = [ShotHit(h.shot_id, h.score, f"kf{i}") for i, h in enumerate(hits_of([real_videos[0][0]]))]
-    if len(hits) < 40:
+    if len(hits) < n_covered + 10:
         pytest.skip("video này không đủ shot để kiểm")
     allocate(hits, "KIS")
-    assert dem["n"] <= 31, f"tra frame_map {dem['n']} lần cho {len(hits)} shot — phải lười"
+    assert dem["n"] <= n_covered, f"tra frame_map {dem['n']} lần cho {len(hits)} shot — phải lười"
 
 
 def test_task_khong_phai_QA_ma_co_answer_text_thi_bao_loi(nhieu_video):

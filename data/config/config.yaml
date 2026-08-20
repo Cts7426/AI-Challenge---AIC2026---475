@@ -1,0 +1,33 @@
+# ═══════════════════════════════════════════════════
+# Config chung cho project AIC2026
+# Mọi tham số đọc từ đây, KHÔNG hardcode trong script.
+# ═══════════════════════════════════════════════════
+
+# --- Đường dẫn gốc (tương đối so với repo root) ---
+paths:
+  raw_videos: "data/raw/videos"
+  btc_keyframes: "data/raw/btc/keyframes"
+  btc_map_keyframes: "data/raw/btc/metadata/media-info/map-keyframes"
+  derived: "data/derived"
+  reports: "reports"
+
+# --- B1.1: Shot Segmentation ---
+shot_detection:
+  detector: "pyscenedetect"          # "pyscenedetect" | "transnetv2"
+  content_threshold: 27              # ContentDetector threshold
+  downscale_factor: 2                # downscale video trước khi detect (2 = 1/4 pixel)
+  max_shot_seconds: 60               # shot dài hơn sẽ bị cắt cưỡng bức
+  force_split_seconds: 30            # độ dài mỗi đoạn sau khi cắt cưỡng bức
+  min_shot_seconds: 0.5              # shot ngắn hơn sẽ bị gộp vào shot trước
+  max_workers: 2                     # số luồng tối đa (ép cứng, không vượt)
+  ram_floor_gb: 2.0                  # dừng sạch nếu RAM khả dụng < giá trị này
+
+# --- B1.2: Keyframe Extraction ---
+keyframe_extraction:
+  sample_fps: 1                      # mật độ trích — CHỈ để tìm đúng shot, không phải độ sâu slot
+  min_per_shot: 2                    # tối thiểu mỗi shot (kể cả shot < 1s)
+  max_per_shot: 20                   # tối đa mỗi shot (shot dài không phình vô hạn)
+  jpeg_quality: 90                   # libjpeg quality, qua PIL — KHÔNG dùng ffmpeg -q:v (thang khác)
+  long_edge_px: 448                  # resize cạnh dài, giữ tỉ lệ
+  max_workers: 0                     # 0 = tự chọn theo số nhân CPU
+  ram_floor_gb: 2.0                  # dừng sạch nếu RAM khả dụng < giá trị này

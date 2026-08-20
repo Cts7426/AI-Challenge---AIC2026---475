@@ -50,10 +50,10 @@ BRANCHES = {
 # trong khi Vector (CLIP) mới là giá trị cốt lõi. Cần áp trọng số để Vector không bị chìm.
 BRANCH_WEIGHTS = {
     "vector": 1.0,
-    "objects": 0.7,
-    "ocr": 0.6,
-    "asr": 0.6,
-    "metadata": 0.4,
+    "objects": 1.0,
+    "ocr": 1.0,
+    "asr": 1.0,
+    "metadata": 0.8,
 }
 
 # ----------------- Gom nhóm theo shot (B0.1) -----------------

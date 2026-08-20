@@ -238,7 +238,7 @@ def _evidence_frames(shot_id: str, best_keyframe_id: str | None, n: int) -> list
 
     out: list[tuple[int, Path]] = []
     for f in picked:
-        p = KEYFRAME_ROOT / video_id / f"f{f:07d}.jpg"
+        p = KEYFRAME_ROOT / "keyframes" / video_id / f"f{f:07d}.jpg"
         if p.exists():
             out.append((f, p))
         else:

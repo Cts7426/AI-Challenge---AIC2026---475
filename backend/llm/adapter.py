@@ -162,6 +162,14 @@ def _anthropic_client():
     global _api_client
     if _api_client is None:
         if not os.environ.get("ANTHROPIC_API_KEY"):
+            # Thử đọc từ .env nếu chưa có trong os.environ
+            env_path = REPO_ROOT / ".env"
+            if env_path.exists():
+                for line in env_path.read_text(encoding="utf-8").splitlines():
+                    if "=" in line and not line.strip().startswith("#"):
+                        k, v = line.split("=", 1)
+                        os.environ[k.strip()] = v.strip()
+        if not os.environ.get("ANTHROPIC_API_KEY"):
             raise RuntimeError(
                 "Thiếu ANTHROPIC_API_KEY. PowerShell: $env:ANTHROPIC_API_KEY='sk-ant-...' "
                 "(hoặc đặt LLM_BACKEND=local để chạy model offline)."
@@ -194,11 +202,21 @@ def _noi_dung(prompt: str, images: list | None) -> list[dict]:
 def _call_api(prompt: str, images, json_schema, model: str, effort: str,
               max_tokens: int) -> str:
     client = _anthropic_client()
+    # Chỉ các model hỗ trợ extended thinking mới nhận tham số `effort`.
+    # Haiku và các model cũ (claude-3-*) sẽ trả HTTP 400 nếu gửi kèm.
+    # Dùng list trắng theo prefix thay vì hardcode tên: an toàn khi BTC đổi version.
+    SUPPORTS_EFFORT = ("claude-sonnet", "claude-opus")
+    use_effort = any(pat in model for pat in SUPPORTS_EFFORT)
+
+    output_config: dict = {}
+    if use_effort:
+        output_config["effort"] = effort
+
     kwargs: dict = {
         "model": model,
         "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": _noi_dung(prompt, images)}],
-        "output_config": {"effort": effort},
+        "output_config": output_config,
     }
     if json_schema is not None:
         # Structured outputs: server ép output khớp schema. Chắc chắn hơn nhiều

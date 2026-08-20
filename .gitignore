@@ -49,11 +49,19 @@ AI-Challenge---AIC2026---475-main/
 # File nop sinh ra khi bam Nop (Task 3.2)
 submissions/
 
-# New ignores added for clean commit
-aic2026-keyframes.zip
-backup_running/
+# Meta cua index vector: sinh khi nap tren TUNG may (duong dan, commit, gio khac nhau)
+data/derived/*.meta.json
+
+# Cache LLM tren dia (sinh khi chay, moi may mot khac)
 data/cache/
 data/manifests/
 learning/
 reports/shot_preview/
 data/derived/*
+
+# Local backups
+_local_backup_*/
+
+# Env variables
+.env
+.env.*

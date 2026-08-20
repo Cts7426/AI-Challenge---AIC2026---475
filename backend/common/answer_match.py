@@ -39,6 +39,35 @@ MAX_ANSWER_LEN = 500
 _DIGIT_TO_WORD = {"1": "một", "2": "hai", "3": "ba", "4": "bốn", "5": "năm"}
 
 
+# Dấu PHÂN CÁCH NGHÌN kiểu Việt Nam: "2.970" = 2970, "1.234.567" = 1234567.
+#
+# ⚠️ THÊM 20/08. Vì sao cần: `normalize_text` đổi mọi dấu câu thành khoảng trắng,
+# nên "2.970 m" ra "2 970 m" — BA token, không còn là một con số. Hệ quả nặng
+# nhất KHÔNG phải chấm điểm mà là `majority_answer()`: 3 lần sinh của
+# self-consistency viết cùng một số ba kiểu ("2.970 m" · "2970m" · "2970 mét")
+# sẽ bị chia thành ba nhóm một phiếu → `votes == 1` → `qa.py` bỏ shot → thử hết
+# 3 shot → RuntimeError → câu Q&A 0 điểm. Đúng dây chuyền đã ghi ở
+# `_contains_match`, chỉ khác chỗ vấp.
+#
+# ⚠️ Luật phải XÁC ĐỊNH, không được đoán. Dấu chấm trong dữ liệu này mang HAI
+# nghĩa và cùng một ký tự:
+#     "2.970"      nhóm sau = 3 chữ số  → phân cách nghìn  → gộp
+#     "2969.4"     nhóm sau = 1 chữ số  → thập phân        → KHÔNG gộp
+#     "20.08.2026" nhóm sau = 2 chữ số  → ngày tháng       → KHÔNG gộp
+# Chỉ gộp khi MỌI nhóm sau dấu đều đúng 3 chữ số và nhóm đầu 1-3 chữ số. Ngày
+# tháng có nhóm 2 chữ số nên tự rơi ra ngoài — nếu không, "20.08.2026" sẽ thành
+# "20082026" và không còn khớp với "20/08/2026" của bản ghi khác.
+# Không dùng `\b` ở cuối: "2.970m" có chữ m liền sau nên không phải word
+# boundary, dù 2.970 vẫn là số có phân cách nghìn. Negative look-around vẫn
+# chặn số nằm trong một từ, chặn match bắt đầu giữa ngày tháng và chặn regex
+# nuốt một prefix 3 chữ số của nhóm dài hơn ("08.2026" không thành "082026").
+_THOUSANDS_SEP = re.compile(r"(?<![\w.,])(\d{1,3}(?:[.,]\d{3})+)(?![\d.,])")
+
+
+def _gop_dau_phan_cach_nghin(s: str) -> str:
+    return _THOUSANDS_SEP.sub(lambda m: m.group(1).replace(".", "").replace(",", ""), s)
+
+
 def normalize_text(s: str) -> str:
     """Tầng 1: bỏ dấu câu, khoảng trắng, lowercase, chuẩn hoá Unicode.
 
@@ -63,9 +92,37 @@ def normalize_text(s: str) -> str:
         return ""
     s = s.lower()
     s = unicodedata.normalize("NFKC", s)
+    # Gộp phân cách nghìn TRƯỚC khi xoá dấu câu — sau đó thì "2.970" đã thành
+    # "2 970" và không còn cách nào biết dấu chấm đó vốn là gì.
+    s = _gop_dau_phan_cach_nghin(s)
     s = re.sub(r"[^\w\s]", " ", s)
     s = " ".join(s.split())
     return s
+
+
+# Dạng viết số và đơn vị trong ASR/OCR rất không ổn định ("60g" · "60 g" ·
+# "60 gram"). Đây là chuẩn hoá NGỮ NGHĨA nội bộ, không phải phép ghi lại CSV:
+# chế độ exact phải giữ nguyên từng ký tự người dùng sẽ nộp.
+_NUMBER_UNIT_BOUNDARY = re.compile(r"(?<=\d)(?=[^\d\s])")
+_SEMANTIC_UNIT_ALIASES = {
+    "gram": "g", "grams": "g", "gam": "g",
+    "kilogram": "kg", "kilograms": "kg", "kilogam": "kg", "kg": "kg",
+    "mét": "m", "met": "m", "meter": "m", "meters": "m",
+    "metre": "m", "metres": "m", "m": "m",
+}
+
+
+def _semantic_normalize_text(s: str | None) -> str:
+    """Chuỗi Q&A -> dạng so ngữ nghĩa có chuẩn hoá số-đơn vị an toàn.
+
+    Input: câu trả lời bất kỳ. Output: chuỗi lowercase đã chuẩn hoá. Invariant:
+    chỉ gộp KHÁC BIỆT BỀ MẶT của cùng số và đơn vị; không làm tròn, không đổi
+    giá trị số. Hàm này không được dùng để serialize CSV exact.
+    """
+    normal = normalize_text(s)
+    normal = _NUMBER_UNIT_BOUNDARY.sub(" ", normal)
+    tokens = [_SEMANTIC_UNIT_ALIASES.get(tok, tok) for tok in normal.split()]
+    return " ".join(tokens)
 
 
 def equivalent_text(s: str) -> str:
@@ -73,6 +130,17 @@ def equivalent_text(s: str) -> str:
     for digit, word in _DIGIT_TO_WORD.items():
         s = re.sub(rf"\b{digit}\b", word, s)
     return s
+
+
+def exact_answer_matches(pred: str | None, expected: str) -> bool:
+    """So chuỗi Q&A tuyệt đối cho giả thuyết chấm strict của BTC.
+
+    Input: answer ghi ra CSV và canonical answer của nhãn. Output: bool. Invariant:
+    không lowercase, trim, chuẩn hoá Unicode hay xét variant; một ký tự khác là
+    khác. Tách khỏi `answer_matches()` để không làm hỏng self-consistency vốn cần
+    so theo nghĩa.
+    """
+    return isinstance(pred, str) and pred == expected
 
 
 def answer_matches(pred: str, gt_text: str, variants: list[str]) -> tuple[bool, int]:
@@ -84,8 +152,8 @@ def answer_matches(pred: str, gt_text: str, variants: list[str]) -> tuple[bool, 
 
     targets = [gt_text] + list(variants)
 
-    norm_pred = normalize_text(pred)
-    norm_targets = [normalize_text(t) for t in targets]
+    norm_pred = _semantic_normalize_text(pred)
+    norm_targets = [_semantic_normalize_text(t) for t in targets]
     if norm_pred in norm_targets:
         return True, 1
 
@@ -212,7 +280,10 @@ def _fuzzy_match(a: str, b: str, threshold: float) -> bool:
     """
     import difflib
 
-    if _thuan_so(a) or _thuan_so(b):
+    # Đã có số thì fuzzy không còn an toàn: "2969 m" và "2970 m" rất giống về
+    # ký tự nhưng là hai fact khác nhau. Các dạng số-đơn vị cùng nghĩa đã được
+    # `_semantic_normalize_text()` gộp ở tầng chặt trước đó.
+    if _thuan_so(a) or _thuan_so(b) or re.search(r"\d", a) or re.search(r"\d", b):
         return False
 
     overall_ratio = difflib.SequenceMatcher(None, a, b).ratio()

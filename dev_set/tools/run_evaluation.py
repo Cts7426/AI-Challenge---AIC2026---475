@@ -15,6 +15,7 @@ from backend.export import QuerySubmission, write_submissions
 from backend.tasks.qa import qa_pipeline
 
 from data.config.submit_format import Answer
+from data.config.qa_evaluation import QA_MATCH_POLICIES
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
 from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis
 
@@ -69,6 +70,28 @@ def _answer_from_dict(d: dict) -> Answer:
         answer_text=d.get("answer_text"),
         keyframe_id=d.get("keyframe_id"),
     )
+
+
+def _score_metrics(ans: list[Answer], gt, task_type: str, qa_match_policy: str) -> dict[str, float]:
+    """Một danh sách nộp -> năm R@k và Final dưới một chính sách Q&A.
+
+    Input: 100 Answer, GT, task type và policy. Output: dict metric JSON-safe.
+    Invariant: KIS/TRAKE không đổi theo policy; QA luôn đo cả semantic và exact
+    từ cùng answer/frame để hai bảng có thể so sánh trực tiếp.
+    """
+    r_1 = recall_at_k(ans, gt, task_type, 1, qa_match_policy)
+    r_5 = recall_at_k(ans, gt, task_type, 5, qa_match_policy)
+    r_20 = recall_at_k(ans, gt, task_type, 20, qa_match_policy)
+    r_50 = recall_at_k(ans, gt, task_type, 50, qa_match_policy)
+    r_100 = recall_at_k(ans, gt, task_type, 100, qa_match_policy)
+    return {
+        "r_at_1": r_1,
+        "r_at_5": r_5,
+        "r_at_20": r_20,
+        "r_at_50": r_50,
+        "r_at_100": r_100,
+        "final": final_score(ans, gt, task_type, qa_match_policy),
+    }
 
 
 def run_evaluation():
@@ -281,12 +304,20 @@ def run_evaluation():
                     answer_text = None
                     ans = allocate(hits, q.task_type, answer_text=answer_text)
 
-                r_1 = recall_at_k(ans, gt, q.task_type, 1)
-                r_5 = recall_at_k(ans, gt, q.task_type, 5)
-                r_20 = recall_at_k(ans, gt, q.task_type, 20)
-                r_50 = recall_at_k(ans, gt, q.task_type, 50)
-                r_100 = recall_at_k(ans, gt, q.task_type, 100)
-                fin = final_score(ans, gt, q.task_type)
+                # Giữ các khoá cũ ở top-level là semantic để consumer cũ không
+                # đổi. Lưu song song exact giúp kiểm tra giả thuyết BTC mà không
+                # chạy lại search/LLM và không lẫn hai thước đo với nhau.
+                score_by_qa_policy = {
+                    policy: _score_metrics(ans, gt, q.task_type, policy)
+                    for policy in QA_MATCH_POLICIES
+                }
+                semantic_metrics = score_by_qa_policy["semantic"]
+                r_1 = semantic_metrics["r_at_1"]
+                r_5 = semantic_metrics["r_at_5"]
+                r_20 = semantic_metrics["r_at_20"]
+                r_50 = semantic_metrics["r_at_50"]
+                r_100 = semantic_metrics["r_at_100"]
+                fin = semantic_metrics["final"]
 
                 # Thứ hạng của câu đúng trên từng nhánh search — để debug thất
                 # bại. Chỉ có ý nghĩa cho KIS (dùng res thô của q.query_vi gốc);
@@ -345,6 +376,7 @@ def run_evaluation():
                     "r_at_50": r_50,
                     "r_at_100": r_100,
                     "final": fin,
+                    "score_by_qa_policy": score_by_qa_policy,
                     "failure_class": fc,
                     "ranks": best_hit_ranks,
                 }

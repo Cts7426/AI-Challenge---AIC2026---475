@@ -8,8 +8,10 @@
 #   ASR/metadata trước khi phải dùng VLM, nên route sai không làm mất bằng chứng.
 #
 # Thứ tự trong ROUTING_RULES LÀ ưu tiên: khớp luật nào trước, dùng luật đó —
-# "đếm" phải đứng TRƯỚC "ocr" vì câu hỏi đếm cũng hay chứa số ("có mấy chiếc xe
-# biển số xanh" — ưu tiên đếm, không phải đọc biển số).
+# "đếm" phải đứng TRƯỚC "ocr" khi câu hỏi thực sự hỏi số vật thể ("có mấy chiếc
+# xe biển số xanh" — ưu tiên đếm, không phải đọc biển số). KHÔNG dùng riêng cụm
+# "bao nhiêu": nó còn xuất hiện trong khối lượng, chiều dài, giá… mà bằng chứng
+# nằm trong ASR/OCR, không phải object detector.
 #
 # ⚠️ evidence_type "count" KHÔNG được gọi VLM đếm bằng mắt (BUILD_TASKS C3.1:
 # "đếm → detector, KHÔNG hỏi VLM") — VLM đếm người/vật trong ảnh sai rất thường
@@ -34,7 +36,11 @@ EVIDENCE_TYPES = ("count", "ocr", "asr", "metadata", "visual", "text_first")
 # tiếng Việt ở đây luôn viết có dấu, người dùng gõ thiếu dấu thì rơi về
 # DEFAULT_EVIDENCE_TYPE (text_first) — vẫn đúng, chỉ mất ưu tiên nguồn.
 ROUTING_RULES: list[tuple[str, tuple[str, ...], bool]] = [
-    ("count", ("bao nhiêu", "mấy người", "mấy chiếc", "số lượng", "đếm"), False),
+    # Chỉ các cụm có DANH TỪ vật thể mới được đi detector. Câu "bao nhiêu gam"
+    # hoặc "dài bao nhiêu mét" rơi về text_first để tìm nguyên văn trong ASR/OCR.
+    ("count", ("bao nhiêu người", "bao nhiêu chiếc", "bao nhiêu xe",
+               "bao nhiêu con", "mấy người", "mấy chiếc", "mấy cái",
+               "số lượng", "đếm"), False),
     ("ocr", ("tên ", "chức danh", "biển số", "logo", "dòng chữ",
              "tỉ số", "số áo", "kết quả trận", "bảng điện tử"), False),
     ("asr", ("nói gì", "nói rằng", "phát biểu", "hô to", "bình luận viên",

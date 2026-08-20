@@ -338,12 +338,14 @@ def test_thu_muc_co_anh_nhung_thieu_dung_ordinal_thi_BAO(tmp_path, monkeypatch):
     assert warnings and "009.jpg" in warnings
 
 
-def test_chua_co_anh_thi_tra_None_chu_khong_sap(tmp_path, monkeypatch):
+def test_chua_co_anh_thi_tra_None_kem_ly_do_chu_khong_sap(tmp_path, monkeypatch):
     import app.evidence as ev
 
     monkeypatch.setattr(ev, "KEYFRAMES_DIR", tmp_path / "khong_ton_tai")
     ev.clear_cache()
-    assert ev._image_path("L21_V001", "L21_V001#k0001", None) == (None, None)
+    path, warning = ev._image_path("L21_V001", "L21_V001#k0001", None)
+    assert path is None
+    assert warning and "không có thư mục raw" in warning
 
 
 # ===================== nhánh chưa từng chạy (đo bằng trace) — phủ nốt cho kín

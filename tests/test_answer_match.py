@@ -5,7 +5,13 @@
 
 from __future__ import annotations
 
-from backend.common.answer_match import answer_matches, equivalent_text, majority_answer, normalize_text
+from backend.common.answer_match import (
+    answer_matches,
+    equivalent_text,
+    exact_answer_matches,
+    majority_answer,
+    normalize_text,
+)
 
 
 # ------------------------------------------------------------------- normalize
@@ -48,6 +54,13 @@ def test_answer_matches_khong_khop():
 
 def test_answer_matches_pred_none():
     assert answer_matches(None, "năm", []) == (False, 0)
+
+
+def test_exact_answer_matches_giu_nguyen_tung_ky_tu():
+    assert exact_answer_matches("60g", "60g")
+    assert not exact_answer_matches("60 g", "60g")
+    assert not exact_answer_matches(" 60g", "60g")
+    assert not exact_answer_matches("60G", "60g")
 
 
 def test_answer_matches_chan_input_qua_dai():
@@ -194,3 +207,60 @@ def test_so_van_khop_duoc_qua_cac_tang_an_toan():
 
 def test_majority_mot_cau_tra_loi():
     assert majority_answer(["5"]) == ("5", 1)
+
+
+# ============================ dấu phân cách nghìn (20/08) ============================
+# Bối cảnh: QA04 nộp "2.970 m", chuẩn hoá cũ ra "2 970 m" — ba token, không còn
+# là một con số. Hậu quả nặng nhất không phải chấm điểm mà là majority_answer():
+# 3 lần sinh viết cùng một số ba kiểu → ba nhóm một phiếu → qa.py bỏ shot → 0 điểm.
+
+def test_gop_dau_cham_phan_cach_nghin():
+    assert normalize_text("2.970 m") == "2970 m"
+    assert normalize_text("1.234.567") == "1234567"
+
+
+def test_gop_dau_phay_phan_cach_nghin():
+    assert normalize_text("1,000") == "1000"
+
+
+def test_KHONG_gop_dau_thap_phan():
+    """Nhóm sau dấu chỉ 1 chữ số → thập phân, không phải phân cách nghìn."""
+    assert normalize_text("2969.4m") == "2969 4m"
+    assert normalize_text("2,5 kg") == "2 5 kg"
+
+
+def test_KHONG_gop_ngay_thang():
+    """⚠️ Chống hồi quy: nhóm 2 chữ số là ngày tháng. Gộp nhầm thì "20.08.2026"
+    thành "20082026" và hết khớp với "20/08/2026" ghi ở bản ghi khác."""
+    assert normalize_text("20.08.2026") == "20 08 2026"
+    assert answer_matches("20.08.2026", "20/08/2026", [])[0]
+
+
+def test_KHONG_gop_ti_so():
+    """Tỉ số không phải số nghìn — "2-1" vẫn phải là hai token."""
+    assert normalize_text("2-1") == "2 1"
+    assert not answer_matches("2-1", "21", [])[0]
+
+
+def test_vote_gom_duoc_cac_cach_viet_cung_mot_so():
+    """Đây là lý do THẬT SỰ phải sửa: self-consistency n=3 chia phiếu ảo."""
+    winner, votes = majority_answer(["2.970 m", "2970m", "2970 mét"])
+    assert votes == 3, "ba cách viết cùng một số phải về cùng một nhóm"
+    assert winner == "2970m", "phải lấy câu ngắn nhất trong nhóm thắng"
+
+
+def test_semantic_khop_bien_the_so_don_vi_duoc_nhan_cap():
+    """GT đã ghi rõ "gần 2970m" là variant hợp lệ; khác biệt khoảng trắng và
+    cách viết mét không được làm bộ đo semantic đánh trượt."""
+    assert answer_matches("2970 m", "2969.4m", ["gần 2970m"])[0]
+
+
+def test_so_khac_nhau_khong_duoc_fuzzy_khop_nham_khi_co_don_vi():
+    assert not answer_matches("2969 m", "2970 m", [])[0]
+
+
+def test_lam_tron_van_KHONG_duoc_tu_khop():
+    """2970 và 2969.4 là HAI con số khác nhau. Bộ khớp không được tự quyết định
+    dung sai làm tròn — đó là việc của người ra đề, khai qua answer_variants."""
+    assert not answer_matches("2.970 m", "2969.4m", [])[0]
+    assert answer_matches("2.970 m", "2969.4m", ["2970m"])[0]

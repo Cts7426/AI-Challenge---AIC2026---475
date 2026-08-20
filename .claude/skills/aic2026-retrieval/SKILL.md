@@ -100,5 +100,4 @@ Agent **gọi search engine làm tool**, không tự viết lại logic tìm ki�
 3. Nếu task đụng tới vector: kèm luôn phép kiểm chứng và kết quả thực tế.
 4. Nói rõ **task tiếp theo** nên là gì.
 
-Làm **từng task nhỏ, chạy được rồi mới sang task sau**. Không viết cả hệ thống
-một lần.
+Làm **từng task nhỏ, chạy được rồi mới sang task sau**. Không viết cả hệ thống một lần.

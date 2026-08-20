@@ -48,12 +48,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
 from backend.common.answer_match import majority_answer
+from backend.common.frame_assets import resolve_frame_path
 from backend.indexing.es_client import connect as es_connect
 from backend.indexing.frame_map import load_frame_map
 from backend.indexing.load_asr import INDEX_NAME as ASR_INDEX
@@ -65,15 +65,6 @@ from backend.llm.adapter import llm
 from backend.retrieval.search import search
 from backend.slot import ShotHit, shot_bounds
 from data.config.qa_routing import route_question
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-KEYFRAMES_PATH = REPO_ROOT / "data" / "derived" / "keyframes.parquet"
-# Ảnh keyframe 1fps (B1.2) nằm dưới thư mục này — env var vì máy dev có thể
-# chưa tải ảnh về / để ở ổ khác. Xác nhận bằng cách soi trực tiếp
-# aic2026-keyframes.zip: đường dẫn thật là "data/derived/keyframes/<video_id>/
-# f<frame_idx>.jpg", còn cột `path` của keyframes.parquet chỉ ghi phần đuôi
-# "keyframes/<video_id>/f<...>.jpg" — root phải là data/derived, KHÔNG phải data/.
-KEYFRAME_ROOT = Path(os.environ.get("KEYFRAME_ROOT", REPO_ROOT / "data" / "derived"))
 
 N_EVIDENCE_FRAMES = 8          # BUILD_TASKS C3.1: "8 frame + ASR ±3s + OCR..."
 QA_ASR_WINDOW_MS = 3000        # ±3s quanh keyframe đại diện shot — KHÁC
@@ -166,21 +157,16 @@ def parse_question(query_vi: str) -> QuestionParts:
 # ---------------------------------------------------------------- thu bằng chứng
 
 @lru_cache(maxsize=1)
-def _keyframes_by_shot() -> dict[str, list[tuple[int, str]]]:
-    """shot_id → [(frame_idx, path), ...] keyframe THẬT (có file ảnh trích sẵn)
-    của shot, đọc từ keyframes.parquet (B1.2). Cache 1 lần/tiến trình — 371k
-    dòng, đọc lại mỗi lần gọi collect_evidence là quá chậm.
-    """
-    import pandas as pd
-
-    if not KEYFRAMES_PATH.exists():
-        return {}
-    df = pd.read_parquet(KEYFRAMES_PATH, columns=["shot_id", "frame_idx", "path"])
-    out: dict[str, list[tuple[int, str]]] = {}
-    for shot_id, frame_idx, path in df.itertuples(index=False):
-        out.setdefault(shot_id, []).append((int(frame_idx), path))
-    for v in out.values():
-        v.sort()
+def _video_frames() -> dict[str, list[int]]:
+    """video_id -> danh sách frame_idx thực sự tồn tại (dựa vào frame_map)"""
+    fm = load_frame_map()
+    out: dict[str, list[int]] = {}
+    for k, v in fm.items():
+        # k thường là L26_V257#k0144 hoặc L26_V257_0004809 -> 8 ký tự đầu là video_id
+        vid = k[:8]
+        out.setdefault(vid, []).append(v)
+    for l in out.values():
+        l.sort()
     return out
 
 
@@ -188,40 +174,48 @@ def _evidence_frames(shot_id: str, best_keyframe_id: str | None, n: int) -> list
     """n (frame_idx, path) ảnh THẬT của shot để gửi VLM.
 
     Ưu tiên frame gần best_keyframe_id nhất (bằng chứng mạnh nhất — đây là nơi
-    search() thực sự khớp), phần còn lại rải đều theo frame_idx để có cả chuỗi
-    thời gian trong shot chứ không phải n bản gần như giống hệt nhau.
-
-    Chỉ trả file THỰC SỰ TỒN TẠI trên đĩa: keyframes.parquet có thể ghi đường
-    dẫn cho ảnh chưa tải về máy này (dữ liệu tải theo lô) — lỗi ở đây phải LỘ
-    RA bằng list rỗng/ngắn hơn n, không phải giả vờ có ảnh rồi gửi rác cho VLM.
+    search() thực sự khớp), phần còn lại rải đều theo frame_idx thực sự CÓ TRONG frame_map
+    để có cả chuỗi thời gian trong shot chứ không giả định fps đều.
     """
-    rows = _keyframes_by_shot().get(shot_id, [])
-    if not rows:
+    from backend.slot.allocator import shot_bounds
+    try:
+        video_id, start, end = shot_bounds(shot_id)
+    except KeyError:
         return []
+
+    all_frames = _video_frames().get(video_id, [])
+    # Unique và đã sort
+    frames = sorted(list(set(f for f in all_frames if start <= f <= end)))
+    
+    if not frames:
+        return []
+
     fm = load_frame_map()
     best_frame = fm.get(best_keyframe_id) if best_keyframe_id else None
 
-    order = list(range(len(rows)))
-    if best_frame is not None:
-        order.sort(key=lambda i: abs(rows[i][0] - best_frame))
-        closest = order[0]
-        step = max(1, len(rows) // n)
-        spread = [i for i in range(0, len(rows), step) if i != closest]
-        order = [closest] + spread
-    else:
-        step = max(1, len(rows) // n)
-        order = list(range(0, len(rows), step))
+    # Lấy mẫu đều trên danh sách có thật
+    step = max(1, len(frames) // n)
+    picked = frames[::step][:n]
+
+    if best_frame is not None and best_frame in frames:
+        if best_frame in picked:
+            picked.remove(best_frame)
+        else:
+            picked.pop()
+        picked.insert(0, best_frame)
 
     out: list[tuple[int, Path]] = []
-    for i in order:
-        if len(out) >= n:
-            break
-        frame_idx, rel_path = rows[i]
-        p = KEYFRAME_ROOT / rel_path
-        if p.exists():
-            out.append((frame_idx, p))
+    for f in picked:
+        resolution = resolve_frame_path(video_id, frame_idx=f)
+        if resolution.path is not None:
+            out.append((f, resolution.path))
+            if resolution.warning:
+                print(f"  [cảnh báo] {resolution.warning}")
         else:
-            print(f"  [cảnh báo] thiếu file ảnh {p} — bỏ frame {frame_idx} khỏi bằng chứng VLM")
+            print(
+                f"  [cảnh báo] không tìm được ảnh {video_id}/frame {f}: "
+                f"{resolution.reason} — bỏ khỏi bằng chứng VLM"
+            )
     return out
 
 
@@ -534,15 +528,76 @@ def _try_shot(
 
 # ------------------------------------------------------------------------- API chính
 
+def _ung_vien_nhanh_text(
+    event_vi: str,
+    query_en: str | None,
+    evidence_type: str,
+    top_k: int,
+) -> list[ShotHit]:
+    """Vài shot mà riêng nhánh TEXT xếp cao nhất. Tốn đúng 1 lần search, KHÔNG gọi llm().
+
+    Chỉ chạy cho câu hỏi mà bằng chứng nằm trong chữ/tiếng — xem
+    QA_TEXT_FALLBACK_ROUTES trong data/config/search_weights.py để biết số đo và lý do.
+
+    ⚠️ `top_k` truyền vào phải BẰNG top_k của lần search chính, rồi mới cắt lấy
+    QA_TEXT_FALLBACK_QUOTA shot đầu. KHÔNG được gọi thẳng search(top_k=5).
+    Đo thật 20/08 trên QA05:
+
+        search(top_k=5)       → L28_V001#s0126, L28_V002#s0054, L28_V007#s0016/17/18
+        search(top_k=100)[:5] → L28_V001#s0126, L28_V002#s0054, L28_V014#s0133, ...
+                                                                ^^^^^^^^ video ĐÚNG
+
+    Vì bể ứng viên nội bộ của search() tỉ lệ với top_k (`pool = top_k *
+    CANDIDATE_MULTIPLIER`), top_k nhỏ không cho ra TIỀN TỐ của bảng lớn mà cho ra
+    một bảng KHÁC — nghèo hơn. Bản đầu của bản vá này gọi top_k=5 và làm video
+    đúng biến mất hoàn toàn, trong khi ở bảng đủ rộng nó đứng hạng 3.
+
+    KHÔNG khử trùng với bể ứng viên chính ở đây — đó là việc của chỗ gọi, vì hai
+    mục đích (suy luận / cấp slot) cần hai luật khử trùng khác nhau.
+
+    Lỗi bị nuốt: đây là đường phụ trợ, hỏng thì Q&A chạy tiếp như chưa có nó.
+    """
+    from data.config.search_weights import (
+        QA_TEXT_FALLBACK_ENABLED,
+        QA_TEXT_FALLBACK_QUOTA,
+        QA_TEXT_FALLBACK_ROUTES,
+    )
+
+    if not QA_TEXT_FALLBACK_ENABLED or evidence_type not in QA_TEXT_FALLBACK_ROUTES:
+        return []
+
+    try:
+        res = search(event_vi, query_en=query_en, top_k=top_k,
+                     group_by_shot=True, branches={"vector": False})
+    except Exception as e:
+        print(f"  [cảnh báo] search nhánh text lỗi, bỏ qua ứng viên bổ sung: {e}")
+        return []
+
+    them = [
+        ShotHit(r["shot_id"], r["score"], r["keyframe_id"])
+        for r in res if r.get("shot_id")
+    ][:QA_TEXT_FALLBACK_QUOTA]
+    if them:
+        print(f"  [{evidence_type}] nhánh text đề cử {len(them)} shot: "
+              + ", ".join(h.shot_id for h in them))
+    return them
+
+
 def qa_pipeline(
     query_vi: str,
     top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
     query_en: str | None = None,
-) -> tuple[list[ShotHit], str]:
-    """query VI → (mọi shot ứng viên đã xếp hạng, câu trả lời thắng cuộc).
+    return_trace: bool = False,
+) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
+    """query VI → ứng viên, đáp án và tùy chọn provenance Q&A.
 
     Chỗ gọi tự đưa 2 giá trị này vào backend.slot.allocate(hits, "QA",
     answer_text=...) để ra đủ 100 dòng nộp — xem docstring đầu file.
+
+    Input: query, số shot, bản dịch EN và cờ trace. Output mặc định giữ nguyên
+    `(hits, answer)` để mọi caller cũ tương thích; `return_trace=True` thêm dict
+    chứa route, shot và frame đã sinh answer. Invariant: trace chỉ mô tả evidence
+    đã dùng, không đổi thứ hạng/score hay frame mà allocator sẽ nộp.
 
     ⚠️ SỬA 16/08 — hai thay đổi về SỐ SHOT và THỨ TỰ SHOT:
 
@@ -572,7 +627,57 @@ def qa_pipeline(
             "search() có kết quả nhưng không shot nào có shot_id — kiểm tra clip_kf_map.parquet"
         )
 
-    for i, hit in enumerate(candidate_shots[:MAX_SHOTS_TRIED]):
+    # Ứng viên nhánh text phục vụ HAI mục đích khác nhau, và phải xử lý khác nhau:
+    #
+    #   · CẤP SLOT (100 dòng nộp) — nối vào CUỐI, giữ nguyên thứ tự ứng viên gốc.
+    #     Chen lên đầu là đổi thứ hạng frame của cả bài nộp bằng một tín hiệu chưa
+    #     được kiểm chứng.
+    #   · SUY LUẬN (sinh answer) — phải được THỬ, nếu không bản vá vô nghĩa:
+    #     vòng dưới chỉ lấy MAX_SHOTS_TRIED = 3 shot đầu, mà ứng viên vừa nối
+    #     nằm ở vị trí 100+. Đây chính là chỗ QA05 cần: video đúng đứng hạng 16
+    #     theo bảng đủ nhánh (ngoài tầm suy luận) nhưng hạng 3 theo nhánh text.
+    #
+    # Shot nào thắng thì `_dua_len_dau` kéo nó lên hạng 1 — nên frame nộp vẫn
+    # khớp với shot đã sinh ra câu trả lời (cửa tử thứ nhất của Q&A).
+    # ⚠️ HAI luật khử trùng khác nhau, đây là chỗ bản đầu làm sai và biến cả bản
+    # vá thành vô nghĩa (đo 20/08: cả 5 shot nhánh text đều ĐÃ có trong bể 100 —
+    # hạng 6, 9, 28, 75, 76 — nên khử trùng theo bể xoá sạch, hàm trả 0 shot).
+    #
+    # Vấn đề chưa bao giờ là "shot vắng mặt trong bể", mà là "shot đứng hạng 16
+    # trong khi chỉ 3 shot đầu được đem đi suy luận". Nên:
+    #   · SUY LUẬN — khử trùng trong CHÍNH danh sách thử (đừng thử 2 lần cùng
+    #     một shot), KHÔNG khử theo bể. Shot hạng 16 mà nhánh text tin thì vẫn
+    #     phải được thử.
+    #   · CẤP SLOT — khử theo bể, chỉ nối shot THẬT SỰ mới vào cuối. Bể 100 dòng
+    #     không được có hai dòng cùng nội dung.
+    ung_vien_text = _ung_vien_nhanh_text(
+        parts.event_vi, query_en, evidence_type, top_k_shots
+    )
+
+    # ⚠️ THỨ TỰ THỬ mới là thứ quyết định, không phải danh sách có ai.
+    #
+    # Đo 20/08 (run_20260820_2225): ứng viên nhánh text ĐÃ vào danh sách — log
+    # ghi rõ "nhánh text đề cử ... L28_V014#s0133" — mà điểm QA không nhúc nhích.
+    # Lý do: vòng dưới DỪNG ở shot ĐẦU TIÊN trả lời được. Shot #1 của bảng đủ
+    # nhánh (một cảnh phà, CLIP chọn) trả lời trôi chảy "Phà Châu Giang" nên
+    # vòng lặp return ngay, không bao giờ chạm tới ứng viên xếp sau.
+    # Nối thêm vào SAU người thắng thì có nối bao nhiêu cũng vô nghĩa.
+    #
+    # Nên với câu hỏi mà `route_question` đã kết luận bằng chứng nằm trong
+    # CHỮ/TIẾNG, shot do nhánh text xếp hạng được thử TRƯỚC. Đó chính là ý nghĩa
+    # của định tuyến ("lời nói → ASR") — trước nay nó mới chỉ áp cho việc CHỌN
+    # LOẠI BẰNG CHỨNG, chưa áp cho việc chọn SHOT để đọc bằng chứng đó.
+    #
+    # Chỉ đổi thứ tự SUY LUẬN. Thứ tự 100 dòng nộp bên dưới vẫn nguyên vẹn.
+    thu_de_suy_luan: list[ShotHit] = []
+    for h in ung_vien_text + candidate_shots[:MAX_SHOTS_TRIED]:
+        if h.shot_id not in {x.shot_id for x in thu_de_suy_luan}:
+            thu_de_suy_luan.append(h)
+
+    co_roi = {h.shot_id for h in candidate_shots}
+    candidate_shots += [h for h in ung_vien_text if h.shot_id not in co_roi]
+
+    for hit in thu_de_suy_luan:
         try:
             ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
         except Exception as e:
@@ -580,15 +685,28 @@ def qa_pipeline(
             continue
         if ket_qua is None:
             continue
-        answer, _frame = ket_qua
+        answer, evidence_frame_idx = ket_qua
+        # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh text
+        # mang `score` của bảng text nên khác object với bản nằm trong bể chính —
+        # `.index()` sẽ ném ValueError đúng lúc vừa suy luận ra câu trả lời.
+        i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
         if i > 0:
             print(f"  shot thắng là hạng {i + 1} ({hit.shot_id}) — đẩy lên hạng 1 để "
                   "frame nộp khớp với shot đã sinh ra câu trả lời")
-        return _dua_len_dau(candidate_shots, i), answer
+        ranked_hits = _dua_len_dau(candidate_shots, i)
+        if return_trace:
+            return ranked_hits, answer, {
+                "event_vi": parts.event_vi,
+                "question_vi": parts.question_vi,
+                "evidence_type": evidence_type,
+                "answer_shot_id": hit.shot_id,
+                "evidence_frame_idx": evidence_frame_idx,
+            }
+        return ranked_hits, answer
 
     raise RuntimeError(
-        f"Thử {min(MAX_SHOTS_TRIED, len(candidate_shots))} shot đều không suy luận được câu "
-        "trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không."
+        f"Thử {len(thu_de_suy_luan)} shot đều không suy luận được câu trả lời đủ tin cậy "
+        "— kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không."
     )
 
 

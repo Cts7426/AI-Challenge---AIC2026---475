@@ -15,6 +15,23 @@ def test_dem_thang_ocr_khi_ca_hai_cung_xuat_hien():
     assert evidence_type == "count"
 
 
+def test_so_luong_vat_the_mang_cum_bao_nhieu_van_di_detector():
+    evidence_type, _ = route_question("Trong ảnh có bao nhiêu người?")
+    assert evidence_type == "count"
+
+
+def test_khoi_luong_khong_bi_nham_la_dem_vat_the():
+    """"Bao nhiêu gam" là fact trong công thức/ASR, detector không thể đếm."""
+    evidence_type, needs_images = route_question("Cần bao nhiêu gam sườn non?")
+    assert evidence_type == DEFAULT_EVIDENCE_TYPE
+    assert needs_images is False
+
+
+def test_chieu_dai_khong_bi_nham_la_dem_vat_the():
+    evidence_type, _ = route_question("Cầu Vàm Cống dài bao nhiêu mét?")
+    assert evidence_type == DEFAULT_EVIDENCE_TYPE
+
+
 def test_ocr_cho_cau_hoi_ten():
     evidence_type, needs_images = route_question("Tên quán ăn là gì?")
     assert evidence_type == "ocr"

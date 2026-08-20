@@ -85,6 +85,20 @@ def test_quick_skips_infra_checks_without_running_them():
     assert called == [], "--quick phải bỏ qua HẲN, không được chạy rồi mới bỏ kết quả"
 
 
+def test_release_turns_required_skip_into_fail():
+    check = pf.Check("C", "ảnh Q&A", lambda: (None, "chưa có ảnh"))
+    result = pf.run_check(check, quick=False, profile="release")
+    assert result.status == pf.FAIL
+    assert "release bắt buộc" in result.detail
+
+
+def test_release_keeps_optional_skip_as_skip():
+    check = pf.Check(
+        "B", "API UI", lambda: (None, "không chạy UI"), required_in_release=False,
+    )
+    assert pf.run_check(check, quick=False, profile="release").status == pf.SKIP
+
+
 # ------------------------------------------------------- checklist: cấu trúc
 
 def test_checklist_has_no_duplicate_names():
@@ -150,7 +164,20 @@ def test_parquet_missing_file_is_fail(monkeypatch, tmp_path):
     ok, detail = pf.check_parquet()
     assert ok is False
     assert "THIẾU" in detail
-    assert "Công Lý" in detail, "báo lỗi phải nói đi hỏi ai (CLAUDE.md mục 13)"
+    assert "Thạch" in detail, "task hiện tại chỉ có Thạch vận hành"
+
+
+def test_frame_assets_missing_is_skip_in_development_but_blocked_in_release(
+    monkeypatch, tmp_path,
+):
+    import data.config.frame_assets as config
+
+    monkeypatch.setattr(config, "RAW_KEYFRAMES_DIR", tmp_path / "raw")
+    monkeypatch.setattr(config, "DERIVED_KEYFRAMES_DIR", tmp_path / "derived")
+    ok, detail = pf.check_frame_assets()
+    assert ok is None and "ảnh phủ 0/" in detail
+    check = pf.Check("C", "ảnh Q&A/UI", pf.check_frame_assets)
+    assert pf.run_check(check, quick=False, profile="release").status == pf.FAIL
 
 
 def test_missing_meta_json_is_skip_not_fail(monkeypatch, tmp_path):

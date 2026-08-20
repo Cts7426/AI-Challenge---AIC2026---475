@@ -142,6 +142,70 @@ def _normalize_rows(vecs: np.ndarray) -> tuple[np.ndarray, int]:
     return (vecs / an_toan).astype(np.float32), so_hong
 
 
+# Ngưỡng nhận diện vector NGẪU NHIÊN. Cosine giữa hai vector Gaussian độc lập
+# trong R^dim có kỳ vọng 0 và độ lệch chuẩn 1/√dim (dim=512 → 0,0442).
+# CLIP thật thì ngược hẳn: mọi ảnh nằm trong một "nón" hẹp, cosine giữa hai ảnh
+# BẤT KỲ thường 0,3–0,7 (đo trên features BTC 20/08: 0,5639).
+MOCK_COSINE_MAX = 0.15      # khác video mà cosine trung bình dưới mức này = đáng ngờ
+MOCK_SAMPLE_VIDEOS = 40     # số video lấy mẫu — đủ để trung bình ổn định, vẫn rẻ
+
+
+def assert_not_mock(features_dir: Path, files: list[str]) -> float:
+    """Từ chối nạp nếu .npy là vector ngẫu nhiên. Trả cosine trung bình khác-video.
+
+    ===== Vì sao chốt này tồn tại =====
+    19/08: `data/sample/generate_clip_features.py` (script sinh vector giả từ giai
+    đoạn học) ghi ra `data/raw/clip-features-32/`, loader nạp ngoan ngoãn 177.321
+    vector vào Milvus. Mọi thứ xanh: norm = 1, dim = 512, meta khớp config,
+    `verify_norms()` PASS, search trả top-k với điểm 0,2–0,3 trông rất bình thường.
+    Suốt 24 giờ không ai biết nhánh vector chỉ là nhiễu Gauss, cho tới khi đo
+    KIS Final = 0,047. Sau khi thay bằng features thật: 0,496 — gấp 10,6 lần.
+    Đó là toàn bộ điểm số của một ngày, mất vì một phép kiểm 20 dòng không có.
+
+    ===== Vì sao kiểm CẶP KHÁC VIDEO =====
+    Cùng video thì cả mock lẫn thật đều cho cosine cao (mock 0,97 vì chung một
+    `base`; thật 0,69 vì cùng bối cảnh) → không phân biệt được. Chỉ cặp KHÁC
+    video mới tách bạch: mock −0,001 · thật 0,564. Khoảng cách 0,5 — không có
+    vùng xám nào để phải đoán.
+    """
+    if len(files) < 2:
+        return float("nan")  # quá ít file để so cặp khác-video, bỏ qua chốt này
+
+    import random
+
+    rng = random.Random(0)   # cố định seed: chạy lại phải ra cùng phán quyết
+    mau = rng.sample(files, min(MOCK_SAMPLE_VIDEOS, len(files)))
+    dai_dien = []
+    for ten in mau:
+        p = features_dir / ten
+        if not p.exists():
+            continue
+        v = np.load(p)
+        if v.ndim == 2 and len(v):
+            dai_dien.append(v[0].astype(np.float64))   # 1 vector/video là đủ
+    if len(dai_dien) < 2:
+        return float("nan")
+
+    M = np.array(dai_dien)
+    M /= np.linalg.norm(M, axis=1, keepdims=True)
+    C = M @ M.T
+    khac_video = C[~np.eye(len(C), dtype=bool)]
+    tb, do_lech = float(khac_video.mean()), float(khac_video.std())
+
+    if abs(tb) < MOCK_COSINE_MAX:
+        raise ValueError(
+            f"TỪ CHỐI NẠP — {features_dir} chứa VECTOR NGẪU NHIÊN, không phải embedding.\n"
+            f"  cosine trung bình giữa {len(dai_dien)} video khác nhau: {tb:+.4f} "
+            f"(độ lệch {do_lech:.4f})\n"
+            f"  · vector Gaussian ngẫu nhiên  → ~0.0000 ± {1/np.sqrt(CLIP_EMBEDDING_DIM):.4f}\n"
+            f"  · CLIP thật (hiệu ứng nón)    → ~0.5–0.6\n"
+            "  Nhánh vector sẽ trả kết quả VÔ NGHĨA mà không có triệu chứng nào: "
+            "norm vẫn = 1, dim vẫn đúng, search vẫn trả top-k điểm 0,2–0,3.\n"
+            "  Features thật của BTC: clip-features-32-aic25-b1.zip (164 MB)."
+        )
+    return tb
+
+
 def load(
     client: MilvusClient,
     features_dir: Path,
@@ -167,6 +231,13 @@ def load(
     files = sorted(df["npy_file"].unique())
     if limit_videos:
         files = files[:limit_videos]
+
+    # Chốt chặn TRƯỚC vòng nạp: nạp 177k vector mất ~10 phút, phát hiện là vector
+    # giả sau đó thì đã mất 10 phút + một index bẩn phải xoá đi nạp lại.
+    cos_khac_video = assert_not_mock(features_dir, list(files))
+    if cos_khac_video == cos_khac_video:   # không phải NaN
+        print(f"  Kiểm nguồn: cosine giữa các video khác nhau = {cos_khac_video:.4f} "
+              f"→ embedding thật (mock sẽ ~0.0000)")
 
     tong, thieu_file, vector_hong = 0, [], 0
     buffer: list[dict] = []

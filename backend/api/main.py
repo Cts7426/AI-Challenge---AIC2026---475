@@ -1,8 +1,11 @@
 # backend/api/main.py — FastAPI: /health (Task 0.2) + POST /search (Task 2.3)
 #
 # Vì sao có /health riêng? Frontend, docker healthcheck, và chính mình khi debug
-# đều cần một cách rẻ nhất để hỏi "backend còn sống không?" mà không đụng
-# tới Milvus/Elasticsearch.
+# đều cần một cách để hỏi "backend còn dùng được không?".
+# ⚠️ SỬA W0.3: /health nay là DEEP CHECK — ping thật ES + Milvus + không gian
+# vector + frame_map, trả HTTP 503 nếu có cái nào chết (backend/api/health.py).
+# Bản cũ trả `{"status":"ok"}` vẫn xanh khi Milvus rỗng và mọi truy vấn trả rác.
+# Đường rẻ (không đụng DB) vẫn còn, nhưng phải hỏi rõ: `/health?quick=1`.
 #
 # Vì sao preload CLIP lúc khởi động (lifespan)?
 # → Model load mất vài giây. Không preload thì NGƯỜI DÙNG ĐẦU TIÊN gánh độ trễ
@@ -22,28 +25,27 @@
 #          -d '{"query": "máy bay ở sân bay", "query_en": "an airplane at the airport", "top_k": 5}'
 # Docs tự sinh: http://localhost:8000/docs
 
-import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from backend.common.frame_assets import resolve_frame_path
 from backend.export import QuerySubmission, write_submissions
 from backend.indexing.frame_map import load_frame_map
 from backend.retrieval.search import search as fused_search
+from data.config.frame_assets import RAW_KEYFRAMES_DIR
 from data.config.submit_format import Answer
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Thư mục ảnh keyframe BTC cấp (chưa có → mount tự tắt, URL trả 404 nhưng
 # API vẫn chạy). Đổi chỗ chỉ cần set env, không sửa code (CLAUDE.md mục 7).
-KEYFRAMES_DIR = Path(os.environ.get("KEYFRAMES_DIR", str(REPO_ROOT / "data" / "raw" / "btc" / "keyframes")))
-
-
-_video_paths: dict[str, str] = {}
+KEYFRAMES_DIR = RAW_KEYFRAMES_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -62,19 +64,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[cảnh báo] Không preload được bảng shot: {e}")
         
-    # Xây dựng bảng tra đường dẫn video (xử lý vụ L26 bị chia thành L26a, L26b...)
-    try:
-        if KEYFRAMES_DIR.is_dir():
-            print(f"Đang quét thư mục ảnh: {KEYFRAMES_DIR}")
-            for parent_dir in KEYFRAMES_DIR.iterdir():
-                if parent_dir.is_dir() and parent_dir.name.startswith("keyframes_"):
-                    for video_dir in parent_dir.iterdir():
-                        if video_dir.is_dir():
-                            _video_paths[video_dir.name] = f"{parent_dir.name}/{video_dir.name}"
-            print(f"Đã tìm thấy {len(_video_paths)} thư mục video.")
-    except Exception as e:
-        print(f"[cảnh báo] Không quét được thư mục ảnh: {e}")
-        
     yield
 
 
@@ -90,8 +79,30 @@ if KEYFRAMES_DIR.is_dir():
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health(quick: bool = False):
+    """DEEP CHECK (W0.3): ping thật ES + Milvus + không gian vector + frame_map.
+
+    Vì sao không còn trả `{"status": "ok"}`: câu đó chỉ chứng minh tiến trình
+    FastAPI còn sống. Nó vẫn xanh khi Milvus rỗng và mọi truy vấn trả rác —
+    đúng lúc cần một cái đèn đỏ nhất. Chi tiết từng check ở backend/api/health.py.
+
+    HTTP 503 khi có thành phần CRITICAL chết, để `curl -f` / script khởi động /
+    docker healthcheck phát hiện được mà không cần đọc JSON.
+
+    `?quick=1` giữ lại đường LIVENESS rẻ (không đụng DB) cho thứ chỉ cần biết
+    tiến trình còn thở — vd frontend polling mỗi vài giây thì không nên kéo theo
+    một lượt ping Milvus mỗi lần.
+
+    Khai báo `def` (không `async def`): bên trong là I/O blocking, để FastAPI
+    tự đẩy xuống threadpool — cùng lý do với /search.
+    """
+    if quick:
+        return {"status": "ok", "mode": "liveness"}
+
+    from backend.api.health import deep_check
+
+    kq = deep_check()
+    return JSONResponse(content=kq, status_code=503 if kq["status"] == "down" else 200)
 
 
 class SearchRequest(BaseModel):
@@ -127,6 +138,26 @@ class SearchHit(BaseModel):
 class SearchResponse(BaseModel):
     hits: list[SearchHit]
     answer_text: str | None = None
+
+
+def _thumbnail_url(result: dict) -> str:
+    """Search result → URL ảnh raw đã được resolver chung xác nhận tồn tại."""
+    try:
+        resolution = resolve_frame_path(
+            result["video_id"],
+            frame_idx=result.get("frame_idx"),
+            keyframe_id=result.get("keyframe_id"),
+            raw_root=KEYFRAMES_DIR,
+        )
+    except Exception:
+        return ""
+    if resolution.path is None or resolution.source != "raw":
+        return ""
+    try:
+        relative = resolution.path.relative_to(KEYFRAMES_DIR).as_posix()
+    except ValueError:
+        return ""
+    return f"/thumbnails/{relative}"
 
 @app.post("/search", response_model=SearchResponse)
 def post_search(req: SearchRequest) -> SearchResponse:
@@ -210,11 +241,7 @@ def post_search(req: SearchRequest) -> SearchResponse:
             score=r["score"],
             event_index=r.get("event_index"),
             is_interpolated=r.get("is_interpolated"),
-            thumbnail_url=(
-                f"/thumbnails/{_video_paths.get(r['video_id'], f'keyframes_{r['video_id'].split('_')[0]}/{r['video_id']}')}/"
-                f"{int(r['keyframe_id'].split('#k')[-1]):03d}.jpg"
-                if "#k" in r['keyframe_id'] else f"/thumbnails/{r['video_id']}/{r['keyframe_id']}.jpg"
-            ),
+            thumbnail_url=_thumbnail_url(r),
         )
         for r in results
     ]

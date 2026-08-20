@@ -1,0 +1,28 @@
+[
+  {
+    "query_id": "kis_001",
+    "task_type": "KIS",
+    "query_vi": "một chiếc máy bay đang đỗ ở sân bay",
+    "query_en": "an airplane parked at the airport"
+  },
+  {
+    "query_id": "kis_002",
+    "task_type": "KIS",
+    "query_vi": "người dẫn chương trình thời sự ngồi trong trường quay",
+    "query_en": "a news anchor sitting in a television studio"
+  },
+  {
+    "query_id": "qa_001",
+    "task_type": "QA",
+    "query_vi": "biển số xe màu vàng xuất hiện trên màn hình là gì",
+    "query_en": "a yellow license plate shown on screen",
+    "answer": "CHUA_CO_ANSWER"
+  },
+  {
+    "query_id": "trake_001",
+    "task_type": "TRAKE",
+    "query_vi": "vận động viên chạy đà, giậm nhảy rồi tiếp đất",
+    "query_en": "an athlete runs up, jumps and lands",
+    "n_frames": 3
+  }
+]

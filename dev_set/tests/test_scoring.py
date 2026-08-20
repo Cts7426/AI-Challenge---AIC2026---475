@@ -37,6 +37,24 @@ class TestScoring(unittest.TestCase):
         # QA answer đúng + frame sai -> 0.0
         self.assertEqual(rscore_qa("V1", 5, "năm", gt), 0.0)
 
+    def test_rscore_qa_exact_chi_nhan_canonical_string(self):
+        gt = GroundTruthQA(
+            query_id="Q1", video_id="V1", frame_start=10, frame_end=20,
+            answer_text="60g", answer_variants=["60 g", "60 gram", "60 gam"],
+        )
+        self.assertEqual(rscore_qa("V1", 15, "60 g", gt, "semantic"), 1.0)
+        self.assertEqual(rscore_qa("V1", 15, "60 g", gt, "exact"), 0.0)
+        self.assertEqual(rscore_qa("V1", 15, "60g", gt, "exact"), 1.0)
+
+    def test_final_qa_hai_chinh_sach_do_cung_mot_danh_sach(self):
+        gt = GroundTruthQA(
+            query_id="Q1", video_id="V1", frame_start=10, frame_end=20,
+            answer_text="60g", answer_variants=["60 g", "60 gram", "60 gam"],
+        )
+        rows = [Answer(video_id="V1", frame_ids=(15,), answer_text="60 g")]
+        self.assertEqual(final_score(rows, gt, "QA", "semantic"), 1.0)
+        self.assertEqual(final_score(rows, gt, "QA", "exact"), 0.0)
+
     def test_rscore_trake(self):
         gt = GroundTruthTRAKE(
             query_id="Q1", video_id="V1",

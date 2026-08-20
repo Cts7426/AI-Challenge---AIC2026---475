@@ -95,3 +95,46 @@ TRAKE_CANDIDATES_PER_EVENT = 6
 # khoảnh khắc nhầm lẫn" nhưng "đủ nhỏ để không loại nhầm 2 hành động cắt nhanh
 # thật" — cần tune trên dev_set khi có video có timestamp thật để đối chiếu.
 TRAKE_MIN_FRAME_GAP = 30
+
+
+# ============================ Q&A — ứng viên nhánh TEXT (A-fix 20/08) ============
+#
+# Vì sao cần: sau khi thay CLIP mock bằng features THẬT (20/08), điểm KIS tăng
+# 10,6 lần nhưng Q&A tụt 0,360 → 0,160. Mổ QA05 ("video nhắc tới bến phà nào
+# trên sông Mê Kông") thấy rõ cơ chế:
+#
+#   · bằng chứng nằm trong ASR (lời thoại đọc tên bến phà)
+#   · CLIP thật làm đúng việc của nó: kéo lên các cảnh TRÔNG GIỐNG phà
+#   · video đúng tụt từ hạng 3 (thời mock) xuống hạng 16
+#   · `qa_pipeline` chỉ đem MAX_SHOTS_TRIED = 3 shot đầu đi suy luận
+#   → LLM đọc ASR của video KHÁC, trả lời "Phà Châu Giang" thay vì "bến phà
+#     Vàm Cống". Sai answer = 0 điểm cho CẢ 100 dòng (cửa tử thứ hai của Q&A).
+#
+# Nói gọn: hỏi bằng TAI, tìm bằng MẮT. Thời vector còn là nhiễu, nhánh text vô
+# tình nắm quyền xếp hạng nên Q&A đúng — đó là may, không phải thiết kế.
+#
+# Đo thật trên 5 câu QA (20/08), hạng của video ĐÚNG:
+#     câu    đủ nhánh   chỉ nhánh text
+#     QA01       7            6
+#     QA02       4            1
+#     QA03       1            1
+#     QA04       5            1
+#     QA05      16            3        ← câu bản vá này nhắm tới
+#
+# Cách vá: chạy THÊM 1 lần search chỉ trên nhánh text rồi NỐI ứng viên mới vào
+# CUỐI danh sách gốc. Không hợp nhất lại, không cắt lại top-K, không đổi thứ tự
+# ứng viên cũ — nên nhánh KIS/TRAKE không thể bị ảnh hưởng kể cả khi cờ này sai.
+QA_TEXT_FALLBACK_ENABLED = True
+
+# Số ứng viên nối thêm. Nhỏ hơn NHIỀU so với top_k chính (100) là có chủ đích:
+# đây là cửa hậu cho vài shot mà nhánh text tin tưởng, không phải một bảng xếp
+# hạng thứ hai. 5 đủ để QA05 (hạng 3 theo nhánh text) lọt vào.
+#
+# ⚠️ Nếu QA01–04 TỤT sau bản vá thì GIẢM số này, đừng tăng — tụt nghĩa là ứng
+# viên nối thêm đang chen vào bước suy luận và làm nhiễu, không phải thiếu ứng viên.
+QA_TEXT_FALLBACK_QUOTA = 5
+
+# Loại câu hỏi được hưởng bản vá — đúng những loại mà bằng chứng nằm trong CHỮ
+# hoặc TIẾNG, không nằm ở hình. "visual" và "count" cố tình đứng ngoài: câu về
+# màu sắc/hình dáng thì CLIP mới là nguồn đúng, còn đếm thì đi đường detector.
+QA_TEXT_FALLBACK_ROUTES = ("ocr", "asr", "metadata", "text_first")

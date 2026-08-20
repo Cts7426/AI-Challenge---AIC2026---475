@@ -355,6 +355,18 @@ def allocate(
         raise ValueError(f"{task_type} không được có answer_text (chỉ Q&A mới có)")
 
     ranked = _dedupe_shots(sorted(hits, key=lambda h: h.score, reverse=True))
+
+    shot_index = _shots()
+    missing_shots = [cand.shot_id for cand in ranked if cand.shot_id not in shot_index]
+    if missing_shots:
+        # search(group_by_shot=True) đã lọc keyframe mồ côi. Id lạ lọt tới đây
+        # vì vậy là lệch phiên bản search ↔ shots.parquet, không phải một hit yếu
+        # có thể bỏ qua. Im lặng bỏ cả hit hạng chót làm release vẫn xanh dù hai
+        # tầng đang dùng hai bản dữ liệu khác nhau.
+        raise KeyError(
+            f"{len(missing_shots)} shot_id không có trong shots.parquet "
+            f"(ví dụ: {missing_shots[:3]}). Dừng để đồng bộ data/index."
+        )
     if task_type == "TRAKE":
         # `is None` chứ KHÔNG dùng `or`: n_trake=0 là số 0 falsy, `or` sẽ âm thầm
         # thay bằng 4 thay vì báo lỗi — đúng kiểu thay số lặng lẽ mà W0.2 cấm.

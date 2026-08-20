@@ -4,8 +4,16 @@
 > Nguyên liệu: `dev_set/results/run_20260818_1739/candidates.jsonl` (commit `5b7b10c`)
 > Công cụ: `app/score_simulator.py` (D3.5)
 
-**Kết luận:** `SLOT_BUDGET` đổi từ `[(1,6), (4,4), (10,2), (58,1)]` (phủ 73 shot)
-sang **`[(100, 1)]`** — 100 shot, mỗi shot 1 slot.
+**Kết luận:** `SLOT_BUDGET` **giữ nguyên** `[(1,6), (4,4), (10,2), (58,1)]` (phủ 73 shot).
+
+Số đo dưới đây nghiêng về việc phủ trọn 100 shot (`[(100, 1)]`, Final dev `0.470 → 0.487`),
+nhưng chúng chỉ đo được **một trục** — bề rộng. Trục còn lại (đào sâu trong shot) thì dev
+set hiện tại **không đo được** vì cửa sổ ground truth được dựng từ chính keyframe (§5).
+Đổi một bảng đang chạy dựa trên bằng chứng nửa vời là đánh đổi rủi ro không cần thiết
+trước đợt 1, nên báo cáo này **ghi số lại và không đổi bảng**.
+
+> 20/08 — bảng từng bị đổi sang `[(100, 1)]` ở commit `973e397` rồi hoàn lại. Bảng
+> hiện tại là của Công Lý (`5b7b10c`); đổi nó phải báo Công Lý trước.
 
 ---
 
@@ -145,34 +153,115 @@ giá".
 
 ---
 
+## 5b. Lỗi tìm được khi đo chiều sâu — `_spread_evenly` rải vào hai mép
+
+**Đã sửa 20/08, `backend/slot/allocator.py`.** Đây là lỗi thật, không phải chuyện tune.
+
+Đi tìm câu trả lời cho "đào sâu có đáng không" thì lộ ra chuyện đào sâu đang **hỏng**.
+Bản cũ rải `m` điểm bằng `a + round(i·(b-a)/(m-1))` — công thức này **luôn gồm cả hai
+mép** vùng rải. Với `m == 2` nó cho đúng `[a, b]`: hai mép, **bỏ trống nguyên khúc
+giữa** — chỗ dễ chứa khoảnh khắc nhất.
+
+Đo trên shot 69 frame (median thật của `shots.parquet`), vùng rải `[6, 62]`, cửa sổ
+đáp án rơi đều trong shot:
+
+| m | bản cũ | w=11 | w=20 | w=35 |
+|---|---|---|---|---|
+| 1 | `[34]` | 0.19 | 0.40 | 1.00 |
+| 2 | `[6, 62]` | 0.24 | **0.28** | **0.40** |
+
+**Cấp thêm một slot mà bài nộp KÉM đi.** Không exception, không log, validator vẫn
+xanh — chỉ mất điểm. Và nó nằm trên đường chạy thật: bảng ngân sách hiện tại cấp
+**2 slot cho hạng 6–15**, đúng vùng `shotrank` đo được là nơi shot đúng hay nằm
+(trung vị hạng 10).
+
+### Sửa: rải theo TÂM Ô thay vì hai mép
+
+```python
+span = b - a + 1
+return [a + (2 * i + 1) * span // (2 * m) for i in range(m)]
+```
+
+Chia `[a, b]` thành `m` ô bằng nhau, lấy tâm mỗi ô. Không điểm nào chạm mép.
+
+| m | tâm ô | w=11 | w=20 | w=35 |
+|---|---|---|---|---|
+| 1 | `[34]` | 0.19 | 0.40 | 1.00 |
+| 2 | `[20, 48]` | **0.37** | **0.80** | **1.00** |
+| 3 | `[15, 34, 53]` | 0.56 | 1.00 | 1.00 |
+| 4 | `[13, 27, 41, 55]` | 0.75 | 1.00 | 1.00 |
+| 6 | `[10, 20, 29, 39, 48, 58]` | 1.00 | 1.00 | 1.00 |
+
+Thắng ở **mọi `m` và mọi độ rộng cửa sổ**. `m == 1` cho cùng giá trị với bản cũ nên
+ca một-slot-mỗi-shot không đổi hành vi.
+
+### Đo đầu-cuối, qua cả `_frames_of_shot`
+
+Shot 69 frame, có keyframe thật ở frame 20 (đường chạy thật — search luôn đưa xuống
+`best_keyframe_id`):
+
+| quota | trước | w=11 | sau | w=11 |
+|---|---|---|---|---|
+| 2 | `[20, 34]` | 0.37 | `[20, 34]` | 0.37 |
+| 3 | `[6, 20, 62]` | 0.42 | `[6, 20, 48]` | **0.49** |
+| 4 | `[6, 20, 34, 62]` | 0.61 | `[15, 20, 34, 53]` | **0.64** |
+| 6 | `[6, 7, 20, 34, 48, 62]` | 0.81 | `[11, 20, 23, 34, 45, 57]` | **0.95** |
+
+Ở quota 6 bản cũ còn nhả ra `6` và `7` **dính nhau** — hai slot mua đúng một cửa. Xảy
+ra vì điểm rải trùng keyframe đã phát ở mức ①, mức ③ nhảy vào quét từ đầu vùng.
+
+### Bất biến mới, có test giữ
+
+`tests/test_allocator.py` thêm 2 test:
+- `test_spread_evenly_khong_bao_gio_cham_mep` — điểm rải không trùng biên vùng
+- `test_spread_evenly_do_phu_don_dieu` — **thêm một điểm không bao giờ làm độ phủ
+  giảm**, đo trên `w ∈ {5, 11, 20, 35}`, `m ∈ [1, 8]`. Bản cũ HỎNG test này.
+
+Đây là bất biến đáng giữ hơn cả con số cụ thể: nó chặn đúng loại lỗi vừa mắc.
+
+---
+
 ## 6. Chốt
 
 ```python
-SLOT_BUDGET: list[tuple[int, int]] = [(100, 1)]
+SLOT_BUDGET: list[tuple[int, int]] = [(1, 6), (4, 4), (10, 2), (58, 1)]   # giữ nguyên
 ```
 
-**Ba lý do, xếp theo độ chắc chắn:**
+**Cái đo được ủng hộ phủ rộng hơn:**
 
-1. Cứu được **2/23 câu** đang trượt chắc vì bảng ngân sách (đo được, không phụ thuộc
-   giả định nào). Final trên dev: `0.470 → 0.487`.
-2. Thắng hoặc hoà ở **mọi** giả định độ rộng cửa sổ trong `sweep`.
-3. Không có bằng chứng nào ủng hộ chiều sâu. Không cược vào thứ chưa đo được.
+1. Bảng hiện tại bỏ rơi **2/23 câu** — K18 (shot đúng hạng 80) và K01 (hạng 95) nhận
+   0 slot, tức trượt chắc chắn vì bảng ngân sách chứ không phải vì search kém.
+   Replay nếu phủ trọn 100: Final `0.470 → 0.487`, toàn bộ chênh lệch ở R@100.
+2. `sweep` cho phủ rộng thắng hoặc hoà ở **mọi** giả định độ rộng cửa sổ.
 
-**Hệ quả có lợi kèm theo:** mỗi shot đúng 1 slot nên **mọi dòng nộp đều là frame của
-keyframe thật** (mức ưu tiên ① của allocator) — không dòng nào là frame rải suy đoán.
+**Cái không đo được — và là lý do chưa đổi:**
 
-**Chiều sâu tự quay lại khi cần:** search trả ít hơn 100 shot thì `budget_per_shot()`
-rải phần dư thành chiều sâu (71 shot → 29 shot đầu được 2 slot). Không cần bảng riêng.
-Trên dev set hiện tại, số ứng viên dao động 71–100 (trung vị 99).
+3. Bảng hiện tại đang cược 6 slot vào shot hạng 1, tức cược rằng **đào sâu trong shot
+   mua được điểm**. Dev set không xác nhận cũng không phủ nhận được điều đó (§5), nên
+   đổi đi là bỏ một canh bạc chưa kiểm chứng để lấy một canh bạc khác cũng chưa kiểm
+   chứng — chỉ khác là canh bạc mới chưa từng chạy trên dữ liệu thật lần nào.
 
-### Đảo lại khi nào
+**Được gì khi giữ:** phần lớn dòng nộp vẫn là frame của keyframe thật (mức ưu tiên ①
+của allocator), và 5 shot đầu vẫn có nhiều hơn 1 cửa nếu cửa sổ `[s, e]` hẹp thật.
 
-Đổi ngược về bảng có chiều sâu **chỉ khi** cả hai điều sau cùng đúng:
-- cửa sổ đáp án thật sự hẹp (~10 frame) **và**
-- shot đúng thường ở hạng ≤ 5 (tức tầng search khá lên nhiều so với hôm nay).
+**Mất gì khi giữ:** đúng 2 câu trong 23 câu dev, và bất kỳ câu nào có shot đúng ở
+hạng 74–100 lúc thi.
 
-Và chỉ đổi sau khi chạy lại `shotrank` + `replay` trên **dev set có cửa sổ dựng ĐỘC
-LẬP với keyframe**. Đổi bằng cảm giác thì không.
+### Đổi sang `[(100, 1)]` khi nào
+
+Khi có **một** trong hai điều sau:
+- **BTC công bố độ rộng `[s, e]` là rộng** (≳ nửa shot median, tức ~35 frame) — lúc đó
+  đào sâu hết ý nghĩa, phủ rộng thắng chắc.
+- **Dev set có cửa sổ dựng độc lập với keyframe** (§8) cho thấy chiều sâu không mua
+  thêm được câu nào.
+
+Và trước khi đổi thì **báo Công Lý** — bảng này là của nó (`5b7b10c`).
+
+### Việc rẻ nhất, làm được ngay
+
+Nếu chỉ muốn cứu 2 câu hạng 74–100 mà không đụng chiều sâu: bỏ 6 slot của hạng 1
+xuống còn 4, lấy 2 slot đó nối đuôi thành `[(5, 4), (10, 2), (60, 1)]` → phủ 75 shot.
+Vẫn chưa tới hạng 95, nhưng là bước nhỏ có thể đo lại sau đợt 1 mà không đảo lộn gì.
 
 ---
 

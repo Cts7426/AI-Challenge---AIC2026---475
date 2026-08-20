@@ -16,40 +16,38 @@
 from data.config.submit_format import ANSWERS_PER_QUERY
 
 # (số shot, số slot mỗi shot), xếp theo hạng shot giảm dần.
+# 1×6 + 4×4 + 10×2 + 58×1 = 100 slot, phủ 73 shot.
+# Phát hiện thực tế (17/08): shot đúng của các câu KIS có thể rơi vào hạng 32-100,
+# bảng [3x8, 7x5...] cũ bị chặt cụt quá sớm khiến mất recall. Cần mở rộng đuôi.
+#   hạng 1      : 6 slot — tin nhất
+#   hạng 2–5    : 4 slot
+#   hạng 6–15   : 2 slot
+#   hạng 16–73  : 1 slot — bao phủ diện rộng để vớt vát các shot hạng thấp
 #
-# ===== D4.1 (19/08) — 100 shot × 1 slot, phủ TRỌN 100 hạng =====
-# Đo đầy đủ ở reports/slot_tuning.md. Ba bằng chứng, xếp theo độ chắc chắn:
+# ===== D4.1 (19/08) — ĐÃ ĐO, CHƯA ĐỔI =====
+# Số liệu đầy đủ ở reports/slot_tuning.md. Ghi lại ở đây để lần tune sau khỏi đo
+# lại từ đầu — KHÔNG phải để biện minh cho một lần đổi bảng.
 #
-# 1. ĐO ĐƯỢC, KHÔNG PHỤ THUỘC GIẢ ĐỊNH — `score_simulator shotrank` trên 23 câu
-#    KIS dev: hạng của shot đúng có trung vị 10, lớn nhất 95. Bảng cũ phủ 73 shot
-#    nên K18 (hạng 80) và K01 (hạng 95) KHÔNG được cấp slot nào — trượt chắc
-#    chắn, không phải trượt vì search kém. Đó là điểm tự vứt đi.
-#    Replay: Final 0.470 (bảng cũ) → 0.487 (phủ 100), toàn bộ chênh lệch nằm ở
+# 1. `score_simulator shotrank` trên 23 câu KIS dev: hạng của shot đúng có trung
+#    vị 10, LỚN NHẤT 95. Bảng này phủ 73 shot nên K18 (hạng 80) và K01 (hạng 95)
+#    không được cấp slot nào — trượt chắc chắn, không phải trượt vì search kém.
+#    Replay nếu phủ trọn 100: Final 0.470 → 0.487, toàn bộ chênh lệch nằm ở
 #    R@100 (0.739 → 0.826), đúng hai câu đó.
 #
-# 2. ĐO ĐƯỢC — `sweep` trên shot THẬT, tại đúng phân bố hạng vừa nói: phủ rộng
-#    thắng ở mọi độ rộng cửa sổ giả định (w=11: 0.328 so với 0.211 của bảng cũ).
+# 2. `sweep` trên shot THẬT, tại đúng phân bố hạng vừa nói: phủ rộng thắng ở mọi
+#    độ rộng cửa sổ giả định (w=11: 0.328 so với 0.211).
 #
-# 3. KHÔNG ĐO ĐƯỢC bằng dev set hiện tại — liệu ĐÀO SÂU trong shot có đáng
-#    không. Cửa sổ ground truth của dev set được dựng TỪ CHÍNH keyframe (đo
-#    19/08: Q1–Q5 có keyframe đúng tâm cửa sổ, K01–K18 có keyframe đúng bằng
-#    `frame_start`), nên "trúng shot ⇒ trúng đáp án" ở đó là hệ quả của cách
-#    dựng dev set chứ không phải kết quả đo. Không có bằng chứng thì không cược:
-#    ưu tiên cái đo được (phủ rộng) hơn cái chỉ suy đoán (đào sâu).
+# 3. NHƯNG số 1 và 2 chỉ đo được MỘT trục. Cửa sổ ground truth của dev set được
+#    dựng TỪ CHÍNH keyframe (Q1–Q5 có keyframe đúng tâm cửa sổ, K01–K18 có
+#    keyframe đúng bằng `frame_start`), nên "trúng shot ⇒ trúng đáp án" ở đó là
+#    hệ quả của cách dựng dev set, không phải kết quả đo. Trục ĐỘ SÂU — bảng này
+#    đang cược vào — dev set hiện tại không phủ nhận được, mà cũng không xác nhận
+#    được.
 #
-# Hệ quả có lợi kèm theo: mỗi shot chỉ nhận 1 slot nên MỌI dòng nộp đều là frame
-# của keyframe thật (mức ưu tiên ① trong allocator) — không dòng nào là frame
-# rải suy đoán.
-#
-# Ít hơn 100 shot ứng viên thì `budget_per_shot()` tự rải phần dư thành chiều
-# sâu (71 shot → 29 shot đầu được 2 slot). Chiều sâu quay lại đúng lúc không còn
-# chiều rộng để mua, không cần bảng riêng.
-#
-# ⚠️ ĐẢO LẠI KHI NÀO: nếu đợt 1 cho thấy cửa sổ đáp án thật sự hẹp (~10 frame)
-# VÀ shot đúng thường ở hạng ≤ 5, thì chiều sâu mới mua được thứ chiều rộng
-# không mua nổi. Chạy lại `shotrank` + `replay` trên dev set có cửa sổ dựng ĐỘC
-# LẬP với keyframe rồi hãy đổi — đừng đổi bằng cảm giác.
-SLOT_BUDGET: list[tuple[int, int]] = [(100, 1)]
+# Giữ bảng 73 shot cho tới khi có dev set dựng cửa sổ ĐỘC LẬP với keyframe, hoặc
+# tới khi BTC công bố độ rộng [s, e]. Đổi thì phải có số của cả hai trục, và phải
+# báo Công Lý (người viết bảng này) trước.
+SLOT_BUDGET: list[tuple[int, int]] = [(1, 6), (4, 4), (10, 2), (58, 1)]
 
 # Thụt vào mỗi đầu shot khi rải frame, theo tỉ lệ độ dài shot. Frame sát biên hay
 # dính chuyển cảnh (mờ, lẫn hai cảnh). Frame ĐẦU TIÊN của shot không chịu luật này —

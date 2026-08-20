@@ -93,12 +93,43 @@ def _frame_of_keyframe(keyframe_id: str) -> int | None:
 # --------------------------------------------------- chọn frame trong MỘT shot
 
 def _spread_evenly(a: int, b: int, m: int) -> list[int]:
-    """m điểm rải đều trên đoạn [a, b], gồm cả hai đầu. m<=0 → rỗng, m==1 → điểm giữa."""
+    """m điểm rải đều trên [a, b] — mỗi điểm là TÂM của một ô bằng nhau.
+
+    Vào: biên vùng rải (gồm cả hai đầu) · số điểm. Ra: list tăng dần, m<=0 → rỗng.
+    Bất biến: KHÔNG điểm nào chạm mép `a` hoặc `b`, và độ phủ ĐƠN ĐIỆU theo m —
+    thêm một điểm không bao giờ làm độ phủ giảm.
+
+    ⚠️ SỬA 20/08 — bản cũ trả `a + round(i·(b-a)/(m-1))`, tức LUÔN gồm cả hai mép.
+    Với m == 2 nó cho đúng `[a, b]` — hai mép, **chừa trống nguyên khúc giữa**, chỗ
+    dễ chứa khoảnh khắc nhất. Hậu quả đo được trên shot 69 frame (median thật của
+    shots.parquet), vùng rải [6, 62]:
+
+        m   bản cũ                w=11   w=20   w=35
+        1   [34]                  0.19   0.40   1.00
+        2   [6, 62]               0.24   0.28   0.40   ← THÊM điểm mà độ phủ TỤT
+
+    Cấp thêm một slot mà bài nộp KÉM đi là lỗi im lặng đúng nghĩa: không exception,
+    không log, validator vẫn xanh, chỉ là mất điểm. Nó chạm đường chạy thật vì bảng
+    ngân sách hiện tại cấp 2 slot cho hạng 6–15 — đúng vùng `shotrank` đo được là
+    nơi shot đúng hay nằm (trung vị hạng 10).
+
+    Tâm ô thắng ở MỌI m và MỌI độ rộng cửa sổ giả định:
+
+        m   tâm ô                 w=11   w=20   w=35
+        2   [20, 48]              0.37   0.80   1.00
+        3   [15, 34, 53]          0.56   1.00   1.00
+        6   [10, 20, 29, 39, 48, 58]  1.00   1.00   1.00
+
+    m == 1 cho ra cùng một giá trị với bản cũ (điểm giữa), nên ca 1-slot-mỗi-shot
+    không đổi hành vi. Số đo đầy đủ ở reports/slot_tuning.md §5b.
+
+    Bỏ hẳn hai mép cũng hợp với `SHOT_EDGE_INSET`: mép vùng rải vẫn là chỗ gần
+    chuyển cảnh nhất trong vùng, không đáng tiêu một slot.
+    """
     if m <= 0 or b < a:
         return []
-    if m == 1:
-        return [(a + b) // 2]
-    return [a + round(i * (b - a) / (m - 1)) for i in range(m)]
+    span = b - a + 1
+    return [a + (2 * i + 1) * span // (2 * m) for i in range(m)]
 
 
 def _segment_bounds(start: int, end: int, k: int, m: int) -> tuple[int, int]:

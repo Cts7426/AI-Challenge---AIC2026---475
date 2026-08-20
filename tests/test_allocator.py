@@ -604,11 +604,53 @@ def test_trake_moi_shot_ngan_deu_du_100_dong():
     (10, 20, -1, []),
     (20, 10, 3, []),          # biên ngược
     (10, 20, 1, [15]),        # 1 điểm → điểm giữa
-    (10, 20, 2, [10, 20]),    # 2 điểm → hai đầu
+    (10, 20, 2, [12, 18]),    # 2 điểm → tâm hai nửa, KHÔNG phải hai mép
 ])
 def test_spread_evenly_moi_nhanh(a, b, m, mong_doi):
     from backend.slot.allocator import _spread_evenly
     assert _spread_evenly(a, b, m) == mong_doi
+
+
+def test_spread_evenly_khong_bao_gio_cham_mep():
+    """Điểm rải không được trùng biên vùng — mép là chỗ gần chuyển cảnh nhất.
+
+    Bản trước luôn gồm cả `a` lẫn `b`, nên m == 2 cho đúng [a, b] và bỏ trống
+    nguyên khúc giữa. Xem docstring `_spread_evenly`.
+    """
+    from backend.slot.allocator import _spread_evenly
+    for m in range(2, 12):
+        diem = _spread_evenly(6, 62, m)
+        assert len(diem) == m
+        assert diem == sorted(diem), f"m={m} không tăng dần: {diem}"
+        assert 6 < diem[0] and diem[-1] < 62, f"m={m} chạm mép: {diem}"
+
+
+def test_spread_evenly_do_phu_don_dieu():
+    """Bất biến CHỦ CHỐT: thêm một điểm KHÔNG BAO GIỜ làm độ phủ giảm.
+
+    Vì sao đáng một test riêng: đây đúng là lỗi bản cũ mắc phải, và nó là loại
+    lỗi không có triệu chứng — cấp thêm slot cho một shot mà bài nộp kém đi thì
+    không exception, không log, validator vẫn xanh. Chỉ mất điểm.
+
+    Đo bằng độ phủ thật: cửa sổ đáp án rộng `w` rơi ở mọi vị trí trong shot,
+    đếm tỉ lệ vị trí có ít nhất một điểm rải lọt vào.
+    """
+    from backend.slot.allocator import _spread_evenly
+
+    def do_phu(diem: list[int], L: int, w: int) -> float:
+        vi_tri = range(0, L - w + 1)
+        return sum(1 for s in vi_tri
+                   if any(s <= f <= s + w - 1 for f in diem)) / len(vi_tri)
+
+    L, a, b = 69, 6, 62   # shot median thật của shots.parquet, đã thụt 10% mỗi đầu
+    for w in (5, 11, 20, 35):
+        truoc = 0.0
+        for m in range(1, 9):
+            sau = do_phu(_spread_evenly(a, b, m), L, w)
+            assert sau >= truoc - 1e-9, (
+                f"w={w}: thêm điểm thứ {m} làm độ phủ TỤT {truoc:.2f} → {sau:.2f}"
+            )
+            truoc = sau
 
 
 @pytest.mark.parametrize("m", [0, 1])

@@ -1,0 +1,218 @@
+[
+  {
+    "query_id": "Q1",
+    "task_type": "KIS",
+    "query_vi": "xe máy đi qua ngã tư",
+    "query_en": "motorcycle crossing intersection",
+    "split": "tune"
+  },
+  {
+    "query_id": "Q2",
+    "task_type": "KIS",
+    "query_vi": "người đàn ông mặc áo đỏ",
+    "query_en": "man wearing red shirt",
+    "split": "tune"
+  },
+  {
+    "query_id": "Q3",
+    "task_type": "KIS",
+    "query_vi": "con chó chạy trên cỏ",
+    "query_en": "dog running on grass",
+    "split": "tune"
+  },
+  {
+    "query_id": "Q4",
+    "task_type": "KIS",
+    "query_vi": "tai nạn giao thông trên đường",
+    "query_en": "traffic accident on the road",
+    "split": "tune"
+  },
+  {
+    "query_id": "Q5",
+    "task_type": "KIS",
+    "query_vi": "trẻ em chơi bóng đá",
+    "query_en": "children playing football",
+    "split": "tune"
+  },
+  {
+    "query_id": "K01",
+    "task_type": "KIS",
+    "query_vi": "bác sĩ đeo khẩu trang thăm khám bệnh nhân trong phòng bệnh",
+    "query_en": "doctor wearing mask examining patient in hospital room",
+    "split": "tune"
+  },
+  {
+    "query_id": "K02",
+    "task_type": "KIS",
+    "query_vi": "nhiều đồng hồ đeo tay đặt cạnh tiền giấy Việt Nam trên bàn",
+    "query_en": "multiple wristwatches placed next to Vietnamese banknotes on table",
+    "split": "tune"
+  },
+  {
+    "query_id": "K03",
+    "task_type": "KIS",
+    "query_vi": "bức tranh vẽ bút bi hình xe buýt và tòa nhà cao tầng",
+    "query_en": "ballpoint pen drawing of bus and high rise building",
+    "split": "tune"
+  },
+  {
+    "query_id": "K04",
+    "task_type": "KIS",
+    "query_vi": "các thiếu nữ mặc trang phục truyền thống quỳ trong sảnh có tượng đá",
+    "query_en": "young women in traditional costume kneeling in hall with stone statue",
+    "split": "tune"
+  },
+  {
+    "query_id": "K05",
+    "task_type": "KIS",
+    "query_vi": "đoàn đua xe đạp nhìn từ trên cao băng qua ngã tư đường phố",
+    "query_en": "aerial view of bicycle race group crossing street intersection",
+    "split": "tune"
+  },
+  {
+    "query_id": "K06",
+    "task_type": "KIS",
+    "query_vi": "đầu lân sư nhiều màu sắc cận cảnh trong buổi biểu diễn",
+    "query_en": "close-up of colorful lion dance head during performance",
+    "split": "tune"
+  },
+  {
+    "query_id": "K07",
+    "task_type": "KIS",
+    "query_vi": "quả cầu trang trí bằng dây ruy băng đỏ xanh treo trên cột sắt ban đêm",
+    "query_en": "decorative sphere with red green ribbons hanging on iron pole at night",
+    "split": "tune"
+  },
+  {
+    "query_id": "K08",
+    "task_type": "KIS",
+    "query_vi": "hai nữ sinh mặc đồng phục đỏ ngồi nói chuyện dưới bóng cây",
+    "query_en": "two female students in red uniforms sitting talking under tree shade",
+    "split": "tune"
+  },
+  {
+    "query_id": "K09",
+    "task_type": "KIS",
+    "query_vi": "các em nhỏ đội mũ đỏ đứng trong thư viện lấy sách trên kệ",
+    "query_en": "young children wearing red hats standing in library picking books from shelf",
+    "split": "tune"
+  },
+  {
+    "query_id": "K10",
+    "task_type": "KIS",
+    "query_vi": "thịt và cà chua trong nồi thủy tinh trên bếp, có đũa khuấy",
+    "query_en": "meat and tomatoes in glass pot on stove being stirred with chopsticks",
+    "split": "tune"
+  },
+  {
+    "query_id": "K11",
+    "task_type": "KIS",
+    "query_vi": "bàn tay cho giá đỗ vào chảo trứng đang xào trên bếp",
+    "query_en": "hand adding bean sprouts to frying pan with eggs on stove",
+    "split": "tune"
+  },
+  {
+    "query_id": "K12",
+    "task_type": "KIS",
+    "query_vi": "bàn thờ sơn son thếp vàng với hai lọng vàng hai bên",
+    "query_en": "gilded red lacquer altar flanked by two yellow parasols",
+    "split": "tune"
+  },
+  {
+    "query_id": "K13",
+    "task_type": "KIS",
+    "query_vi": "hai bàn tay sửa chữa bộ phận phanh xe máy cận cảnh",
+    "query_en": "close-up of two hands repairing motorcycle brake system",
+    "split": "tune"
+  },
+  {
+    "query_id": "K14",
+    "task_type": "KIS",
+    "query_vi": "kho hàng ven sông với cờ đỏ sao vàng và các bao tải xếp trên bến",
+    "query_en": "riverside warehouse with red flag yellow star and sacks stacked on dock",
+    "split": "tune"
+  },
+  {
+    "query_id": "K15",
+    "task_type": "KIS",
+    "query_vi": "hai người phụ nữ ngồi đan lát bằng cói trên ghế nhựa đỏ",
+    "query_en": "two women sitting on red plastic chairs weaving sedge",
+    "split": "tune"
+  },
+  {
+    "query_id": "K16",
+    "task_type": "KIS",
+    "query_vi": "một phụ nữ phỏng vấn một người đàn ông ngoài trời giữa cây xanh",
+    "query_en": "woman interviewing man outdoors among green trees",
+    "split": "tune"
+  },
+  {
+    "query_id": "K17",
+    "task_type": "KIS",
+    "query_vi": "động cơ Honda màu đỏ gắn trên xe tự chế",
+    "query_en": "red Honda engine mounted on custom vehicle",
+    "split": "tune"
+  },
+  {
+    "query_id": "K18",
+    "task_type": "KIS",
+    "query_vi": "thầy giáo cầm sách đứng cạnh bàn học sinh trong lớp học",
+    "query_en": "male teacher holding book standing next to student desk in classroom",
+    "split": "tune"
+  },
+  {
+    "query_id": "QA01",
+    "task_type": "QA",
+    "query_vi": "công thức canh sườn mít non cần bao nhiêu gam sườn non",
+    "split": "tune"
+  },
+  {
+    "query_id": "QA02",
+    "task_type": "QA",
+    "query_vi": "nấu sườn nên bắt đầu từ loại nước nào để canh ngọt",
+    "split": "tune"
+  },
+  {
+    "query_id": "QA03",
+    "task_type": "QA",
+    "query_vi": "công thức canh gà lá giang cần bao nhiêu gam lá giang",
+    "split": "tune"
+  },
+  {
+    "query_id": "QA04",
+    "task_type": "QA",
+    "query_vi": "cầu Vàm Cống trong video dài bao nhiêu mét",
+    "split": "tune"
+  },
+  {
+    "query_id": "QA05",
+    "task_type": "QA",
+    "query_vi": "video nhắc tới bến phà nào trên sông Mê Kông",
+    "split": "tune"
+  },
+  {
+    "query_id": "TR01",
+    "task_type": "TRAKE",
+    "query_vi": "sườn non chặt khúc trong tô . đổ nước vào nồi sườn trên bếp . mít non được cắt thành miếng . trái vả được cắt thành miếng",
+    "split": "tune",
+    "n_events": 4,
+    "event_descs": [
+      "sườn non chặt khúc trong tô",
+      "đổ nước vào nồi sườn trên bếp",
+      "mít non được cắt thành miếng",
+      "trái vả được cắt thành miếng"
+    ]
+  },
+  {
+    "query_id": "TR02",
+    "task_type": "TRAKE",
+    "query_vi": "gà được ướp với gia vị nêm sẵn lẩu Thái . cà chua được cắt . rau om và ngò gai được cắt khúc",
+    "split": "tune",
+    "n_events": 3,
+    "event_descs": [
+      "gà được ướp với gia vị nêm sẵn lẩu Thái",
+      "cà chua được cắt",
+      "rau om và ngò gai được cắt khúc"
+    ]
+  }
+]

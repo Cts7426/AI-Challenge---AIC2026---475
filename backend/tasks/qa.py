@@ -166,21 +166,16 @@ def parse_question(query_vi: str) -> QuestionParts:
 # ---------------------------------------------------------------- thu bằng chứng
 
 @lru_cache(maxsize=1)
-def _keyframes_by_shot() -> dict[str, list[tuple[int, str]]]:
-    """shot_id → [(frame_idx, path), ...] keyframe THẬT (có file ảnh trích sẵn)
-    của shot, đọc từ keyframes.parquet (B1.2). Cache 1 lần/tiến trình — 371k
-    dòng, đọc lại mỗi lần gọi collect_evidence là quá chậm.
-    """
-    import pandas as pd
-
-    if not KEYFRAMES_PATH.exists():
-        return {}
-    df = pd.read_parquet(KEYFRAMES_PATH, columns=["shot_id", "frame_idx", "path"])
-    out: dict[str, list[tuple[int, str]]] = {}
-    for shot_id, frame_idx, path in df.itertuples(index=False):
-        out.setdefault(shot_id, []).append((int(frame_idx), path))
-    for v in out.values():
-        v.sort()
+def _video_frames() -> dict[str, list[int]]:
+    """video_id -> danh sách frame_idx thực sự tồn tại (dựa vào frame_map)"""
+    fm = load_frame_map()
+    out: dict[str, list[int]] = {}
+    for k, v in fm.items():
+        # k thường là L26_V257#k0144 hoặc L26_V257_0004809 -> 8 ký tự đầu là video_id
+        vid = k[:8]
+        out.setdefault(vid, []).append(v)
+    for l in out.values():
+        l.sort()
     return out
 
 
@@ -188,40 +183,43 @@ def _evidence_frames(shot_id: str, best_keyframe_id: str | None, n: int) -> list
     """n (frame_idx, path) ảnh THẬT của shot để gửi VLM.
 
     Ưu tiên frame gần best_keyframe_id nhất (bằng chứng mạnh nhất — đây là nơi
-    search() thực sự khớp), phần còn lại rải đều theo frame_idx để có cả chuỗi
-    thời gian trong shot chứ không phải n bản gần như giống hệt nhau.
-
-    Chỉ trả file THỰC SỰ TỒN TẠI trên đĩa: keyframes.parquet có thể ghi đường
-    dẫn cho ảnh chưa tải về máy này (dữ liệu tải theo lô) — lỗi ở đây phải LỘ
-    RA bằng list rỗng/ngắn hơn n, không phải giả vờ có ảnh rồi gửi rác cho VLM.
+    search() thực sự khớp), phần còn lại rải đều theo frame_idx thực sự CÓ TRONG frame_map
+    để có cả chuỗi thời gian trong shot chứ không giả định fps đều.
     """
-    rows = _keyframes_by_shot().get(shot_id, [])
-    if not rows:
+    from backend.slot.allocator import shot_bounds
+    try:
+        video_id, start, end = shot_bounds(shot_id)
+    except KeyError:
         return []
+
+    all_frames = _video_frames().get(video_id, [])
+    # Unique và đã sort
+    frames = sorted(list(set(f for f in all_frames if start <= f <= end)))
+    
+    if not frames:
+        return []
+
     fm = load_frame_map()
     best_frame = fm.get(best_keyframe_id) if best_keyframe_id else None
 
-    order = list(range(len(rows)))
-    if best_frame is not None:
-        order.sort(key=lambda i: abs(rows[i][0] - best_frame))
-        closest = order[0]
-        step = max(1, len(rows) // n)
-        spread = [i for i in range(0, len(rows), step) if i != closest]
-        order = [closest] + spread
-    else:
-        step = max(1, len(rows) // n)
-        order = list(range(0, len(rows), step))
+    # Lấy mẫu đều trên danh sách có thật
+    step = max(1, len(frames) // n)
+    picked = frames[::step][:n]
+
+    if best_frame is not None and best_frame in frames:
+        if best_frame in picked:
+            picked.remove(best_frame)
+        else:
+            picked.pop()
+        picked.insert(0, best_frame)
 
     out: list[tuple[int, Path]] = []
-    for i in order:
-        if len(out) >= n:
-            break
-        frame_idx, rel_path = rows[i]
-        p = KEYFRAME_ROOT / rel_path
+    for f in picked:
+        p = KEYFRAME_ROOT / video_id / f"f{f:07d}.jpg"
         if p.exists():
-            out.append((frame_idx, p))
+            out.append((f, p))
         else:
-            print(f"  [cảnh báo] thiếu file ảnh {p} — bỏ frame {frame_idx} khỏi bằng chứng VLM")
+            print(f"  [cảnh báo] thiếu file ảnh {p} — bỏ frame {f} khỏi bằng chứng VLM")
     return out
 
 

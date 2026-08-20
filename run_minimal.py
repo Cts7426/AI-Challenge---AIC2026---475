@@ -143,9 +143,20 @@ def main() -> int:
                         top_k=args.answers * CANDIDATE_FACTOR,
                     )
 
-                hits = [ShotHit(shot_id=h.get("shot_id") or "unknown", score=h.get("score", 0.0), best_keyframe_id=h.get("keyframe_id")) for h in ket_qua]
+                hits = [
+                    h if isinstance(h, ShotHit) 
+                    else ShotHit(
+                        shot_id=h.get("shot_id") or "unknown", 
+                        score=h.get("score", 0.0), 
+                        best_keyframe_id=h.get("keyframe_id")
+                    ) 
+                    for h in ket_qua
+                ]
             except Exception as e:
+                import os, traceback
                 print(f"  {qid:<10} PIPELINE HỎNG: {e}")
+                if os.getenv("DEBUG") == "1":
+                    traceback.print_exc()
                 hong += 1
                 rong.append(qid)
                 continue
@@ -213,7 +224,7 @@ def main() -> int:
     print(f"Tổng ứng viên THẬT: {tong_that} · độn: {len(subs) * args.answers - tong_that}")
     if rong:
         print(
-            f"\n⚠️  {len(rong)}/{len(subs)} truy vấn KHÔNG có ứng viên thật nào "
+            f"\n⚠️  {len(rong)}/{len(queries)} truy vấn KHÔNG có ứng viên thật nào "
             f"({', '.join(rong[:5])}{'...' if len(rong) > 5 else ''}) — file chỉ toàn dòng độn.\n"
             "    Nguyên nhân hay gặp: chưa `docker compose up -d`, chưa nạp index, "
             "hoặc keyframe_id trong index không có trong frame_map.\n"

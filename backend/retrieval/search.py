@@ -425,11 +425,12 @@ def search(
         gon = []
         for r in ket_qua:
             s = r["shot_id"]
-            if s is not None:
-                if s in da_co:
-                    continue
-                da_co.add(s)
-            gon.append(r)          # keyframe không biết shot → giữ nguyên, không vứt
+            if s is None:
+                continue  # Bỏ qua frame mồ côi (không map được vào shot nào)
+            if s in da_co:
+                continue
+            da_co.add(s)
+            gon.append(r)
         ket_qua = gon
 
     return ket_qua[:top_k]

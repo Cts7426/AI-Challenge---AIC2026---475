@@ -256,10 +256,19 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > - Trả top-10 video xếp hạng
 > - Nhắc tôi: sai video = 0 tuyệt đối, nên giai đoạn 1 quan trọng hơn giai đoạn 2.
 
-### C4.4 [Thi] — Fallback TRAKE · 14→16/08 · **LÀM SỚM, ĐỪNG ĐỢI THẤT BẠI**
+### ✅ C4.4 [Thi] — Fallback TRAKE · 14→16/08 · **LÀM SỚM, ĐỪNG ĐỢI THẤT BẠI**
 > `backend/tasks/trake_fallback.py`: chạy pipeline KIS **N lần độc lập** cho N mô tả
 > trong video hạng 1, sắp xếp kết quả theo thứ tự thời gian tăng dần, nộp.
 > Đây là thứ cứu nhóm khỏi 0 điểm ở 1/3 số câu nếu DP không kịp.
+>
+> ⚠️ **20/08 — file riêng đã bị xoá lúc gộp DP (16/08, commit `638495d`),
+> phát hiện lại khi kiểm tra toàn diện TRAKE.** Kiến trúc mới (1 DP hợp nhất,
+> không còn stage1/stage2 tách rời) khiến bản fallback CŨ (dùng
+> `filter_video_id` trong video hạng 1 đã chốt) không còn khớp. Viết lại lưới
+> an toàn GỌN TRONG `backend/tasks/trake.py` thay vì file riêng:
+> `parse_events()` rơi về tách heuristic không cần LLM khi LLM lỗi,
+> `trake_search()` thử search cứu cánh khi mọi sự kiện đều rỗng. Chi tiết +
+> đo thật: `reports/trake_hardening.md`.
 
 ### D2.1 [Minh Hoàng] — UI debug · 10→13/08 · **Streamlit, KHÔNG React**
 > - Nhập query → thấy kết quả **từng tầng cạnh nhau** (sau RRF / sau rerank)

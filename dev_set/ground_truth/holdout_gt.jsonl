@@ -1,0 +1,63 @@
+{"query_id": "KIS_001", "task_type": "KIS", "video_id": "L21_V024", "frame_start": 13319, "frame_end": 13469}
+{"query_id": "QA_001", "task_type": "QA", "video_id": "L21_V024", "frame_start": 13319, "frame_end": 13469, "answer_text": "xe máy và xe ba gác", "answer_variants": ["xe máy và xe ba gác", "xe máy và xe ba gác", "xe máy và xe ba gác"]}
+{"query_id": "KIS_002", "task_type": "KIS", "video_id": "L22_V013", "frame_start": 27861, "frame_end": 28041}
+{"query_id": "QA_002", "task_type": "QA", "video_id": "L22_V013", "frame_start": 27278, "frame_end": 27458, "answer_text": "Khoảng 2 km", "answer_variants": ["Khoảng 2 km", "Khoảng 2 km", "Khoảng 2 km"]}
+{"query_id": "KIS_003", "task_type": "KIS", "video_id": "L22_V012", "frame_start": 25173, "frame_end": 25353}
+{"query_id": "QA_003", "task_type": "QA", "video_id": "L22_V012", "frame_start": 26402, "frame_end": 26582, "answer_text": "Khoảng 3 km", "answer_variants": ["Khoảng 3 km", "Khoảng 3 km", "Khoảng 3 km"]}
+{"query_id": "KIS_004", "task_type": "KIS", "video_id": "L21_V017", "frame_start": 13395, "frame_end": 13545}
+{"query_id": "QA_004", "task_type": "QA", "video_id": "L21_V017", "frame_start": 12945, "frame_end": 13095, "answer_text": "Khoảng 30m", "answer_variants": ["Khoảng 30m", "Khoảng 30m", "Khoảng 30m"]}
+{"query_id": "KIS_005", "task_type": "KIS", "video_id": "L22_V031", "frame_start": 21190, "frame_end": 21340}
+{"query_id": "QA_005", "task_type": "QA", "video_id": "L22_V031", "frame_start": 21749, "frame_end": 21899, "answer_text": "Xe container kéo theo rơ móc và xe máy", "answer_variants": ["Xe container kéo theo rơ móc và xe máy", "Xe container kéo theo rơ móc và xe máy", "Xe container kéo theo rơ móc và xe máy"]}
+{"query_id": "KIS_006", "task_type": "KIS", "video_id": "L21_V023", "frame_start": 11624, "frame_end": 11804}
+{"query_id": "QA_006", "task_type": "QA", "video_id": "L21_V023", "frame_start": 13155, "frame_end": 13335, "answer_text": "Để chở người đi cấp cứu kịp thời", "answer_variants": ["Để chở người đi cấp cứu kịp thời", "Để chở người đi cấp cứu kịp thời", "Để chở người đi cấp cứu kịp thời"]}
+{"query_id": "KIS_007", "task_type": "KIS", "video_id": "L21_V015", "frame_start": 1514, "frame_end": 1694}
+{"query_id": "QA_007", "task_type": "QA", "video_id": "L21_V015", "frame_start": 1514, "frame_end": 1694, "answer_text": "Sau khoảng 15 năm", "answer_variants": ["Sau khoảng 15 năm", "Sau khoảng 15 năm", "Sau khoảng 15 năm"]}
+{"query_id": "KIS_008", "task_type": "KIS", "video_id": "L22_V027", "frame_start": 11256, "frame_end": 11436}
+{"query_id": "QA_008", "task_type": "QA", "video_id": "L22_V027", "frame_start": 11256, "frame_end": 11436, "answer_text": "Ước tính gần 1.000 mét khối", "answer_variants": ["Ước tính gần 1.000 mét khối", "Ước tính gần 1.000 mét khối", "Ước tính gần 1.000 mét khối"]}
+{"query_id": "KIS_009", "task_type": "KIS", "video_id": "L21_V031", "frame_start": 526, "frame_end": 676}
+{"query_id": "QA_009", "task_type": "QA", "video_id": "L21_V031", "frame_start": 1275, "frame_end": 1425, "answer_text": "Khoảng 1.900 xe", "answer_variants": ["Khoảng 1.900 xe", "Khoảng 1.900 xe", "Khoảng 1.900 xe"]}
+{"query_id": "KIS_010", "task_type": "KIS", "video_id": "L25_V048", "frame_start": 717, "frame_end": 895}
+{"query_id": "QA_010", "task_type": "QA", "video_id": "L25_V048", "frame_start": 717, "frame_end": 895, "answer_text": "Chờ đèn đỏ giao thông", "answer_variants": ["Chờ đèn đỏ giao thông", "Chờ đèn đỏ giao thông", "Chờ đèn đỏ giao thông"]}
+{"query_id": "KIS_011", "task_type": "KIS", "video_id": "L21_V012", "frame_start": 12002, "frame_end": 12182}
+{"query_id": "QA_011", "task_type": "QA", "video_id": "L21_V012", "frame_start": 12629, "frame_end": 12809, "answer_text": "Xe cẩu loại lớn", "answer_variants": ["Xe cẩu loại lớn", "Xe cẩu loại lớn", "Xe cẩu loại lớn"]}
+{"query_id": "KIS_012", "task_type": "KIS", "video_id": "L24_V010", "frame_start": 1573, "frame_end": 1723}
+{"query_id": "QA_012", "task_type": "QA", "video_id": "L24_V010", "frame_start": 10580, "frame_end": 10730, "answer_text": "Di chuyển người và đồ đạc đến nơi an toàn", "answer_variants": ["Di chuyển người và đồ đạc đến nơi an toàn", "Di chuyển người và đồ đạc đến nơi an toàn", "Di chuyển người và đồ đạc đến nơi an toàn"]}
+{"query_id": "KIS_013", "task_type": "KIS", "video_id": "L26_V001", "frame_start": 1513, "frame_end": 1663}
+{"query_id": "QA_013", "task_type": "QA", "video_id": "L26_V001", "frame_start": 6528, "frame_end": 6678, "answer_text": "Làm việc cho lò gốm, thường hay đi ngược chiều và băng qua đường", "answer_variants": ["Làm việc cho lò gốm, thường hay đi ngược chiều và băng qua đường", "Làm việc cho lò gốm, thường hay đi ngược chiều và băng qua đường", "Làm việc cho lò gốm, thường hay đi ngược chiều và băng qua đường"]}
+{"query_id": "KIS_014", "task_type": "KIS", "video_id": "L22_V010", "frame_start": 23687, "frame_end": 23837}
+{"query_id": "QA_014", "task_type": "QA", "video_id": "L22_V010", "frame_start": 22102, "frame_end": 22252, "answer_text": "Bốc cháy ngùn ngụt", "answer_variants": ["Bốc cháy ngùn ngụt", "Bốc cháy ngùn ngụt", "Bốc cháy ngùn ngụt"]}
+{"query_id": "KIS_015", "task_type": "KIS", "video_id": "L23_V025", "frame_start": 4675, "frame_end": 4825}
+{"query_id": "QA_015", "task_type": "QA", "video_id": "L23_V025", "frame_start": 2550, "frame_end": 2700, "answer_text": "Hơn 2700 km", "answer_variants": ["Hơn 2700 km", "Hơn 2700 km", "Hơn 2700 km"]}
+{"query_id": "KIS_016", "task_type": "KIS", "video_id": "L23_V005", "frame_start": 2427, "frame_end": 2577}
+{"query_id": "QA_016", "task_type": "QA", "video_id": "L23_V005", "frame_start": 2158, "frame_end": 2308, "answer_text": "Roman Makin", "answer_variants": ["Roman Makin", "Roman Makin", "Roman Makin"]}
+{"query_id": "KIS_017", "task_type": "KIS", "video_id": "L23_V013", "frame_start": 0, "frame_end": 75}
+{"query_id": "QA_017", "task_type": "QA", "video_id": "L23_V013", "frame_start": 0, "frame_end": 75, "answer_text": "Chặng thứ 5", "answer_variants": ["Chặng thứ 5", "Chặng thứ 5", "Chặng thứ 5"]}
+{"query_id": "KIS_018", "task_type": "KIS", "video_id": "L23_V022", "frame_start": 8050, "frame_end": 8200}
+{"query_id": "QA_018", "task_type": "QA", "video_id": "L23_V022", "frame_start": 2025, "frame_end": 2175, "answer_text": "80 phần trăm giây", "answer_variants": ["80 phần trăm giây", "80 phần trăm giây", "80 phần trăm giây"]}
+{"query_id": "KIS_019", "task_type": "KIS", "video_id": "L23_V012", "frame_start": 7313, "frame_end": 7463}
+{"query_id": "QA_019", "task_type": "QA", "video_id": "L23_V012", "frame_start": 4442, "frame_end": 4592, "answer_text": "Thưởng 3 giây", "answer_variants": ["Thưởng 3 giây", "Thưởng 3 giây", "Thưởng 3 giây"]}
+{"query_id": "KIS_020", "task_type": "KIS", "video_id": "L23_V021", "frame_start": 9419, "frame_end": 9569}
+{"query_id": "QA_020", "task_type": "QA", "video_id": "L23_V021", "frame_start": 11894, "frame_end": 12044, "answer_text": "620 Nông nghiệp Vĩnh Long và 620 Châu Thế Vĩnh Long", "answer_variants": ["620 Nông nghiệp Vĩnh Long và 620 Châu Thế Vĩnh Long", "620 Nông nghiệp Vĩnh Long và 620 Châu Thế Vĩnh Long", "620 Nông nghiệp Vĩnh Long và 620 Châu Thế Vĩnh Long"]}
+{"query_id": "KIS_021", "task_type": "KIS", "video_id": "L23_V017", "frame_start": 580, "frame_end": 730}
+{"query_id": "QA_021", "task_type": "QA", "video_id": "L23_V017", "frame_start": 1554, "frame_end": 1704, "answer_text": "Savanovicov", "answer_variants": ["Savanovicov", "Savanovicov", "Savanovicov"]}
+{"query_id": "KIS_022", "task_type": "KIS", "video_id": "L23_V010", "frame_start": 2244, "frame_end": 2394}
+{"query_id": "QA_022", "task_type": "QA", "video_id": "L23_V010", "frame_start": 6925, "frame_end": 7075, "answer_text": "Martin Lass", "answer_variants": ["Martin Lass", "Martin Lass", "Martin Lass"]}
+{"query_id": "KIS_023", "task_type": "KIS", "video_id": "L22_V005", "frame_start": 27815, "frame_end": 27995}
+{"query_id": "QA_023", "task_type": "QA", "video_id": "L22_V005", "frame_start": 28596, "frame_end": 28776, "answer_text": "Thức ăn cho chó trong một tháng hoặc kỳ nghỉ tại khách sạn", "answer_variants": ["Thức ăn cho chó trong một tháng hoặc kỳ nghỉ tại khách sạn", "Thức ăn cho chó trong một tháng hoặc kỳ nghỉ tại khách sạn", "Thức ăn cho chó trong một tháng hoặc kỳ nghỉ tại khách sạn"]}
+{"query_id": "KIS_024", "task_type": "KIS", "video_id": "L21_V029", "frame_start": 29696, "frame_end": 29876}
+{"query_id": "QA_024", "task_type": "QA", "video_id": "L21_V029", "frame_start": 30269, "frame_end": 30449, "answer_text": "Chặng đua 11", "answer_variants": ["Chặng đua 11", "Chặng đua 11", "Chặng đua 11"]}
+{"query_id": "KIS_025", "task_type": "KIS", "video_id": "L26_V002", "frame_start": 916, "frame_end": 1066}
+{"query_id": "QA_025", "task_type": "QA", "video_id": "L26_V002", "frame_start": 5261, "frame_end": 5411, "answer_text": "Nước Nga", "answer_variants": ["Nước Nga", "Nước Nga", "Nước Nga"]}
+{"query_id": "KIS_026", "task_type": "KIS", "video_id": "L25_V001", "frame_start": 19205, "frame_end": 19355}
+{"query_id": "QA_026", "task_type": "QA", "video_id": "L25_V001", "frame_start": 18025, "frame_end": 18175, "answer_text": "Đồng Tháp", "answer_variants": ["Đồng Tháp", "Đồng Tháp", "Đồng Tháp"]}
+{"query_id": "KIS_027", "task_type": "KIS", "video_id": "L24_V012", "frame_start": 2342, "frame_end": 2428}
+{"query_id": "QA_027", "task_type": "QA", "video_id": "L24_V012", "frame_start": 1618, "frame_end": 1768, "answer_text": "Lên đến 46-47km/h", "answer_variants": ["Lên đến 46-47km/h", "Lên đến 46-47km/h", "Lên đến 46-47km/h"]}
+{"query_id": "KIS_029", "task_type": "KIS", "video_id": "L21_V001", "frame_start": 20069, "frame_end": 20249}
+{"query_id": "KIS_030", "task_type": "KIS", "video_id": "L21_V001", "frame_start": 17408, "frame_end": 17588}
+{"query_id": "KIS_031", "task_type": "KIS", "video_id": "L21_V003", "frame_start": 27195, "frame_end": 27345}
+{"query_id": "KIS_033", "task_type": "KIS", "video_id": "L21_V005", "frame_start": 27014, "frame_end": 27194}
+{"query_id": "KIS_034", "task_type": "KIS", "video_id": "L21_V006", "frame_start": 13233, "frame_end": 13413}
+{"query_id": "KIS_035", "task_type": "KIS", "video_id": "L21_V007", "frame_start": 4922, "frame_end": 5102}
+{"query_id": "KIS_036", "task_type": "KIS", "video_id": "L21_V008", "frame_start": 13725, "frame_end": 13875}
+{"query_id": "KIS_037", "task_type": "KIS", "video_id": "L21_V009", "frame_start": 12075, "frame_end": 12225}
+{"query_id": "KIS_038", "task_type": "KIS", "video_id": "L21_V010", "frame_start": 17342, "frame_end": 17492}

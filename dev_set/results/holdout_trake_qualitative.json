@@ -1,0 +1,306 @@
+[
+  {
+    "query_id": "TRAKE_001",
+    "video_id": "L21_V024",
+    "video_rank": 21,
+    "near_ref_window": true,
+    "chosen_frames": [
+      12630,
+      12888,
+      13067,
+      13239
+    ]
+  },
+  {
+    "query_id": "TRAKE_002",
+    "video_id": "L22_V013",
+    "video_rank": 4,
+    "near_ref_window": true,
+    "chosen_frames": [
+      28280,
+      28409,
+      28499,
+      28606
+    ]
+  },
+  {
+    "query_id": "TRAKE_003",
+    "video_id": "L22_V012",
+    "video_rank": 2,
+    "near_ref_window": false,
+    "chosen_frames": [
+      713,
+      25926,
+      26076,
+      26184,
+      26699
+    ]
+  },
+  {
+    "query_id": "TRAKE_004",
+    "video_id": "L21_V017",
+    "video_rank": 6,
+    "near_ref_window": true,
+    "chosen_frames": [
+      9300,
+      12539,
+      12865,
+      13345,
+      13470
+    ]
+  },
+  {
+    "query_id": "TRAKE_005",
+    "video_id": "L22_V031",
+    "video_rank": 1,
+    "near_ref_window": true,
+    "chosen_frames": [
+      21531,
+      21824,
+      21982,
+      22285
+    ]
+  },
+  {
+    "query_id": "TRAKE_006",
+    "video_id": "L21_V023",
+    "video_rank": 52,
+    "near_ref_window": false,
+    "chosen_frames": [
+      4344,
+      4345,
+      15435,
+      16496
+    ]
+  },
+  {
+    "query_id": "TRAKE_007",
+    "video_id": "L21_V015",
+    "video_rank": 3,
+    "near_ref_window": true,
+    "chosen_frames": [
+      1604,
+      1732,
+      2268,
+      2734
+    ]
+  },
+  {
+    "query_id": "TRAKE_008",
+    "video_id": "L22_V027",
+    "video_rank": 1,
+    "near_ref_window": true,
+    "chosen_frames": [
+      11086,
+      11483,
+      11619,
+      11778
+    ]
+  },
+  {
+    "query_id": "TRAKE_009",
+    "video_id": "L21_V031",
+    "video_rank": 3,
+    "near_ref_window": true,
+    "chosen_frames": [
+      1193,
+      1252,
+      1642,
+      8100
+    ]
+  },
+  {
+    "query_id": "TRAKE_010",
+    "video_id": "L25_V048",
+    "video_rank": null,
+    "near_ref_window": false,
+    "chosen_frames": null
+  },
+  {
+    "query_id": "TRAKE_011",
+    "video_id": "L21_V012",
+    "video_rank": 44,
+    "near_ref_window": true,
+    "chosen_frames": [
+      3614,
+      11534,
+      14984,
+      15153
+    ]
+  },
+  {
+    "query_id": "TRAKE_012",
+    "video_id": "L24_V010",
+    "video_rank": null,
+    "near_ref_window": false,
+    "chosen_frames": null
+  },
+  {
+    "query_id": "TRAKE_013",
+    "video_id": "L26_V001",
+    "video_rank": null,
+    "near_ref_window": false,
+    "chosen_frames": null
+  },
+  {
+    "query_id": "TRAKE_014",
+    "video_id": "L22_V010",
+    "video_rank": 12,
+    "near_ref_window": true,
+    "chosen_frames": [
+      3311,
+      21630,
+      21870,
+      22165
+    ]
+  },
+  {
+    "query_id": "TRAKE_015",
+    "video_id": "L23_V025",
+    "video_rank": 4,
+    "near_ref_window": false,
+    "chosen_frames": [
+      12375,
+      13375,
+      14375,
+      16375
+    ]
+  },
+  {
+    "query_id": "TRAKE_016",
+    "video_id": "L23_V005",
+    "video_rank": 14,
+    "near_ref_window": true,
+    "chosen_frames": [
+      1834,
+      1875,
+      2375,
+      2583
+    ]
+  },
+  {
+    "query_id": "TRAKE_017",
+    "video_id": "L23_V013",
+    "video_rank": 12,
+    "near_ref_window": true,
+    "chosen_frames": [
+      117,
+      1236,
+      1402,
+      6777
+    ]
+  },
+  {
+    "query_id": "TRAKE_018",
+    "video_id": "L23_V022",
+    "video_rank": 8,
+    "near_ref_window": false,
+    "chosen_frames": [
+      5628,
+      7875,
+      8450,
+      8825
+    ]
+  },
+  {
+    "query_id": "TRAKE_019",
+    "video_id": "L23_V012",
+    "video_rank": 10,
+    "near_ref_window": true,
+    "chosen_frames": [
+      4132,
+      4282,
+      5039,
+      6148
+    ]
+  },
+  {
+    "query_id": "TRAKE_020",
+    "video_id": "L23_V021",
+    "video_rank": 4,
+    "near_ref_window": true,
+    "chosen_frames": [
+      8553,
+      11114,
+      11307,
+      11884
+    ]
+  },
+  {
+    "query_id": "TRAKE_021",
+    "video_id": "L23_V017",
+    "video_rank": 31,
+    "near_ref_window": false,
+    "chosen_frames": [
+      2402,
+      2490,
+      2579,
+      2722
+    ]
+  },
+  {
+    "query_id": "TRAKE_022",
+    "video_id": "L23_V010",
+    "video_rank": 23,
+    "near_ref_window": true,
+    "chosen_frames": [
+      4375,
+      6625,
+      6688,
+      6750
+    ]
+  },
+  {
+    "query_id": "TRAKE_023",
+    "video_id": "L22_V005",
+    "video_rank": 1,
+    "near_ref_window": true,
+    "chosen_frames": [
+      27905,
+      28107,
+      28343,
+      29261
+    ]
+  },
+  {
+    "query_id": "TRAKE_024",
+    "video_id": "L21_V029",
+    "video_rank": 25,
+    "near_ref_window": true,
+    "chosen_frames": [
+      30156,
+      30359,
+      30443,
+      30670
+    ]
+  },
+  {
+    "query_id": "TRAKE_025",
+    "video_id": "L26_V002",
+    "video_rank": null,
+    "near_ref_window": false,
+    "chosen_frames": null
+  },
+  {
+    "query_id": "TRAKE_026",
+    "video_id": "L25_V001",
+    "video_rank": null,
+    "near_ref_window": false,
+    "chosen_frames": null
+  },
+  {
+    "query_id": "TRAKE_027",
+    "video_id": "L24_V012",
+    "video_rank": null,
+    "near_ref_window": false,
+    "chosen_frames": null
+  },
+  {
+    "query_id": "TRAKE_029",
+    "error": "TRAKE cần ít nhất 2 sự kiện, nhận 1"
+  },
+  {
+    "query_id": "TRAKE_030",
+    "error": "TRAKE cần ít nhất 2 sự kiện, nhận 1"
+  }
+]

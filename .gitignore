@@ -64,3 +64,15 @@ _local_backup_*/
 # Env variables
 .env
 .env.*
+
+# Dữ liệu lớn cục bộ (KHÔNG được đẩy lên git — vd .zip keyframe 46GB đã từng
+# xuất hiện ở gốc repo, có thể phá git nếu lỡ `git add -A`)
+*.zip
+backup_running/
+data/derived/_audit/
+data/derived/asr_parts/
+data/derived/ocr_parts/
+data/derived/samples/
+data/derived/shots_parts/
+data/derived/shots_parts_backup/
+data/derived/real_metadata_temp.json

@@ -353,8 +353,21 @@ def run_evaluation():
 
                 # Chỉ ghi answers khi câu THÀNH CÔNG — câu crash không được lẫn
                 # vào file nộp trong khi scores.json báo F0_CRASH (fix #9).
+                # `task_type` + `query_vi`: THÊM 19/08 để `app/eval.py` (E4.2) đọc
+                # được file này. `eval.py` cần `task_type` để biết chấm theo luật
+                # nào (KIS/QA/TRAKE là ba công thức R-Score khác nhau) và nó KHÔNG
+                # được phép đoán. Thiếu trường đó thì nó bỏ qua từng dòng một —
+                # đo thật trên run_20260818_1739: **bỏ 25/25 dòng**, in ra "Không
+                # truy vấn nào có nhãn để chấm", tức E4.2 chưa từng chấm nổi một
+                # file thật nào dù đã viết xong từ 13/08.
+                #
+                # Chỉ THÊM trường, không đổi/bỏ trường cũ: `write_submissions()`
+                # phía dưới và mọi file answers.jsonl đã ghi trước đây vẫn đọc
+                # được y như cũ.
                 answers_f.write(json.dumps({
                     "query_id": q.query_id,
+                    "task_type": q.task_type,
+                    "query_vi": q.query_vi,
                     "answers": [_answer_to_dict(a) for a in ans],
                 }, ensure_ascii=False) + "\n")
                 answers_f.flush()

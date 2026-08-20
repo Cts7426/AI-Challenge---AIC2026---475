@@ -2,6 +2,12 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
 anthropic>=0.40   # chỉ cần khi LLM_BACKEND=api
+# ⚠️ THIẾU cho tới 19/08 dù `backend/llm/adapter.py` import nó và toàn bộ 14 lệnh
+# gọi LLM trong lịch sử cache đều đi qua backend này. Hậu quả: máy mới clone về
+# không collect nổi `tests/test_llm_adapter.py`, và `python -m pytest tests` DỪNG
+# HẲN với "2 errors during collection" — tức cả bộ test không chạy, không phải
+# chỉ thiếu một file.
+google-genai>=1.0   # chỉ cần khi LLM_BACKEND=gemini
 elasticsearch>=8.13,<9   # client ES — giữ major 8 khớp server trong docker-compose
 pymilvus>=2.4    # client Milvus
 numpy>=1.26      # đọc file .npy CLIP features

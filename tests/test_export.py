@@ -281,6 +281,37 @@ def test_dem_ky_tu_khong_dem_byte(qa):
     assert validate_submission(replace_answer(qa, 0, answer_text=tieng_viet)) == []
 
 
+# ------------------------------- luật khoảng trắng đầu/cuối trong answer (19/08)
+#
+# BTC: "Khoảng trắng đầu/cuối: Được giữ nguyên, không tự động trim" — và cùng trang
+# đó ghi answer được so "dưới dạng chuỗi chính xác". Một dấu cách thừa là mất trắng
+# câu đó, mà nhìn file bằng mắt KHÔNG THẤY.
+
+def test_answer_thua_khoang_trang_dau_cuoi_bi_bat(qa):
+    from backend.export import validate_submission
+
+    for xau in (" Năm người", "Năm người ", "\tNăm người", "Năm người\n"):
+        loi = validate_submission(replace_answer(qa, 0, answer_text=xau))
+        assert "answer_whitespace" in rules_of(loi), f"bỏ lọt {xau!r}"
+        assert loi[0].position == 1, "phải chỉ đúng hạng nào sai"
+
+
+def test_khoang_trang_GIUA_cau_van_hop_le(qa):
+    """Chỉ bắt hai ĐẦU. "Năm người" có dấu cách ở giữa là chuyện bình thường."""
+    from backend.export import validate_submission
+
+    assert validate_submission(replace_answer(qa, 0, answer_text="Năm người")) == []
+
+
+def test_answer_rong_van_bao_answer_empty_chu_khong_phai_whitespace(qa):
+    """Answer toàn khoảng trắng đã có luật riêng (`answer_empty`) — đừng báo hai lần
+    cùng một chuyện, người đọc sẽ đi sửa hai chỗ cho một lỗi."""
+    from backend.export import validate_submission
+
+    slugs = rules_of(validate_submission(replace_answer(qa, 0, answer_text="   ")))
+    assert "answer_empty" in slugs
+
+
 # ------------------------------------------------------------- đóng gói .zip
 
 def test_zip_co_dung_lop_thu_muc_submission(all_subs, tmp_path):

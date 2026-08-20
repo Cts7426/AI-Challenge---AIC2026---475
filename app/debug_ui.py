@@ -94,6 +94,24 @@ def sidebar() -> dict:
         "Bản dịch tiếng Anh" + ("" if has_key else " — BẮT BUỘC"),
         help="CLIP nhận tiếng Anh. Có ANTHROPIC_API_KEY thì để trống, hệ tự dịch.",
     )
+    # ⚠️ THÊM 19/08 — cầu nối duy nhất giữa NHÃN và BÀI CHẠY.
+    #
+    # `query_id_of()` băm câu truy vấn ra `q_6881882c`, còn `run_evaluation.py`
+    # đặt id theo đề: `K01`, `Q1`, `TR02`. Hai hệ tên này KHÔNG BAO GIỜ ghép được,
+    # nên `app/eval.py` (E4.2) chấm bài chạy bằng nhãn của UI luôn ra "không truy
+    # vấn nào có nhãn để chấm" — đo thật 19/08: nhãn có `['q_6881882c']`, bài chạy
+    # có `['Q1','Q2',…,'K01',…]`, giao nhau RỖNG.
+    #
+    # Gõ đúng id của dev set vào đây thì nhãn rơi vào cùng một khoá với bài chạy.
+    # Để trống → quay về băm, tức chấm nhãn cho câu gõ tay ngoài dev set vẫn chạy
+    # y như cũ.
+    query_id_manual = st.sidebar.text_input(
+        "query_id của dev set (tuỳ chọn)",
+        placeholder="K01 · Q1 · TR02",
+        help="Gõ đúng id trong dev_set/queries/*.jsonl thì nhãn chấm ở đây mới "
+             "ghép được với bài chạy của run_evaluation.py. Để trống thì id được "
+             "băm từ câu truy vấn — chỉ dùng được cho câu ngoài dev set.",
+    )
     task = st.sidebar.selectbox("Dạng bài", ("KIS", "QA", "TRAKE"))
     top_k = st.sidebar.slider("Số kết quả", 5, 100, DEFAULT_TOP_K, step=5)
 
@@ -133,13 +151,22 @@ def sidebar() -> dict:
     elif mode == "live" and search_fn is None:
         st.sidebar.error("Không nạp được tầng search — hãy dùng chế độ offline.")
 
-    # Offline chỉ có MỘT nguồn (BM25 trên doc_text) nên mấy ô dưới không có tác dụng.
-    # Khoá lại thay vì để bật được: ô bật mà không đổi gì là lời nói dối về công cụ
-    # chẩn đoán — người dùng tưởng đã tắt vector rồi kết luận sai nguồn nào gánh điểm.
-    locked = mode == "offline"
+    # Khoá mấy ô dưới khi chúng KHÔNG có tác dụng. Ô bật mà không đổi gì là lời nói
+    # dối về công cụ chẩn đoán — người dùng tưởng đã tắt vector rồi kết luận sai
+    # nguồn nào đang gánh điểm. Hai ca:
+    #   · offline — chỉ có MỘT nguồn (BM25 trên doc_text)
+    #   · Q&A / TRAKE — pipeline của chúng tự gọi search() nhiều lượt bên trong
+    #     (`qa_pipeline`, `trake_search`) và không nhận tham số `branches`
+    locked = mode == "offline" or task != "KIS"
     st.sidebar.markdown("**Bật/tắt từng nhánh**")
-    if locked:
+    if mode == "offline":
         st.sidebar.caption("Chế độ offline chỉ có một nguồn — các ô dưới bị khoá.")
+    elif task != "KIS":
+        st.sidebar.caption(
+            f"Dạng **{task}** chạy pipeline riêng "
+            + ("(`qa_pipeline`)" if task == "QA" else "(`parse_events` → `trake_search`)")
+            + " — pipeline tự gọi search bên trong, các ô dưới bị khoá."
+        )
     branches = {
         b: st.sidebar.checkbox(b, value=True, key=f"branch_{b}", disabled=locked)
         for b in BRANCHES
@@ -160,16 +187,111 @@ def sidebar() -> dict:
     run = st.sidebar.button("Tìm kiếm", type="primary", use_container_width=True)
     return dict(query=query, query_en=query_en, task=task, top_k=top_k, mode=mode,
                 moment=int(moment), n_moments_total=n_moments_total, branches=branches,
-                group_by_shot=group_by_shot, run=run, has_key=has_key)
+                group_by_shot=group_by_shot, run=run, has_key=has_key,
+                query_id_manual=query_id_manual.strip())
 
 
 # ------------------------------------------------------- gọi search / offline
 
+def _rows_qa(cfg: dict) -> list[dict]:
+    """Q&A → list dict, dựng Y HỆT `backend/api/main.py::post_search` nhánh QA.
+
+    `qa_pipeline()` trả `list[ShotHit]` — dataclass 3 trường, KHÔNG có `video_id`
+    lẫn `frame_idx`. Tra hai thứ đó qua `shot_bounds()` (API công khai của
+    allocator) và `load_frame_map()`, đúng như `post_search` làm. Tự tra kiểu khác
+    là mở đường cho UI và đường thi nói hai con số khác nhau về cùng một frame.
+
+    `answer_text` gắn vào MỌI dòng (khác `post_search`, nơi nó là trường riêng của
+    response): ô chấm answer nằm trên từng thẻ, nên câu trả lời phải đi kèm thẻ.
+    """
+    from backend.indexing.frame_map import load_frame_map
+    from backend.slot.allocator import shot_bounds
+    from backend.tasks.qa import qa_pipeline
+
+    shots, answer_text = qa_pipeline(cfg["query"], top_k_shots=cfg["top_k"],
+                                     query_en=cfg["query_en"] or None)
+    frame_map = load_frame_map()
+    rows = []
+    for h in shots:
+        video_id, _start, _end = shot_bounds(h.shot_id)
+        rows.append({
+            "keyframe_id": h.best_keyframe_id or "",
+            "video_id": video_id,
+            "frame_idx": frame_map.get(h.best_keyframe_id) if h.best_keyframe_id else None,
+            "shot_id": h.shot_id,
+            "score": h.score,
+            "ranks": {"qa": 1},
+            "contrib": {},
+            "answer_text": answer_text,
+        })
+    return rows
+
+
+def _rows_trake(cfg: dict) -> list[dict]:
+    """TRAKE → list dict, dựng Y HỆT `post_search` nhánh TRAKE.
+
+    `parse_events()` tách câu thành N mô tả sự kiện, `trake_search()` search TỪNG
+    mô tả rồi gộp điểm ở cấp video. Mỗi video ứng viên đẻ ra N dòng — dòng thứ j
+    là khoảnh khắc thứ j (`event_index`), không phải N phương án của cùng một chỗ.
+
+    Chỉ giữ dòng của khoảnh khắc ĐANG SOẠN (ô "Đang soạn khoảnh khắc thứ" ở thanh
+    bên): nhãn TRAKE chấm theo VỊ TRÍ, mỗi khoảnh khắc là một dòng nhãn riêng
+    (`moment_idx`). Trộn cả N vị trí vào một danh sách thì người chấm rất dễ gắn
+    nhãn khoảnh khắc 3 vào ô của khoảnh khắc 1 — và sai đó im lặng.
+
+    `keyframe_ids[j] is None` = vị trí NỘI SUY, không có bằng chứng thật
+    (`TrakeCandidate`). Phải lộ ra, nếu không người chấm tưởng hệ đã "tìm thấy".
+    """
+    from backend.tasks.trake import parse_events, trake_search
+
+    events = parse_events(cfg["query"])
+    st.caption("Tách được **" + str(len(events)) + "** sự kiện: "
+               + " · ".join(f"`{e}`" for e in events))
+    candidates = trake_search(events, top_videos=cfg["top_k"])
+
+    j_wanted = cfg["moment"] - 1
+    rows = []
+    for c in candidates:
+        for j, (frame_idx, kf) in enumerate(zip(c.frame_ids, c.keyframe_ids)):
+            if j != j_wanted:
+                continue
+            rows.append({
+                "keyframe_id": kf or f"{c.video_id}#interp{j}",
+                "video_id": c.video_id,
+                # TRAKE xếp hạng theo VIDEO nên không có shot_id — `draw_card` in "—"
+                "shot_id": None,
+                "frame_idx": frame_idx,
+                "score": c.score,
+                "ranks": {"trake": 1},
+                "contrib": {},
+                "event_index": j,
+                "is_interpolated": kf is None,
+            })
+    return rows
+
+
 def run_search(cfg: dict, only_branch: str | None = None) -> list[dict]:
     """Một lượt tìm kiếm → list dict đã chuẩn hoá cho phần vẽ.
 
-    `only_branch` khác None → chỉ bật đúng nhánh đó, bằng cách gọi lại chính `search()`
-    thay vì viết lại logic truy xuất trong UI.
+    ⚠️ ĐỊNH TUYẾN THEO DẠNG BÀI, giống hệt `backend/api/main.py::post_search`.
+
+    Bản trước luôn gọi `search(cfg["query"])` cho cả ba dạng bài, tức ném NGUYÊN
+    câu multi-event của TRAKE vào search như một câu KIS đơn. Hậu quả:
+      · vi phạm giới hạn 77 token của CLIP (CLAUDE.md bất biến 4)
+      · không hề gọi `parse_events()` / `trake_search()` — thứ đang chạy lúc thi
+      · UI hiện kết quả của MỘT pipeline khác hẳn đường thi, nên nhãn chấm ở đây
+        đo nhầm hệ thống, và `eval.py`/D3.5 ăn theo bộ nhãn đó
+    Q&A cũng vậy: đường thật search trên phần "mô tả sự kiện" đã tách khỏi câu hỏi
+    (`qa_pipeline`), không phải trên nguyên văn câu hỏi.
+
+    Đây đúng con bug đã bị bắt một lần ở `dev_set/tools/run_evaluation.py` (sửa
+    16/08 — xem comment "bản cũ KHÔNG hề gọi pipeline TRAKE thật"), còn sót lại ở
+    file này.
+
+    `only_branch` khác None → chỉ bật đúng nhánh đó, bằng cách gọi lại chính
+    `search()` thay vì viết lại logic truy xuất trong UI. Chỉ có nghĩa với KIS:
+    Q&A và TRAKE gọi search nhiều lượt bên trong pipeline của chúng, nên "bật một
+    nhánh" không còn ứng với một bảng xếp hạng nào.
     """
     if cfg["mode"] == "offline":
         return [
@@ -189,9 +311,25 @@ def run_search(cfg: dict, only_branch: str | None = None) -> list[dict]:
             "chết cả 5 nhánh. Điền bản dịch tay, hoặc set khoá rồi mở lại app."
         )
         return []
-    enabled = ({b: False for b in BRANCHES} | {only_branch: True}
-               if only_branch else cfg["branches"])
+
+    # Q&A và TRAKE BẮT BUỘC gọi llm() (tách câu hỏi / tách sự kiện) — bản dịch tay
+    # không thay được. Nói trước, đừng để người dùng nhận stack trace từ adapter.
+    if cfg["task"] in ("QA", "TRAKE") and not cfg.get("has_key", True):
+        st.error(
+            f"Dạng **{cfg['task']}** phải gọi `llm()` để tách "
+            + ("câu hỏi khỏi mô tả sự kiện" if cfg["task"] == "QA" else "N sự kiện")
+            + ", không có `ANTHROPIC_API_KEY` thì không chạy được. Ô "
+            "**Bản dịch tiếng Anh** không thay thế được bước này."
+        )
+        return []
+
     try:
+        if cfg["task"] == "QA":
+            return _rows_qa(cfg)
+        if cfg["task"] == "TRAKE":
+            return _rows_trake(cfg)
+        enabled = ({b: False for b in BRANCHES} | {only_branch: True}
+                   if only_branch else cfg["branches"])
         return search_fn(cfg["query"], query_en=cfg["query_en"] or None, top_k=cfg["top_k"],
                          branches=enabled, group_by_shot=cfg["group_by_shot"])
     except Exception as e:
@@ -237,9 +375,22 @@ def draw_card(row: dict, cfg: dict, query_id: str, index: LabelIndex, key: str) 
                        f"(lệch {ev.frame_idx - frame_idx:+d}) — nhãn ghi theo số đang "
                        "hiện. Không chắc thì bấm **✓ Cả shot**.")
 
+        # `is_interpolated` = TRAKE không tìm được bằng chứng thật cho vị trí này,
+        # `frame_idx` là số NỘI SUY giữa hai khoảnh khắc lân cận (`TrakeCandidate`).
+        # Phải nói ra: chấm "đúng" cho một frame đoán mò là dạy cho eval.py rằng hệ
+        # định vị được thứ nó chưa hề định vị.
+        if row.get("is_interpolated"):
+            st.warning("Frame NỘI SUY — không có bằng chứng thật ở vị trí này. "
+                       "Kiểm bằng mắt trước khi chấm đúng.", icon="⚠️")
+
         ranks = row.get("ranks") or {}
         if ranks:
-            st.caption(" · ".join(f"{b}#{ranks[b]}" for b in BRANCHES if b in ranks))
+            # Q&A/TRAKE trả `ranks` một khoá riêng ({"qa": 1} / {"trake": 1}) — không
+            # nằm trong BRANCHES, nên lọc theo BRANCHES sẽ nuốt mất và rơi xuống dòng
+            # "search không trả ranks", tức báo sai về công cụ chẩn đoán.
+            known = [b for b in BRANCHES if b in ranks]
+            st.caption(" · ".join(f"{b}#{ranks[b]}" for b in known) if known
+                       else f"nguồn: {', '.join(ranks)} (pipeline riêng của dạng bài)")
         elif cfg["mode"] == "live":
             st.caption("(search không trả `ranks` — không phân tích được nhánh nào đóng góp)")
         if row.get("snippet"):
@@ -315,9 +466,10 @@ def _answer_judgment(row: dict, save, key: str, frame_label: str | None) -> None
     ca xấu nhất là điểm thấp hơn thật, chứ không phải cao hơn. Chiều ngược lại (chấm
     frame sau, xoá mất answer) do `labels._merge()` chặn.
 
-    Ô nhập tay chứ không chỉ đọc từ kết quả search: backend/tasks/qa.py (C3.1) chưa
-    có, run_minimal.py đang điền "CHUA_CO_ANSWER". Gõ tay được thì soạn đáp án cho
-    dev set ngay bây giờ, không phải đợi.
+    Ô nhập tay VÀ điền sẵn: từ khi `run_search()` định tuyến đúng dạng bài
+    (19/08), Q&A chạy `qa_pipeline()` thật nên `row["answer_text"]` là câu hệ vừa
+    sinh ra. Vẫn để sửa được — người chấm phải so được câu của hệ với câu đúng, và
+    soạn đáp án dev set khi hệ trả sai.
     """
     text = st.text_input(
         "Câu trả lời (Q&A)", value=row.get("answer_text") or "", key=f"ans{key}",
@@ -425,6 +577,19 @@ def _tab_branches(cfg: dict) -> None:
     if cfg["mode"] == "offline":
         st.info("Chế độ offline chỉ có một nhánh (BM25 trên doc_text).")
         return
+    if cfg["task"] != "KIS":
+        # Chạy được thì cũng vô nghĩa: bảng dưới sẽ là kết quả của search() trên
+        # NGUYÊN câu, trong khi kết quả đang hiện ở trên đến từ pipeline riêng của
+        # dạng bài. Hai bảng không so được với nhau, mà lại đặt cạnh nhau.
+        st.info(
+            f"Dạng **{cfg['task']}** chạy pipeline riêng "
+            + ("(`qa_pipeline` search trên phần mô tả sự kiện đã tách)"
+               if cfg["task"] == "QA"
+               else "(`trake_search` search TỪNG sự kiện rồi gộp điểm theo video)")
+            + " — không có bảng xếp hạng đơn lẻ nào để tách theo nhánh. "
+            "Chuyển sang **KIS** nếu muốn soi đóng góp từng nguồn."
+        )
+        return
     st.caption("Mỗi nhánh gọi lại `search()` với đúng nhánh đó bật — "
                "không viết lại logic truy xuất trong UI.")
     for col, branch in zip(st.columns(len(BRANCHES)), BRANCHES):
@@ -453,8 +618,14 @@ def main() -> None:
         _empty_state()
         return
 
-    query_id = query_id_of(cfg["query"])
-    st.caption(f"`query_id` = **{query_id}** — nhãn của câu này luôn gom về một chỗ.")
+    query_id = cfg.get("query_id_manual") or query_id_of(cfg["query"])
+    if cfg.get("query_id_manual"):
+        st.caption(f"`query_id` = **{query_id}** (gõ tay) — nhãn sẽ ghép được với "
+                   "bài chạy của `run_evaluation.py` mang cùng id.")
+    else:
+        st.caption(f"`query_id` = **{query_id}** — băm từ câu truy vấn. Nhãn gom về "
+                   "một chỗ, nhưng **KHÔNG ghép được với bài chạy dev set**; muốn "
+                   "chấm bằng `app/eval.py` thì gõ id dev set ở thanh bên.")
 
     # CHỈ chạy khi bấm nút: Streamlit vẽ lại trang sau MỌI thao tác, kể cả lúc bấm nút
     # chấm nhãn — tự chạy search là bắt đợi ~14 giây mỗi lần chạm bàn phím.

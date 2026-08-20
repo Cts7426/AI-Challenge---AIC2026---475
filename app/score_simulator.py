@@ -38,21 +38,44 @@ from pathlib import Path
 from backend.slot import ShotHit, allocate
 from backend.slot.allocator import SHOTS_PATH
 from data.config.scoring import K_THRESHOLDS, final_score, r_at_k
-from data.config.slot_budget import SLOT_BUDGET
+from data.config.slot_budget import SLOT_BUDGET, budget_per_shot
 from data.config.submit_format import ANSWERS_PER_QUERY, Answer
 from dev_set.tools.schema import GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
 from dev_set.tools.scoring import rscore_kis, rscore_qa, rscore_trake
 
-# Các bảng đem ra so, xếp từ ĐÀO SÂU tới RẢI RỘNG. Cả năm đều cộng đúng 100 slot.
+def _coverage(table: list[tuple[int, int]]) -> int:
+    """Bảng ngân sách phủ được BAO NHIÊU SHOT — tổng số shot có hạn mức ≥ 1.
+
+    Đây là nửa quyết định mà tên bảng cũ giấu mất. Một shot nhận 0 slot thì dù
+    tầng search xếp nó hạng mấy, nó cũng KHÔNG có mặt trong bài nộp — trượt
+    chắc chắn, không phải trượt vì kém. Xem `shotrank` để biết nửa còn lại.
+    """
+    return sum(n for n, _ in table)
+
+
+# Các bảng đem ra so, xếp từ ĐÀO SÂU tới RẢI RỘNG. Cả bảy đều cộng đúng 100 slot.
 #
 # Đây là chỗ THỬ, không phải chỗ cấu hình: bảng nào thắng thì chép tay sang
 # data/config/slot_budget.py. Để allocator đọc thẳng từ đây là biến một file thí
 # nghiệm thành file sản xuất, và rồi không ai biết lúc thi đang chạy bảng nào.
+#
+# ⚠️ Tên bảng hiện tại SINH RA TỪ `SLOT_BUDGET`, không gõ tay. Bản trước ghi cứng
+# "hiện tại 3×8" trong khi `SLOT_BUDGET` đã đổi sang [(1,6),(4,4),(10,2),(58,1)]
+# ở commit 5b7b10c — nhãn sai đó đi thẳng vào bảng so sánh của D4.1, tức là báo
+# cáo tune slot ghi tên một bảng KHÔNG PHẢI bảng vừa đo. Sinh từ hằng thì nó
+# không lệch được nữa.
 CANDIDATE_TABLES: dict[str, list[tuple[int, int]]] = {
     "sâu    2×20": [(2, 20), (4, 10), (10, 2)],
-    "hiện tại 3×8": list(SLOT_BUDGET),
+    f"hiện tại {_coverage(SLOT_BUDGET)}sh": list(SLOT_BUDGET),
     "cân    5×5": [(5, 5), (15, 3), (30, 1)],
     "rộng  10×3": [(10, 3), (20, 2), (30, 1)],
+    # Hai bảng dưới thêm ở D4.1 (19/08): giữ CHIỀU SÂU ở vài shot đầu mà vẫn phủ
+    # gần hết 100 hạng. Lý do cần chúng — tài liệu BTC (mục 2.1.1) cho ví dụ KIS
+    # với cửa sổ đáp án [500, 510], tức 11 frame, hẹp hơn shot median (69 frame)
+    # rất nhiều: trúng shot KHÔNG còn đồng nghĩa với trúng đáp án, nên chiều sâu
+    # mua được thứ mà cửa sổ rộng không cần tới.
+    "đỉnh4 94sh": [(1, 4), (3, 2), (90, 1)],
+    "đỉnh2 97sh": [(1, 2), (2, 2), (94, 1)],
     "rất rộng 1×": [(100, 1)],
 }
 
@@ -120,6 +143,24 @@ def load_candidates(path: str | Path) -> list[QueryCandidates]:
             continue
         try:
             d = json.loads(line)
+            if d.get("task_type") == "TRAKE":
+                # BỎ QUA CÓ CHỦ ĐÍCH, không phải dòng hỏng.
+                #
+                # `run_evaluation.py` ghi ứng viên TRAKE ở mức VIDEO
+                # ({video_id, score, n_hit_events, has_full_order}), không phải
+                # mức shot — vì nhánh TRAKE của nó dựng 100 dòng bằng
+                # `trake.to_answers()`/`pad_answers()` và KHÔNG hề gọi
+                # `allocate()`. Nghĩa là bảng chia slot không tác động gì tới
+                # điểm TRAKE trên đường đo hiện tại, nên đem TRAKE vào bảng so
+                # sánh của D4.1 chỉ tạo ra một con số không có ý nghĩa.
+                #
+                # Bản trước để dòng này rơi vào `except` và in "bỏ qua dòng
+                # hỏng — KeyError: 'shot_id'". Nghe như file nguyên liệu bị lỗi,
+                # nên người đọc sẽ đi sửa nhầm chỗ. Sai thông điệp cũng tốn thời
+                # gian y như sai kết quả.
+                print(f"  [bỏ qua] {d.get('query_id')} (TRAKE): điểm TRAKE không đi qua "
+                      "allocate(), bảng chia slot không đổi được gì — xem reports/slot_tuning.md")
+                continue
             out.append(QueryCandidates(
                 query_id=d["query_id"],
                 task_type=d["task_type"],
@@ -194,6 +235,87 @@ def winner_ranks(r_scores: list[float]) -> dict[int, int | None]:
         out[k] = (next((i for i, v in enumerate(r_scores[:k], 1) if v == best), None)
                   if best > 0 else None)
     return out
+
+
+# ------------------------------------------------- hạng của SHOT ĐÚNG (D4.1)
+
+def shot_rank_of(qc: QueryCandidates, gt) -> int | None:
+    """Shot đúng nằm ở hạng mấy trong danh sách ứng viên? None = không có mặt.
+
+    Vào: rổ ứng viên của một truy vấn · ground truth (KIS hoặc QA).
+    Ra: hạng 1-based của shot ĐẦU TIÊN vừa đúng video vừa CHẠM cửa sổ đáp án.
+
+    Đây là con số D4.1 phải có trước khi động vào bảng ngân sách, vì hai bệnh
+    khác nhau đòi hai thuốc khác nhau:
+      · shot đúng luôn ở hạng đầu   → tầng search ổn, tiền nên đổ vào CHIỀU SÂU
+      · shot đúng nằm rải tới hạng 60 → đổ sâu là vứt slot, phải giữ CHIỀU RỘNG
+      · shot đúng không có trong 100 → lỗi ở tầng search, bảng slot bất lực
+
+    Dùng phép GIAO chứ không phải CHỨA — cùng luật với nhánh QA của
+    `run_evaluation.py`: shot chỉ cần chạm cửa sổ đáp án là đã có cơ hội cấp ra
+    một frame trúng. Đòi shot chứa trọn cửa sổ sẽ đếm hụt.
+
+    Tra biên shot qua `shot_bounds()` (API công khai của allocator) thay vì tự
+    đọc `shots.parquet`: hai chỗ đọc cùng một bảng là hai chỗ có thể lệch nhau.
+    """
+    from backend.slot.allocator import shot_bounds
+
+    for rank, c in enumerate(qc.candidates, 1):
+        try:
+            video_id, start, end = shot_bounds(c.shot_id)
+        except KeyError:
+            continue  # shot_id lạ — đã có cảnh báo ở tầng allocator, không nhân đôi
+        if video_id == gt.video_id and start <= gt.frame_end and gt.frame_start <= end:
+            return rank
+    return None
+
+
+def shot_rank_report(qcs: list[QueryCandidates], gts: dict[str, object],
+                     table: list[tuple[int, int]] = SLOT_BUDGET) -> str:
+    """Bảng phân bố hạng của shot đúng, kèm hạn mức mà `table` cấp cho hạng đó.
+
+    Cột "slot" là thứ biến phân bố này thành quyết định: hạng nào nhận 0 slot
+    thì shot đúng ở đó KHÔNG có mặt trong bài nộp — trượt vì bảng ngân sách chứ
+    không phải vì tầng search. Đếm được bao nhiêu câu rơi vào ô đó là đếm được
+    số điểm đang bị chính mình vứt đi.
+    """
+    quotas = budget_per_shot(ANSWERS_PER_QUERY, table)  # 100 hạng, hạng i → quotas[i]
+    rows: list[tuple[str, int | None]] = []
+    for qc in qcs:
+        gt = gts.get(qc.query_id)
+        # TRAKE có lược đồ GT khác (danh sách cửa sổ) và không đi qua allocate()
+        if gt is None or not hasattr(gt, "frame_start"):
+            continue
+        rows.append((qc.query_id, shot_rank_of(qc, gt)))
+
+    if not rows:
+        return "Không có truy vấn KIS/QA nào có ground truth để đo hạng shot."
+
+    lines = [f"  {'QUERY':<8}{'hạng shot đúng':>16}{'slot bảng cấp':>16}"]
+    lines.append("  " + "─" * 38)
+    n_starved = 0
+    for query_id, rank in sorted(rows, key=lambda r: (r[1] is None, r[1] or 0)):
+        if rank is None:
+            lines.append(f"  {query_id:<8}{'không có trong ứng viên':>16}")
+            continue
+        quota = quotas[rank - 1] if rank <= len(quotas) else 0
+        if quota == 0:
+            n_starved += 1
+        lines.append(f"  {query_id:<8}{rank:>16}{quota:>16}"
+                     + ("   ← 0 slot, trượt chắc" if quota == 0 else ""))
+
+    ranks = sorted(r for _, r in rows if r is not None)
+    lines.append("")
+    lines.append(f"  {len(ranks)}/{len(rows)} câu có shot đúng trong danh sách ứng viên.")
+    if ranks:
+        median = ranks[len(ranks) // 2]
+        lines.append(f"  Hạng: nhỏ nhất {ranks[0]} · trung vị {median} · lớn nhất {ranks[-1]}")
+        for threshold in (1, 5, 20, 50, 100):
+            n_within = sum(1 for r in ranks if r <= threshold)
+            lines.append(f"    ≤ hạng {threshold:>3}: {n_within:>2}/{len(rows)} câu")
+    lines.append(f"  Bảng đang xét phủ {_coverage(table)} shot → {n_starved} câu có shot "
+                 "đúng nhưng KHÔNG được cấp slot nào.")
+    return "\n".join(lines)
 
 
 def simulate_query(qc: QueryCandidates, gt, table: list[tuple[int, int]],
@@ -400,6 +522,10 @@ def main() -> int:
     p_re.add_argument("--slots", type=int, default=10, help="số dòng đầu in ra mỗi truy vấn")
     p_re.add_argument("--detail", action="store_true", help="in chi tiết 100 slot từng truy vấn")
 
+    p_sr = sub.add_parser("shotrank", help="shot đúng nằm ở hạng mấy trên dev set (D4.1)")
+    p_sr.add_argument("--candidates", required=True, help="candidates.jsonl của một run")
+    p_sr.add_argument("--gt", required=True, help="file ground truth của dev set")
+
     p_sw = sub.add_parser("sweep", help="quét giả định, KHÔNG cần dev set")
     p_sw.add_argument("--widths", default="5,10,20,50,100", help="độ rộng cửa sổ đáp án giả định")
     p_sw.add_argument("--ranks", default="1,3,10", help="shot đúng nằm ở hạng mấy")
@@ -424,6 +550,13 @@ def main() -> int:
     if not qcs:
         print("Không đọc được truy vấn nào trong file nguyên liệu.")
         return 1
+
+    if args.mode == "shotrank":
+        # In theo BẢNG ĐANG CHẠY THẬT (`SLOT_BUDGET`), không theo bảng ứng viên
+        # nào: câu hỏi ở đây là "bảng hiện tại đang bỏ sót gì", không phải
+        # "bảng nào thắng" — đó là việc của `replay`.
+        print(shot_rank_report(qcs, gts, SLOT_BUDGET))
+        return 0
     thieu = [q.query_id for q in qcs if q.query_id not in gts]
     if thieu:
         print(f"  [cảnh báo] {len(thieu)} truy vấn không có ground truth, BỎ QUA: "

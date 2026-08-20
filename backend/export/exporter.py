@@ -311,6 +311,28 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
                 "Rút ngắn ở tầng Q&A — tầng nộp không tự cắt hộ.",
                 q, i,
             ))
+        # BTC (trang "Hướng dẫn nộp bài sơ tuyển", mục Quy chuẩn định dạng CSV):
+        # "Khoảng trắng đầu/cuối: ĐƯỢC GIỮ NGUYÊN, không tự động trim".
+        #
+        # Nghĩa là " Năm người " và "Năm người" là HAI chuỗi khác nhau khi chấm.
+        # Cùng trang đó còn ghi "Answer (Q&A) sẽ được so sánh dưới dạng CHUỖI
+        # CHÍNH XÁC" — nếu đúng vậy thì một dấu cách thừa là mất trắng câu đó.
+        #
+        # Vì sao phải BÁO chứ không tự strip: tầng nộp không sửa dữ liệu (luật
+        # W0.2). Và một dấu cách thừa ở đầu chuỗi thì NHÌN FILE BẰNG MẮT KHÔNG
+        # THẤY — `L01_V028,3450, Năm người` trông y hệt dòng đúng. Không có luật
+        # này thì không còn cách nào phát hiện.
+        #
+        # Nguồn dấu cách thừa có thật: `_answer_judgment` của UI debug cho gõ tay,
+        # và output LLM hay kèm khoảng trắng ở hai đầu.
+        if task == "QA" and a.answer_text and a.answer_text != a.answer_text.strip():
+            out.append(Issue(
+                "answer_whitespace",
+                f"answer có khoảng trắng thừa ở đầu/cuối: {a.answer_text!r}. BTC giữ "
+                "nguyên khoảng trắng khi so đáp án — sửa ở tầng Q&A, tầng nộp không "
+                "tự cắt hộ.",
+                q, i,
+            ))
         if task != "QA" and a.answer_text is not None:
             out.append(Issue("answer_unexpected", f"{task} không được có answer", q, i))
     return out

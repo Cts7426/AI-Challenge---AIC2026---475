@@ -23,7 +23,13 @@ from app.score_simulator import (
     simulate_query,
     winner_ranks,
 )
+
 from backend.slot.allocator import SHOTS_PATH
+# `SLOT_BUDGET` = bảng ĐANG CHẠY THẬT. Trước đây các test dưới đây tra
+# `CANDIDATE_TABLES["hiện tại 3×8"]` — một nhãn gõ tay — nên chúng vỡ ngay khi
+# D4.1 đổi bảng (19/08). Lấy thẳng từ hằng sản xuất thì test bám vào THỨ ĐANG
+# CHẠY, không bám vào tên gọi của nó.
+from data.config.slot_budget import SLOT_BUDGET
 from data.config.submit_format import ANSWERS_PER_QUERY, Answer
 from dev_set.tools.schema import GroundTruthKIS, GroundTruthQA
 
@@ -101,7 +107,7 @@ def test_winner_rank_lay_dong_dau_tien_khi_hoa():
 def test_format_slots_bao_nguong_NHO_NHAT(kis_query):
     """Dòng thắng nhiều ngưỡng thì phải báo ngưỡng nhỏ nhất — báo R@100 là vô nghĩa."""
     qc, gt = kis_query
-    res = simulate_query(qc, gt, CANDIDATE_TABLES["hiện tại 3×8"], "t")
+    res = simulate_query(qc, gt, list(SLOT_BUDGET), "t")
     if res.final > 0:
         assert "thắng R@100" not in format_slots(res, top=100) or res.winner_rank[50] is None
 
@@ -144,7 +150,7 @@ def test_compare_tables_bo_qua_truy_van_thieu_dap_an(kis_query):
     """Thiếu ground truth thì BỎ QUA, không tính 0 — tính 0 là dìm điểm theo số nhãn thiếu."""
     qc, gt = kis_query
     lac = QueryCandidates("KHONG_CO_GT", "KIS", qc.candidates)
-    cmp = compare_tables([qc, lac], {gt.query_id: gt}, {"t": CANDIDATE_TABLES["hiện tại 3×8"]})
+    cmp = compare_tables([qc, lac], {gt.query_id: gt}, {"t": list(SLOT_BUDGET)})
     assert cmp["t"]["n"] == 1
 
 
@@ -157,7 +163,7 @@ def test_cua_so_rong_hon_thi_diem_khong_the_giam(kis_query):
     quét thiếu vị trí gần như chắc chắn phá vỡ tính đơn điệu này.
     """
     qc, gt = kis_query
-    res = simulate_query(qc, gt, CANDIDATE_TABLES["hiện tại 3×8"])
+    res = simulate_query(qc, gt, list(SLOT_BUDGET))
     from backend.slot.allocator import shot_bounds
     vid, a, b = shot_bounds(qc.candidates[2].shot_id)
 
@@ -177,7 +183,7 @@ def test_cua_so_phu_ca_shot_thi_gan_diem_toi_da(kis_query):
 def test_video_khong_co_dong_nao_ra_0(kis_query):
     """Shot đúng không được cấp slot nào → 0, không được ném lỗi."""
     qc, gt = kis_query
-    res = simulate_query(qc, gt, CANDIDATE_TABLES["hiện tại 3×8"])
+    res = simulate_query(qc, gt, list(SLOT_BUDGET))
     assert expected_final(res.answers, "KHONG_TON_TAI", (0, 100), 10) == 0.0
 
 

@@ -22,10 +22,26 @@ LABELER = os.environ.get("AIC_LABELER", "unknown")
 # luận (giữ để soi lại, KHÔNG tính điểm).
 VALID_LABELS = ("correct", "wrong", "unsure")
 
-# Thư mục ảnh keyframe BTC (`L21_V001/0000.jpg`). Chưa có ảnh → UI vẽ thẻ xám.
+# Thư mục ảnh keyframe BTC. Chưa có ảnh → UI vẽ thẻ xám.
 # Dùng CHUNG tên biến với backend/api/main.py: ba tên cho một thư mục là cách chắc
 # chắn để có người set nhầm cái không ai đọc.
-KEYFRAMES_DIR = Path(os.environ.get("KEYFRAMES_DIR", str(REPO_ROOT / "data" / "keyframes")))
+#
+# ⚠️ SỬA 19/08 — cùng tên biến mà HAI GIÁ TRỊ MẶC ĐỊNH KHÁC NHAU, đúng cái lỗi mà
+# dòng chú thích trên vừa cảnh báo:
+#     backend/api/main.py  → data/raw/btc/keyframes   (ĐÚNG chỗ ảnh nằm)
+#     file này (bản cũ)    → data/keyframes           (thư mục KHÔNG TỒN TẠI)
+#
+# Hậu quả: UI debug vẽ THẺ XÁM cho mọi kết quả, không hiện được tấm ảnh nào — mà
+# `_draw_image()` coi "không có ảnh" là chuyện bình thường nên không báo lỗi gì.
+# Người chấm không nhìn thấy gì thì không chấm được, và đó nhiều khả năng là lý do
+# thật vì sao tới 19/08 cả dev set chỉ có 12 nhãn trên đúng 1 truy vấn —
+# `reports/E42_TECHNICAL_REPORT.md §7.4.2` quy cho "chưa có ảnh keyframe", nhưng
+# ảnh ĐÃ CÓ trên đĩa từ trước, chỉ là trỏ sai chỗ.
+#
+# Bố cục thư mục nào cũng được: `app/evidence.py::_video_dir()` nhận cả
+# `<gốc>/L21_V001/` lẫn `<gốc>/keyframes_L21/L21_V001/` (bộ tải theo lô của BTC).
+KEYFRAMES_DIR = Path(os.environ.get(
+    "KEYFRAMES_DIR", str(REPO_ROOT / "data" / "raw" / "btc" / "keyframes")))
 
 # Cửa sổ gán đoạn ASR cho một frame, tính bằng giây (BUILD_TASKS B1.7).
 ASR_PAD_S = 3.0

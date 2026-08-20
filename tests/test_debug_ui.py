@@ -175,3 +175,123 @@ def test_truong_ket_qua_UI_doc_deu_co_trong_hop_dong_cua_search():
     tai_lieu = inspect.getdoc(mod.search) or ""
     for truong in ("keyframe_id", "video_id", "frame_idx", "shot_id", "score", "ranks"):
         assert truong in tai_lieu, f"`search()` không còn hứa trả `{truong}`"
+
+
+# ------------------------------------------- định tuyến theo dạng bài (19/08)
+#
+# Bản trước `run_search()` luôn gọi `search(cfg["query"])` cho cả ba dạng bài —
+# ném NGUYÊN câu multi-event của TRAKE vào search như một câu KIS đơn. UI khi đó
+# hiện kết quả của một pipeline KHÁC HẲN đường thi, nên nhãn chấm ở đây đo nhầm
+# hệ thống, mà `eval.py` (E4.2) và `score_simulator` (D3.5) lại ăn theo bộ nhãn đó.
+#
+# Cùng con bug đã bị bắt một lần ở `dev_set/tools/run_evaluation.py` (sửa 16/08).
+# Bộ test dưới đây khoá lại để nó không quay về lần thứ ba.
+
+def _cfg(task: str, **thay_doi) -> dict:
+    from app.debug_ui import BRANCHES
+
+    return {"query": "vận động viên chạy đà rồi giậm nhảy rồi tiếp đất",
+            "query_en": "", "task": task, "top_k": 10, "mode": "live", "moment": 1,
+            "n_moments_total": 4, "branches": {b: True for b in BRANCHES},
+            "group_by_shot": True, "run": True, "has_key": True, **thay_doi}
+
+
+@pytest.fixture
+def khong_goi_search(monkeypatch):
+    """Thay `search()` bằng bẫy: gọi tới là test đỏ. Trả về list ghi lại lời gọi."""
+    import app.debug_ui as ui
+
+    da_goi = []
+
+    def bay(*args, **kwargs):
+        da_goi.append(args)
+        return []
+
+    monkeypatch.setattr(ui, "_load_search", lambda: (bay, []))
+    return da_goi
+
+
+def test_TRAKE_goi_parse_events_chu_khong_nem_ca_cau_vao_search(monkeypatch, khong_goi_search):
+    """TRAKE phải đi qua `parse_events` → `trake_search`, đúng như `post_search`."""
+    import backend.tasks.trake as trake
+
+    from app.debug_ui import run_search
+
+    monkeypatch.setattr(trake, "parse_events", lambda q: ["chạy đà", "giậm nhảy", "tiếp đất"])
+    monkeypatch.setattr(trake, "trake_search", lambda events, **kw: [
+        trake.TrakeCandidate(video_id="L21_V001", score=0.9, frame_ids=(10, 20, 30),
+                             keyframe_ids=("L21_V001#k0001", None, "L21_V001#k0003"),
+                             n_hit_events=2, has_full_order=True)
+    ])
+    rows = run_search(_cfg("TRAKE"))
+
+    assert khong_goi_search == [], "TRAKE không được gọi thẳng search() với nguyên câu"
+    assert rows and rows[0]["video_id"] == "L21_V001"
+
+
+def test_TRAKE_chi_hien_khoanh_khac_dang_soan(monkeypatch, khong_goi_search):
+    """Nhãn TRAKE chấm theo VỊ TRÍ — trộn cả N vị trí là mời người chấm gắn nhầm."""
+    import backend.tasks.trake as trake
+
+    from app.debug_ui import run_search
+
+    monkeypatch.setattr(trake, "parse_events", lambda q: ["a", "b", "c"])
+    monkeypatch.setattr(trake, "trake_search", lambda events, **kw: [
+        trake.TrakeCandidate(video_id="L21_V001", score=0.9, frame_ids=(10, 20, 30),
+                             keyframe_ids=("k1", "k2", "k3"),
+                             n_hit_events=3, has_full_order=True)
+    ])
+    rows = run_search(_cfg("TRAKE", moment=2))
+
+    assert len(rows) == 1
+    assert rows[0]["event_index"] == 1, "moment=2 phải ra event_index=1 (đếm từ 0)"
+    assert rows[0]["frame_idx"] == 20
+
+
+def test_TRAKE_danh_dau_frame_noi_suy(monkeypatch, khong_goi_search):
+    """`keyframe_ids[j] is None` = vị trí nội suy — UI phải biết để không hiện như đã tìm thấy."""
+    import backend.tasks.trake as trake
+
+    from app.debug_ui import run_search
+
+    monkeypatch.setattr(trake, "parse_events", lambda q: ["a", "b"])
+    monkeypatch.setattr(trake, "trake_search", lambda events, **kw: [
+        trake.TrakeCandidate(video_id="L21_V001", score=0.5, frame_ids=(10, 20),
+                             keyframe_ids=(None, "k2"), n_hit_events=1, has_full_order=False)
+    ])
+    rows = run_search(_cfg("TRAKE", moment=1))
+    assert rows[0]["is_interpolated"] is True
+
+
+def test_QA_goi_qa_pipeline_chu_khong_search_nguyen_van_cau_hoi(monkeypatch, khong_goi_search):
+    """Q&A search trên phần MÔ TẢ SỰ KIỆN đã tách, không phải nguyên văn câu hỏi."""
+    import backend.tasks.qa as qa
+    from backend.slot import ShotHit
+
+    from app.debug_ui import run_search
+
+    monkeypatch.setattr(qa, "qa_pipeline",
+                        lambda q, top_k_shots=100, query_en=None:
+                        ([ShotHit("L21_V001#s0006", 0.4, "L21_V001#k0007")], "5"))
+    rows = run_search(_cfg("QA"))
+
+    assert khong_goi_search == [], "Q&A không được gọi thẳng search() với nguyên câu hỏi"
+    assert rows[0]["answer_text"] == "5", "câu trả lời phải đi kèm thẻ để chấm cửa thứ hai"
+    assert rows[0]["shot_id"] == "L21_V001#s0006"
+    assert rows[0]["video_id"], "phải tra được video_id qua shot_bounds()"
+
+
+def test_KIS_van_goi_search_nhu_cu(monkeypatch, khong_goi_search):
+    """Đừng sửa quá tay: KIS vẫn phải đi thẳng qua `search()` với đủ tham số nhánh."""
+    from app.debug_ui import run_search
+
+    run_search(_cfg("KIS"))
+    assert len(khong_goi_search) == 1, "KIS phải gọi search() đúng một lần"
+
+
+def test_QA_TRAKE_bao_loi_ro_khi_thieu_khoa_LLM(khong_goi_search):
+    """Không có khoá thì hai dạng này không chạy được — nói trước, đừng ném stack trace."""
+    from app.debug_ui import run_search
+
+    assert run_search(_cfg("QA", has_key=False)) == []
+    assert run_search(_cfg("TRAKE", has_key=False)) == []

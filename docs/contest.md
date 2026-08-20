@@ -5,9 +5,14 @@
 
 ## Hai vòng — luật chơi KHÁC NHAU
 
+> ⚠️ **CHƯA CHỐT hình thức sơ tuyển: nộp lô offline hay THI TRỰC TIẾP 3 đợt
+> (21/08, 28/08, 04/09 · 19:30–22:30).** Kịch bản thi trực tiếp (ngân sách ≤30s/câu,
+> UI thao tác nhanh, Streamlit) nằm ở branch `feature/online-3-dot-plan` — KHÔNG
+> phát triển tiếp cho tới khi BTC xác nhận. Main tạm theo kịch bản nộp lô.
+
 | | Sơ tuyển (8/2026) | Chung kết onsite (12–26/9) |
 |---|---|---|
-| Hình thức | Online, **nộp theo lô** | Trực tiếp, tương tác |
+| Hình thức | ⚠️ chưa chốt (nộp lô? thi trực tiếp?) | Trực tiếp, tương tác |
 | Dạng bài | Textual KIS, Q&A, **TRAKE** | Chưa công bố (có thể thêm AVS/KISC) |
 | Chấm | R@k, **không trừ thời gian** | Trừ theo thời gian, UI được cộng điểm |
 | Ưu tiên | **Chất lượng danh sách 100 kết quả** | Tốc độ thao tác + UI |

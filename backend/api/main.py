@@ -1,8 +1,11 @@
 # backend/api/main.py — FastAPI: /health (Task 0.2) + POST /search (Task 2.3)
 #
 # Vì sao có /health riêng? Frontend, docker healthcheck, và chính mình khi debug
-# đều cần một cách rẻ nhất để hỏi "backend còn sống không?" mà không đụng
-# tới Milvus/Elasticsearch.
+# đều cần một cách để hỏi "backend còn dùng được không?".
+# ⚠️ SỬA W0.3: /health nay là DEEP CHECK — ping thật ES + Milvus + không gian
+# vector + frame_map, trả HTTP 503 nếu có cái nào chết (backend/api/health.py).
+# Bản cũ trả `{"status":"ok"}` vẫn xanh khi Milvus rỗng và mọi truy vấn trả rác.
+# Đường rẻ (không đụng DB) vẫn còn, nhưng phải hỏi rõ: `/health?quick=1`.
 #
 # Vì sao preload CLIP lúc khởi động (lifespan)?
 # → Model load mất vài giây. Không preload thì NGƯỜI DÙNG ĐẦU TIÊN gánh độ trễ
@@ -29,6 +32,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -90,8 +94,30 @@ if KEYFRAMES_DIR.is_dir():
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health(quick: bool = False):
+    """DEEP CHECK (W0.3): ping thật ES + Milvus + không gian vector + frame_map.
+
+    Vì sao không còn trả `{"status": "ok"}`: câu đó chỉ chứng minh tiến trình
+    FastAPI còn sống. Nó vẫn xanh khi Milvus rỗng và mọi truy vấn trả rác —
+    đúng lúc cần một cái đèn đỏ nhất. Chi tiết từng check ở backend/api/health.py.
+
+    HTTP 503 khi có thành phần CRITICAL chết, để `curl -f` / script khởi động /
+    docker healthcheck phát hiện được mà không cần đọc JSON.
+
+    `?quick=1` giữ lại đường LIVENESS rẻ (không đụng DB) cho thứ chỉ cần biết
+    tiến trình còn thở — vd frontend polling mỗi vài giây thì không nên kéo theo
+    một lượt ping Milvus mỗi lần.
+
+    Khai báo `def` (không `async def`): bên trong là I/O blocking, để FastAPI
+    tự đẩy xuống threadpool — cùng lý do với /search.
+    """
+    if quick:
+        return {"status": "ok", "mode": "liveness"}
+
+    from backend.api.health import deep_check
+
+    kq = deep_check()
+    return JSONResponse(content=kq, status_code=503 if kq["status"] == "down" else 200)
 
 
 class SearchRequest(BaseModel):

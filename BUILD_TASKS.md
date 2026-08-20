@@ -2,7 +2,7 @@
 
 > **v2 · 01/08/2026** — đồng bộ với `CLAUDE.md` v3 và `KE_HOACH_3_TUAN_AIC2026.md`
 >
-> **Cách dùng:** mở Claude Code (Fable 5) trong repo có `CLAUDE.md`. **Dán TỪNG task
+> **Cách dùng:** mở Claude Code trong repo có `CLAUDE.md`. **Dán TỪNG task
 > một**, đợi chạy được + test được, rồi mới dán task tiếp theo. Đừng dán cả file.
 >
 > Ký hiệu: `[Ai]` chủ sở hữu · 🔒 gác cổng (chưa xong thì task phụ thuộc không được bắt đầu)
@@ -234,7 +234,7 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 >   trong chương trình
 > - Tra thử một tên riêng hiếm → phải ra đúng frame
 
-### C3.1 [Thi] — Pipeline Q&A · 10→14/08
+### ✅ C3.1 [Thi] — Pipeline Q&A · 10→14/08
 > `backend/tasks/qa.py`:
 > - Chạy pipeline KIS trên phần "mô tả sự kiện" → top-K shot
 > - Thu bằng chứng mỗi shot: 8 frame + ASR ±3s + OCR + object + metadata
@@ -248,7 +248,7 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 > - Answer **ngắn nhất mà vẫn đủ**: `"5"` không phải `"khoảng 5 người"`
 > - Nhắc tôi hai cửa tử độc lập: frame sai = 0, answer sai = 0.
 
-### C3.2 [Thi] — TRAKE giai đoạn 1 · 12→16/08
+### ✅ C3.2 [Thi] — TRAKE giai đoạn 1 · 12→16/08
 > `backend/tasks/trake.py` — chắc video:
 > - Ghép **toàn bộ N mô tả sự kiện** thành truy vấn tổng hợp → pipeline KIS
 > - **Gom điểm ở cấp VIDEO bằng log-sum**, không cấp shot
@@ -317,7 +317,7 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 >
 > **Không đạt R-Score 0.3 ở 20/08 → chuyển hẳn sang C4.4 fallback.**
 
-### A6.0 [Thạch] — Orchestrator đầy đủ · 17→19/08
+### ✅ A6.0 [Thạch] — Orchestrator đầy đủ · 17→19/08
 > `run.py`: nhận file query → ra file nộp. Progress bar. Log rõ query nào lỗi và lỗi gì.
 > Chạy tiếp được khi một query hỏng. Checkpoint từng query.
 
@@ -363,3 +363,10 @@ slot submodular greedy · caption-space retrieval · face clustering · color in
 audio events · dedup video · phân cấp scene · prompt ensembling · PRF · UI thi đấu
 
 Toàn bộ tầng 1–2 tái dùng nguyên vẹn cho chung kết. Không có công sức nào bị phí.
+
+### Z1.1 [Hậu Sơ Loại] — Chuẩn hoá boundary Search - Submit
+> ⚠️ **TỪNG GÂY LỖI ÂM THẦM**: Lệch type giữa dict và ShotHit khiến `getattr(h, "shot_id", "unknown")` trên dict 
+> lặng lẽ trả về `"unknown"` mà không báo lỗi, biến toàn bộ ứng viên thành shot_id lạ ở tầng nộp bài.
+> Cần chuẩn hóa chung một type duy nhất (`ShotHit` hoặc class/dict cụ thể) ở ranh giới giữa tầng search 
+> và tầng nộp bài (allocator, pipeline QA, run_minimal). Loại bỏ mọi chắp vá `isinstance(h, ShotHit)` 
+> hay dùng thử `.get()` ở từng điểm tiêu thụ.

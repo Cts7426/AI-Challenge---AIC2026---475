@@ -26,8 +26,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
+
+# Chạy `python scripts/load_objects_from_btc.py` thì sys.path[0] là scripts/,
+# không phải gốc repo → `import backend` chết. Thêm gốc repo vào path để lệnh
+# trong docstring chạy được đúng như đã viết (19/08).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from elasticsearch import helpers
 

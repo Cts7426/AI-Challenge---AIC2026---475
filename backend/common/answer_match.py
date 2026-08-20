@@ -57,7 +57,11 @@ _DIGIT_TO_WORD = {"1": "một", "2": "hai", "3": "ba", "4": "bốn", "5": "năm"
 # Chỉ gộp khi MỌI nhóm sau dấu đều đúng 3 chữ số và nhóm đầu 1-3 chữ số. Ngày
 # tháng có nhóm 2 chữ số nên tự rơi ra ngoài — nếu không, "20.08.2026" sẽ thành
 # "20082026" và không còn khớp với "20/08/2026" của bản ghi khác.
-_THOUSANDS_SEP = re.compile(r"\b(\d{1,3}(?:[.,]\d{3})+)\b")
+# Không dùng `\b` ở cuối: "2.970m" có chữ m liền sau nên không phải word
+# boundary, dù 2.970 vẫn là số có phân cách nghìn. Negative look-around vẫn
+# chặn số nằm trong một từ, chặn match bắt đầu giữa ngày tháng và chặn regex
+# nuốt một prefix 3 chữ số của nhóm dài hơn ("08.2026" không thành "082026").
+_THOUSANDS_SEP = re.compile(r"(?<![\w.,])(\d{1,3}(?:[.,]\d{3})+)(?![\d.,])")
 
 
 def _gop_dau_phan_cach_nghin(s: str) -> str:
@@ -96,11 +100,47 @@ def normalize_text(s: str) -> str:
     return s
 
 
+# Dạng viết số và đơn vị trong ASR/OCR rất không ổn định ("60g" · "60 g" ·
+# "60 gram"). Đây là chuẩn hoá NGỮ NGHĨA nội bộ, không phải phép ghi lại CSV:
+# chế độ exact phải giữ nguyên từng ký tự người dùng sẽ nộp.
+_NUMBER_UNIT_BOUNDARY = re.compile(r"(?<=\d)(?=[^\d\s])")
+_SEMANTIC_UNIT_ALIASES = {
+    "gram": "g", "grams": "g", "gam": "g",
+    "kilogram": "kg", "kilograms": "kg", "kilogam": "kg", "kg": "kg",
+    "mét": "m", "met": "m", "meter": "m", "meters": "m",
+    "metre": "m", "metres": "m", "m": "m",
+}
+
+
+def _semantic_normalize_text(s: str | None) -> str:
+    """Chuỗi Q&A -> dạng so ngữ nghĩa có chuẩn hoá số-đơn vị an toàn.
+
+    Input: câu trả lời bất kỳ. Output: chuỗi lowercase đã chuẩn hoá. Invariant:
+    chỉ gộp KHÁC BIỆT BỀ MẶT của cùng số và đơn vị; không làm tròn, không đổi
+    giá trị số. Hàm này không được dùng để serialize CSV exact.
+    """
+    normal = normalize_text(s)
+    normal = _NUMBER_UNIT_BOUNDARY.sub(" ", normal)
+    tokens = [_SEMANTIC_UNIT_ALIASES.get(tok, tok) for tok in normal.split()]
+    return " ".join(tokens)
+
+
 def equivalent_text(s: str) -> str:
     """Tầng 2: quy đổi số 1-5 sang chữ, để '5' và 'năm' rơi về cùng một dạng."""
     for digit, word in _DIGIT_TO_WORD.items():
         s = re.sub(rf"\b{digit}\b", word, s)
     return s
+
+
+def exact_answer_matches(pred: str | None, expected: str) -> bool:
+    """So chuỗi Q&A tuyệt đối cho giả thuyết chấm strict của BTC.
+
+    Input: answer ghi ra CSV và canonical answer của nhãn. Output: bool. Invariant:
+    không lowercase, trim, chuẩn hoá Unicode hay xét variant; một ký tự khác là
+    khác. Tách khỏi `answer_matches()` để không làm hỏng self-consistency vốn cần
+    so theo nghĩa.
+    """
+    return isinstance(pred, str) and pred == expected
 
 
 def answer_matches(pred: str, gt_text: str, variants: list[str]) -> tuple[bool, int]:
@@ -112,8 +152,8 @@ def answer_matches(pred: str, gt_text: str, variants: list[str]) -> tuple[bool, 
 
     targets = [gt_text] + list(variants)
 
-    norm_pred = normalize_text(pred)
-    norm_targets = [normalize_text(t) for t in targets]
+    norm_pred = _semantic_normalize_text(pred)
+    norm_targets = [_semantic_normalize_text(t) for t in targets]
     if norm_pred in norm_targets:
         return True, 1
 
@@ -240,7 +280,10 @@ def _fuzzy_match(a: str, b: str, threshold: float) -> bool:
     """
     import difflib
 
-    if _thuan_so(a) or _thuan_so(b):
+    # Đã có số thì fuzzy không còn an toàn: "2969 m" và "2970 m" rất giống về
+    # ký tự nhưng là hai fact khác nhau. Các dạng số-đơn vị cùng nghĩa đã được
+    # `_semantic_normalize_text()` gộp ở tầng chặt trước đó.
+    if _thuan_so(a) or _thuan_so(b) or re.search(r"\d", a) or re.search(r"\d", b):
         return False
 
     overall_ratio = difflib.SequenceMatcher(None, a, b).ratio()

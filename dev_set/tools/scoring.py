@@ -1,5 +1,6 @@
 from __future__ import annotations
-from backend.common.answer_match import answer_matches
+from backend.common.answer_match import answer_matches, exact_answer_matches
+from data.config.qa_evaluation import DEFAULT_QA_MATCH_POLICY, QA_MATCH_POLICIES
 from dev_set.tools.schema import GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE, Answer
 
 # answer_matches re-export ở đây để code cũ import từ dev_set.tools.scoring vẫn
@@ -7,7 +8,7 @@ from dev_set.tools.schema import GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
 # majority voting của backend/tasks/qa.py (một nguồn sự thật cho "thế nào là
 # 2 câu trả lời giống nhau", xem docstring file đó).
 __all__ = ["rscore_kis", "rscore_qa", "rscore_trake", "recall_at_k", "final_score",
-           "ndcg_at_k", "answer_matches"]
+           "ndcg_at_k", "answer_matches", "exact_answer_matches"]
 
 K_THRESHOLDS = (1, 5, 20, 50, 100)
 
@@ -16,14 +17,32 @@ def rscore_kis(video_id: str, frame_idx: int, gt: GroundTruthKIS) -> float:
         return 0.0
     return 1.0 if gt.frame_start <= frame_idx <= gt.frame_end else 0.0
 
-def rscore_qa(video_id: str, frame_idx: int, answer: str, gt: GroundTruthQA) -> float:
+def rscore_qa(
+    video_id: str,
+    frame_idx: int,
+    answer: str,
+    gt: GroundTruthQA,
+    qa_match_policy: str = DEFAULT_QA_MATCH_POLICY,
+) -> float:
+    """Chấm một dòng Q&A theo chính sách ngữ nghĩa hoặc chuỗi tuyệt đối.
+
+    Input: video/frame/answer dự đoán, GT và `qa_match_policy`. Output: 0 hoặc 1.
+    Invariant: video và frame phải đúng trước khi so answer; policy `exact` chỉ
+    so canonical GT, còn `semantic` mới sử dụng variants do người gán nhãn cấp.
+    """
     if video_id != gt.video_id:
         return 0.0
     if not (gt.frame_start <= frame_idx <= gt.frame_end):
         return 0.0
-    
-    # Kế hoạch gốc: answer đúng mà frame sai = 0; nhưng đây frame đã đúng
-    match, tier = answer_matches(answer, gt.answer_text, gt.answer_variants)
+
+    if qa_match_policy not in QA_MATCH_POLICIES:
+        raise ValueError(
+            f"qa_match_policy phải là một trong {QA_MATCH_POLICIES}, nhận {qa_match_policy!r}"
+        )
+    if qa_match_policy == "exact":
+        match = exact_answer_matches(answer, gt.answer_text)
+    else:
+        match, _ = answer_matches(answer, gt.answer_text, gt.answer_variants)
     return 1.0 if match else 0.0
 
 def rscore_trake(video_id: str, frames: tuple[int, ...], gt: GroundTruthTRAKE) -> float:
@@ -55,7 +74,13 @@ def rscore_trake(video_id: str, frames: tuple[int, ...], gt: GroundTruthTRAKE) -
 # (điểm lẻ) như comment cũ tưởng — KIS/QA nhị phân CŨNG sai, vì bản cũ áp
 # _score_for_rank(rank) một lần rồi COI NHƯ ĐÓ LÀ Final, thay vì tính max
 # R-Score riêng cho từng ngưỡng k rồi mới lấy trung bình 5 giá trị.
-def recall_at_k(rows: list[Answer], gt, task_type: str, k: int) -> float:
+def recall_at_k(
+    rows: list[Answer],
+    gt,
+    task_type: str,
+    k: int,
+    qa_match_policy: str = DEFAULT_QA_MATCH_POLICY,
+) -> float:
     """R@k = R-Score CAO NHẤT trong k câu đầu (docs/contest.md, công thức gốc).
 
     KHÔNG tra bảng rút gọn ở đây — bảng đó chỉ đúng khi áp dụng cho TOÀN BỘ
@@ -69,17 +94,24 @@ def recall_at_k(rows: list[Answer], gt, task_type: str, k: int) -> float:
         if task_type == "KIS":
             hit = rscore_kis(r.video_id, r.frame_ids[0], gt)
         elif task_type == "QA":
-            hit = rscore_qa(r.video_id, r.frame_ids[0], r.answer_text or "", gt)
+            hit = rscore_qa(
+                r.video_id, r.frame_ids[0], r.answer_text or "", gt, qa_match_policy
+            )
         elif task_type == "TRAKE":
             hit = rscore_trake(r.video_id, r.frame_ids, gt)
         best = max(best, hit)
     return best
 
-def final_score(rows: list[Answer], gt, task_type: str) -> float:
-    """Tính Final Score = (R@1 + R@5 + R@20 + R@50 + R@100) / 5"""
+def final_score(
+    rows: list[Answer],
+    gt,
+    task_type: str,
+    qa_match_policy: str = DEFAULT_QA_MATCH_POLICY,
+) -> float:
+    """Tính Final Score theo một chính sách Q&A, các task khác không đổi."""
     sum_score = 0.0
     for k in K_THRESHOLDS:
-        sum_score += recall_at_k(rows, gt, task_type, k)
+        sum_score += recall_at_k(rows, gt, task_type, k, qa_match_policy)
     return sum_score / 5.0
 
 
@@ -102,7 +134,12 @@ def final_score(rows: list[Answer], gt, task_type: str) -> float:
 import math
 
 
-def _relevance(row: Answer, gt, task_type: str) -> float:
+def _relevance(
+    row: Answer,
+    gt,
+    task_type: str,
+    qa_match_policy: str = DEFAULT_QA_MATCH_POLICY,
+) -> float:
     """Độ liên quan của MỘT dòng nộp, thang [0, 1]. Dùng lại đúng rscore_* đang chấm.
 
     KIS/QA nhị phân (0 hoặc 1); TRAKE ra điểm lẻ theo tỉ lệ khoảnh khắc khớp —
@@ -113,7 +150,9 @@ def _relevance(row: Answer, gt, task_type: str) -> float:
     if task_type == "KIS":
         return rscore_kis(row.video_id, row.frame_ids[0], gt)
     if task_type == "QA":
-        return rscore_qa(row.video_id, row.frame_ids[0], row.answer_text or "", gt)
+        return rscore_qa(
+            row.video_id, row.frame_ids[0], row.answer_text or "", gt, qa_match_policy
+        )
     if task_type == "TRAKE":
         return rscore_trake(row.video_id, row.frame_ids, gt)
     raise ValueError(f"task_type không hợp lệ: {task_type}")
@@ -127,6 +166,7 @@ def _dcg(rels: list[float]) -> float:
 def ndcg_at_k(
     rows: list[Answer], gt, task_type: str, k: int = 20,
     ideal_rels: list[float] | None = None,
+    qa_match_policy: str = DEFAULT_QA_MATCH_POLICY,
 ) -> float:
     """nDCG@k của một bài nộp. Trả 0.0 khi không có dòng nào liên quan.
 
@@ -141,9 +181,9 @@ def ndcg_at_k(
     if k < 1:
         raise ValueError(f"k phải >= 1, nhận {k}")
 
-    rels = [_relevance(r, gt, task_type) for r in rows[:k]]
+    rels = [_relevance(r, gt, task_type, qa_match_policy) for r in rows[:k]]
     if ideal_rels is None:
-        ideal_rels = [_relevance(r, gt, task_type) for r in rows]
+        ideal_rels = [_relevance(r, gt, task_type, qa_match_policy) for r in rows]
 
     idcg = _dcg(sorted(ideal_rels, reverse=True)[:k])
     if idcg <= 0:

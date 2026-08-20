@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from data.config.frame_assets import RAW_KEYFRAMES_DIR
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Nhãn được commit lên git (là công sức người), mỗi người một file để không conflict:
@@ -40,8 +42,7 @@ VALID_LABELS = ("correct", "wrong", "unsure")
 #
 # Bố cục thư mục nào cũng được: `app/evidence.py::_video_dir()` nhận cả
 # `<gốc>/L21_V001/` lẫn `<gốc>/keyframes_L21/L21_V001/` (bộ tải theo lô của BTC).
-KEYFRAMES_DIR = Path(os.environ.get(
-    "KEYFRAMES_DIR", str(REPO_ROOT / "data" / "raw" / "btc" / "keyframes")))
+KEYFRAMES_DIR = RAW_KEYFRAMES_DIR
 
 # Cửa sổ gán đoạn ASR cho một frame, tính bằng giây (BUILD_TASKS B1.7).
 ASR_PAD_S = 3.0

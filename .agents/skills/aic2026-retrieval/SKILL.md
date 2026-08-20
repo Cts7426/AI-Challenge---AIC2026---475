@@ -23,8 +23,9 @@ chứng chạy được**, đừng chỉ viết logic rồi báo xong.
 - **Chuẩn hóa L2 mọi vector trước khi index và trước khi query.** Đã chuẩn hóa
   thì cosine = dot product (nhanh hơn) — nhưng chỉ đúng nếu **cả hai phía** đều
   chuẩn hóa.
-- Metric của Milvus phải khớp: đã normalize thì dùng inner product (IP),
-  **không** dùng L2 distance rồi diễn giải như cosine.
+- Metric Milvus hiện hành của repo là **COSINE** (xem
+  `backend/indexing/load_clip.py::METRIC`). Cả index và query vẫn phải normalize
+  L2; không đổi riêng sang IP/L2 nếu chưa migrate index, config và meta guard.
 
 **Kiểm chứng bắt buộc:** khi có feature BTC cấp, encode lại chính ảnh đó và so
 cosine với vector BTC. ≈1.0 mới được đi tiếp. ~0 → dừng, báo người dùng ngay.
@@ -72,8 +73,9 @@ thêm số lượng → thu hẹp sai → trượt mục tiêu).
 - **Đừng đặt ngưỡng điểm cứng.** Cosine thực tế của CLIP thường chỉ quanh
   0.2–0.3 (xem case study slide BTC: 0.233 / 0.251 / 0.224). Ngưỡng kiểu
   `score > 0.8` sẽ loại sạch kết quả đúng.
-- Model nặng (VLM) chỉ chạy offline, **không** đặt trong đường chạy online —
-  cuộc thi trừ điểm theo thời gian.
+- Model local nặng (VLM/Whisper/Paddle) chỉ chạy offline, **không** đặt trong
+  `/search`. Sơ tuyển nộp lô không trừ thời gian; Q&A batch được dùng VLM qua
+  `backend/llm/adapter.py`, phải cache evidence để replay.
 
 ### Theo loại bài toán
 - **KIS**: ưu tiên precision, mở rộng query ít (1–2 caption).

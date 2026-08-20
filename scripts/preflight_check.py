@@ -23,7 +23,8 @@
 # ra để phá.
 #
 # ===== Chạy =====
-#   python scripts/preflight_check.py            # đầy đủ (cần Docker cho nhóm B/D/F)
+#   python scripts/preflight_check.py --profile development
+#   python scripts/preflight_check.py --profile release  # SKIP bắt buộc thành FAIL
 #   python scripts/preflight_check.py --quick    # bỏ mọi mục cần Docker/model
 #   python scripts/preflight_check.py --json     # cho E6.1 nhét vào log diễn tập
 #
@@ -33,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from collections.abc import Callable
@@ -85,6 +87,9 @@ class Check:
     name: str
     fn: Callable[[], tuple[bool | None, str]]
     needs_infra: bool = False
+    # Release không được biến "chưa kiểm" thành xanh. Chỉ các tiện ích không nằm
+    # trên đường batch (UI/API tuỳ chọn) mới đặt False.
+    required_in_release: bool = True
 
 
 # ============================================================ A. MÔI TRƯỜNG
@@ -143,6 +148,44 @@ def check_optional_libs() -> tuple[bool | None, str]:
     if missing:
         return None, "; ".join(missing)
     return True, f"đủ {len(optional)} thư viện tuỳ chọn"
+
+
+def check_qa_runtime() -> tuple[bool | None, str]:
+    """Backend LLM được chọn có SDK + key cần thiết cho Q&A release hay chưa.
+
+    Không gọi API để tránh đốt quota trong preflight. Thiếu điều kiện là SKIP ở
+    development, nhưng Check.required_in_release sẽ nâng thành FAIL ở release.
+    """
+    backend = os.environ.get("LLM_BACKEND", "api")
+    env_file = REPO_ROOT / ".env"
+
+    def has_secret(name: str) -> bool:
+        if os.environ.get(name):
+            return True
+        if not env_file.exists():
+            return False
+        try:
+            return any(
+                line.strip().startswith(f"{name}=") and line.split("=", 1)[1].strip()
+                for line in env_file.read_text(encoding="utf-8").splitlines()
+                if "=" in line and not line.lstrip().startswith("#")
+            )
+        except OSError:
+            return False
+
+    if backend == "api":
+        sdk_ok = _try_import("anthropic")[0]
+        if not sdk_ok or not has_secret("ANTHROPIC_API_KEY"):
+            return None, "LLM_BACKEND=api thiếu anthropic hoặc ANTHROPIC_API_KEY"
+        return True, "LLM_BACKEND=api · SDK/key sẵn sàng"
+    if backend == "gemini":
+        sdk_ok = _try_import("google.genai")[0]
+        if not sdk_ok or not has_secret("GEMINI_API_KEY"):
+            return None, "LLM_BACKEND=gemini thiếu google-genai hoặc GEMINI_API_KEY"
+        return True, "LLM_BACKEND=gemini · SDK/key sẵn sàng"
+    if backend == "local":
+        return None, "LLM_BACKEND=local chưa hỗ trợ ảnh; chỉ dùng được đường text-first"
+    return False, f"LLM_BACKEND={backend!r} không hợp lệ"
 
 
 # ============================================================ B. HẠ TẦNG
@@ -224,33 +267,43 @@ def check_milvus() -> tuple[bool | None, str]:
 
 
 def check_api_health() -> tuple[bool | None, str]:
-    """/health của backend — CHỈ chứng minh FastAPI còn sống.
-
-    ⚠️ KHÔNG dùng mục này thay cho hai mục trên. `backend/api/main.py::health`
-    hiện trả `{"status":"ok"}` cứng, không chạm Milvus/ES lần nào (W0.3 —
-    "/health thành deep check" — vẫn chưa làm). Nên nó xanh cả khi DB chết.
-    Preflight ping thẳng ES/Milvus ở hai mục riêng vì lý do đó.
-    """
+    """Gọi `/health` deep check và đọc trạng thái tổng, không chỉ ping HTTP."""
     import urllib.error
     import urllib.request
 
     try:
         with urllib.request.urlopen("http://localhost:8000/health", timeout=3) as resp:
-            body = resp.read().decode("utf-8")[:80]
+            body = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        try:
+            status = json.loads(body).get("status", "unknown")
+        except json.JSONDecodeError:
+            status = f"HTTP {e.code}"
+        return False, f"deep health báo {status} (HTTP {e.code})"
     except (urllib.error.URLError, OSError) as e:
         return None, f"API chưa chạy ({type(e).__name__}) — chỉ cần khi thao tác qua UI"
-    return True, f"{body}  (lưu ý: /health chưa deep check — xem W0.3)"
+    try:
+        report = json.loads(body)
+    except json.JSONDecodeError:
+        return False, f"/health không trả JSON hợp lệ: {body[:80]}"
+    status = report.get("status")
+    if status == "down":
+        return False, f"deep health báo down ({report.get('latency_ms', '?')} ms)"
+    if status not in {"ok", "degraded"}:
+        return False, f"deep health có status lạ: {status!r}"
+    return True, f"deep health={status} · {report.get('latency_ms', '?')} ms"
 
 
 # ============================================================ C. DỮ LIỆU
 
 # File dẫn xuất và người sở hữu — để báo lỗi biết đi hỏi ai (CLAUDE.md mục 13).
 REQUIRED_PARQUET = {
-    "video_info.parquet": "Công Lý (B0.1a)",
-    "frame_map.parquet": "Công Lý (B0.1b)",
-    "shots.parquet": "Công Lý (B1.1)",
-    "keyframes.parquet": "Công Lý (B1.2)",
-    "clip_kf_map.parquet": "Công Lý (B0.1)",
+    "video_info.parquet": "Thạch (R1.1)",
+    "frame_map.parquet": "Thạch (R1.1)",
+    "shots.parquet": "Thạch (R1.1)",
+    "keyframes.parquet": "Thạch (R1.1)",
+    "clip_kf_map.parquet": "Thạch (R1.1)",
 }
 
 
@@ -330,6 +383,54 @@ def check_video_info() -> tuple[bool | None, str]:
     if bad:
         return False, f"{len(bad)} video có n_frames <= 0 (vd {bad[:3]})"
     return True, f"{len(video_ids):,} video, n_frames hợp lệ"
+
+
+def check_frame_assets() -> tuple[bool | None, str]:
+    """Mỗi video trong frame_map có ít nhất một ảnh raw/derived thật hay chưa."""
+    import pandas as pd
+
+    from data.config.frame_assets import DERIVED_KEYFRAMES_DIR, RAW_KEYFRAMES_DIR
+
+    map_path = REPO_ROOT / "data" / "derived" / "frame_map.parquet"
+    if not map_path.exists():
+        return None, "chưa có frame_map để biết video nào cần ảnh"
+    expected = set(pd.read_parquet(map_path, columns=["video_id"])["video_id"].astype(str))
+    if not expected:
+        return False, "frame_map không có video_id nào"
+
+    video_dirs: dict[str, list[Path]] = {}
+
+    def register(video_dir: Path) -> None:
+        if video_dir.is_dir() and "_V" in video_dir.name:
+            video_dirs.setdefault(video_dir.name, []).append(video_dir)
+
+    if RAW_KEYFRAMES_DIR.is_dir():
+        for child in RAW_KEYFRAMES_DIR.iterdir():
+            if not child.is_dir():
+                continue
+            if child.name.startswith("keyframes_"):
+                for video_dir in child.iterdir():
+                    register(video_dir)
+            else:
+                register(child)
+    if DERIVED_KEYFRAMES_DIR.is_dir():
+        for child in DERIVED_KEYFRAMES_DIR.iterdir():
+            register(child)
+
+    covered = {
+        video_id
+        for video_id, dirs in video_dirs.items()
+        if video_id in expected
+        and any(next(directory.glob("*.jpg"), None) is not None for directory in dirs)
+    }
+    missing = sorted(expected - covered)
+    if missing:
+        return None, (
+            f"ảnh phủ {len(covered):,}/{len(expected):,} video; thiếu "
+            f"{len(missing):,} (vd {missing[:5]}) — kiểm KEYFRAMES_DIR và "
+            "DERIVED_KEYFRAMES_DIR"
+        )
+    return True, f"ảnh phủ đủ {len(expected):,}/{len(expected):,} video trong frame_map"
 
 
 # ============================================================ D. KHÔNG GIAN VECTOR
@@ -539,16 +640,20 @@ def check_submit_format() -> tuple[bool | None, str]:
 CHECKLIST: list[Check] = [
     Check("A. Môi trường", "interpreter Python", check_python),
     Check("A. Môi trường", "thư viện lõi", check_core_libs),
-    Check("A. Môi trường", "thư viện tuỳ chọn", check_optional_libs),
+    Check("A. Môi trường", "runtime Q&A", check_qa_runtime),
+    Check("A. Môi trường", "thư viện tuỳ chọn", check_optional_libs,
+          required_in_release=False),
 
     Check("B. Hạ tầng", "Elasticsearch", check_elasticsearch, needs_infra=True),
     Check("B. Hạ tầng", "Milvus", check_milvus, needs_infra=True),
-    Check("B. Hạ tầng", "API /health", check_api_health, needs_infra=True),
+    Check("B. Hạ tầng", "API /health", check_api_health, needs_infra=True,
+          required_in_release=False),
 
     Check("C. Dữ liệu", "parquet lõi", check_parquet),
     Check("C. Dữ liệu", "kèm .meta.json", check_meta_json),
     Check("C. Dữ liệu", "frame_map", check_frame_map),
     Check("C. Dữ liệu", "video_info", check_video_info),
+    Check("C. Dữ liệu", "ảnh Q&A/UI", check_frame_assets),
 
     Check("D. Vector", "index cùng không gian", check_clip_meta, needs_infra=True),
     Check("D. Vector", "vector đã chuẩn hoá L2", check_vector_norm, needs_infra=True),
@@ -564,7 +669,7 @@ CHECKLIST: list[Check] = [
 ]
 
 
-def run_check(check: Check, quick: bool) -> CheckResult:
+def run_check(check: Check, quick: bool, profile: str = "development") -> CheckResult:
     """Chạy một mục, KHÔNG BAO GIỜ để ngoại lệ thoát ra.
 
     Vì sao nuốt mọi ngoại lệ: một mục ném lỗi mà giết cả script thì các mục phía
@@ -578,8 +683,14 @@ def run_check(check: Check, quick: bool) -> CheckResult:
     được rõ hơn thì tự xử lý lấy (xem `check_elasticsearch`).
     """
     if quick and check.needs_infra:
-        return CheckResult(check.group, check.name, SKIP,
-                           "--quick: bỏ mục cần Docker/model")
+        status = FAIL if profile == "release" and check.required_in_release else SKIP
+        return CheckResult(
+            check.group,
+            check.name,
+            status,
+            "--quick: chưa chạy mục cần Docker/model"
+            + (" (release bắt buộc kiểm)" if status == FAIL else ""),
+        )
 
     t0 = time.perf_counter()
     try:
@@ -587,12 +698,20 @@ def run_check(check: Check, quick: bool) -> CheckResult:
     except Exception as e:
         ms = (time.perf_counter() - t0) * 1000
         is_conn_error = isinstance(e, (ConnectionError, OSError))
-        status = SKIP if (is_conn_error and check.needs_infra) else FAIL
+        can_skip = is_conn_error and check.needs_infra
+        status = (
+            SKIP
+            if can_skip and not (profile == "release" and check.required_in_release)
+            else FAIL
+        )
         return CheckResult(check.group, check.name, status,
                            f"{type(e).__name__}: {str(e).splitlines()[0][:160]}", ms)
     ms = (time.perf_counter() - t0) * 1000
     if ok is None:
-        return CheckResult(check.group, check.name, SKIP, detail, ms)
+        status = FAIL if profile == "release" and check.required_in_release else SKIP
+        if status == FAIL:
+            detail = f"release bắt buộc kiểm: {detail}"
+        return CheckResult(check.group, check.name, status, detail, ms)
     return CheckResult(check.group, check.name, PASS if ok else FAIL, detail, ms)
 
 
@@ -613,11 +732,18 @@ def main() -> int:
     )
     parser.add_argument("--quick", action="store_true",
                         help="bỏ mọi mục cần Docker/model nặng (chạy được ở mọi máy)")
+    parser.add_argument(
+        "--profile",
+        choices=("development", "release"),
+        default="development",
+        help=("development cho phép SKIP có giải thích; release biến mọi mục "
+              "bắt buộc chưa kiểm thành FAIL"),
+    )
     parser.add_argument("--json", action="store_true",
                         help="in JSON cho log diễn tập E6.1")
     args = parser.parse_args()
 
-    results = [run_check(c, args.quick) for c in CHECKLIST]
+    results = [run_check(c, args.quick, args.profile) for c in CHECKLIST]
     failed = [r for r in results if r.status == FAIL]
     skipped = [r for r in results if r.status == SKIP]
 
@@ -626,11 +752,15 @@ def main() -> int:
             "passed": sum(1 for r in results if r.status == PASS),
             "failed": len(failed),
             "skipped": len(skipped),
+            "profile": args.profile,
             "checks": [vars(r) for r in results],
         }, ensure_ascii=False, indent=2))
         return 1 if failed else 0
 
-    print(f"PREFLIGHT — {len(CHECKLIST)} mục" + ("  [--quick]" if args.quick else ""))
+    print(
+        f"PREFLIGHT — {len(CHECKLIST)} mục · profile={args.profile}"
+        + ("  [--quick]" if args.quick else "")
+    )
     print_table(results)
 
     print("\n" + "=" * 72)

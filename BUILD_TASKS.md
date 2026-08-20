@@ -1,13 +1,132 @@
-# BUILD_TASKS.md — Lộ trình 3 tuần
+# BUILD_TASKS.md — Lộ trình 3 đợt sơ tuyển
 
-> **v2 · 01/08/2026** — đồng bộ với `CLAUDE.md` v3 và `KE_HOACH_3_TUAN_AIC2026.md`
+> **v3 · 21/08/2026** — nguồn task hiện hành cho ba đợt cộng điểm
 >
-> **Cách dùng:** mở Claude Code trong repo có `CLAUDE.md`. **Dán TỪNG task
-> một**, đợi chạy được + test được, rồi mới dán task tiếp theo. Đừng dán cả file.
+> **Cách dùng:** làm TỪNG task theo thứ tự P0 → P1, chạy thật + test thật rồi mới
+> tick. Chủ sở hữu task mới là **Thạch**; không tick dựa trên code “có vẻ đã có”.
 >
-> Ký hiệu: `[Ai]` chủ sở hữu · 🔒 gác cổng (chưa xong thì task phụ thuộc không được bắt đầu)
+> Ký hiệu: `[ ]` chưa xong · `[x]` có artefact/test chứng minh · 🔒 gác cổng.
 
 ---
+
+## Chiến dịch hiện hành — tổng điểm của 3 đợt
+
+Baseline regression: `dev_set/results/run_20260820_2349` chạy 30/30 query, 0 lỗi,
+semantic overall khoảng 0.4817. Đây là tune đã dùng để chỉnh hệ thống, không phải
+ước lượng điểm thi.
+
+Hướng đi:
+
+- Đợt 1 dùng Batch 1: ưu tiên dữ liệu đủ, frame đúng, ZIP hợp lệ và khả năng chạy lại.
+- Đợt 2: cải thiện Q&A/TRAKE/KIS miss bằng holdout độc lập và ablation.
+- Đợt 3: tối ưu theo sai số tích lũy, không thêm kiến trúc mới, đóng băng sớm.
+- Đợt 2–3 chưa có dữ liệu/lịch chính thức nên dùng chu kỳ
+  `ingest delta → đo → cải tiến → freeze`, không hardcode ngày.
+
+### R0 — đóng baseline
+
+- [ ] **R0.1 · P0 · Đóng baseline hiện tại**
+  - Tách thay đổi Q&A đang dở thành checkpoint truy nguồn được.
+  - Lưu commit, config snapshot và artefact `run_20260820_2349`.
+  - Khôi phục đúng interpreter/dependency và chạy lại regression.
+  - **Xong khi:** worktree release sạch; test và baseline có lệnh tái hiện.
+  - **Tiến độ 21/08:** `.venv` đã có dependency lõi, full suite 596 pass;
+    chưa tick vì worktree chưa đóng checkpoint và chưa replay tune bằng CLIP runtime.
+
+### R1 — đợt 1 / Batch 1
+
+- [ ] **R1.1 · P0 · Audit và nạp đủ Batch 1**
+  - CSV BTC chỉ là manifest URL. Chạy `scripts/audit_batch_manifest.py` để theo
+    dõi từng archive: URL, trạng thái, kích thước, SHA-256, giải nén và số file.
+  - Tái sử dụng file đã tải hợp lệ; không giải nén/chuyển đổi bằng script có thể
+    ghi lại parquet trước khi dry-run và đối chiếu số dòng.
+  - **Xong khi:** mọi URL Batch 1 có trạng thái `present`, hash và asset count;
+    core parquet/map/index khớp data manifest.
+  - **Tiến độ 21/08:** audit 32 URL, mới có 1 archive (`Keyframes_L21.zip`),
+    còn thiếu 31; xem `reports/BATCH1_DATA_AUDIT_20260821.md`.
+
+- [ ] **R1.2 · P0 · Một resolver ảnh cho Q&A/UI/API**
+  - `resolve_frame_path(video_id, frame_idx, keyframe_id, btc_ordinal)` ưu tiên
+    raw BTC rồi derived, hỗ trợ archive bọc `keyframes_Lxx` và bộ đếm 0/1-based.
+  - Không suy frame index từ hậu tố keyframe tự trích.
+  - **Xong khi:** unit test resolver xanh; ảnh L26/L28 có trong archive không còn
+    bị Q&A báo thiếu; UI và API dùng cùng resolver.
+  - **Tiến độ 21/08:** code + unit test đã xanh; chưa tick vì archive L26/L28
+    chưa có để kiểm acceptance trên data thật.
+
+- [x] **R1.3 · P0 · Preflight development/release**
+  - Sửa mô tả `/health` thành deep check thật.
+  - `development` cho phép SKIP có lý do; `release` nâng mục bắt buộc chưa kiểm
+    thành FAIL và trả exit code khác 0.
+  - Kiểm dependency, ES/Milvus, parquet/meta, frame map, CLIP/meta/norm, ảnh Q&A,
+    allocator, validator ZIP và cấu hình.
+  - **Xong khi:** test chứng minh từng mục fail được; máy thiếu ảnh/dependency bị
+    release chặn nhưng development vẫn chẩn đoán đầy đủ.
+
+- [x] **R1.4 · P0 · Khóa hedge Q&A**
+  - Cùng một bể evidence sinh `semantic`, `exact`, `robust`; không chạy retrieval
+    hay LLM ba lần.
+  - Lệnh release truyền policy tường minh. Đợt 1 dùng `robust` nếu BTC chưa xác nhận.
+  - Chỉ nộp một ZIP cuối và ghi policy/checksum.
+  - **Xong khi:** unit test portfolio giữ nguyên frame/video/rank và cả ba ZIP qua validator.
+
+- [ ] **R1.5 · P0 · Diễn tập và nộp Batch 1**
+  - Full run 0 query lỗi; đúng 100 dòng/câu trừ luật riêng TRAKE; validator sạch.
+  - Lưu commit, config, data manifest, log, scores, ZIP SHA-256 và receipt.
+  - Khi còn dưới 24 giờ chỉ sửa crash/format/data/frame mapping và task P0.
+
+- [ ] **R1.6 · P1 · Postmortem đợt 1**
+  - Đóng băng artefact trước khi phân tích.
+  - Phân loại `retrieval_miss`, `wrong_frame`, `qa_reasoning`, `missing_evidence`,
+    `trake_order`, `format`; mỗi lỗi có query, bằng chứng và task nối tiếp.
+
+### R2 — cải thiện có đo lường
+
+- [ ] **R2.1 · P0 · Ingest delta idempotent**: so schema/model/map với Batch 1,
+  chỉ thêm natural key mới; kiểm trùng, row count và norm. Format đổi thì sửa
+  adapter/validator trước khi tune.
+- [ ] **R2.2 · P1 · Holdout độc lập**: 12 KIS có cửa sổ hẹp không dựng từ keyframe,
+  8 Q&A phủ số/đơn vị/OCR/màu/đếm và 4 TRAKE nhiều sự kiện.
+- [ ] **R2.3 · P1 · Ablation retrieval**: đo riêng từng nguồn và weighted RRF theo
+  loại query, một biến mỗi lần. Giữ `100 shot × 1 frame` tới khi R2.2 chứng minh khác.
+- [ ] **R2.4 · P1 · Q&A evidence-first**: dùng resolver chung; ưu tiên OCR/ASR/text
+  cho số/đơn vị, VLM cho thị giác; replay semantic/exact trên cùng evidence.
+- [ ] **R2.5 · P1 · TRAKE precision**: tách video-rank/event-rank, tăng top-N mỗi
+  event, DP ép thứ tự; chỉ trích frame dày trong candidate video đứng cao.
+- [ ] **R2.6 · P0 · Release đợt 2**: regression + release preflight + ba portfolio
+  Q&A + diễn tập ZIP; đóng băng tối thiểu 24 giờ nếu lịch cho phép.
+
+### R3 — tối ưu cuối và đóng băng
+
+- [ ] **R3.1 · P0 · Ingest delta + drift check** như R2.1; giữ collection/index cũ
+  nếu schema/model tương thích.
+- [ ] **R3.2 · P1 · Tối ưu theo sai số tích lũy**: ưu tiên nhóm lỗi có điểm kỳ vọng
+  lớn nhất; chỉ dùng profile config theo query type, không thêm tầng/model mới.
+- [ ] **R3.3 · P1 · Holdout cuối**: thêm 6 KIS, 4 Q&A, 2 TRAKE và chỉ mở một lần.
+- [ ] **R3.4 · P0 · Khóa policy**: Q&A tối đa hóa `min(semantic, exact)`, hòa chọn
+  semantic; KIS/TRAKE chọn theo holdout + failure count.
+- [ ] **R3.5 · P0 · Final freeze**: đóng băng 48 giờ nếu lịch cho phép; hai full run
+  độc lập phải cùng validator result và checksum đầu ra.
+- [ ] **POST.1 · P1 · Tổng kết**: lưu điểm ba đợt, artefact, config, failure ledger
+  và danh sách hạng mục chuyển sang chung kết.
+
+### Luật promotion và thứ tự cắt
+
+- Correctness/invariant: nhận khi test + regression qua.
+- Tuning: tăng ít nhất 0.02 trên tune hoặc tốt hơn ít nhất hai query holdout;
+  không giảm holdout và không tạo failure mới.
+- Q&A phải replay từ evidence/answer đã lưu, không so hai lần gọi LLM ngẫu nhiên.
+- Cắt trước: UI mới → neural reranker → AVS/KISC → index frame dày toàn kho →
+  model local nặng → refactor không tác động điểm/độ an toàn.
+- Không bao giờ cắt: data/frame map đúng, đủ 100 dòng, exporter/validator,
+  release preflight, full rehearsal và receipt.
+
+---
+
+## Lịch sử W0–W3 (01–22/08/2026)
+
+Phần dưới giữ để truy nguồn quyết định cũ. Trạng thái vận hành hiện tại và task
+tiếp theo lấy ở R0–R3 phía trên; tên thành viên cũ không còn là owner hiện hành.
 
 ## W0 — NỢ KỸ THUẬT (01–02/08) · làm ngay cuối tuần này
 

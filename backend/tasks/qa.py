@@ -48,12 +48,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
 from backend.common.answer_match import majority_answer
+from backend.common.frame_assets import resolve_frame_path
 from backend.indexing.es_client import connect as es_connect
 from backend.indexing.frame_map import load_frame_map
 from backend.indexing.load_asr import INDEX_NAME as ASR_INDEX
@@ -65,15 +65,6 @@ from backend.llm.adapter import llm
 from backend.retrieval.search import search
 from backend.slot import ShotHit, shot_bounds
 from data.config.qa_routing import route_question
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-KEYFRAMES_PATH = REPO_ROOT / "data" / "derived" / "keyframes.parquet"
-# Ảnh keyframe 1fps (B1.2) nằm dưới thư mục này — env var vì máy dev có thể
-# chưa tải ảnh về / để ở ổ khác. Xác nhận bằng cách soi trực tiếp
-# aic2026-keyframes.zip: đường dẫn thật là "data/derived/keyframes/<video_id>/
-# f<frame_idx>.jpg", còn cột `path` của keyframes.parquet chỉ ghi phần đuôi
-# "keyframes/<video_id>/f<...>.jpg" — root phải là data/derived, KHÔNG phải data/.
-KEYFRAME_ROOT = Path(os.environ.get("KEYFRAME_ROOT", REPO_ROOT / "data" / "derived"))
 
 N_EVIDENCE_FRAMES = 8          # BUILD_TASKS C3.1: "8 frame + ASR ±3s + OCR..."
 QA_ASR_WINDOW_MS = 3000        # ±3s quanh keyframe đại diện shot — KHÁC
@@ -215,11 +206,16 @@ def _evidence_frames(shot_id: str, best_keyframe_id: str | None, n: int) -> list
 
     out: list[tuple[int, Path]] = []
     for f in picked:
-        p = KEYFRAME_ROOT / video_id / f"f{f:07d}.jpg"
-        if p.exists():
-            out.append((f, p))
+        resolution = resolve_frame_path(video_id, frame_idx=f)
+        if resolution.path is not None:
+            out.append((f, resolution.path))
+            if resolution.warning:
+                print(f"  [cảnh báo] {resolution.warning}")
         else:
-            print(f"  [cảnh báo] thiếu file ảnh {p} — bỏ frame {f} khỏi bằng chứng VLM")
+            print(
+                f"  [cảnh báo] không tìm được ảnh {video_id}/frame {f}: "
+                f"{resolution.reason} — bỏ khỏi bằng chứng VLM"
+            )
     return out
 
 
@@ -591,11 +587,17 @@ def qa_pipeline(
     query_vi: str,
     top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
     query_en: str | None = None,
-) -> tuple[list[ShotHit], str]:
-    """query VI → (mọi shot ứng viên đã xếp hạng, câu trả lời thắng cuộc).
+    return_trace: bool = False,
+) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
+    """query VI → ứng viên, đáp án và tùy chọn provenance Q&A.
 
     Chỗ gọi tự đưa 2 giá trị này vào backend.slot.allocate(hits, "QA",
     answer_text=...) để ra đủ 100 dòng nộp — xem docstring đầu file.
+
+    Input: query, số shot, bản dịch EN và cờ trace. Output mặc định giữ nguyên
+    `(hits, answer)` để mọi caller cũ tương thích; `return_trace=True` thêm dict
+    chứa route, shot và frame đã sinh answer. Invariant: trace chỉ mô tả evidence
+    đã dùng, không đổi thứ hạng/score hay frame mà allocator sẽ nộp.
 
     ⚠️ SỬA 16/08 — hai thay đổi về SỐ SHOT và THỨ TỰ SHOT:
 
@@ -683,7 +685,7 @@ def qa_pipeline(
             continue
         if ket_qua is None:
             continue
-        answer, _frame = ket_qua
+        answer, evidence_frame_idx = ket_qua
         # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh text
         # mang `score` của bảng text nên khác object với bản nằm trong bể chính —
         # `.index()` sẽ ném ValueError đúng lúc vừa suy luận ra câu trả lời.
@@ -691,7 +693,16 @@ def qa_pipeline(
         if i > 0:
             print(f"  shot thắng là hạng {i + 1} ({hit.shot_id}) — đẩy lên hạng 1 để "
                   "frame nộp khớp với shot đã sinh ra câu trả lời")
-        return _dua_len_dau(candidate_shots, i), answer
+        ranked_hits = _dua_len_dau(candidate_shots, i)
+        if return_trace:
+            return ranked_hits, answer, {
+                "event_vi": parts.event_vi,
+                "question_vi": parts.question_vi,
+                "evidence_type": evidence_type,
+                "answer_shot_id": hit.shot_id,
+                "evidence_frame_idx": evidence_frame_idx,
+            }
+        return ranked_hits, answer
 
     raise RuntimeError(
         f"Thử {len(thu_de_suy_luan)} shot đều không suy luận được câu trả lời đủ tin cậy "

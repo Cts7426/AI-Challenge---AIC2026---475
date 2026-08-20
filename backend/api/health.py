@@ -32,13 +32,10 @@
 
 from __future__ import annotations
 
-import os
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
 from pathlib import Path
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Trần thời gian cho MỘT check. 5s vì check nặng nhất (frame_map, ~1,9s đọc
 # parquet lần đầu) phải lọt, còn DB treo thì bị cắt sớm.
@@ -242,11 +239,21 @@ def _check_frame_map() -> tuple[str, str, dict]:
 
 def _check_keyframes_dir() -> tuple[str, str, dict]:
     """Có ảnh keyframe trên đĩa không — UI cần để hiển thị, Q&A cần để hỏi VLM."""
-    from backend.api.main import KEYFRAMES_DIR
+    from data.config.frame_assets import DERIVED_KEYFRAMES_DIR, RAW_KEYFRAMES_DIR
 
-    if not Path(KEYFRAMES_DIR).is_dir():
-        return WARN, f"chưa có thư mục ảnh {KEYFRAMES_DIR} (đặt env KEYFRAMES_DIR)", {}
-    return OK, str(KEYFRAMES_DIR), {}
+    for root in (RAW_KEYFRAMES_DIR, DERIVED_KEYFRAMES_DIR):
+        if not Path(root).is_dir():
+            continue
+        try:
+            sample = next(Path(root).rglob("*.jpg"), None)
+        except OSError:
+            sample = None
+        if sample is not None:
+            return OK, f"{root} · ví dụ {sample.name}", {"root": str(root)}
+    return WARN, (
+        "chưa có JPG raw/derived (đặt KEYFRAMES_DIR hoặc "
+        "DERIVED_KEYFRAMES_DIR) — Q&A visual sẽ thiếu bằng chứng"
+    ), {}
 
 
 # ------------------------------------------------------------------ API chính

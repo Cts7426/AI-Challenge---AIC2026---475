@@ -25,7 +25,6 @@
 #          -d '{"query": "máy bay ở sân bay", "query_en": "an airplane at the airport", "top_k": 5}'
 # Docs tự sinh: http://localhost:8000/docs
 
-import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -36,18 +35,17 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from backend.common.frame_assets import resolve_frame_path
 from backend.export import QuerySubmission, write_submissions
 from backend.indexing.frame_map import load_frame_map
 from backend.retrieval.search import search as fused_search
+from data.config.frame_assets import RAW_KEYFRAMES_DIR
 from data.config.submit_format import Answer
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Thư mục ảnh keyframe BTC cấp (chưa có → mount tự tắt, URL trả 404 nhưng
 # API vẫn chạy). Đổi chỗ chỉ cần set env, không sửa code (CLAUDE.md mục 7).
-KEYFRAMES_DIR = Path(os.environ.get("KEYFRAMES_DIR", str(REPO_ROOT / "data" / "raw" / "btc" / "keyframes")))
-
-
-_video_paths: dict[str, str] = {}
+KEYFRAMES_DIR = RAW_KEYFRAMES_DIR
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,19 +63,6 @@ async def lifespan(app: FastAPI):
         print(f"Đã preload bảng shot: {len(_shot_map())} keyframe.")
     except Exception as e:
         print(f"[cảnh báo] Không preload được bảng shot: {e}")
-        
-    # Xây dựng bảng tra đường dẫn video (xử lý vụ L26 bị chia thành L26a, L26b...)
-    try:
-        if KEYFRAMES_DIR.is_dir():
-            print(f"Đang quét thư mục ảnh: {KEYFRAMES_DIR}")
-            for parent_dir in KEYFRAMES_DIR.iterdir():
-                if parent_dir.is_dir() and parent_dir.name.startswith("keyframes_"):
-                    for video_dir in parent_dir.iterdir():
-                        if video_dir.is_dir():
-                            _video_paths[video_dir.name] = f"{parent_dir.name}/{video_dir.name}"
-            print(f"Đã tìm thấy {len(_video_paths)} thư mục video.")
-    except Exception as e:
-        print(f"[cảnh báo] Không quét được thư mục ảnh: {e}")
         
     yield
 
@@ -153,6 +138,26 @@ class SearchHit(BaseModel):
 class SearchResponse(BaseModel):
     hits: list[SearchHit]
     answer_text: str | None = None
+
+
+def _thumbnail_url(result: dict) -> str:
+    """Search result → URL ảnh raw đã được resolver chung xác nhận tồn tại."""
+    try:
+        resolution = resolve_frame_path(
+            result["video_id"],
+            frame_idx=result.get("frame_idx"),
+            keyframe_id=result.get("keyframe_id"),
+            raw_root=KEYFRAMES_DIR,
+        )
+    except Exception:
+        return ""
+    if resolution.path is None or resolution.source != "raw":
+        return ""
+    try:
+        relative = resolution.path.relative_to(KEYFRAMES_DIR).as_posix()
+    except ValueError:
+        return ""
+    return f"/thumbnails/{relative}"
 
 @app.post("/search", response_model=SearchResponse)
 def post_search(req: SearchRequest) -> SearchResponse:
@@ -236,11 +241,7 @@ def post_search(req: SearchRequest) -> SearchResponse:
             score=r["score"],
             event_index=r.get("event_index"),
             is_interpolated=r.get("is_interpolated"),
-            thumbnail_url=(
-                f"/thumbnails/{_video_paths.get(r['video_id'], f'keyframes_{r['video_id'].split('_')[0]}/{r['video_id']}')}/"
-                f"{int(r['keyframe_id'].split('#k')[-1]):03d}.jpg"
-                if "#k" in r['keyframe_id'] else f"/thumbnails/{r['video_id']}/{r['keyframe_id']}.jpg"
-            ),
+            thumbnail_url=_thumbnail_url(r),
         )
         for r in results
     ]

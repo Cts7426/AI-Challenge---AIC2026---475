@@ -8,6 +8,33 @@ def load_json(path: Path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
+def print_qa_exact_summary(per_query: list[dict]) -> None:
+    """In bảng Q&A theo luật chuỗi tuyệt đối khi run đã lưu metric song song.
+
+    Input: `scores.json` per_query. Output: stdout. Invariant: run cũ không có
+    trường mới thì im lặng, không làm hỏng báo cáo semantic đang dùng.
+    """
+    exact_rows = [
+        q["score_by_qa_policy"]["exact"]
+        for q in per_query
+        if q.get("task_type") == "QA"
+        and "exact" in q.get("score_by_qa_policy", {})
+    ]
+    if not exact_rows:
+        return
+
+    count = len(exact_rows)
+    print("\n=== Q&A — GIẢ THUYẾT SO CHUỖI CHÍNH XÁC ===")
+    print(f"N={count:<4} | "
+          f"R@1={sum(q['r_at_1'] for q in exact_rows) / count:.4f} | "
+          f"R@5={sum(q['r_at_5'] for q in exact_rows) / count:.4f} | "
+          f"R@20={sum(q['r_at_20'] for q in exact_rows) / count:.4f} | "
+          f"R@50={sum(q['r_at_50'] for q in exact_rows) / count:.4f} | "
+          f"R@100={sum(q['r_at_100'] for q in exact_rows) / count:.4f} | "
+          f"FINAL={sum(q['final'] for q in exact_rows) / count:.4f}")
+
+
 def run_evaluate():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True, help="Thư mục chứa kết quả của một run (vd: dev_set/results/run_20260818_2000)")
@@ -59,6 +86,8 @@ def run_evaluate():
         if k in agg and agg[k]["count"] > 0:
             c = agg[k]["count"]
             print(f"{k:<10} | {c:<4} | {agg[k]['r1']/c:.4f} | {agg[k]['r5']/c:.4f} | {agg[k]['r20']/c:.4f} | {agg[k]['r50']/c:.4f} | {agg[k]['r100']/c:.4f} | {agg[k]['fin']/c:.4f}")
+
+    print_qa_exact_summary(per_query)
 
     # --- 3. BẢNG PHÂN LOẠI THẤT BẠI & RANKS TỪNG NHÁNH ---
     print("\n=== CÁC CÂU THẤT BẠI (R@100 = 0) ===")

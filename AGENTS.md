@@ -1,121 +1,161 @@
 # AGENTS.md — HCMAIC 2026 Multimedia Retrieval System
 
-> Quy ước ngôn ngữ: giải thích & comment bằng TIẾNG VIỆT; mọi thứ thành code
-> (tên hàm, biến, field, collection, index) bằng TIẾNG ANH.
-> Thể thức thi chi tiết (dạng bài, cách chấm, chiến lược): đọc `docs/contest.md`
-> KHI làm task đụng submit / kis / qa / trake — đừng dựa vào trí nhớ.
+> Đây là nguồn hướng dẫn chuẩn cho agent làm việc trong repo. Nếu tài liệu khác
+> mâu thuẫn, ưu tiên file này rồi kiểm lại `docs/contest.md` và code/config thật.
+> Giải thích và comment bằng TIẾNG VIỆT; tên hàm, biến, field, collection và index
+> bằng TIẾNG ANH.
 
-## Dự án
+## Bối cảnh hiện tại
 
-Hệ truy xuất khoảnh khắc video cho AI Challenge HCMC 2026 (thể thức VBS/LSC).
-Dự án học tập của SV năm 2 ngành AI — người vận hành lúc thi chính là người viết
-code, nên mỗi quyết định kỹ thuật phải kèm giải thích "vì sao".
-Sơ tuyển 8/2026 (online, nộp lô, KHÔNG trừ thời gian): Textual KIS, Q&A, TRAKE.
-KHÔNG có AVS/KISC ở sơ tuyển — code AVS đã viết thì giữ, ngừng đầu tư.
+- Hệ truy xuất khoảnh khắc video AIC HCMC 2026: Milvus + Elasticsearch + CLIP
+  + OCR/ASR + KIS/Q&A/TRAKE + exporter.
+- Sơ tuyển có **3 đợt cộng điểm**. Đợt 1 dùng Batch 1; dữ liệu, lịch và thay đổi
+  thể lệ đợt 2–3 chưa được BTC công bố chính thức.
+- Một người phát triển và vận hành: **Thạch**. Task P0/P1 chạy tuần tự.
+- Sơ tuyển online, nộp lô, không trừ thời gian. Không đầu tư AVS/KISC/UI thi đấu
+  trước khi qua sơ tuyển; code cũ giữ nguyên nếu không gây lỗi.
+- Baseline tune được đóng theo `run_20260820_2349`: 30/30 query không lỗi,
+  semantic overall khoảng 0.4817. Tune chỉ là regression set, không phải dự báo
+  điểm thi.
 
-## Lệnh chạy (từ gốc repo)
+## Lệnh vận hành từ gốc repo
 
 ```powershell
-docker compose up -d                                 # Milvus :19530 + ES :9200 (Milvus cần ~90s)
-python data/sample/generate_clip_features.py         # CLIP features giả lập (chạy 1 lần)
-python -m backend.indexing.load_metadata             # 5 loader cùng pattern:
-python -m backend.indexing.load_objects              #   --recreate nạp lại từ đầu
-python -m backend.indexing.load_clip                 #   --search/--find/--similar query thử
+docker compose up -d
+python -m backend.indexing.load_metadata
+python -m backend.indexing.load_objects
+python -m backend.indexing.load_clip
 python -m backend.indexing.load_ocr
 python -m backend.indexing.load_asr
 python -m backend.retrieval.search "mô tả" --en "english translation" --top-k 10
-python -m uvicorn backend.api.main:app --port 8000   # API + UI: http://localhost:8000
+python -m dev_set.tools.run_evaluation --split tune
+python scripts/preflight_check.py --profile development
+python scripts/preflight_check.py --profile release
+python run.py queries.json --out submissions\round1 --zip --qa-submission-policy robust
+python -m uvicorn backend.api.main:app --port 8000
 ```
 
-- Chưa set `ANTHROPIC_API_KEY` → luôn truyền `--en` / `query_en` (bỏ bước dịch).
-- Job OCR/ASR: CHỈ chạy Colab/Kaggle — hướng dẫn ở đầu `preprocessing/*_job.py`.
+- Release Q&A **luôn** truyền `--qa-submission-policy`; không phụ thuộc default.
+- Dùng `--qa-submission-policy all --zip` để sinh ba portfolio từ cùng evidence,
+  nhưng chỉ nộp một ZIP đã chọn và lưu lại policy.
+- Job OCR/ASR chạy Colab/Kaggle, phải resume được; không cài model GPU nặng local.
 
-## Kiến trúc & thư mục
+## Kiến trúc và nguồn sự thật
 
-Search engine là nền, agent là lớp mỏng bọc trên — agent GỌI search làm tool,
-không viết lại logic tìm kiếm.
+Search engine là nền; task/agent gọi search, không chép lại retrieval.
 
-```
-backend/
-├── indexing/    # Tầng 1 — es_client.py + milvus_client.py (điểm kết nối DUY NHẤT)
-│                #   load_{metadata,objects,clip,ocr,asr}.py
-├── retrieval/   # Tầng 2 — text_query.py (VI→llm()→EN→CLIP), search.py (fusion 5 nguồn)
-├── llm/         # adapter.py — llm(prompt)->str, điểm gọi LLM DUY NHẤT
-├── agent/       # Tầng 3 — KISC + track tự động (CHUNG KẾT, làm sau)
-└── api/         # main.py — /health, /search, /submit + serve frontend/
-frontend/        # HTML/JS thuần, không build step, điều hướng 100% bàn phím
-preprocessing/   # ocr_job.py, asr_job.py — chạy Colab/Kaggle, resume được
-data/config/     # thứ CHƯA chốt, đánh dấu # TODO: BTC (bảng cuối file)
-data/sample/     # fixtures test local (gitignore — không push)
-docs/contest.md  # thể thức thi chi tiết
+```text
+backend/indexing/   kết nối duy nhất tới ES/Milvus + loader idempotent
+backend/retrieval/  query understanding + năm nguồn + weighted RRF
+backend/tasks/      Q&A và TRAKE dùng kết quả retrieval
+backend/common/     invariant dùng chung, gồm frame_assets resolver
+backend/export/     format/validator/portfolio Q&A; không tự suy frame
+data/config/        mọi path, model, metric, weight, policy thay đổi được
+data/derived/       parquet/map/cache đã dựng; không phải archive BTC
+data/raw/btc/       dữ liệu BTC sau khi tải/giải nén
+dev_set/            tune/holdout, scorer và artefact regression
 ```
 
+### Bốn lớp dữ liệu không được trộn
 
-## Bất biến — vi phạm gây lỗi IM LẶNG (chạy được nhưng kết quả sai)
+1. CSV BTC chỉ là **manifest URL**, không chứa video/keyframe.
+2. Archive tải về phải có tên, kích thước và SHA-256 trong data manifest.
+3. Raw asset sau giải nén là nguồn ảnh/video BTC; giải nén không được tự sửa
+   parquet hay index.
+4. Parquet/index là dữ liệu dẫn xuất có provenance; nạp delta idempotent, không
+   recreate dữ liệu đợt cũ nếu schema/model vẫn tương thích.
 
-1. LLM chỉ gọi qua `llm()` trong `backend/llm/adapter.py`. Không import
-   `anthropic` hay SDK nhà cung cấp ở bất kỳ file nào khác.
-2. Kết nối DB: ES qua `es_client.connect()`, Milvus qua `milvus_client.connect()`.
-   Không gọi `Elasticsearch()` / `MilvusClient()` trực tiếp ở chỗ khác.
-3. `keyframe_id` là khóa join Milvus ↔ Elasticsearch ↔ frame_map. Mọi bảng phải có.
-   KHÔNG BAO GIỜ dùng số thứ tự file keyframe của BTC (0000.jpg, 0001.jpg)
-   làm khóa. Đó là số thứ tự trong thư mục, KHÔNG phải chỉ số frame.
-   Nhầm hai thứ này là lỗi im lặng làm toàn bộ điểm số bằng 0.
-4. Vector: L2-normalize CẢ HAI PHÍA trước khi index và query; metric Milvus =
-   COSINE. Code đụng vector phải kèm phép kiểm chứng chạy được (vd norm ≈ 1.0;
-   khi có features BTC: encode lại 1 ảnh, cosine với vector BTC phải ≈ 1.0).
-5. `frame_id` nộp bài = frame index TRONG VIDEO (tra frame_map), KHÔNG phải số
-   thứ tự file keyframe. Nhầm = 0 điểm dù đúng video.
-6. CLIP giới hạn 77 token: mở rộng query = nhiều câu ngắn encode riêng rồi hợp
-   nhất, không nối thành đoạn dài. Prompt mở rộng cấm LLM thêm chi tiết không có
-   trong query gốc. Không đặt ngưỡng cosine cứng (thực tế chỉ ~0.2–0.3).
-7. Job nặng (OCR/ASR/trích frame) phải resume được: JSONL append + flush từng lô,
-   đọc file out để skip phần đã xong (Colab/Kaggle tự tắt sau ~9–12h).
-8. Model nặng (VLM/whisper/paddle) chỉ chạy offline — không đặt trong đường chạy
-   online của /search.
-9. Mọi tham số đọc từ `data/config/`. Không hardcode đường dẫn, ngưỡng, tên model.
+### Hai lớp ảnh
 
+- Raw BTC: ordinal, ví dụ `L21_V001/001.jpg`; ordinal **không phải frame index**.
+- Derived: frame tuyệt đối, ví dụ
+  `data/derived/keyframes/L21_V001/f0001234.jpg`; chỉ là cache.
+- Q&A, API và UI phải gọi
+  `backend.common.frame_assets.resolve_frame_path()`. Không tự ghép path ở caller.
+- Resolver ưu tiên raw rồi derived. Frame index chỉ nhận từ tham số hoặc
+  `frame_map`; cấm cắt hậu tố keyframe tự trích để suy frame.
+
+## Bất biến — vi phạm gây lỗi im lặng
+
+1. LLM chỉ gọi qua `llm()` trong `backend/llm/adapter.py`; không import SDK nhà
+   cung cấp ở nơi khác.
+2. ES qua `es_client.connect()`, Milvus qua `milvus_client.connect()`; không tạo
+   client trực tiếp ở module khác.
+3. `keyframe_id` là khóa join Milvus ↔ Elasticsearch ↔ frame map. Mọi bảng/index
+   liên quan phải giữ khóa này.
+4. `frame_id` nộp = frame index tuyệt đối trong video tra từ `frame_map.parquet`;
+   không phải ordinal ảnh BTC. Tầng format chỉ ghi số được cấp, không đoán.
+5. Vector index và query đều L2-normalize; metric Milvus hiện hành là **COSINE**.
+   Code đụng vector phải kiểm norm ≈ 1.0 và, khi có ảnh/model đúng của BTC, kiểm
+   cosine ảnh encode lại với feature BTC.
+6. CLIP tối đa 77 token: query expansion là nhiều câu ngắn encode riêng rồi hợp
+   nhất; prompt cấm thêm màu, số lượng hoặc chi tiết không có trong query gốc.
+7. Weighted RRF đọc từ config, log rank từng nguồn; không đặt ngưỡng cosine cứng.
+   Mỗi nguồn retrieval có try/except trả rỗng để một service chết không kéo sập
+   toàn query.
+8. Job nặng phải checkpoint/resume, append + flush theo lô và skip phần đã xong.
+9. VLM/Whisper/Paddle local nặng không nằm trong `/search`; Q&A batch có thể dùng
+   LLM/VLM qua adapter và phải lưu cache/evidence để replay.
+10. Mọi path/model/weight/policy nằm trong `data/config/`, không hardcode ở caller.
+
+## Quy trình đánh giá và nhận thay đổi
+
+- `tune`: dùng phát triển và phân tích query-level. `holdout`: chỉ dùng promotion.
+  Gói thi và receipt lưu read-only theo từng đợt.
+- Mọi run/release phải lưu commit, config snapshot, data manifest, scorer policy,
+  log, scores và checksum ZIP.
+- Sửa correctness/invariant được nhận khi test + regression qua.
+- Tuning chỉ được nhận khi tăng ít nhất 0.02 trên tune hoặc cải thiện ít nhất hai
+  query holdout, không giảm holdout và không tạo failure mới.
+- Q&A replay semantic/exact trên cùng answer/evidence; không so hai lần gọi LLM
+  ngẫu nhiên. Khi luật chưa rõ, chọn policy tối đa hóa `min(semantic, exact)`, hòa
+  thì chọn semantic cao hơn. Cấu hình vận hành đợt 1 là `robust`.
+- Giữ `SLOT_BUDGET = [(100, 1)]` tới khi cửa sổ KIS gán nhãn độc lập chứng minh
+  chiều sâu tốt hơn chiều rộng.
+- Một thử nghiệm = một thay đổi config/code có baseline và query-level diff. Không
+  tune trên worktree trộn nhiều thay đổi chưa truy nguồn được.
+
+## Quy trình release ba đợt
+
+1. Ingest/audit dữ liệu mới và so schema/model/map với đợt trước.
+2. Chạy test, tune regression và holdout promotion.
+3. Tạo clean checkpoint; chạy `preflight --profile release`.
+4. Chạy full batch, validator và sinh các portfolio Q&A từ cùng checkpoint.
+5. Chọn đúng một ZIP, ghi SHA-256, nộp và lưu receipt.
+6. Đóng băng ít nhất 24 giờ cho đợt 2, 48 giờ cho đợt 3 nếu lịch cho phép.
+7. Postmortem theo nhóm: `retrieval_miss`, `wrong_frame`, `qa_reasoning`,
+   `missing_evidence`, `trake_order`, `format`.
+
+Khi còn dưới 24 giờ: chỉ sửa crash, format, mất dữ liệu, sai mapping hoặc task P0.
+Không thêm model/reranker/kiến trúc mới.
 
 ## Coding convention
 
-- Đầu file/hàm: comment "vì sao chọn cách này" bằng tiếng Việt, ngắn gọn.
-- Loader idempotent: `_id`/PK = khóa tự nhiên (`video_id`, `keyframe_id`) —
-  chạy lại không sinh bản ghi trùng; batch 2 của BTC nạp thêm không index lại.
-- Text tiếng Việt trong ES: dùng `VI_FOLDED_ANALYSIS` + `searchable_text()` từ
-  `es_client.py` — không tự định nghĩa analyzer mới.
-- Mỗi nguồn trong search fusion bọc try/except trả rỗng — 1 service chết thì
-  search chạy tiếp bằng các nguồn còn lại, không sập.
-- Ưu tiên code đọc được hơn code ngắn; mỗi tối ưu phải kiểm chứng/đo được.
-- Mỗi hàm xử lý dữ liệu phải có docstring ghi rõ đầu vào, đầu ra, và
-  bất biến (invariant) mà nó giữ.
-
-## Ngăn xếp
-
-- Python 3.14, FastAPI, Milvus, Elasticsearch, open_clip.
-  Windows 11, 16GB RAM, torch CPU.
-
-## Quy trình làm việc
-
-1. Làm TỪNG task nhỏ theo `BUILD_TASKS.md`, chạy thật + test thật rồi mới sang
-   task sau. Xong task: tick checklist, nêu cách chạy/test và task tiếp theo.
-2. Trước khi tin kết quả search trên data thật: xác nhận version CLIP với BTC
-   (hiện là giả định — xem bảng dưới).
+- Đầu file/hàm giải thích ngắn bằng tiếng Việt vì sao chọn cách đó.
+- Hàm xử lý dữ liệu có docstring input, output và invariant.
+- Loader dùng natural key (`video_id`, `keyframe_id`) và chạy lại không sinh trùng.
+- Text Việt trong ES dùng `VI_FOLDED_ANALYSIS` + `searchable_text()`.
+- Ưu tiên code đọc được; tối ưu phải có đo lường.
+- Không tick task hoàn thành nếu chưa có lệnh kiểm và artefact chứng minh.
+- Làm từng task nhỏ theo `BUILD_TASKS.md`; nêu lệnh test và task kế tiếp.
 
 ## Môi trường
 
-- Folder làm việc: `C:\dev\aic2026`. Bản OneDrive chỉ là backup — KHÔNG sửa.
-- Windows 11, Python 3.14, 16GB RAM. torch bản CPU:
-  `pip install torch --index-url https://download.pytorch.org/whl/cpu`
-- KHÔNG cài paddlepaddle / paddleocr / faster-whisper local (không có wheel
-  cho Py3.14/Windows, và là job GPU). Milvus Lite không chạy trên Windows —
-  đổi backend Milvus qua env `MILVUS_URL` (nhận cả đường dẫn `.db` cho Lite).
+- Workspace duy nhất: `C:\dev\aic2026`; OneDrive chỉ là backup, không sửa.
+- Windows 11, Python 3.14, 16 GB RAM, torch CPU.
+- Không cài PaddleOCR/faster-whisper local. Milvus chạy Docker hoặc URL từ config.
+- Nếu môi trường thiếu dependency, sửa môi trường/requirements trước; không tuyên
+  bố test xanh dựa trên một interpreter khác.
 
-## Điều CHƯA chốt (# TODO: BTC) — config nào nắm giữ
+## Trạng thái xác nhận và phòng vệ
 
-| Thứ | File | Giả định hiện tại |
-|---|---|---|
-| Model CLIP + dim | `data/config/clip_model.py` | ViT-B-32-quickgelu / openai / 512 |
-| Format submit | `data/config/submit_format.py` | frame_id = hậu tố keyframe_id |
-| Trọng số fusion | `data/config/search_weights.py` | vec 1.0 / obj .7 / ocr .6 / asr .6 / meta .4 |
-| frame_map (vị trí file) | chưa có — TÌM NGAY khi tải data | CSV map-keyframes: n, pts_time, fps, frame_idx |
-| Internet ở chung kết | `backend/llm/adapter.py` (env `LLM_BACKEND`) | api; local = stub NotImplementedError |
+| Hạng mục | Trạng thái | Nguồn/cấu hình | Cách phòng vệ |
+|---|---|---|---|
+| `frame_map` | Đã có và đã audit | `data/derived/frame_map.parquet` | Mọi submit tra map; resolver/test cấm suy hậu tố |
+| Submit frame | Đã chốt là frame tuyệt đối | `data/config/submit_format.py` | Format không có logic mapping |
+| Fusion | weighted RRF hiện hành | `data/config/search_weights.py` | Ablation từng nguồn, snapshot config |
+| Metric vector | L2 + COSINE hiện hành | `load_clip.py`, `clip_model.py` | Norm/cosine verification bắt buộc |
+| Model/preprocess CLIP BTC | Chưa có xác nhận đủ mạnh | `data/config/clip_model.py` | Meta guard + encode lại ảnh mẫu trước reindex |
+| Cách chấm answer Q&A | Semantic và exact còn mâu thuẫn | `data/config/qa_evaluation.py` | Sinh semantic/exact/robust từ cùng evidence |
+| Dữ liệu/lịch đợt 2–3 | Chưa công bố | `docs/contest.md` | Ingest delta → đo → cải tiến → freeze |
+| Internet chung kết | Chưa công bố, chưa thuộc sơ tuyển | `LLM_BACKEND` | Adapter API/Gemini/local; không sửa caller |

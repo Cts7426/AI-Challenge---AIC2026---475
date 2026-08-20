@@ -5,7 +5,13 @@
 
 from __future__ import annotations
 
-from backend.common.answer_match import answer_matches, equivalent_text, majority_answer, normalize_text
+from backend.common.answer_match import (
+    answer_matches,
+    equivalent_text,
+    exact_answer_matches,
+    majority_answer,
+    normalize_text,
+)
 
 
 # ------------------------------------------------------------------- normalize
@@ -48,6 +54,13 @@ def test_answer_matches_khong_khop():
 
 def test_answer_matches_pred_none():
     assert answer_matches(None, "năm", []) == (False, 0)
+
+
+def test_exact_answer_matches_giu_nguyen_tung_ky_tu():
+    assert exact_answer_matches("60g", "60g")
+    assert not exact_answer_matches("60 g", "60g")
+    assert not exact_answer_matches(" 60g", "60g")
+    assert not exact_answer_matches("60G", "60g")
 
 
 def test_answer_matches_chan_input_qua_dai():
@@ -234,6 +247,16 @@ def test_vote_gom_duoc_cac_cach_viet_cung_mot_so():
     winner, votes = majority_answer(["2.970 m", "2970m", "2970 mét"])
     assert votes == 3, "ba cách viết cùng một số phải về cùng một nhóm"
     assert winner == "2970m", "phải lấy câu ngắn nhất trong nhóm thắng"
+
+
+def test_semantic_khop_bien_the_so_don_vi_duoc_nhan_cap():
+    """GT đã ghi rõ "gần 2970m" là variant hợp lệ; khác biệt khoảng trắng và
+    cách viết mét không được làm bộ đo semantic đánh trượt."""
+    assert answer_matches("2970 m", "2969.4m", ["gần 2970m"])[0]
+
+
+def test_so_khac_nhau_khong_duoc_fuzzy_khop_nham_khi_co_don_vi():
+    assert not answer_matches("2969 m", "2970 m", [])[0]
 
 
 def test_lam_tron_van_KHONG_duoc_tu_khop():

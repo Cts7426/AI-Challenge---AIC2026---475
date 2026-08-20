@@ -65,6 +65,8 @@ from backend.export import (  # noqa: E402
     write_submission_zip,
     write_submissions,
 )
+from backend.export.qa_variants import apply_qa_submission_policy  # noqa: E402
+from data.config.qa_evaluation import QA_SUBMISSION_POLICIES  # noqa: E402
 from data.config.submit_format import TASK_TYPES, Answer  # noqa: E402
 
 CHECKPOINT_NAME = "checkpoint.jsonl"
@@ -325,14 +327,16 @@ def giai_mot_query(q: dict, total: int) -> tuple[list[Answer], dict]:
     if task == "QA":
         from backend.tasks.qa import qa_pipeline
 
-        hits, answer_text = qa_pipeline(q["query_vi"], query_en=q.get("query_en"))
+        hits, answer_text, qa_trace = qa_pipeline(
+            q["query_vi"], query_en=q.get("query_en"), return_trace=True
+        )
         if not str(answer_text or "").strip():
             # Q&A chấm 3 điều kiện CÙNG LÚC: answer rỗng thì 100 dòng frame đúng
             # cũng 0 điểm. Hỏng to ở đây để câu này vào danh sách lỗi, thay vì
             # sinh ra một file trông hợp lệ mà chắc chắn 0 điểm.
             raise RuntimeError("qa_pipeline() không suy ra được answer_text")
         return allocate(hits, "QA", answer_text=answer_text, total=total), \
-            {"answer_text": answer_text}
+            {"answer_text": answer_text, "qa_trace": qa_trace}
 
     from backend.retrieval.search import search
 
@@ -362,9 +366,19 @@ def main() -> int:
                     help="BỎ QUA checkpoint cũ, chạy lại từ đầu")
     ap.add_argument("--zip", action="store_true",
                     help="gói thêm submission.zip theo chuẩn BTC")
+    ap.add_argument(
+        "--qa-submission-policy",
+        choices=(*QA_SUBMISSION_POLICIES, "all"),
+        default="semantic",
+        help=("chiến lược answer Q&A: semantic (cũ), exact, robust; "
+              "all chỉ tạo các zip để so sánh, không chạy lại retrieval"),
+    )
     ap.add_argument("--skip-health", action="store_true",
                     help="bỏ qua deep check đầu lượt (chỉ khi biết rõ mình đang làm gì)")
     args = ap.parse_args()
+
+    if args.qa_submission_policy == "all" and not args.zip:
+        ap.error("--qa-submission-policy all cần --zip để không ghi đè CSV của các chiến lược")
 
     queries = _doc_queries(Path(args.queries))
     out_dir = Path(args.out)
@@ -441,6 +455,7 @@ def main() -> int:
                 "n_answers": len(answers), "n_real": that, "seconds": round(giay, 2),
                 "at": datetime.now().isoformat(timespec="seconds"),
                 "answer_text": phu.get("answer_text"),
+                "qa_trace": phu.get("qa_trace"),
                 "n_trake": phu.get("n_trake"),
                 "answers": [_answer_to_dict(a) for a in answers],
             }
@@ -476,15 +491,37 @@ def main() -> int:
         log.dong_lai()
         return 1
 
+    policies = QA_SUBMISSION_POLICIES if args.qa_submission_policy == "all" else (
+        args.qa_submission_policy,
+    )
     try:
-        if args.zip:
-            zip_path, loi_file = write_submission_zip(
-                subs, out_dir, expect_answers=args.answers, expected_n=n_trake or None)
-            log(f"\nĐã ghi {len(subs)} file nộp + gói {zip_path}")
-        else:
-            da_ghi, loi_file = write_submissions(
-                subs, out_dir, expect_answers=args.answers, expected_n=n_trake or None)
-            log(f"\nĐã ghi {len(da_ghi)} file nộp vào {out_dir}/")
+        for policy in policies:
+            # Chỉ Q&A nhận portfolio answer; KIS/TRAKE giữ nguyên tuple Answer
+            # và mọi frame index đã do allocator quyết định.
+            policy_subs = [
+                QuerySubmission(
+                    sub.query_id,
+                    sub.task_type,
+                    tuple(apply_qa_submission_policy(list(sub.answers), policy))
+                    if sub.task_type == "QA" else sub.answers,
+                )
+                for sub in subs
+            ]
+            if args.zip:
+                zip_name = (
+                    "submission.zip" if len(policies) == 1 else f"submission_{policy}.zip"
+                )
+                zip_path, loi_file = write_submission_zip(
+                    policy_subs, out_dir, zip_name=zip_name,
+                    expect_answers=args.answers, expected_n=n_trake or None)
+                log(f"\n[{policy}] Đã ghi {len(policy_subs)} file nộp + gói {zip_path}")
+            else:
+                da_ghi, loi_file = write_submissions(
+                    policy_subs, out_dir, expect_answers=args.answers,
+                    expected_n=n_trake or None)
+                log(f"\n[{policy}] Đã ghi {len(da_ghi)} file nộp vào {out_dir}/")
+            if loi_file:
+                raise ValueError(" · ".join(str(issue) for issue in loi_file))
     except ValueError as e:
         log(f"\nVALIDATOR TỪ CHỐI — không ghi file nào:\n{e}")
         log.dong_lai()

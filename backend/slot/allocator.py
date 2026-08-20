@@ -326,17 +326,16 @@ def allocate(
     ranked = _dedupe_shots(sorted(hits, key=lambda h: h.score, reverse=True))
 
     shot_index = _shots()
-    resolved, dropped = [], 0
-    for cand in ranked:
-        if cand.shot_id not in shot_index:
-            dropped += 1
-            continue
-        resolved.append(cand)
-    if dropped:
-        print(f"  [cảnh báo] slot allocator: bỏ {dropped}/{len(ranked)} shot ứng viên không có trong shots.parquet")
-    if not resolved:
-        raise ValueError("Không có shot ứng viên hợp lệ nào sau khi tra shots.parquet")
-    ranked = resolved
+    missing_shots = [cand.shot_id for cand in ranked if cand.shot_id not in shot_index]
+    if missing_shots:
+        # search(group_by_shot=True) đã lọc keyframe mồ côi. Id lạ lọt tới đây
+        # vì vậy là lệch phiên bản search ↔ shots.parquet, không phải một hit yếu
+        # có thể bỏ qua. Im lặng bỏ cả hit hạng chót làm release vẫn xanh dù hai
+        # tầng đang dùng hai bản dữ liệu khác nhau.
+        raise KeyError(
+            f"{len(missing_shots)} shot_id không có trong shots.parquet "
+            f"(ví dụ: {missing_shots[:3]}). Dừng để đồng bộ data/index."
+        )
     if task_type == "TRAKE":
         # `is None` chứ KHÔNG dùng `or`: n_trake=0 là số 0 falsy, `or` sẽ âm thầm
         # thay bằng 4 thay vì báo lỗi — đúng kiểu thay số lặng lẽ mà W0.2 cấm.

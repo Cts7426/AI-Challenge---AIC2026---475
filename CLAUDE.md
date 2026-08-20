@@ -1,5 +1,9 @@
 # CLAUDE.md — HCMAIC 2026 Multimedia Retrieval System
 
+> **Nguồn chuẩn hiện hành là `AGENTS.md` (kế hoạch ba đợt, cập nhật 21/08/2026).**
+> File này giữ tương thích cho công cụ cũ; khi có mâu thuẫn về frame map, metric,
+> Q&A policy, dữ liệu hoặc release workflow thì phải theo `AGENTS.md`.
+
 > Quy ước ngôn ngữ: giải thích & comment bằng TIẾNG VIỆT; mọi thứ thành code
 > (tên hàm, biến, field, collection, index) bằng TIẾNG ANH.
 > Thể thức thi chi tiết (dạng bài, cách chấm, chiến lược): đọc `docs/contest.md`

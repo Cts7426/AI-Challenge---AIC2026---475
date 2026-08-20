@@ -39,6 +39,31 @@ MAX_ANSWER_LEN = 500
 _DIGIT_TO_WORD = {"1": "một", "2": "hai", "3": "ba", "4": "bốn", "5": "năm"}
 
 
+# Dấu PHÂN CÁCH NGHÌN kiểu Việt Nam: "2.970" = 2970, "1.234.567" = 1234567.
+#
+# ⚠️ THÊM 20/08. Vì sao cần: `normalize_text` đổi mọi dấu câu thành khoảng trắng,
+# nên "2.970 m" ra "2 970 m" — BA token, không còn là một con số. Hệ quả nặng
+# nhất KHÔNG phải chấm điểm mà là `majority_answer()`: 3 lần sinh của
+# self-consistency viết cùng một số ba kiểu ("2.970 m" · "2970m" · "2970 mét")
+# sẽ bị chia thành ba nhóm một phiếu → `votes == 1` → `qa.py` bỏ shot → thử hết
+# 3 shot → RuntimeError → câu Q&A 0 điểm. Đúng dây chuyền đã ghi ở
+# `_contains_match`, chỉ khác chỗ vấp.
+#
+# ⚠️ Luật phải XÁC ĐỊNH, không được đoán. Dấu chấm trong dữ liệu này mang HAI
+# nghĩa và cùng một ký tự:
+#     "2.970"      nhóm sau = 3 chữ số  → phân cách nghìn  → gộp
+#     "2969.4"     nhóm sau = 1 chữ số  → thập phân        → KHÔNG gộp
+#     "20.08.2026" nhóm sau = 2 chữ số  → ngày tháng       → KHÔNG gộp
+# Chỉ gộp khi MỌI nhóm sau dấu đều đúng 3 chữ số và nhóm đầu 1-3 chữ số. Ngày
+# tháng có nhóm 2 chữ số nên tự rơi ra ngoài — nếu không, "20.08.2026" sẽ thành
+# "20082026" và không còn khớp với "20/08/2026" của bản ghi khác.
+_THOUSANDS_SEP = re.compile(r"\b(\d{1,3}(?:[.,]\d{3})+)\b")
+
+
+def _gop_dau_phan_cach_nghin(s: str) -> str:
+    return _THOUSANDS_SEP.sub(lambda m: m.group(1).replace(".", "").replace(",", ""), s)
+
+
 def normalize_text(s: str) -> str:
     """Tầng 1: bỏ dấu câu, khoảng trắng, lowercase, chuẩn hoá Unicode.
 
@@ -63,6 +88,9 @@ def normalize_text(s: str) -> str:
         return ""
     s = s.lower()
     s = unicodedata.normalize("NFKC", s)
+    # Gộp phân cách nghìn TRƯỚC khi xoá dấu câu — sau đó thì "2.970" đã thành
+    # "2 970" và không còn cách nào biết dấu chấm đó vốn là gì.
+    s = _gop_dau_phan_cach_nghin(s)
     s = re.sub(r"[^\w\s]", " ", s)
     s = " ".join(s.split())
     return s

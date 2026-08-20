@@ -194,3 +194,50 @@ def test_so_van_khop_duoc_qua_cac_tang_an_toan():
 
 def test_majority_mot_cau_tra_loi():
     assert majority_answer(["5"]) == ("5", 1)
+
+
+# ============================ dấu phân cách nghìn (20/08) ============================
+# Bối cảnh: QA04 nộp "2.970 m", chuẩn hoá cũ ra "2 970 m" — ba token, không còn
+# là một con số. Hậu quả nặng nhất không phải chấm điểm mà là majority_answer():
+# 3 lần sinh viết cùng một số ba kiểu → ba nhóm một phiếu → qa.py bỏ shot → 0 điểm.
+
+def test_gop_dau_cham_phan_cach_nghin():
+    assert normalize_text("2.970 m") == "2970 m"
+    assert normalize_text("1.234.567") == "1234567"
+
+
+def test_gop_dau_phay_phan_cach_nghin():
+    assert normalize_text("1,000") == "1000"
+
+
+def test_KHONG_gop_dau_thap_phan():
+    """Nhóm sau dấu chỉ 1 chữ số → thập phân, không phải phân cách nghìn."""
+    assert normalize_text("2969.4m") == "2969 4m"
+    assert normalize_text("2,5 kg") == "2 5 kg"
+
+
+def test_KHONG_gop_ngay_thang():
+    """⚠️ Chống hồi quy: nhóm 2 chữ số là ngày tháng. Gộp nhầm thì "20.08.2026"
+    thành "20082026" và hết khớp với "20/08/2026" ghi ở bản ghi khác."""
+    assert normalize_text("20.08.2026") == "20 08 2026"
+    assert answer_matches("20.08.2026", "20/08/2026", [])[0]
+
+
+def test_KHONG_gop_ti_so():
+    """Tỉ số không phải số nghìn — "2-1" vẫn phải là hai token."""
+    assert normalize_text("2-1") == "2 1"
+    assert not answer_matches("2-1", "21", [])[0]
+
+
+def test_vote_gom_duoc_cac_cach_viet_cung_mot_so():
+    """Đây là lý do THẬT SỰ phải sửa: self-consistency n=3 chia phiếu ảo."""
+    winner, votes = majority_answer(["2.970 m", "2970m", "2970 mét"])
+    assert votes == 3, "ba cách viết cùng một số phải về cùng một nhóm"
+    assert winner == "2970m", "phải lấy câu ngắn nhất trong nhóm thắng"
+
+
+def test_lam_tron_van_KHONG_duoc_tu_khop():
+    """2970 và 2969.4 là HAI con số khác nhau. Bộ khớp không được tự quyết định
+    dung sai làm tròn — đó là việc của người ra đề, khai qua answer_variants."""
+    assert not answer_matches("2.970 m", "2969.4m", [])[0]
+    assert answer_matches("2.970 m", "2969.4m", ["2970m"])[0]

@@ -11,7 +11,7 @@ class Query:
     query_id: str
     task_type: Literal["KIS", "QA", "TRAKE"]
     query_vi: str
-    split: Literal["tune", "holdout"]
+    split: Literal["tune", "holdout", "dress25"]
     query_en: str | None = None
     n_events: int | None = None
     event_descs: list[str] | None = None
@@ -19,7 +19,7 @@ class Query:
     def __post_init__(self):
         if self.task_type not in ("KIS", "QA", "TRAKE"):
             raise ValueError(f"task_type invalid: {self.task_type}")
-        if self.split not in ("tune", "holdout"):
+        if self.split not in ("tune", "holdout", "dress25"):
             raise ValueError(f"split invalid: {self.split}")
         if self.task_type == "TRAKE":
             if not self.n_events or self.n_events <= 0:

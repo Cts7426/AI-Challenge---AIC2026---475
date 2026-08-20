@@ -13,7 +13,9 @@
 
 Baseline regression: `dev_set/results/run_20260820_2349` chạy 30/30 query, 0 lỗi,
 semantic overall khoảng 0.4817. Đây là tune đã dùng để chỉnh hệ thống, không phải
-ước lượng điểm thi.
+ước lượng điểm thi. Artefact tái lập `run_20260821_0209` tại commit `78c96e3`
+khớp hoàn toàn: semantic 0.4817, exact 0.4017, KIS 0.4957, Q&A 0.48 và
+TRAKE 0.325.
 
 Hướng đi:
 
@@ -25,13 +27,13 @@ Hướng đi:
 
 ### R0 — đóng baseline
 
-- [ ] **R0.1 · P0 · Đóng baseline hiện tại**
+- [x] **R0.1 · P0 · Đóng baseline hiện tại**
   - Tách thay đổi Q&A đang dở thành checkpoint truy nguồn được.
   - Lưu commit, config snapshot và artefact `run_20260820_2349`.
   - Khôi phục đúng interpreter/dependency và chạy lại regression.
   - **Xong khi:** worktree release sạch; test và baseline có lệnh tái hiện.
-  - **Tiến độ 21/08:** `.venv` đã có dependency lõi, full suite 596 pass;
-    chưa tick vì worktree chưa đóng checkpoint và chưa replay tune bằng CLIP runtime.
+  - **Bằng chứng 21/08:** checkpoint `78c96e3`, full suite 596 pass; replay tune
+    `run_20260821_0209` chạy 30/30, 0 lỗi và khớp toàn bộ điểm tổng baseline.
 
 ### R1 — đợt 1 / Batch 1
 

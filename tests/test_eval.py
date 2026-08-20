@@ -422,3 +422,25 @@ def test_bao_cao_neu_ro_truy_van_CHUA_CO_NHAN():
     bc = score_runs([_lo("KIS", [_kis()], qid="q1"), _lo("KIS", [_kis()], qid="q_chua_cham")], bn)
     assert bc.skipped == ["q_chua_cham"]
     assert "chưa có nhãn nào" in format_report(bc)
+
+
+def test_bao_khi_lo_nop_THIEU_dong():
+    """Nộp 3/100 dòng vẫn ra Final 1.0 — báo cáo BẮT BUỘC phải nói ra.
+
+    `r_at_k` lấy max của tập nhỏ hơn là đúng công thức (nộp ít = ít cơ hội, không
+    phải bị trừ). Nhưng im lặng ở đây là thước đo lệch về phía CAO — loại lệch mà
+    không ai đi soi. Xem đầu `app/eval.py`.
+    """
+    bn = LabelIndex([_nhan(query_id="q1")])
+    bc = score_runs([_lo("KIS", [_kis()] * 3, qid="q1")], bn)
+    assert bc.scores[0].final == 1.0, "công thức không đổi — chỉ thêm cảnh báo"
+    bao_cao = format_report(bc)
+    assert "THIẾU" in bao_cao
+    assert "q1(3)" in bao_cao
+
+
+def test_khong_bao_thieu_khi_du_100_dong():
+    """Đủ 100 dòng thì không được có cảnh báo — báo động giả cũng là lỗi."""
+    bn = LabelIndex([_nhan(query_id="q1")])
+    bc = score_runs([_lo("KIS", [_kis()] * 100, qid="q1")], bn)
+    assert "THIẾU" not in format_report(bc)

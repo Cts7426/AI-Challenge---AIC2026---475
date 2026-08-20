@@ -211,8 +211,21 @@ def split_id(kf_id: str) -> tuple[str, str | None, str | None]:
         video = m.group("video")
         return video, _id_bridge(video)[1].get(kf_id), kf_id
 
-    # Không khớp hệ nào → vẫn cố lấy video_id để panel không trống trơn
-    video = kf_id.split("#")[0].rsplit("_", 1)[0] if ("#" in kf_id or "_" in kf_id) else kf_id
+    # Không khớp hệ nào → vẫn cố lấy video_id để panel không trống trơn.
+    #
+    # ⚠️ SỬA 20/08 — hai kiểu id cắt bằng hai phép KHÁC NHAU, không được dồn vào
+    # một dòng. Bản cũ luôn `rsplit("_", 1)` sau khi đã `split("#")`, nên id có `#`
+    # bị cắt HAI LẦN:
+    #     "L21_V001#s0006" → split("#") → "L21_V001" → rsplit("_") → "L21"  ✗
+    # `_BTC_ID` chỉ khớp `#k`, nên MỌI `shot_id` (`#s0006`) rơi xuống đây — tức
+    # nhánh sinh ra để cứu panel lại trả về một video KHÔNG TỒN TẠI, mọi bảng tra
+    # ra rỗng, panel vẫn trống. Không crash, không log: đúng thứ nó định tránh.
+    if "#" in kf_id:
+        video = kf_id.split("#")[0]        # phần trước `#` đã là video_id
+    elif "_" in kf_id:
+        video = kf_id.rsplit("_", 1)[0]    # bỏ hậu tố số của kiểu tự trích
+    else:
+        video = kf_id
     return video, None, None
 
 

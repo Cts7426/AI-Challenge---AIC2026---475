@@ -84,6 +84,24 @@ def test_id_la_khong_lam_sap():
     assert btc is None and own is None
 
 
+@pytest.mark.parametrize("kf_id, video_mong_doi", [
+    ("L21_V001#s0006", "L21_V001"),   # shot_id — `_BTC_ID` chỉ khớp `#k`, rơi xuống nhánh lui
+    ("L21_V001#k12", "L21_V001"),     # ordinal ít chữ số
+    ("L21_V001#", "L21_V001"),
+    ("L21_V001_0090", "L21_V001"),    # hậu tố < 6 chữ số → không khớp `_OWN_ID`
+    ("khong_theo_he_nao", "khong_theo_he"),
+])
+def test_nhanh_lui_van_lay_dung_video_id(kf_id, video_mong_doi):
+    """Nhánh lui sinh ra để cứu `video_id` — nó phải cứu được thật.
+
+    Bản cũ luôn `rsplit("_", 1)` SAU khi đã `split("#")`, nên id có `#` bị cắt hai
+    lần: `L21_V001#s0006` → `L21`. Trả về một video KHÔNG TỒN TẠI thì mọi bảng tra
+    ra rỗng và panel vẫn trống — đúng thứ nhánh này định tránh, mà không crash,
+    không log.
+    """
+    assert split_id(kf_id)[0] == video_mong_doi
+
+
 @pytest.mark.parametrize("xau", ["", None, 123])
 def test_dau_vao_khong_phai_chuoi_tra_rong(xau):
     """Ô rỗng của parquet ra `NAType`, UI có thể dán vào `None` — không được nổ regex."""

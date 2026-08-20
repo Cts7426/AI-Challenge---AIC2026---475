@@ -308,6 +308,27 @@ def format_report(report: Report, n_worst: int = 10) -> str:
     out.append("  " + "─" * 58)
     out.append(_table_row("CHUNG", report.mean()))
 
+    # Nộp THIẾU dòng — thước đo phải nói, dù công thức không phạt.
+    #
+    # `r_at_k` lấy max của tập nhỏ hơn là ĐÚNG (nộp ít thì ít cơ hội, không phải bị
+    # trừ). Nhưng hệ quả là một lô chỉ có 3/100 dòng vẫn ra Final 1.0 nếu dòng đầu
+    # trúng — và báo cáo không hé một chữ. Đúng loại lệch mà đầu file này cảnh báo:
+    # thước đo sai về phía CAO thì không ai đi soi.
+    #
+    # Đường tới được: batch runner hỏng giữa chừng, slot allocator raise rồi ai đó
+    # bắt exception, hoặc chạy thử với `--limit`. Cả ba đều để lại file runs trông
+    # bình thường. CLAUDE.md §6 luật 1: ô 51–100 bỏ trống là vứt điểm miễn phí.
+    thieu = [s for s in report.scores if s.n_rows < MAX_ANSWERS]
+    if thieu:
+        out.append(
+            f"\n⚠️  {len(thieu)}/{len(report.scores)} truy vấn nộp THIẾU dòng "
+            f"(< {MAX_ANSWERS}). Không bị trừ điểm, nhưng mỗi ô trống là một cơ hội "
+            "vứt đi — và Final ở đây KHÔNG phản ánh chuyện đó: "
+            + ", ".join(f"{s.query_id}({s.n_rows})" for s in sorted(
+                thieu, key=lambda s: s.n_rows)[:5])
+            + ("…" if len(thieu) > 5 else "")
+        )
+
     unjudged = sum(s.answer_unjudged for s in report.scores)
     if unjudged:
         out.append(f"\n⚠️  {unjudged} dòng Q&A có frame ĐÚNG nhưng answer CHƯA AI CHẤM "

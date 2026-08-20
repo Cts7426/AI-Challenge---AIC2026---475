@@ -176,9 +176,18 @@ Không so chuỗi thông điệp lỗi (dễ vỡ) — probe cổng là tín hi�
 > BUILD_TASKS D4.1 chỉ đích danh). Mục này chỉ tóm tắt.
 
 ```python
-# data/config/slot_budget.py
-SLOT_BUDGET = [(100, 1)]      # trước: [(1,6), (4,4), (10,2), (58,1)] — phủ 73 shot
+# data/config/slot_budget.py — GIỮ NGUYÊN bảng của Công Lý
+SLOT_BUDGET = [(1, 6), (4, 4), (10, 2), (58, 1)]      # phủ 73 shot
 ```
+
+> **20/08 — đã đảo lại.** Bảng từng được đổi sang `[(100, 1)]` (commit `973e397`) rồi
+> hoàn về nguyên trạng. Lý do ở §5.5: số đo chỉ phủ **một** trục (bề rộng), còn trục
+> chiều sâu — thứ bảng này đang cược — dev set hiện tại không đo được. Đổi một bảng
+> đang chạy dựa trên bằng chứng nửa vời, ngay trước đợt 1, là rủi ro không cần thiết.
+>
+> Kết quả thật của D4.1 vì vậy **không phải** một bảng mới, mà là: (a) đo được phân bố
+> hạng shot lần đầu, (b) chỉ ra dev set không đo được cái gì, (c) **tìm và sửa một lỗi
+> thật trong `allocator.py`** (§5.6).
 
 ### 5.1. Trả nợ trước khi đo
 
@@ -215,21 +224,79 @@ KHÔNG đồng nghĩa "trúng đáp án".
 
 ### 5.4. Kết quả
 
-| | Bảng cũ (73 shot) | Bảng mới (100 shot) |
+| | Bảng đang dùng (73 shot) | Nếu phủ 100 shot |
 |:---|---:|---:|
-| Final (replay, 23 câu KIS) | 0.470 | **0.487** |
-| R@100 | 0.739 | **0.826** |
+| Final (replay, 23 câu KIS) | 0.470 | 0.487 |
+| R@100 | 0.739 | 0.826 |
 | R@1 / R@5 / R@20 / R@50 | 0.130 / 0.261 / 0.522 / 0.696 | **giống hệt** |
 
 Toàn bộ chênh lệch nằm ở R@100 — đúng hai câu ở §5.2. `sweep` (phương pháp độc lập,
 quét trên shot thật tại đúng phân bố hạng đo được) cho kết luận cùng chiều ở mọi giả
 định độ rộng cửa sổ.
 
-**Hệ quả có lợi kèm theo:** mỗi shot đúng 1 slot → **mọi dòng nộp đều là frame của
-keyframe thật** (mức ưu tiên ① của allocator), không dòng nào là frame rải suy đoán.
+**Nhưng cột phải KHÔNG được áp dụng** — xem §5.5.
 
-**Chiều sâu tự quay lại khi cần:** search trả < 100 shot thì `budget_per_shot()` rải
-phần dư thành chiều sâu (71 shot → 29 shot đầu được 2 slot). Không cần bảng riêng.
+### 5.5. Vì sao đo xong mà không đổi bảng
+
+Cột phải chỉ trả lời câu hỏi *"phủ rộng có đáng không"*. Nó **không** trả lời câu hỏi
+đối ngẫu *"đào sâu có đáng không"* — và bảng đang dùng cược vào đúng câu hỏi thứ hai
+(6 slot cho hạng 1, 4 slot cho hạng 2–5).
+
+Dev set không thể trả lời câu thứ hai, vì lý do ở §6: cửa sổ ground truth được dựng từ
+chính keyframe. Đổi bảng lúc này là **bỏ một canh bạc chưa kiểm chứng để lấy một canh
+bạc khác cũng chưa kiểm chứng** — chỉ khác là canh bạc mới chưa từng chạy trên dữ liệu
+thật lần nào, và đợt 1 còn 1 ngày.
+
+Thêm nữa, đo lại độ phủ TRONG shot (§5.6) cho thấy chiều sâu **đáng giá hơn tao tưởng**
+khi cửa sổ hẹp: shot 69 frame, cửa sổ 11 frame (đúng con số BTC) — 6 slot phủ **0.95**,
+1 slot chỉ **0.19**. Bảng của Công Lý cấp 6 slot cho đúng hạng 1, và `shotrank` cho
+trung vị hạng 10, tức chiều sâu rơi gần vùng shot đúng hay nằm.
+
+Điều kiện đổi sang `[(100,1)]` ghi tường minh trong `slot_budget.py` và
+`reports/slot_tuning.md §6`.
+
+### 5.6. ⭐ Lỗi thật tìm được khi đo chiều sâu — `_spread_evenly`
+
+**Đã sửa, `backend/slot/allocator.py`.** Đây mới là kết quả có giá trị nhất của D4.1.
+
+Đi tìm câu trả lời cho "đào sâu có đáng không" thì lộ ra đào sâu đang **hỏng**. Bản cũ
+rải `m` điểm bằng `a + round(i·(b-a)/(m-1))` — công thức này **luôn gồm cả hai mép**
+vùng rải. Với `m == 2` nó cho đúng `[a, b]`: hai mép, bỏ trống nguyên khúc giữa.
+
+Vùng rải `[6, 62]` trong shot 69 frame:
+
+| m | bản cũ | w=11 | w=20 | w=35 |
+|---:|:---|---:|---:|---:|
+| 1 | `[34]` | 0.19 | 0.40 | 1.00 |
+| 2 | `[6, 62]` | 0.24 | **0.28** | **0.40** |
+
+**Cấp thêm một slot mà bài nộp KÉM đi.** Không exception, không log, validator vẫn
+xanh — đúng loại lỗi im lặng cả dự án đang phòng. Và nó nằm trên đường chạy thật: bảng
+hiện tại cấp **2 slot cho hạng 6–15**, đúng vùng quanh trung vị hạng 10.
+
+Sửa thành rải theo **tâm ô** (`a + (2i+1)·span // (2m)`), thắng ở mọi `m` và mọi độ
+rộng: `m=2` → `[20, 48]` (0.37 / 0.80 / 1.00). `m == 1` không đổi giá trị.
+
+Đo đầu-cuối qua `_frames_of_shot`, shot 69 frame có keyframe thật ở frame 20:
+
+| quota | trước | w=11 | sau | w=11 |
+|---:|:---|---:|:---|---:|
+| 3 | `[6, 20, 62]` | 0.42 | `[6, 20, 48]` | **0.49** |
+| 4 | `[6, 20, 34, 62]` | 0.61 | `[15, 20, 34, 53]` | **0.64** |
+| 6 | `[6, 7, 20, 34, 48, 62]` | 0.81 | `[11, 20, 23, 34, 45, 57]` | **0.95** |
+
+Bản cũ ở quota 6 còn nhả `6` và `7` **dính nhau** — hai slot mua một cửa.
+
+Thêm 2 test giữ bất biến, quan trọng là `test_spread_evenly_do_phu_don_dieu`: **thêm
+một điểm không bao giờ làm độ phủ giảm**, đo trên `w ∈ {5,11,20,35}`, `m ∈ [1,8]`.
+Bản cũ HỎNG test này. Bất biến đó đúng bất kể cửa sổ rộng bao nhiêu hay phân bố thế
+nào — nó không phụ thuộc giả định, khác với các con số tuyệt đối ở trên.
+
+> ⚠️ **Về độ tin cậy của các số trong §5.6:** đây là **mô phỏng**, không phải phép đo
+> trên ground truth. `L=69` và `_frames_of_shot` là thật; `w` và giả thiết *"cửa sổ rơi
+> đều trong shot"* là giả định. Chúng chứng minh được đúng một điều — `[6,62]` kém hơn
+> `[20,48]` với mọi phân bố hợp lý, vì nó bỏ trống khúc giữa — chứ không định lượng
+> được điểm thật tăng bao nhiêu.
 
 ---
 
@@ -259,9 +326,14 @@ Nên báo cáo tách đôi độ tin cậy của hai kết luận:
   thuộc cửa sổ dựng kiểu gì.
 - ❌ Kết luận về **chiều sâu** thì dev set **không nói được gì**.
 
-Vì vậy `slot_budget.py` không ghi "đào sâu vô dụng" mà ghi *"chưa có bằng chứng nào
-cho thấy đào sâu đáng giá, trong khi có bằng chứng rõ ràng rằng độ phủ đáng giá"* —
-kèm điều kiện đảo ngược tường minh.
+Đây chính là lý do bảng **không** bị đổi (§5.5): nửa bằng chứng thì không đủ để thay
+một bảng đang chạy. `slot_budget.py` ghi lại cả hai vế cùng điều kiện đổi tường minh,
+để lần tune sau khỏi đo lại từ đầu.
+
+**Việc cho Linh (§8 của `slot_tuning.md`):** dev set hiện tại không dùng tune được bất
+cứ thứ gì bên trong shot. Cần **10 câu** có cửa sổ `[s,e]` xác định bằng mắt theo **sự
+kiện**, không theo keyframe gần nhất, độ rộng cỡ BTC dùng (~11 frame KIS, <10 TRAKE).
+10 câu như vậy giá trị hơn 30 câu dựng theo cách cũ.
 
 ---
 
@@ -313,6 +385,76 @@ khẳng định **TRAKE và QA không gọi tới nó**. Bug quay lại lần th
 
 > ⚠️ **Chưa nghiệm thu end-to-end.** Q&A/TRAKE trong UI bắt buộc gọi `llm()`, mà cái
 > đó đang kẹt ở §9. Mới test được bằng monkeypatch.
+
+### 8.2. `app/eval.py` im lặng khi lô nộp THIẾU dòng
+
+Tìm ra khi rà lại toàn bộ code tooling (20/08). Dựng một lô chỉ có **3 dòng** thay vì
+100:
+
+```
+Final = 1.0  |  n_rows = 3        ← báo cáo không hé một chữ
+```
+
+`r_at_k` lấy max của tập nhỏ hơn là **đúng công thức** — nộp ít nghĩa là ít cơ hội,
+không phải bị trừ điểm. Nhưng hệ quả là một lô hỏng giữa chừng vẫn ra điểm đẹp, và đó
+đúng là loại lệch mà **chính đầu file `eval.py` cảnh báo**: *"thước đo sai lệch về
+phía CAO thì không ai đi soi"*.
+
+Đường tới được: batch runner hỏng giữa chừng · allocator raise rồi bị ai đó bắt ·
+chạy thử với `--limit`. Cả ba đều để lại file runs trông bình thường.
+
+**Sửa:** `format_report()` thêm cảnh báo, cùng lối với 3 cảnh báo sẵn có
+(`answer_unjudged`, `trake_n_inferred`, `skipped`) — **công thức không đổi**, chỉ nói
+ra. +2 test, trong đó một test khẳng định **không** báo động giả khi đủ 100 dòng.
+
+### 8.3. `app/evidence.py::split_id` cắt thừa `video_id` khi id có `#`
+
+Nhánh lui của `split_id` (dùng khi id không khớp hệ nào) luôn `rsplit("_", 1)` **sau
+khi** đã `split("#")`, tức cắt hai lần:
+
+```
+"L21_V001#s0006".split("#")[0]      → "L21_V001"
+                .rsplit("_", 1)[0]  → "L21"        ← cắt thừa
+```
+
+`_BTC_ID` chỉ khớp `#k`, nên **mọi `shot_id`** (`#s0006`) rơi vào đây. Nhánh này sinh
+ra để *"cố lấy video_id cho panel khỏi trống trơn"* — mà lại trả về một video **không
+tồn tại**, mọi bảng tra ra rỗng, panel vẫn trống. Không crash, không log: đúng thứ nó
+định tránh.
+
+**Sửa:** tách hai phép cắt cho hai kiểu id, `#` thì lấy phần trước `#`, `_` thì bỏ hậu
+tố số. +5 ca test tham số hoá.
+
+### 8.4. Rà soát không ra lỗi — ghi lại để khỏi soi hai lần
+
+Các ca đã thử và **đạt**, nên không sửa gì:
+
+| Ca thử | Kết quả |
+|:---|:---|
+| CSV escape: answer chứa `,` `"` xuống dòng, khoảng trắng đầu/cuối | đúng cả 4, `csv.writer` khớp quy chuẩn BTC |
+| `suggest_filename` với `../evil`, `a\nb`, chuỗi rỗng | chặn cả 3 |
+| `frame_id` âm · KIS có `answer` · `frame_ids` rỗng | validator bắt hết |
+| zip nén tay thiếu lớp `submission/` · file lạ sót lại · BOM | bắt hết |
+| 1 / 2 / 3 / 31 shot ứng viên | luôn đủ 100 dòng |
+| TRAKE chỉ 1 shot ứng viên | 100 dòng × 4 frame, tăng dần ngặt |
+| 5 dòng đầu có phải 5 shot khác nhau | đúng |
+| TRAKE nộp thừa frame so với N | chỉ tính N đầu, không thổi điểm |
+| Unicode tiếng Việt NFC vs NFD trong answer | khớp cả hai dạng |
+| answer 99 ký tự có dấu (198 byte) | không báo nhầm — đếm ký tự, không đếm byte |
+| Q&A chấm lại frame sau khi đã phán answer | không xoá phán quyết cũ |
+| `ts` lệch múi giờ (`+00:00` vs `+07:00`) | so mốc thời gian thật, không so chuỗi |
+| dòng JSONL hỏng giữa file nhãn | báo rồi bỏ qua, không kéo sập cả file |
+| `evidence_of` với id rỗng / `None` / rác | không sập |
+| chéo `shots.parquet` ↔ `video_info.parquet` ↔ `frame_map` | 0 lệch trên 100.810 shot |
+| TRAKE trên shot 12 / 69 / 1795 frame | 100 dòng, tăng dần ngặt, trải đều |
+| dựng zip nộp thật cho cả 3 dạng bài | không BOM, không `\r`, đúng 100 dòng/file |
+
+**Một câu hỏi thiết kế đã đo và quyết định KHÔNG đổi:** allocator xen kẽ theo *shot*,
+không theo *video* — nên search dồn nhiều shot cùng một video vào top-5 thì các dòng
+đầu cùng video, và video sai là mất cả R@1 lẫn R@5. Đo trên 23 câu KIS dev: 21 câu có
+3–5 video khác nhau trong top-5; 2 câu dồn ≥4/5 vào một video (K15 `L29_V001`×5, K17
+`L30_V028`×4) — và **cả hai đều dồn ĐÚNG video**. Không có bằng chứng nào ủng hộ việc
+ép đa dạng theo video, nên giữ nguyên.
 
 ---
 
@@ -400,12 +542,16 @@ python -m pytest tests dev_set/tests -q      # 499 passed
 |:---|:---|---:|
 | `scripts/preflight_check.py` | Tạo mới — D6.1 | 656 |
 | `tests/test_preflight.py` | Tạo mới — 26 test | 320 |
-| `reports/slot_tuning.md` | Tạo mới — báo cáo D4.1 | 216 |
+| `reports/slot_tuning.md` | Tạo mới — báo cáo D4.1 | 305 |
 | `app/debug_ui.py` | Sửa — định tuyến theo dạng bài (§8) | +159 −13 |
 | `app/score_simulator.py` | Sửa — thêm `shotrank`, sửa nhãn, sửa cảnh báo TRAKE | +136 −3 |
 | `tests/test_debug_ui.py` | Sửa — +7 test định tuyến | +120 |
-| `data/config/slot_budget.py` | Sửa — `SLOT_BUDGET` + lý do đổi | +37 −10 |
+| **`backend/slot/allocator.py`** | **Sửa — `_spread_evenly` rải tâm ô (§5.6)** | **+35 −4** |
+| **`tests/test_allocator.py`** | **Sửa — +2 test bất biến độ phủ** | **+43 −1** |
+| `data/config/slot_budget.py` | Sửa — **giữ nguyên bảng**, ghi lại số đo | +26 −28 |
 | `tests/test_score_simulator.py` | Sửa — bỏ nhãn gõ tay | +10 −4 |
+
+Tổng: **510 test pass** (`pytest tests dev_set/tests -q`).
 
 ### Việc tiếp theo, xếp theo mức khẩn
 

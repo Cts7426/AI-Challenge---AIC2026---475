@@ -17,8 +17,19 @@ class TestSchema(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "split invalid"):
             Query(query_id="Q1", task_type="KIS", query_vi="test", split="invalid")
 
-        with self.assertRaisesRegex(ValueError, "TRAKE query must have n_events > 0"):
+        with self.assertRaisesRegex(ValueError, "TRAKE query must have integer n_events >= 2"):
             Query(query_id="Q1", task_type="TRAKE", query_vi="test", split="tune")
+
+        with self.assertRaisesRegex(ValueError, "event_descs length"):
+            Query(
+                query_id="Q1", task_type="TRAKE", query_vi="test", split="tune",
+                n_events=3, event_descs=["a", "b"],
+            )
+
+        Query(
+            query_id="Q1", task_type="TRAKE", query_vi="test", split="tune",
+            n_events=2, event_descs=["a", "b"],
+        )
 
     def test_gt_kis_validation(self):
         gt = GroundTruthKIS(query_id="Q1", video_id="V1", frame_start=10, frame_end=20)

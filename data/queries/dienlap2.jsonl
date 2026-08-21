@@ -1,0 +1,7 @@
+{"task_type": "KIS", "query_vi": "Cảnh ô tô bốc cháy dữ dội với ngọn lửa lớn trên cầu vào ban đêm, khói bốc cao, dòng chữ 'Ô tô bốc cháy giữa cầu Bà Chiêm, Nhà Bè' hiện dưới màn hình.", "query_id": "query-1-kis"}
+{"task_type": "KIS", "query_vi": "Cận cảnh bàn trưng bày sách về Hồ Chí Minh xếp thành hàng, có bảng chữ đỏ hình trái tim 'Hồ Chí Minh - Đẹp nhất tên Người' và các cuốn 'Một người cha' bìa đỏ.", "query_id": "query-2-kis"}
+{"task_type": "KIS", "query_vi": "Đoàn đua xe đạp về đích trên đường phố, các tay đua bám sát nhau dưới cổng đích màu đỏ, hai bên có bảng quảng cáo và chữ 'REPLAY' ở góc dưới màn hình.", "query_id": "query-3-kis"}
+{"task_type": "QA", "query_vi": "Cận cảnh gương mặt nghiêng của một người đàn ông mặc áo xám đứng nhìn ra mặt sông rộng, phía xa là hàng cây và nhà cửa ven bờ, góc trên trái có logo HTV Online. Nhà văn được nhắc đến trong đoạn này tên gì?", "query_id": "query-4-qa"}
+{"task_type": "QA", "query_vi": "Cận cảnh đĩa sứ trắng đựng món lòng/mề heo xào với hành lá cắt khúc, hành tây, gừng và ớt sừng thái sợi, đặt trên bàn trắng cạnh đĩa rau xà lách và rau thơm, góc trên trái có logo HTV Online. Món ăn được giới thiệu trong đoạn video có tên là gì?", "query_id": "query-5-qa"}
+{"task_type": "TRAKE", "query_vi": "sườn non chặt khúc trong tô . đổ nước vào nồi sườn trên bếp . mít non được cắt thành miếng . trái vả được cắt thành miếng", "query_id": "query-6-trake"}
+{"task_type": "TRAKE", "query_vi": "gà được ướp với gia vị nêm sẵn lẩu Thái . cà chua được cắt . rau om và ngò gai được cắt khúc", "query_id": "query-7-trake"}

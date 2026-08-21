@@ -48,6 +48,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import traceback
@@ -67,13 +68,18 @@ from backend.export import (  # noqa: E402
 )
 from backend.export.qa_variants import apply_qa_submission_policy  # noqa: E402
 from data.config.qa_evaluation import QA_SUBMISSION_POLICIES  # noqa: E402
-from data.config.submit_format import TASK_TYPES, Answer  # noqa: E402
+from data.config.submit_format import TASK_TYPES, Answer, suggest_filename  # noqa: E402
 
 CHECKPOINT_NAME = "checkpoint.jsonl"
 LOG_NAME = "run.log"
 
 
 # ============================================================ đọc file truy vấn
+
+def _official_task_from_id(query_id: str) -> str | None:
+    """Suy task chỉ từ hậu tố tên file BTC đã công bố, không đoán nội dung đề."""
+    match = re.search(r"-(kis|qa|trake)$", query_id, flags=re.IGNORECASE)
+    return match.group(1).upper() if match else None
 
 def _doc_queries(path: Path) -> list[dict]:
     """Đọc .json (list) hoặc .jsonl (mỗi dòng một object), kiểm tra ngặt.
@@ -108,8 +114,19 @@ def _doc_queries(path: Path) -> list[dict]:
             if not str(q.get(khoa, "")).strip():
                 loi.append(f"truy vấn thứ {i}: thiếu hoặc rỗng khoá '{khoa}'")
         qid, task = str(q.get("query_id", "")), q.get("task_type")
+        if qid != qid.strip():
+            loi.append(f"[{qid!r}] query_id có khoảng trắng đầu/cuối — tên file nộp sẽ sai")
+        try:
+            suggest_filename(qid)
+        except ValueError as e:
+            loi.append(str(e))
         if task not in TASK_TYPES:
             loi.append(f"[{qid}] task_type '{task}' không hợp lệ, phải là {TASK_TYPES}")
+        official_task = _official_task_from_id(qid)
+        if official_task and task in TASK_TYPES and task != official_task:
+            loi.append(
+                f"[{qid}] hậu tố tên file là {official_task} nhưng task_type={task}"
+            )
         if qid in da_thay:
             loi.append(f"[{qid}] query_id trùng với truy vấn thứ {da_thay[qid]} — "
                        "mỗi truy vấn một file nộp, trùng id là ghi đè lên nhau")
@@ -117,8 +134,26 @@ def _doc_queries(path: Path) -> list[dict]:
         # TRAKE cần ≥2 khoảnh khắc; sai N là 0 điểm dù mọi frame đều đúng
         if task == "TRAKE":
             ds = q.get("event_descs")
-            if ds is not None and len(ds) < 2:
-                loi.append(f"[{qid}] TRAKE cần ít nhất 2 sự kiện, event_descs có {len(ds)}")
+            ds_hop_le = (
+                isinstance(ds, list)
+                and len(ds) >= 2
+                and all(isinstance(event, str) and event.strip() for event in ds)
+            )
+            if ds is not None and not ds_hop_le:
+                loi.append(f"[{qid}] event_descs phải là list ít nhất 2 chuỗi không rỗng")
+
+            n_events = q.get("n_events")
+            if n_events is None and ds_hop_le:
+                # Đây là suy luận cấu trúc an toàn duy nhất: list tường minh có
+                # bao nhiêu phần tử thì bài nộp cần đúng bấy nhiêu frame/event.
+                n_events = len(ds)
+                q["n_events"] = n_events
+            if isinstance(n_events, bool) or not isinstance(n_events, int) or n_events < 2:
+                loi.append(f"[{qid}] TRAKE cần n_events nguyên >=2")
+            elif ds_hop_le and len(ds) != n_events:
+                loi.append(
+                    f"[{qid}] n_events={n_events} nhưng event_descs có {len(ds)} phần tử"
+                )
 
     if loi:
         raise SystemExit("[đầu vào] File truy vấn có lỗi:\n  " + "\n  ".join(loi[:20]))
@@ -137,6 +172,58 @@ def _query_hash(q: dict) -> str:
         ensure_ascii=False, sort_keys=True,
     )
     return hashlib.sha256(loi.encode("utf-8")).hexdigest()[:12]
+
+
+def _llm_runtime_errors(queries: list[dict]) -> list[str]:
+    """Chặn gọi nhầm provider/model mặc định trước khi batch chạm search/LLM.
+
+    Chỉ kiểm các query thực sự sắp compute. Hàm không chọn model và không đọc
+    `.env`: operator phải chủ động export backend/model/key trong đúng terminal
+    chạy release, nhờ đó một biến bị quên không âm thầm rơi về API/Opus mặc định.
+    """
+    need_llm = [
+        q["query_id"] for q in queries
+        if q["task_type"] in ("QA", "TRAKE")
+        or (q["task_type"] == "KIS" and not str(q.get("query_en") or "").strip())
+    ]
+    if not need_llm:
+        return []
+
+    backend = str(os.environ.get("LLM_BACKEND") or "").strip()
+    if not backend:
+        return [
+            "batch có query cần LLM nhưng LLM_BACKEND chưa được set tường minh "
+            f"(ví dụ: {', '.join(need_llm[:5])})"
+        ]
+    config = {
+        "api": ("LLM_API_MODEL", "ANTHROPIC_API_KEY"),
+        "gemini": ("LLM_GEMINI_MODEL", "GEMINI_API_KEY"),
+        "local": ("LLM_LOCAL_MODEL", None),
+    }
+    if backend not in config:
+        return [f"LLM_BACKEND={backend!r} không hợp lệ; chọn api, gemini hoặc local"]
+
+    model_env, key_env = config[backend]
+    errors = []
+    if not str(os.environ.get(model_env) or "").strip():
+        errors.append(
+            f"thiếu {model_env}; phải chọn model tường minh trước batch để không dùng default ẩn"
+        )
+    if key_env and not str(os.environ.get(key_env) or "").strip():
+        # Adapter hiện hành chỉ nạp SECRET từ `.env`; model/backend vẫn phải do
+        # operator export tường minh. Chỉ kiểm sự hiện diện, tuyệt đối không log
+        # hay đưa giá trị key vào artefact.
+        env_path = REPO_ROOT / ".env"
+        key_in_dotenv = False
+        if env_path.is_file():
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                name, sep, value = line.partition("=")
+                if sep and name.strip() == key_env and value.strip().strip('"\''):
+                    key_in_dotenv = True
+                    break
+        if not key_in_dotenv:
+            errors.append(f"thiếu {key_env} cho LLM_BACKEND={backend}")
+    return errors
 
 
 # ================================================================== checkpoint
@@ -316,13 +403,22 @@ def giai_mot_query(q: dict, total: int) -> tuple[list[Answer], dict]:
         # event_descs có sẵn thì dùng, khỏi tốn một lần gọi LLM và khỏi phụ thuộc
         # vào việc LLM tách đúng — tách tay bao giờ cũng đáng tin hơn.
         events = q.get("event_descs") or parse_events(q["query_vi"])
+        expected_n = q.get("n_events")
+        if isinstance(expected_n, bool) or not isinstance(expected_n, int) or expected_n < 2:
+            raise RuntimeError("TRAKE thiếu n_events hợp lệ — đầu vào phải được kiểm trước khi chạy")
+        if not isinstance(events, list) or len(events) != expected_n:
+            actual_n = len(events) if isinstance(events, list) else "không phải list"
+            raise RuntimeError(
+                f"TRAKE khai báo n_events={expected_n} nhưng tách được {actual_n} sự kiện; "
+                "dừng trước search để không nộp sai số frame"
+            )
         candidates = trake_search(events, top_videos=total)
         if not candidates:
             raise RuntimeError("trake_search() không tìm được video ứng viên nào")
         ans = to_answers(candidates)
         if len(ans) < total:
             ans = pad_answers(candidates, total)
-        return ans[:total], {"n_trake": len(events), "answer_text": None}
+        return ans[:total], {"n_trake": expected_n, "answer_text": None}
 
     if task == "QA":
         from backend.tasks.qa import qa_pipeline
@@ -380,7 +476,8 @@ def main() -> int:
     if args.qa_submission_policy == "all" and not args.zip:
         ap.error("--qa-submission-policy all cần --zip để không ghi đè CSV của các chiến lược")
 
-    queries = _doc_queries(Path(args.queries))
+    all_queries = _doc_queries(Path(args.queries))
+    queries = all_queries
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -389,17 +486,19 @@ def main() -> int:
 
     if args.only:
         chon = {s.strip() for s in args.only.split(",") if s.strip()}
-        la = chon - {q["query_id"] for q in queries}
+        la = chon - {q["query_id"] for q in all_queries}
         if la:
             log(f"[đầu vào] --only có query_id không tồn tại: {sorted(la)}")
             return 2
-        queries = [q for q in queries if q["query_id"] in chon]
+        queries = [q for q in all_queries if q["query_id"] in chon]
 
     # --- checkpoint: cái nào đã xong, cái nào hết hạn vì đề đã đổi
     cu = {} if args.fresh else ck.doc()
     xong: dict[str, dict] = {}
     het_han: list[str] = []
-    for q in queries:
+    # Luôn nạp checkpoint hợp lệ của TOÀN BỘ file query. `--only` chỉ giới hạn
+    # câu cần compute, không được làm gói ZIP cuối mất các câu còn lại.
+    for q in all_queries:
         rec = cu.get(q["query_id"])
         if not rec:
             continue
@@ -408,8 +507,19 @@ def main() -> int:
         else:
             xong[q["query_id"]] = rec
 
+    can_chay = [q for q in queries if q["query_id"] not in xong]
+    llm_errors = _llm_runtime_errors(can_chay)
+    if llm_errors:
+        for error in llm_errors:
+            log(f"[cấu hình LLM] {error}")
+        log("DỪNG trước preflight/search; chưa có API nào được gọi.")
+        log.dong_lai()
+        return 2
+
     log("=" * 72, ra_man_hinh=False)
-    log(f"BẮT ĐẦU · {len(queries)} truy vấn · {args.answers} dòng/truy vấn · ra {out_dir}")
+    log(f"BẮT ĐẦU · {len(all_queries)} truy vấn"
+        + (f" · compute --only {len(queries)} câu" if args.only else "")
+        + f" · {args.answers} dòng/truy vấn · ra {out_dir}")
     if not _preflight(log, args.skip_health):
         log.dong_lai()
         return 1
@@ -420,8 +530,6 @@ def main() -> int:
             f"{', '.join(het_han[:5])}{'...' if len(het_han) > 5 else ''} → chạy lại")
     if args.fresh and cu:
         log("--fresh: bỏ qua toàn bộ checkpoint cũ")
-
-    can_chay = [q for q in queries if q["query_id"] not in xong]
 
     # --- vòng chạy chính
     ck.mo()
@@ -475,7 +583,25 @@ def main() -> int:
     # --- dựng bài nộp từ CHECKPOINT (không phải từ RAM): lần chạy tiếp cũng
     # phải ra đủ bộ file, kể cả những câu xong từ lần trước.
     subs, n_trake = [], {}
-    for q in queries:
+    export_queries = all_queries
+    missing_for_full_export = [
+        q["query_id"] for q in export_queries if q["query_id"] not in xong
+    ]
+    if missing_for_full_export:
+        log(
+            "\nDỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. "
+            "Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: "
+            + ", ".join(missing_for_full_export[:20])
+        )
+        if hong:
+            log(
+                f"Chạy lại câu hỏng: python run.py --queries {args.queries} "
+                f"--out {args.out} --only {','.join(qid for qid, _ in hong[:20])}"
+            )
+        log.dong_lai()
+        return 1
+
+    for q in export_queries:
         rec = xong.get(q["query_id"])
         if not rec:
             continue
@@ -535,7 +661,7 @@ def main() -> int:
         return 1
 
     # --- tổng kết: nói to phần THIẾU, đừng để nó lẫn vào dòng "đã ghi N file"
-    thieu = [q["query_id"] for q in queries if q["query_id"] not in xong]
+    thieu = [q["query_id"] for q in all_queries if q["query_id"] not in xong]
     tong_that = sum(r["n_real"] for r in xong.values())
     log(f"Tổng dòng có bằng chứng thật: {tong_that} / {len(subs) * args.answers}")
 

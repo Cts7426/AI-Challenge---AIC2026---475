@@ -83,31 +83,31 @@
     "r5": 0.0,
     "r20": 0.0,
     "r50": 0.0,
-    "r100": 0.0,
-    "final": 0.0,
-    "raw_rank": null
+    "r100": 1.0,
+    "final": 0.2,
+    "raw_rank": 58
   },
   {
     "query_id": "K04",
     "query_vi": "các thiếu nữ mặc trang phục truyền thống quỳ trong sảnh có tượng đá",
-    "r1": 0.0,
-    "r5": 0.0,
+    "r1": 1.0,
+    "r5": 1.0,
     "r20": 1.0,
     "r50": 1.0,
     "r100": 1.0,
-    "final": 0.6,
-    "raw_rank": 13
+    "final": 1.0,
+    "raw_rank": 1
   },
   {
     "query_id": "K05",
     "query_vi": "đoàn đua xe đạp nhìn từ trên cao băng qua ngã tư đường phố",
     "r1": 0.0,
     "r5": 0.0,
-    "r20": 1.0,
+    "r20": 0.0,
     "r50": 1.0,
     "r100": 1.0,
-    "final": 0.6,
-    "raw_rank": 17
+    "final": 0.4,
+    "raw_rank": 30
   },
   {
     "query_id": "K06",
@@ -149,20 +149,20 @@
     "r5": 0.0,
     "r20": 0.0,
     "r50": 0.0,
-    "r100": 0.0,
-    "final": 0.0,
-    "raw_rank": null
+    "r100": 1.0,
+    "final": 0.2,
+    "raw_rank": 69
   },
   {
     "query_id": "K10",
     "query_vi": "thịt và cà chua trong nồi thủy tinh trên bếp, có đũa khuấy",
     "r1": 0.0,
-    "r5": 0.0,
+    "r5": 1.0,
     "r20": 1.0,
     "r50": 1.0,
     "r100": 1.0,
-    "final": 0.6,
-    "raw_rank": 7
+    "final": 0.8,
+    "raw_rank": 5
   },
   {
     "query_id": "K11",
@@ -178,35 +178,35 @@
   {
     "query_id": "K12",
     "query_vi": "bàn thờ sơn son thếp vàng với hai lọng vàng hai bên",
-    "r1": 1.0,
-    "r5": 1.0,
-    "r20": 1.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 1.0,
-    "raw_rank": 1
-  },
-  {
-    "query_id": "K13",
-    "query_vi": "hai bàn tay sửa chữa bộ phận phanh xe máy cận cảnh",
-    "r1": 0.0,
-    "r5": 1.0,
-    "r20": 1.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.8,
-    "raw_rank": 4
-  },
-  {
-    "query_id": "K14",
-    "query_vi": "kho hàng ven sông với cờ đỏ sao vàng và các bao tải xếp trên bến",
     "r1": 0.0,
     "r5": 0.0,
     "r20": 1.0,
     "r50": 1.0,
     "r100": 1.0,
     "final": 0.6,
-    "raw_rank": 18
+    "raw_rank": 15
+  },
+  {
+    "query_id": "K13",
+    "query_vi": "hai bàn tay sửa chữa bộ phận phanh xe máy cận cảnh",
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 1.0,
+    "r50": 1.0,
+    "r100": 1.0,
+    "final": 0.6,
+    "raw_rank": 19
+  },
+  {
+    "query_id": "K14",
+    "query_vi": "kho hàng ven sông với cờ đỏ sao vàng và các bao tải xếp trên bến",
+    "r1": 0.0,
+    "r5": 1.0,
+    "r20": 1.0,
+    "r50": 1.0,
+    "r100": 1.0,
+    "final": 0.8,
+    "raw_rank": 5
   },
   {
     "query_id": "K15",
@@ -217,7 +217,7 @@
     "r50": 1.0,
     "r100": 1.0,
     "final": 0.4,
-    "raw_rank": 25
+    "raw_rank": 27
   },
   {
     "query_id": "K16",
@@ -225,10 +225,10 @@
     "r1": 0.0,
     "r5": 0.0,
     "r20": 0.0,
-    "r50": 0.0,
+    "r50": 1.0,
     "r100": 1.0,
-    "final": 0.2,
-    "raw_rank": 65
+    "final": 0.4,
+    "raw_rank": 23
   },
   {
     "query_id": "K17",
@@ -239,7 +239,7 @@
     "r50": 1.0,
     "r100": 1.0,
     "final": 0.6,
-    "raw_rank": 7
+    "raw_rank": 6
   },
   {
     "query_id": "K18",
@@ -248,8 +248,8 @@
     "r5": 0.0,
     "r20": 0.0,
     "r50": 0.0,
-    "r100": 1.0,
-    "final": 0.2,
-    "raw_rank": 91
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   }
 ]

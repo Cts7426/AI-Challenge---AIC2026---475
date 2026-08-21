@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,12 @@ from data.config.submit_format import Answer
 
 
 # ------------------------------------------------------------------ tiện ích
+
+@pytest.fixture(autouse=True)
+def explicit_test_llm_runtime(monkeypatch):
+    """Test batch dùng solver giả nhưng vẫn phải tuân gate cấu hình release."""
+    monkeypatch.setenv("LLM_BACKEND", "local")
+    monkeypatch.setenv("LLM_LOCAL_MODEL", "test-only-model")
 
 @pytest.fixture
 def video(real_videos):
@@ -123,8 +130,73 @@ def test_tu_choi_thieu_khoa(viet_queries):
 
 def test_tu_choi_trake_it_hon_2_su_kien(viet_queries):
     """Sai N ở TRAKE = 0 điểm dù mọi frame đều đúng."""
-    with pytest.raises(SystemExit, match="ít nhất 2 sự kiện"):
+    with pytest.raises(SystemExit, match="event_descs phải là list ít nhất 2"):
         R._doc_queries(viet_queries([dict(TRAKE, event_descs=["a"])]))
+
+
+def test_trake_derive_n_events_tu_event_descs_tuong_minh(viet_queries):
+    [q] = R._doc_queries(viet_queries([TRAKE]))
+    assert q["n_events"] == 2
+
+
+@pytest.mark.parametrize("n_events", [None, 1, True, "2"])
+def test_tu_choi_trake_thieu_hoac_sai_n_events(viet_queries, n_events):
+    q = {"query_id": "q3", "task_type": "TRAKE", "query_vi": "a . b"}
+    if n_events is not None:
+        q["n_events"] = n_events
+    with pytest.raises(SystemExit, match="n_events nguyên >=2"):
+        R._doc_queries(viet_queries([q]))
+
+
+def test_tu_choi_trake_n_events_lech_event_descs(viet_queries):
+    with pytest.raises(SystemExit, match="n_events=3.*event_descs có 2"):
+        R._doc_queries(viet_queries([dict(TRAKE, n_events=3)]))
+
+
+def test_tu_choi_hau_to_ten_file_khong_khop_task(viet_queries):
+    q = {"query_id": "query-4-trake", "task_type": "KIS", "query_vi": "x"}
+    with pytest.raises(SystemExit, match="hậu tố tên file là TRAKE"):
+        R._doc_queries(viet_queries([q]))
+
+
+def test_trake_parse_ra_sai_n_thi_dung_truoc_search(monkeypatch):
+    import backend.tasks.trake as trake
+
+    monkeypatch.setattr(trake, "parse_events", lambda _: ["a", "b"])
+    monkeypatch.setattr(
+        trake, "trake_search",
+        lambda *a, **kw: pytest.fail("không được search khi số event đã sai"),
+    )
+    q = {
+        "query_id": "query-4-trake", "task_type": "TRAKE",
+        "query_vi": "nội dung chưa biết cách phân tách", "n_events": 3,
+    }
+    with pytest.raises(RuntimeError, match="n_events=3.*tách được 2"):
+        R.giai_mot_query(q, total=5)
+
+
+def test_batch_can_llm_nhung_chua_set_env_thi_dung_truoc_preflight(
+    monkeypatch, tmp_path, viet_queries,
+):
+    monkeypatch.delenv("LLM_BACKEND", raising=False)
+    monkeypatch.delenv("LLM_LOCAL_MODEL", raising=False)
+    monkeypatch.setattr(
+        R, "_preflight", lambda *a, **kw: pytest.fail("không được connect/preflight"),
+    )
+    monkeypatch.setattr(
+        R, "giai_mot_query", lambda *a, **kw: pytest.fail("không được gọi pipeline"),
+    )
+    out = tmp_path / "ra-gate"
+    monkeypatch.setattr(R.sys, "argv", [
+        "run.py", "--queries", str(viet_queries([QA], "gate.json")),
+        "--out", str(out),
+    ])
+    assert R.main() == 2
+    assert "LLM_BACKEND chưa được set tường minh" in (out / R.LOG_NAME).read_text("utf-8")
+
+
+def test_kis_co_query_en_khong_bi_gate_llm():
+    assert R._llm_runtime_errors([dict(KIS, query_en="motorcycle at intersection")]) == []
 
 
 def test_tu_choi_file_rong_va_json_hong(tmp_path):
@@ -163,8 +235,11 @@ def test_chay_het_va_ghi_du_file(chay):
 def test_mot_cau_hong_thi_cac_cau_khac_van_chay(chay):
     ma, out, goi = chay([KIS, QA, TRAKE], hong_qid={"q2"})
     assert goi == ["q1", "q2", "q3"], "phải thử hết mọi câu, không dừng ở câu hỏng"
-    assert (out / "q1.csv").exists() and (out / "q3.csv").exists()
-    assert not (out / "q2.csv").exists(), "câu hỏng KHÔNG được sinh file nộp giả"
+    assert not list(out.glob("*.csv")), \
+        "thiếu một câu thì không được để lại submission bán phần có thể bị nộp nhầm"
+    assert not list(out.glob("*.zip"))
+    assert set(R.Checkpoint(out / R.CHECKPOINT_NAME).doc()) == {"q1", "q3"}, \
+        "câu chạy được vẫn phải được checkpoint để lần sau chỉ làm lại câu hỏng"
     assert ma == 1, "có câu hỏng thì exit code phải khác 0"
 
 
@@ -253,7 +328,7 @@ def test_checkpoint_giu_answer_text_cua_QA(chay):
 
     # và lần chạy tiếp (đọc từ checkpoint) vẫn ghi answer vào file nộp
     _, out2, _ = chay([QA])
-    assert ",5" in (out2 / "q2.csv").read_text(encoding="utf-8")
+    assert ',"5"' in (out2 / "q2.csv").read_text(encoding="utf-8")
 
 
 # ------------------------------------------------------------------- --only
@@ -261,7 +336,27 @@ def test_checkpoint_giu_answer_text_cua_QA(chay):
 def test_only_chi_chay_cau_duoc_chon(chay):
     ma, out, goi = chay([KIS, QA, TRAKE], extra_args=["--only", "q2,q3"])
     assert goi == ["q2", "q3"]
-    assert not (out / "q1.csv").exists()
+    assert ma == 1
+    assert not list(out.glob("*.csv")), \
+        "checkpoint thiếu q1 thì không được xuất một submission subset dễ nộp nhầm"
+
+
+def test_only_rerun_sau_full_van_zip_du_toan_bo_query(chay):
+    ma1, _, _ = chay([KIS, QA, TRAKE])
+    assert ma1 == 0
+
+    # Chỉ q2 đổi nội dung nên checkpoint q2 hết hạn; q1/q3 phải lấy lại từ
+    # checkpoint rồi cùng xuất vào ZIP mới, không bị --only làm biến mất.
+    qa_moi = dict(QA, query_vi="biển số xe là gì?")
+    ma2, out, goi2 = chay(
+        [KIS, qa_moi, TRAKE], extra_args=["--only", "q2", "--zip"]
+    )
+    assert ma2 == 0 and goi2 == ["q2"]
+    zip_path = next(out.glob("*.zip"))
+    with zipfile.ZipFile(zip_path) as z:
+        assert set(z.namelist()) == {
+            "submission/q1.csv", "submission/q2.csv", "submission/q3.csv",
+        }
 
 
 def test_only_voi_query_id_khong_ton_tai_thi_bao_loi(chay):

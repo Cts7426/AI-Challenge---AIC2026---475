@@ -1,5 +1,9 @@
 # B0.1 Data Audit Report
 
+> **Báo cáo lịch sử.** Số liệu scan video và pixel parity phản ánh checkpoint
+> B0.1 tại thời điểm lập báo cáo, không phải trạng thái raw hiện hành. Đợt 1 chỉ
+> giữ các archive/raw asset cần cho pipeline; 14 archive video đang deferred.
+
 ## 1. Tổng quan dữ liệu
 - **Tổng số video:** 873
 - **Tổng thời lượng:** 130.67 giờ (470428 giây)
@@ -37,13 +41,18 @@
 - **Chưa verify (giả định 0):** 789 video
 - **Số video bị lệch offset:** 6/84 (7.1%)
 
-*Việc verify offset sẽ tiếp tục chạy song song trong quá trình `rolling_ingest` khi tải data.*
+*Chưa có bằng chứng job verify đã chạy tiếp sau checkpoint này. Vì archive video
+đang deferred, 789 video chưa verify là rủi ro đã biết chứ không được tính là đã
+hoàn tất.*
 
 ## 7. Phát hiện khung hình đen (Black Keyframes)
 Đã quét toàn bộ 873 thư mục ảnh tĩnh của BTC để tìm các `ordinal 1` (frame đầu tiên) có dung lượng siêu nhỏ (< 10KB), thường là khung hình đen hoàn toàn ở đầu video.
 
-**Vấn đề:** Các khung hình đen này được trích xuất vector CLIP và vẫn nằm trong bộ chỉ mục (index). Vector của chúng không mang thông tin ngữ nghĩa thực tế nhưng vẫn có thể bị trả về cho các truy vấn về "cảnh tối". 
-**Khuyến nghị:** Team Retrieval (Thạch) nên loại bỏ chúng khỏi index, và bước B1.2 nên bỏ qua không trích xuất đặc trưng bổ sung cho các frame này.
+**Giả thuyết lịch sử:** Các file nhỏ có thể là khung đen và có thể ảnh hưởng truy
+vấn "cảnh tối", nhưng báo cáo này chưa lưu phép đo pixel hay ablation retrieval.
+**Quyết định hiện tại:** Hoãn xóa. Không loại riêng 11 keyframe khỏi Milvus/ES/map
+vì sẽ phá parity 177.321 nếu không migration đồng bộ. Chỉ xem xét sau khi kiểm
+ảnh, đo query-level và có kế hoạch cập nhật mọi lớp dữ liệu cùng lúc.
 
 **Danh sách 11 video có `ordinal 1` là khung hình đen:**
 - L21_V006 (5621 bytes)

@@ -1,5 +1,28 @@
 import argparse
+import json
+
 from backend.llm.adapter import llm
+
+
+VARIANTS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "variants": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "adds_detail": {"type": "boolean"},
+                },
+                "required": ["text", "adds_detail"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["variants"],
+    "additionalProperties": False,
+}
 
 def generate_variants(query: str) -> list[str]:
     """
@@ -7,21 +30,22 @@ def generate_variants(query: str) -> list[str]:
     Lưu ý: chưa tích hợp OpenCLIP để lọc Cosine > 0.85 ở file này
     do yêu cầu giữ script độc lập. Cần bổ sung metric Cosine nếu có CLIP.
     """
-    prompt = f"Tạo 5 biến thể của câu truy vấn sau: '{query}'. Không được thêm thắt chi tiết mới."
-    resp = llm(prompt)
-    # Parse resp to list (giả định LLM trả về danh sách có đánh số)
-    variants = [line.strip("- 1234567890.") for line in resp.split("\n") if line.strip()]
-    
-    valid_variants = []
-    for v in variants:
-        if not v: continue
-        # Call LLM lần 2 để kiểm tra "bịa"
-        check_prompt = f"Câu '{v}' có thêm chi tiết nào không có trong câu '{query}' không? Trả lời YES hoặc NO."
-        check_resp = llm(check_prompt)
-        if "NO" in check_resp.upper():
-            valid_variants.append(v)
-            
-    return valid_variants
+    prompt = (
+        "Tạo đúng 5 biến thể ngắn của truy vấn dưới đây. Không thêm màu sắc, số "
+        "lượng, vật thể, người, địa điểm hay hành động không có trong câu gốc. "
+        "Với mỗi biến thể, đánh dấu adds_detail=true nếu chính biến thể đó thêm "
+        "bất kỳ chi tiết mới nào.\n\n"
+        f"Truy vấn gốc: {query}"
+    )
+    payload = json.loads(llm(
+        prompt, json_schema=VARIANTS_SCHEMA, max_tokens=512,
+    ))
+    # Một structured request thay cho 1 lượt sinh + tối đa 5 lượt kiểm riêng.
+    # Vẫn fail-safe: chỉ nhận dòng model tự đánh dấu không thêm chi tiết.
+    return [
+        row["text"].strip() for row in payload["variants"]
+        if row.get("text", "").strip() and not row.get("adds_detail", True)
+    ][:5]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

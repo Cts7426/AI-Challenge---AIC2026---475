@@ -19,7 +19,7 @@
    - [3.4 `keyframes.parquet` (371,702 dòng)](#34-keyframesparquet-371702-dòng)
    - [3.5 `asr.parquet` (13,415 dòng)](#35-asrparquet-13415-dòng)
    - [3.6 `ocr.parquet` (160,393 dòng)](#36-ocrparquet-160393-dòng)
-   - [3.7 `docs_bm25.parquet` (343,996 dòng)](#37-docs_bm25parquet-343996-dòng)
+   - [3.7 `docs_bm25.parquet` (371,702 dòng)](#37-docs_bm25parquet-371702-dòng)
 4. [ĐẶC TẢ THUẬT TOÁN & LOGIC CODE THỰC THI CHÍNH](#4-đặc-tả-thuật-toán--logic-code-thực-thi-chính)
    - [4.1 Task B0.1: Video Metadata & Frame Map Monotonic Alignment](#41-task-b01-video-metadata--frame-map-monotonic-alignment)
    - [4.2 Task B1.1: Shot Segmentation & Force-Split Strategy](#42-task-b11-shot-segmentation--force-split-strategy)
@@ -75,14 +75,14 @@ flowchart TD
         C1[(video_info.parquet<br/>873 rows)]
         C2[(frame_map.parquet<br/>177,321 rows)]
         C3[(shots.parquet<br/>100,810 rows)]
-        C4[(keyframes.parquet<br/>343,996 rows)]
+        C4[(keyframes.parquet<br/>371,702 rows)]
         C5[(asr.parquet<br/>13,415 rows)]
         C6[(ocr.parquet<br/>160,393 rows)]
     end
 
     subgraph SYNTHESIS["4. TỔNG HỢP TRI THỨC VĂN BẢN (BM25 SYNTHESIS)"]
         D1[docs_bm25_job.py<br/>Time-Series Join & Windowing]
-        D2[(docs_bm25.parquet<br/>343,996 rows)]
+        D2[(docs_bm25.parquet<br/>371,702 rows)]
     end
 
     subgraph SERVING["5. TẦNG PHỤC VỤ RUNTIME (SEARCH & AI ENGINE)"]
@@ -177,11 +177,11 @@ Kết quả phân đoạn video thành các phân cảnh (Shot) bằng AI TransN
 
 ---
 
-### 3.4 `keyframes.parquet` (343,996 dòng)
+### 3.4 `keyframes.parquet` (371,702 dòng)
 Tập hợp toàn bộ các khung hình chốt được trích xuất đều đặn với mật độ **1 FPS** (1 khung hình mỗi giây). Đây là tập xương sống để trích xuất Feature CLIP Vector và hiển thị UI Debug.
 
 - **Đường dẫn**: `data/derived/keyframes.parquet`
-- **Số dòng**: 343,996
+- **Số dòng**: 371,702
 - **Bảng tả chi tiết từng trường**:
 
 | Tên Cột | Kiểu Dữ Liệu (Dtype) | Mô Tả Nghiệp Vụ & Giới Hạn | Mẫu Dữ Liệu Thực Tế |
@@ -191,7 +191,7 @@ Tập hợp toàn bộ các khung hình chốt được trích xuất đều đ�
 | `shot_id` | `string` | Khóa ngoại trỏ về `shots.parquet`. | `"L22_V004#s0000"` |
 | `frame_idx` | `int64` | **Chỉ số Frame tuyệt đối** của Keyframe trong video gốc. | `9` |
 | `path` | `string` | Đường dẫn tương đối lưu file ảnh JPEG trên đĩa. | `"keyframes/L22_V004/f0000009.jpg"` |
-| `row_id` | `int64` | Chỉ số hàng toàn cục (Global Row Index, trỏ thẳng vào ma trận CLIP vector). | `0` |
+| `row_id` | `int64` | Chỉ số hàng toàn cục của bảng keyframe dẫn xuất; không phải hàng trực tiếp của ma trận CLIP BTC. Ánh xạ sang feature BTC phải qua `clip_kf_map.parquet`. | `0` |
 
 ---
 
@@ -236,11 +236,11 @@ Dữ liệu nhận diện chữ xuất hiện trên màn hình video (Optical Ch
 
 ---
 
-### 3.7 `docs_bm25.parquet` (343,996 dòng)
+### 3.7 `docs_bm25.parquet` (371,702 dòng)
 **CƠ SỞ DỮ LIỆU TÌM KIẾM TRUNG TÂM (CORE BM25 TEXTUAL CORPUS)**. Mỗi hàng đại diện cho đúng 1 Keyframe (khớp 1-1 với `keyframes.parquet`), tổng hợp toàn bộ ngữ cảnh Textual xung quanh khung hình đó.
 
 - **Đường dẫn**: `data/derived/docs_bm25.parquet`
-- **Số dòng**: 343,996
+- **Số dòng**: 371,702
 - **Bảng tả chi tiết từng trường**:
 
 | Tên Cột | Kiểu Dữ Liệu (Dtype) | Mô Tả Nghiệp Vụ & Giới Hạn | Mẫu Dữ Liệu Thực Tế |
@@ -256,16 +256,15 @@ Dữ liệu nhận diện chữ xuất hiện trên màn hình video (Optical Ch
 ## 4. ĐẶC TẢ THUẬT TOÁN & LOGIC CODE THỰC THI CHÍNH
 
 ### 4.1 Task B0.1: Video Metadata & Frame Map Monotonic Alignment
-- **Vấn đề Kỹ thuật**: Các video MP4 thu từ nhiều nguồn truyền hình khác nhau có hiện tượng Variable Frame Rate (VFR) hoặc bị mất frame header. Công thức tính frame ngây thơ `frame_idx = time * fps` sẽ làm lệch frame từ vài giây đến hàng chục giây khi video dài.
-- **Giải pháp Thuật toán**:
-  1. Sử dụng OpenCV / FFmpeg giải mã trực tiếp toàn bộ luồng video stream để ghi nhận chỉ số `frame_idx` thực tế và timestamp `pts_time` tương ứng.
-  2. Xây dựng bảng tra cứu `frame_map.parquet`.
-  3. Áp dụng thuật toán kiểm tra tính đơn điệu tăng (Strictly Monotonic Check):
-     ```text
-     frame_idx_corrected[i] = frame_idx_raw[i] + kf_offset[i]
-     ```
-     Bắt buộc thỏa mãn: `frame_idx_corrected[i] > frame_idx_corrected[i-1]` trên toàn bộ 873 video.
-  4. Chạy script nghiệm thu `preprocessing/test_opencv_parity.py` kiểm tra Parity 20 mẫu ngẫu nhiên để khẳng định sai số frame bằng 0.
+- **Nguồn frame hiện hành**: `metadata/map-keyframes/*.csv` của BTC cung cấp cặp
+  ordinal → frame tuyệt đối; pipeline chuẩn hóa thành `frame_map.parquet`. Không
+  tái tạo `frame_idx` bằng tên ảnh hoặc công thức `time * fps` ở caller.
+- **Mức nghiệm thu hiện có**:
+  1. 177.321 dòng / 873 video đã kiểm schema, khóa, giới hạn frame và tính đơn điệu.
+  2. Đối chiếu pixel/offset với video mới hoàn tất cho 84/873 video; 6/84 có offset
+     khác 0 và 789 video còn chưa xác minh pixel (`reports/data_audit.md`).
+  3. Các cột provenance `offset_verified`/`frame_idx_status` không còn trong bản
+     parquet hiện tại, nên không được mô tả toàn bộ map là đã pixel-verify.
 
 ### 4.2 Task B1.1: Shot Segmentation & Force-Split Strategy
 - **Thuật toán Phân cảnh**: Sử dụng mạng nơ-ron TransNetV2 (hoặc PySceneDetect với ngưỡng `threshold = 27.0`) quét qua sự thay đổi màu sắc và tần số không gian giữa các frame liên tiếp để xác định biên giới chuyển cảnh.
@@ -317,7 +316,7 @@ Dữ liệu nhận diện chữ xuất hiện trên màn hình video (Optical Ch
 ### 4.6 Task B1.7: BM25 Time-Series Document Synthesis (`docs_bm25_job.py`)
 Job quan trọng nhất trong việc hợp nhất đa nguồn dữ liệu vào `docs_bm25.parquet`. Thực thi qua 5 bước nghiêm ngặt:
 
-1. **Đọc Dữ liệu Khởi tạo**: Nạp `keyframes.parquet` (343,996 dòng) làm khung chuẩn.
+1. **Đọc Dữ liệu Khởi tạo**: Nạp `keyframes.parquet` (371,702 dòng) làm khung chuẩn.
 2. **Gộp Metadata JSON**: Quét thư mục `data/raw/btc/metadata/media-info/*.json`. Đọc `title` và `description` gộp theo `video_id`.
 3. **Gộp OCR qua Thuật toán Time-Series Join (`merge_asof`)**:
    - Do OCR chạy trên ảnh đại diện `rep_kf` có chỉ số `kf_id` theo format BTC (`L21_V001#k0001`), không thể join bằng chuỗi trực tiếp vào `kf_id` chuẩn hóa mới (`L22_V004_0000009`).
@@ -358,9 +357,14 @@ Job quan trọng nhất trong việc hợp nhất đa nguồn dữ liệu vào `
 > [!CAUTION]
 > **NHỮNG NGUYÊN TẮC THÉP - VI PHẠM SẼ GÂY LỖI IM LẶNG HOẶC LÀM KẾT QUẢ NỘP BÀI BẰNG 0 ĐIỂM**
 
-1. **DUY NHẤT MỘT CHUẨN KHOÁ JOIN**:
-   - Tất cả các liên kết dữ liệu giữa Elasticsearch, Milvus Vector DB, và các file Parquet **CHỈ ĐƯỢC PHÉP** sử dụng `kf_id` chuẩn hóa (`L22_V004_0000009`) hoặc cặp định danh `(video_id, frame_idx)`.
-   - **TUYỆT ĐỐI CẤM** dùng số đếm file `0000.jpg`, `0001.jpg` của BTC làm khóa chính hoặc lưu trữ trong CSDL.
+1. **KHÓA JOIN PHẢI ĐÚNG TỪNG LỚP**:
+   - `keyframe_id` BTC (`L21_V001#k0001`, cột `kf_id` trong `frame_map`) là khóa
+     nối Milvus ↔ ES OCR/objects ↔ frame map.
+   - `kf_id` dẫn xuất (`L22_V004_0000009`) nối `keyframes.parquet` ↔
+     `docs_bm25.parquet`; khi đi giữa hai lớp phải dùng ánh xạ tường minh
+     `clip_kf_map.parquet`, không join chuỗi theo cảm tính.
+   - **TUYỆT ĐỐI CẤM** dùng ordinal/tên file `0001.jpg` làm frame nộp hoặc suy
+     `frame_idx` từ hậu tố khóa.
 
 2. **CHUẨN XUẤT FILE NỘP BÀI (SUBMISSION FORMAT)**:
    - Trường `frame_id` trong file nộp bài cho BTC (CSV/JSON) **BẮT BUỘC** phải lấy giá trị từ cột `frame_idx` (chỉ số frame tuyệt đối thực tế trong video gốc).
@@ -384,7 +388,7 @@ Job quan trọng nhất trong việc hợp nhất đa nguồn dữ liệu vào `
 ### Audit Level 1: Kiểm tra Số lượng & Số hàng Đã khớp (Parity Assertion)
 Chạy script `scripts/audit/b17_docs_bm25.py`:
 - Kịch bản: Khẳng định số lượng hàng trong `docs_bm25.parquet` phải bằng đúng số lượng hàng trong `keyframes.parquet`.
-- Trạng thái nghiệm thu: **PASSED (343,996 / 343,996 rows)**.
+- Trạng thái nghiệm thu hiện hành: **PASSED (371,702 / 371,702 rows)**.
 
 ### Audit Level 2: Kiểm tra Độc lập Giá trị Null & Khóa bị thiếu (Null & Key Assertion)
 - Đảm bảo 100% các cột `kf_id`, `video_id`, `shot_id`, `frame_idx` không chứa bất kỳ giá trị `NaN` hay `Null` nào.
@@ -451,7 +455,7 @@ python -m backend.retrieval.search "con cà xỉu miền tây" --en "ca xiu clam
 | Hiện Tượng Lỗi | Nguyên Nhân Gốc (Root Cause) | Cách Khắc Phục Chuẩn |
 |---|---|---|
 | Search BM25 ra kết quả 0 frame | File `docs_bm25.parquet` bị thiếu hoặc chưa chạy nạp Elasticsearch. | Kiểm tra `data/derived/docs_bm25.parquet`, chạy lại `python -m backend.indexing.load_metadata --recreate`. |
-| Lệch `frame_idx` khi nộp bài thi | Dùng nhầm số thứ tự ảnh đếm của BTC (`0001.jpg`) thay vì `frame_idx`. | Truy xuất cột `frame_idx` trực tiếp từ `keyframes.parquet` hoặc `docs_bm25.parquet`. |
+| Lệch `frame_idx` khi nộp bài thi | Dùng nhầm ordinal ảnh BTC (`0001.jpg`) hoặc frame dẫn xuất thay vì frame được map. | Tra `keyframe_id` qua `frame_map.parquet`/allocator; tầng format chỉ ghi `frame_idx` đã được cấp và không tự suy. |
 | Lỗi `MergeError: incompatible merge keys` | Lệch kiểu dữ liệu giữa PyArrow `string[python]` và pandas `object`. | Ép kiểu `df['video_id'] = df['video_id'].astype(str)` trước khi gọi `merge` hoặc `merge_asof`. |
 | Milvus trả về khoảng cách Negative Cosine | Quên L2-Normalize vector trước khi `insert` hoặc `search`. | Gọi `vector = vector / np.linalg.norm(vector)` ở cả 2 phía index và query. |
 | Job ASR / OCR bị tràn bộ nhớ (OOM) | Đang chạy trực tiếp trên máy local Windows/Mac với batch size quá lớn. | Sử dụng tham số `--shard` và `--num-shards` chia lô chạy trên Kaggle/Colab GPU. |

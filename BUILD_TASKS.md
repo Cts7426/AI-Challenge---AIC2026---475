@@ -37,24 +37,34 @@ Hướng đi:
 
 ### R1 — đợt 1 / Batch 1
 
-- [ ] **R1.1 · P0 · Audit và nạp đủ Batch 1**
+- [x] **R1.1 · P0 · Audit và nạp đủ lớp dữ liệu cần cho Batch 1**
   - CSV BTC chỉ là manifest URL. Chạy `scripts/audit_batch_manifest.py` để theo
-    dõi từng archive: URL, trạng thái, kích thước, SHA-256, giải nén và số file.
+    dõi đủ 32 archive: URL, trạng thái, kích thước, SHA-256, giải nén và số file.
+  - Bộ bắt buộc đợt 1 gồm 14 archive keyframe + 4 archive lõi. 14 archive video
+    vẫn được audit nhưng gắn `deferred_not_required_round1`; chỉ tải khi một task
+    đã đo được thật sự cần pixel video/frame dày.
   - Tái sử dụng file đã tải hợp lệ; không giải nén/chuyển đổi bằng script có thể
     ghi lại parquet trước khi dry-run và đối chiếu số dòng.
-  - **Xong khi:** mọi URL Batch 1 có trạng thái `present`, hash và asset count;
-    core parquet/map/index khớp data manifest.
-  - **Tiến độ 21/08:** audit 32 URL, mới có 1 archive (`Keyframes_L21.zip`),
-    còn thiếu 31; xem `reports/BATCH1_DATA_AUDIT_20260821.md`.
+  - **Xong khi:** bộ bắt buộc 18/18 có trạng thái `present`, SHA-256, số member
+    của từng ZIP và số member đã giải nén khớp; 14 video có trạng thái deferred.
+    Snapshot raw/derived nằm trong artefact; trạng thái database live được kiểm
+    bằng preflight riêng, không suy từ việc file archive có mặt.
+  - **Bằng chứng 21/08:** `reports/BATCH1_OPERATIONAL_MANIFEST_20260821.json`
+    lưu provenance, kích thước + SHA-256 và asset count độc lập cho 18/18 gói
+    bắt buộc; `round1_operational_audit_complete=true`. Raw aggregate có 177.321
+    ảnh/873 video; meta artefact được chụp riêng. 14/14 video mang trạng thái
+    `deferred_not_required_round1`; live ES/Milvus vẫn qua cổng release preflight.
 
-- [ ] **R1.2 · P0 · Một resolver ảnh cho Q&A/UI/API**
+- [x] **R1.2 · P0 · Một resolver ảnh cho Q&A/UI/API**
   - `resolve_frame_path(video_id, frame_idx, keyframe_id, btc_ordinal)` ưu tiên
     raw BTC rồi derived, hỗ trợ archive bọc `keyframes_Lxx` và bộ đếm 0/1-based.
   - Không suy frame index từ hậu tố keyframe tự trích.
   - **Xong khi:** unit test resolver xanh; ảnh L26/L28 có trong archive không còn
     bị Q&A báo thiếu; UI và API dùng cùng resolver.
-  - **Tiến độ 21/08:** code + unit test đã xanh; chưa tick vì archive L26/L28
-    chưa có để kiểm acceptance trên data thật.
+  - **Bằng chứng 21/08 15:20:** archive L26/L28 đã giải nén; 25 keyframe ngẫu
+    nhiên từ `frame_map` → `resolve_frame_path()` trả file tồn tại **25/25**;
+    `preflight_check.py --profile release` báo *ảnh phủ đủ 873/873 video*
+    (trước đó 0/873). Suite 628 passed / 1 skipped.
 
 - [x] **R1.3 · P0 · Preflight development/release**
   - Sửa mô tả `/health` thành deep check thật.
@@ -64,6 +74,9 @@ Hướng đi:
     allocator, validator ZIP và cấu hình.
   - **Xong khi:** test chứng minh từng mục fail được; máy thiếu ảnh/dependency bị
     release chặn nhưng development vẫn chẩn đoán đầy đủ.
+  - **Bằng chứng 21/08:** profile `release` với model đặt thủ công đạt `17`, hỏng
+    `0`; hai mục bỏ qua chỉ là Streamlit tùy chọn và `/health` khi API chưa bật.
+    Search 100 shot mất `5.2s`; ZIP 3 dạng × 100 dòng qua validator.
 
 - [x] **R1.4 · P0 · Khóa hedge Q&A**
   - Cùng một bể evidence sinh `semantic`, `exact`, `robust`; không chạy retrieval
@@ -71,6 +84,25 @@ Hướng đi:
   - Lệnh release truyền policy tường minh. Đợt 1 dùng `robust` nếu BTC chưa xác nhận.
   - Chỉ nộp một ZIP cuối và ghi policy/checksum.
   - **Xong khi:** unit test portfolio giữ nguyên frame/video/rank và cả ba ZIP qua validator.
+
+- [x] **R1.4a · P1 · Giảm lượt sinh và độ dài output không cần thiết**
+  - Dịch query giới hạn 128 token; parse Q&A/TRAKE và query understanding có
+    output cap riêng thay vì dùng mặc định 2.048 cho mọi tác vụ ngắn.
+  - Script sinh biến thể query gộp 1 lượt sinh + tối đa 5 lượt tự kiểm thành một
+    structured request; unit test chứng minh chỉ gọi model đúng một lần.
+  - `eval_kis_only` lấy bản dịch cố định từ `tune_all.json` và fail trước DB nếu
+    còn thiếu, nên phép đo KIS không thể âm thầm gọi API. Lần chạy 21/08 đạt
+    `Final=0.539`, top-100 `18/23`, so với artefact cũ `0.522`, `17/23`.
+  - Model release không được hardcode/auto-switch trong code: người vận hành đặt
+    thủ công trước lệnh chạy, preflight chỉ in lại để kiểm bằng mắt.
+
+- [ ] **R1.4b · P1 · Promotion Q&A hai tầng để giảm thời gian**
+  - Code `two_stage` đã có sau cờ `QA_INFERENCE_MODE`: screen `n=1`, chỉ confirm
+    thêm `n=2` trên đúng evidence; đổi text→image phải reset phiếu. `legacy` vẫn
+    là mặc định release và rollback tức thời.
+  - **Xong khi:** replay bằng model release trên evidence cố định cho tune +
+    holdout, đo generation/thời gian/query; không giảm điểm, không sinh failure
+    và qua luật promotion. Chưa tick vì chưa có live regression so với `legacy`.
 
 - [ ] **R1.5 · P0 · Diễn tập và nộp Batch 1**
   - Full run 0 query lỗi; đúng 100 dòng/câu trừ luật riêng TRAKE; validator sạch.
@@ -90,7 +122,8 @@ Hướng đi:
 - [ ] **R2.2 · P1 · Holdout độc lập**: 12 KIS có cửa sổ hẹp không dựng từ keyframe,
   8 Q&A phủ số/đơn vị/OCR/màu/đếm và 4 TRAKE nhiều sự kiện.
 - [ ] **R2.3 · P1 · Ablation retrieval**: đo riêng từng nguồn và weighted RRF theo
-  loại query, một biến mỗi lần. Giữ `100 shot × 1 frame` tới khi R2.2 chứng minh khác.
+  loại query, một biến mỗi lần. Giữ bảng hiện hành 97 shot/100 dòng tới khi R2.2
+  chứng minh khác.
 - [ ] **R2.4 · P1 · Q&A evidence-first**: dùng resolver chung; ưu tiên OCR/ASR/text
   cho số/đơn vị, VLM cho thị giác; replay semantic/exact trên cùng evidence.
 - [ ] **R2.5 · P1 · TRAKE precision**: tách video-rank/event-rank, tăng top-N mỗi

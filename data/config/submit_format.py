@@ -114,13 +114,26 @@ def answer_to_cells(task_type: str, a: Answer) -> list:
     return cells
 
 
-def _csv_text(rows: list[list]) -> str:
+def _csv_text(rows: list[list], task_type: str) -> str:
     """Các ô → nội dung CSV không header, đúng thứ BTC nhận.
 
     `lineterminator="\\n"`: mặc định của module `csv` là `\\r\\n`, mà `write_text()`
     còn dịch `\\n` → `\\r\\n` lần nữa trên Windows → ra `\\r\\r\\n`. BTC nhận cả CRLF
     lẫn LF nhưng KHÔNG nhận `\\r\\r\\n`.
+    Q&A luôn quote riêng ô answer. BTC cho phép bỏ quote với answer đơn giản,
+    nhưng bắt buộc quote khi có dấu phẩy/ngoặc kép/xuống dòng; luôn quote loại bỏ
+    nhánh thao tác dễ nộp sai này. `csv.writer` không hỗ trợ quote theo một cột,
+    nên phần prefix vẫn do writer chuẩn xử lý, còn answer escape `"` thành `""`.
     """
+    if task_type == "QA":
+        lines: list[str] = []
+        for row in rows:
+            prefix = io.StringIO()
+            csv.writer(prefix, lineterminator="").writerow(row[:-1])
+            answer = row[-1].replace('"', '""')
+            lines.append(f'{prefix.getvalue()},"{answer}"\n')
+        return "".join(lines)
+
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator="\n")
     w.writerows(rows)
@@ -153,7 +166,7 @@ def build_submission(query_id: str, task_type: str, answers: list[Answer]) -> st
     if loi:
         raise ValueError(f"[{query_id}] sai định dạng: " + " · ".join(loi[:3]))
 
-    return _csv_text(rows)
+    return _csv_text(rows, task_type)
 
 
 # Ký tự không được có trong `query_id` vì nó đi thẳng vào TÊN FILE.

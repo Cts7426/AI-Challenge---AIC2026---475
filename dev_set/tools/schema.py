@@ -22,8 +22,19 @@ class Query:
         if self.split not in ("tune", "holdout", "dress25", "gen10", "gen2"):
             raise ValueError(f"split invalid: {self.split}")
         if self.task_type == "TRAKE":
-            if not self.n_events or self.n_events <= 0:
-                raise ValueError("TRAKE query must have n_events > 0")
+            if isinstance(self.n_events, bool) or not isinstance(self.n_events, int) \
+                    or self.n_events < 2:
+                raise ValueError("TRAKE query must have integer n_events >= 2")
+            if self.event_descs is not None:
+                if not isinstance(self.event_descs, list) or any(
+                    not isinstance(event, str) or not event.strip()
+                    for event in self.event_descs
+                ):
+                    raise ValueError("TRAKE event_descs must be a list of non-empty strings")
+                if len(self.event_descs) != self.n_events:
+                    raise ValueError(
+                        "TRAKE event_descs length must equal declared n_events"
+                    )
 
 
 @dataclass(frozen=True)

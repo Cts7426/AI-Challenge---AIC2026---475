@@ -111,6 +111,7 @@ def _parse_events_llm(query_vi: str) -> list[str]:
         "tìm kiếm ảnh (không quá 1 câu).\n\n"
         f"Câu hỏi: {query_vi}",
         json_schema=PARSE_EVENTS_SCHEMA,
+        max_tokens=512,
     )
     events = [e.strip() for e in json.loads(raw)["events_vi"] if e and e.strip()]
     if len(events) < 2:

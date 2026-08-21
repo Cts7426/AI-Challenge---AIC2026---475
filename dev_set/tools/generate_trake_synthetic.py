@@ -115,7 +115,9 @@ def _keyframe_image_for_shot(shot_id: str, kf_df: pd.DataFrame) -> Path | None:
 
 
 def _caption_frame(image_path: Path) -> str:
-    text = llm(CAPTION_PROMPT, images=[str(image_path)], effort="low", max_tokens=100)
+    text = llm(
+        CAPTION_PROMPT, images=[str(image_path)], effort="low", max_tokens=100,
+    )
     return text.strip().strip('"').strip("'")
 
 

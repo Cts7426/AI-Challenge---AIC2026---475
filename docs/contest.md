@@ -14,6 +14,24 @@
 
 → Mọi quyết định ưu tiên cho SƠ TUYỂN trước. Code AVS đã viết: giữ, ngừng đầu tư.
 
+## Luật nộp bài đã xác nhận từ BTC (21/08/2026)
+
+- Mỗi gói gồm các file text như `query-1-kis.txt`; tên CSV phải giữ nguyên stem,
+  ví dụ `query-1-kis.csv`. Mỗi truy vấn có một CSV riêng, không header, UTF-8,
+  dấu phẩy, LF hoặc CRLF, tối đa 100 dòng.
+- ZIP phải chứa đúng lớp thư mục `submission/` rồi mới tới các CSV. Nén thẳng
+  CSV ở root của ZIP là sai; file sai format vẫn tiêu một lượt nộp.
+- Video ghi `Lxx_Vyyy`, không có `.mp4`; frame là số nguyên. KIS/QA có đúng một
+  frame; mỗi dòng TRAKE có đúng N frame theo thứ tự N event của đề.
+- Q&A tối đa 100 ký tự, VI hoặc EN. BTC vừa mô tả chấm ngữ nghĩa, vừa ghi answer
+  được so như chuỗi; vì vậy giữ portfolio `semantic|exact|robust`. Luôn đặt cột
+  answer trong dấu ngoặc kép là cách CSV an toàn nhất và được BTC chấp nhận;
+  dấu `"` trong answer phải escape thành `""`.
+- Mỗi gói được nộp tối đa **3 lần** và **lần nộp cuối cùng** là lần được xếp hạng.
+  Không dùng lượt nộp để thử format/cấu hình chưa kiểm chứng.
+- Public Leaderboard dùng 50% đáp án; kết quả cuối dùng 100% trên Private
+  Leaderboard. Không promotion một thay đổi chỉ vì dao động nhỏ trên Public.
+
 ## Ba dạng bài vòng sơ tuyển
 
 ### Textual KIS

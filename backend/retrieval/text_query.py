@@ -61,7 +61,7 @@ def translate_to_english(query_vi: str) -> str:
         "Reply with ONLY the English phrase, nothing else.\n\n"
         f"Vietnamese: {query_vi}"
     )
-    return llm(prompt).strip().strip('"')
+    return llm(prompt, max_tokens=128).strip().strip('"')
 
 
 def encode_text(text_en: str) -> np.ndarray:

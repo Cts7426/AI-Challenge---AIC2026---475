@@ -47,10 +47,16 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-from dataclasses import dataclass
+import os
+import threading
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
+from typing import Iterator
 
 from backend.common.answer_match import majority_answer
 from backend.common.frame_assets import resolve_frame_path
@@ -65,6 +71,18 @@ from backend.llm.adapter import llm
 from backend.retrieval.search import search
 from backend.slot import ShotHit, shot_bounds
 from data.config.qa_routing import route_question
+from data.config.qa_inference import (
+    QA_CONFIRM_ADDITIONAL_N,
+    QA_CONFIRM_EFFORT,
+    QA_CONFIRM_MAX_TOKENS,
+    QA_LEGACY_MAX_TOKENS,
+    QA_SCREEN_CONFIRM_MIN_CONFIDENCE,
+    QA_SCREEN_EFFORT,
+    QA_SCREEN_MAX_TOKENS,
+    QA_TWO_STAGE_MAX_GENERATIONS,
+    qa_inference_mode,
+    qa_runtime_config,
+)
 
 N_EVIDENCE_FRAMES = 8          # BUILD_TASKS C3.1: "8 frame + ASR ±3s + OCR..."
 QA_ASR_WINDOW_MS = 3000        # ±3s quanh keyframe đại diện shot — KHÁC
@@ -110,6 +128,8 @@ MAX_VIDEOS_EXPANDED = 3  # tối đa bấy nhiêu video KHÁC NHAU được mở
 # nói thẳng "bỏ trống ô 51-100 là vứt điểm miễn phí".
 TOP_K_SHOTS_FOR_SLOTS = 100
 OBJECT_COUNT_MIN_SCORE = 0.5   # ngưỡng score detection tính vào phép đếm
+QA_EVIDENCE_SCHEMA_VERSION = 1
+_evidence_log_lock = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -130,6 +150,8 @@ class Evidence:
     # được ít nhất 1 file ảnh thật trên đĩa cho shot này.
     frames: list[tuple[int, Path]]
     best_frame_idx: int | None   # frame của best_keyframe_id — fallback evidence_frame_idx
+    # Chỉ có giá trị khi QA_EVIDENCE_LOG_PATH bật và capture đã ghi bền thành công.
+    evidence_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -140,6 +162,59 @@ class QAResult:
     evidence_frame_idx: int
     confidence: float
     evidence_type: str
+
+
+class QAGenerationBudgetExceeded(RuntimeError):
+    """Two-stage đã chạm trần generation của đúng một query."""
+
+
+class QAEvidenceCaptureError(RuntimeError):
+    """Capture đã bật nhưng ảnh/digest/record không thể ghi đủ để replay."""
+
+
+@dataclass
+class QAGenerationBudget:
+    """Bộ đếm logic n của screen/confirm; legacy không tạo bộ đếm này."""
+
+    limit: int
+    used: int = 0
+
+    def reserve(self, n: int, stage: str) -> None:
+        if n < 1:
+            raise ValueError("n generation phải dương")
+        if self.used + n > self.limit:
+            raise QAGenerationBudgetExceeded(
+                f"Q&A two-stage đã dùng {self.used}/{self.limit} generation; "
+                f"không đủ chỗ cho {stage} n={n}"
+            )
+        self.used += n
+
+
+_generation_budget_ctx: ContextVar[QAGenerationBudget | None] = ContextVar(
+    "qa_generation_budget", default=None,
+)
+_qa_mode_ctx: ContextVar[str | None] = ContextVar("qa_inference_mode", default=None)
+_qa_attempt_ctx: ContextVar[dict[str, object] | None] = ContextVar(
+    "qa_attempt", default=None,
+)
+
+
+def _current_qa_mode() -> str:
+    """Đóng băng mode trong một query, nhưng resolve runtime cho caller trực tiếp."""
+    return _qa_mode_ctx.get() or qa_inference_mode()
+
+
+@contextmanager
+def qa_generation_budget(
+    limit: int = QA_TWO_STAGE_MAX_GENERATIONS,
+) -> Iterator[QAGenerationBudget]:
+    """Context test/runner dùng để áp trần generation cho đúng một query."""
+    budget = QAGenerationBudget(limit=limit)
+    token = _generation_budget_ctx.set(budget)
+    try:
+        yield budget
+    finally:
+        _generation_budget_ctx.reset(token)
 
 
 # ---------------------------------------------------------------- parse + route
@@ -171,6 +246,7 @@ def parse_question(query_vi: str) -> QuestionParts:
         "Câu không tách rõ ràng được thì dùng nguyên câu gốc cho cả hai phần.\n\n"
         f"Câu hỏi: {query_vi}",
         json_schema=PARSE_QUESTION_SCHEMA,
+        max_tokens=384,
     )
     d = json.loads(raw)
     return QuestionParts(event_vi=d["event_vi"].strip() or query_vi,
@@ -408,8 +484,257 @@ def collect_evidence(
     if needs_images:
         frames = _evidence_frames(hit.shot_id, hit.best_keyframe_id, N_EVIDENCE_FRAMES)
 
-    return Evidence(hit.shot_id, video_id, ocr_texts, asr_texts, metadata_text,
-                     object_count, frames, best_frame)
+    ev = Evidence(hit.shot_id, video_id, ocr_texts, asr_texts, metadata_text,
+                  object_count, frames, best_frame)
+    evidence_hash = capture_evidence(hit, question_vi, evidence_type, needs_images, ev)
+    return replace(ev, evidence_hash=evidence_hash)
+
+
+def _sha256_file(path: Path) -> str:
+    """Hash streaming; lỗi đọc ảnh là lỗi capture, không được ghi digest rỗng."""
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except (OSError, AttributeError) as e:
+        raise QAEvidenceCaptureError(f"không đọc được ảnh evidence {path}: {e}") from e
+    return digest.hexdigest()
+
+
+def _stable_evidence_payload(record: dict[str, object]) -> dict[str, object]:
+    """Phần hash không chứa run/query/score/path tuyệt đối hay metadata attempt."""
+    frames = record.get("frames") or []
+    return {
+        "schema_version": QA_EVIDENCE_SCHEMA_VERSION,
+        "question_vi": record.get("question_vi", ""),
+        "shot_id": record.get("shot_id", ""),
+        "video_id": record.get("video_id", ""),
+        "best_keyframe_id": record.get("best_keyframe_id"),
+        "evidence_type": record.get("evidence_type", ""),
+        "needs_images": bool(record.get("needs_images", False)),
+        "ocr_texts": record.get("ocr_texts") or [],
+        "asr_texts": record.get("asr_texts") or [],
+        "metadata_text": record.get("metadata_text", ""),
+        "object_count": record.get("object_count"),
+        "best_frame_idx": record.get("best_frame_idx"),
+        "frames": [
+            {"frame_idx": row.get("frame_idx"), "sha256": row.get("sha256", "")}
+            for row in frames
+        ],
+    }
+
+
+def _hash_json(payload: dict[str, object]) -> str:
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _append_capture_record(record: dict[str, object]) -> None:
+    """Append + flush + fsync; capture bật mà ghi lỗi thì fail closed."""
+    raw_path = os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip()
+    if not raw_path:
+        return
+    path = Path(raw_path)
+    try:
+        with _evidence_log_lock:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+    except OSError as e:
+        raise QAEvidenceCaptureError(
+            f"không ghi bền được QA evidence capture {path}: {e}"
+        ) from e
+
+
+def capture_evidence(hit: ShotHit, question_vi: str, evidence_type: str,
+                     needs_images: bool, ev: Evidence) -> str:
+    """Ghi record evidence có hash ổn định; trả hash rỗng khi capture chưa bật.
+
+    Promotion runner bật `QA_EVIDENCE_LOG_PATH`, nên thiếu ảnh/digest/ghi file sẽ
+    ném lỗi ngay thay vì tạo artefact trông hợp lệ nhưng không replay được.
+    """
+    if not os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip():
+        return ""
+    frame_rows = [
+        {"frame_idx": int(frame_idx), "path": str(path), "sha256": _sha256_file(path)}
+        for frame_idx, path in ev.frames
+    ]
+    attempt = _qa_attempt_ctx.get() or {"origin": "direct", "order": 0}
+    record: dict[str, object] = {
+        "schema_version": QA_EVIDENCE_SCHEMA_VERSION,
+        "record_type": "evidence",
+        "run_id": os.environ.get("LLM_RUN_ID", ""),
+        "query_id": os.environ.get("LLM_QUERY_ID", ""),
+        "attempt": {
+            "origin": str(attempt.get("origin", "direct")),
+            "order": int(attempt.get("order", 0)),
+            "stage": "image" if ev.frames else "text",
+            "mode": _current_qa_mode(),
+        },
+        "question_vi": question_vi,
+        "shot_id": ev.shot_id,
+        "video_id": ev.video_id,
+        "shot_score": float(hit.score),
+        "best_keyframe_id": hit.best_keyframe_id,
+        "evidence_type": evidence_type,
+        "needs_images": bool(needs_images),
+        "ocr_texts": list(ev.ocr_texts),
+        "asr_texts": list(ev.asr_texts),
+        "metadata_text": ev.metadata_text,
+        "object_count": ev.object_count,
+        "best_frame_idx": ev.best_frame_idx,
+        "frames": frame_rows,
+    }
+    evidence_hash = _hash_json(_stable_evidence_payload(record))
+    record["evidence_hash"] = evidence_hash
+    _append_capture_record(record)
+    return evidence_hash
+
+
+def _capture_inference_output(
+    ev: Evidence,
+    *,
+    usage_tag: str,
+    effort: str,
+    max_tokens: int,
+    requested_n: int,
+    raw_count: int,
+    results: list[QAResult],
+) -> None:
+    """Ghi knobs + mọi output đã parse để frozen evidence có thể replay vote."""
+    if not os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip():
+        return
+    if not ev.evidence_hash:
+        raise QAEvidenceCaptureError("capture đang bật nhưng Evidence thiếu evidence_hash")
+    attempt = _qa_attempt_ctx.get() or {"origin": "direct", "order": 0}
+    outputs = [
+        {
+            "answer": r.answer,
+            "answer_vi": r.answer_vi,
+            "answer_en": r.answer_en,
+            "evidence_frame_idx": r.evidence_frame_idx,
+            "confidence": r.confidence,
+        }
+        for r in results
+    ]
+    record: dict[str, object] = {
+        "schema_version": QA_EVIDENCE_SCHEMA_VERSION,
+        "record_type": "inference",
+        "run_id": os.environ.get("LLM_RUN_ID", ""),
+        "query_id": os.environ.get("LLM_QUERY_ID", ""),
+        "attempt": {
+            "origin": str(attempt.get("origin", "direct")),
+            "order": int(attempt.get("order", 0)),
+        },
+        "mode": _current_qa_mode(),
+        "stage": usage_tag,
+        "evidence_hash": ev.evidence_hash,
+        "effort": effort,
+        "max_tokens": int(max_tokens),
+        "requested_n": int(requested_n),
+        "raw_count": int(raw_count),
+        "parsed_count": len(results),
+        "outputs": outputs,
+    }
+    record["output_hash"] = _hash_json({
+        "schema_version": QA_EVIDENCE_SCHEMA_VERSION,
+        "mode": record["mode"],
+        "stage": usage_tag,
+        "evidence_hash": ev.evidence_hash,
+        "effort": effort,
+        "max_tokens": int(max_tokens),
+        "requested_n": int(requested_n),
+        "outputs": outputs,
+    })
+    _append_capture_record(record)
+
+
+def load_evidence_capture(path: str | Path, *, validate_images: bool = True) -> list[dict]:
+    """Nạp và kiểm toàn bộ capture; hỏng một record/digest/link là từ chối."""
+    capture_path = Path(path)
+    if not capture_path.is_file():
+        raise RuntimeError(f"thiếu QA evidence capture: {capture_path}")
+    records: list[dict] = []
+    evidence_hashes: set[str] = set()
+    for line_no, line in enumerate(capture_path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"capture JSON hỏng ở dòng {line_no}: {e}") from e
+        if record.get("schema_version") != QA_EVIDENCE_SCHEMA_VERSION:
+            raise RuntimeError(f"capture dòng {line_no} sai schema_version")
+        record_type = record.get("record_type")
+        if record_type == "evidence":
+            expected_hash = _hash_json(_stable_evidence_payload(record))
+            if not record.get("evidence_hash") or record["evidence_hash"] != expected_hash:
+                raise RuntimeError(f"capture dòng {line_no} sai evidence_hash")
+            if record.get("needs_images") and not (record.get("frames") or []):
+                raise RuntimeError(f"capture dòng {line_no} yêu cầu ảnh nhưng không có frame")
+            for frame in record.get("frames") or []:
+                if not frame.get("sha256"):
+                    raise RuntimeError(f"capture dòng {line_no} thiếu SHA-256 ảnh")
+                if validate_images and _sha256_file(Path(frame["path"])) != frame["sha256"]:
+                    raise RuntimeError(f"capture dòng {line_no} ảnh đã đổi digest: {frame['path']}")
+            evidence_hashes.add(record["evidence_hash"])
+        elif record_type == "inference":
+            expected_output_hash = _hash_json({
+                "schema_version": QA_EVIDENCE_SCHEMA_VERSION,
+                "mode": record.get("mode"),
+                "stage": record.get("stage"),
+                "evidence_hash": record.get("evidence_hash"),
+                "effort": record.get("effort"),
+                "max_tokens": record.get("max_tokens"),
+                "requested_n": record.get("requested_n"),
+                "outputs": record.get("outputs") or [],
+            })
+            if not record.get("output_hash") or record["output_hash"] != expected_output_hash:
+                raise RuntimeError(f"capture dòng {line_no} sai output_hash")
+            attempt = record.get("attempt") or {}
+            if "origin" not in attempt or "order" not in attempt:
+                raise RuntimeError(f"capture dòng {line_no} thiếu origin/order")
+        else:
+            raise RuntimeError(f"capture dòng {line_no} có record_type lạ {record_type!r}")
+        records.append(record)
+    if not records:
+        raise RuntimeError(f"QA evidence capture rỗng: {capture_path}")
+    for line_no, record in enumerate(records, 1):
+        if record.get("record_type") == "inference" and record.get("evidence_hash") not in evidence_hashes:
+            raise RuntimeError(f"capture record {line_no} tham chiếu evidence_hash chưa tồn tại")
+    return records
+
+
+def validate_evidence_capture(
+    path: str | Path,
+    *,
+    expected_query_ids: set[str] | None = None,
+    validate_images: bool = True,
+) -> dict[str, int]:
+    """Promotion gate: mỗi QA thành công phải có evidence và output đã ghi bền."""
+    records = load_evidence_capture(path, validate_images=validate_images)
+    evidence_qids = {
+        str(r.get("query_id", "")) for r in records if r.get("record_type") == "evidence"
+    }
+    output_qids = {
+        str(r.get("query_id", "")) for r in records if r.get("record_type") == "inference"
+    }
+    expected = expected_query_ids or set()
+    missing_evidence = expected - evidence_qids
+    missing_outputs = expected - output_qids
+    if missing_evidence or missing_outputs:
+        raise RuntimeError(
+            "QA capture chưa đủ cho promotion: "
+            f"thiếu evidence={sorted(missing_evidence)}, thiếu output={sorted(missing_outputs)}"
+        )
+    return {
+        "records": len(records),
+        "evidence_records": sum(r.get("record_type") == "evidence" for r in records),
+        "inference_records": sum(r.get("record_type") == "inference" for r in records),
+    }
 
 
 # --------------------------------------------------------------------- suy luận
@@ -456,12 +781,28 @@ def _build_prompt(question_vi: str, ev: Evidence) -> str:
     return "\n".join(parts)
 
 
-def ask_llm(question_vi: str, ev: Evidence) -> list[QAResult]:
-    """Gọi llm() self-consistency n=SELF_CONSISTENCY_N, trả list QAResult đã
+def ask_llm(
+    question_vi: str,
+    ev: Evidence,
+    *,
+    n: int = SELF_CONSISTENCY_N,
+    effort: str = "high",
+    max_tokens: int = QA_LEGACY_MAX_TOKENS,
+    usage_tag: str = "qa.legacy",
+) -> list[QAResult]:
+    """Gọi llm() `n` lần, trả list QAResult đã
     kẹp evidence_frame_idx về tập frame CÓ THẬT (không tin thẳng số VLM tự bịa —
     xem "hai cửa tử độc lập" ở đầu file)."""
     images = [str(p) for _, p in ev.frames] or None
     prompt = _build_prompt(question_vi, ev)
+    budget = _generation_budget_ctx.get()
+    if (
+        budget is not None
+        and _current_qa_mode() == "two_stage"
+        and (usage_tag.startswith("qa.screen.") or usage_tag.startswith("qa.confirm."))
+    ):
+        # Giữ chỗ TRƯỚC request mạng. Nếu không đủ cho cả n, không gọi một phần.
+        budget.reserve(n, usage_tag)
     # ⚠️ SỬA 18/08 — adapter.py (DEFAULT_EFFORT) ghi rõ: "Task nào cần nghĩ kỹ
     # (Q&A suy luận) thì tự truyền effort='high'". Đây CHÍNH LÀ bước suy luận
     # đó — mọi lệnh gọi trong qa.py trước bản sửa này đều để mặc định "low"
@@ -470,8 +811,10 @@ def ask_llm(question_vi: str, ev: Evidence) -> list[QAResult]:
     # CLAUDE.md mục 11 "Chưa chốt: internet lúc thi"). Không crash, không lộ ở
     # backend "gemini" (effort không ảnh hưởng gì bên đó) — lỗi im lặng thuần
     # chất lượng câu trả lời, chỉ lộ ra khi đổi ANTHROPIC_API_KEY lúc thi.
-    raw = llm(prompt, images=images, json_schema=QA_RESULT_SCHEMA, n=SELF_CONSISTENCY_N,
-              effort="high")
+    raw = llm(
+        prompt, images=images, json_schema=QA_RESULT_SCHEMA, n=n,
+        effort=effort, max_tokens=max_tokens,
+    )
     raw_list = raw if isinstance(raw, list) else [raw]
 
     valid_frames = {fi for fi, _ in ev.frames} or ({ev.best_frame_idx} if ev.best_frame_idx is not None else set())
@@ -497,7 +840,90 @@ def ask_llm(question_vi: str, ev: Evidence) -> list[QAResult]:
             answer_en=d.get("answer_en", d["answer"]), evidence_frame_idx=fi,
             confidence=float(d["confidence"]), evidence_type="",
         ))
+    _capture_inference_output(
+        ev,
+        usage_tag=usage_tag,
+        effort=effort,
+        max_tokens=max_tokens,
+        requested_n=n,
+        raw_count=len(raw_list),
+        results=results,
+    )
     return results
+
+
+def _vote_results(results: list[QAResult]) -> tuple[str, int | None, float] | None:
+    """Vote + chấm confidence cho đúng MỘT bộ evidence; không trộn text với ảnh."""
+    if not results:
+        return None
+    answer, votes = majority_answer([r.answer for r in results])
+    if len(results) > 1 and votes < 2:
+        return None
+    frame = next((r.evidence_frame_idx for r in results if r.answer == answer), None)
+    if frame is None:
+        frame = results[0].evidence_frame_idx
+    winner_confs = [r.confidence for r in results if r.answer == answer]
+    confidence = (sum(winner_confs) / len(winner_confs)) * (votes / len(results))
+    return answer, frame, confidence
+
+
+def _infer_legacy(question_vi: str, hit: ShotHit, ev: Evidence,
+                  evidence_type: str) -> tuple[str, int | None, float] | None:
+    """Đường rollback n=3 cũ, giữ nguyên hành vi để so A/B và cứu release."""
+    results = ask_llm(question_vi, ev)
+    if not results:
+        return None
+    avg_conf = sum(r.confidence for r in results) / len(results)
+    if avg_conf < LOW_CONFIDENCE and not ev.frames:
+        ev_img = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
+        if ev_img.frames:
+            with_images = ask_llm(
+                question_vi, ev_img, usage_tag="qa.legacy.image",
+            )
+            if with_images:
+                results = with_images
+    return _vote_results(results)
+
+
+def _infer_two_stage(question_vi: str, hit: ShotHit, ev: Evidence,
+                     evidence_type: str) -> tuple[str, int | None, float] | None:
+    """Sàng lọc n=1 rồi xác nhận thêm n=2 trên CHÍNH bộ evidence đã sàng lọc.
+
+    Nếu text yếu và chuyển sang ảnh, phiếu text bị bỏ hoàn toàn: hai prompt có
+    evidence khác nhau không được coi là ba phiếu self-consistency cùng cohort.
+    """
+    stage = "image" if ev.frames else "text"
+    screen = ask_llm(
+        question_vi, ev, n=1, effort=QA_SCREEN_EFFORT,
+        max_tokens=QA_SCREEN_MAX_TOKENS, usage_tag=f"qa.screen.{stage}",
+    )
+    if len(screen) != 1:
+        return None
+
+    if screen[0].confidence < LOW_CONFIDENCE and not ev.frames:
+        ev_img = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
+        if ev_img.frames:
+            # Evidence đổi → reset cohort bằng một screen ảnh mới, không giữ phiếu text.
+            ev = ev_img
+            stage = "image"
+            screen = ask_llm(
+                question_vi, ev, n=1, effort=QA_SCREEN_EFFORT,
+                max_tokens=QA_SCREEN_MAX_TOKENS, usage_tag="qa.screen.image",
+            )
+            if len(screen) != 1:
+                return None
+
+    if screen[0].confidence < QA_SCREEN_CONFIRM_MIN_CONFIDENCE:
+        return None
+
+    confirm = ask_llm(
+        question_vi, ev, n=QA_CONFIRM_ADDITIONAL_N,
+        effort=QA_CONFIRM_EFFORT, max_tokens=QA_CONFIRM_MAX_TOKENS,
+        usage_tag=f"qa.confirm.{stage}",
+    )
+    if len(confirm) != QA_CONFIRM_ADDITIONAL_N:
+        return None
+    return _vote_results(screen + confirm)
 
 
 def _try_shot(
@@ -527,40 +953,32 @@ def _try_shot(
             # detector, KHÔNG hỏi VLM (BUILD_TASKS C3.1). Bằng chứng nằm ở đúng
             # keyframe vừa đếm — coi như tin cậy tuyệt đối, không có gì để so
             # self-consistency (detector không "phiếu bầu" nhiều lần).
+            if ev.best_frame_idx is None:
+                raise RuntimeError("detector có answer nhưng keyframe không tra được frame tuyệt đối")
+            direct = QAResult(
+                str(ev.object_count), str(ev.object_count), str(ev.object_count),
+                ev.best_frame_idx, 1.0, "count",
+            )
+            _capture_inference_output(
+                ev,
+                usage_tag="qa.detector.count",
+                effort="detector",
+                max_tokens=0,
+                requested_n=0,
+                raw_count=1,
+                results=[direct],
+            )
             return str(ev.object_count), ev.best_frame_idx, 1.0
         print(f"  [cảnh báo] shot {hit.shot_id}: không đếm được bằng detector, hỏi LLM (kém tin cậy hơn)")
 
-    results = ask_llm(question_vi, ev)
-    if not results:
-        return None
-
-    avg_conf = sum(r.confidence for r in results) / len(results)
-    if avg_conf < LOW_CONFIDENCE and not ev.frames:
-        # Text-only không đủ tự tin → thử lại CÓ ảnh (chiến thuật Text-first đã duyệt)
-        ev_img = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
-        if ev_img.frames:
-            with_images = ask_llm(question_vi, ev_img)
-            if with_images:
-                results = with_images
-
-    answer, votes = majority_answer([r.answer for r in results])
-    if votes == 1 and len(results) > 1:
-        return None  # self-consistency không đồng thuận — không đủ tin để chốt ở shot này
-
-    # frame của ĐÚNG lượt sinh đã thắng phiếu, không phải lượt đầu tiên trong list
-    frame = next((r.evidence_frame_idx for r in results if r.answer == answer), None)
-    if frame is None:
-        frame = results[0].evidence_frame_idx
-
-    # Điểm so sánh liên-shot = tự-tin trung bình CỦA RIÊNG các lượt đồng thuận với
-    # đáp án thắng cuộc, nhân tỉ lệ đồng thuận. Một shot 3/3 phiếu cùng answer,
-    # confidence tự báo 0.9 (=0.9×1.0=0.9) phải thắng một shot 2/3 phiếu cùng
-    # confidence tự báo (=0.9×0.667=0.6) — 1 phiếu lạc không được tính vào trung
-    # bình (nếu không, một lượt sinh lạc-đề tự tin cao sẽ kéo điểm shot sai lên).
-    winner_confs = [r.confidence for r in results if r.answer == answer]
-    winner_avg_conf = sum(winner_confs) / len(winner_confs)
-    confidence = winner_avg_conf * (votes / len(results))
-    return answer, frame, confidence
+    mode = _current_qa_mode()
+    if mode == "legacy":
+        return _infer_legacy(question_vi, hit, ev, evidence_type)
+    if mode == "two_stage":
+        return _infer_two_stage(question_vi, hit, ev, evidence_type)
+    raise ValueError(
+        f"QA_INFERENCE_MODE={mode!r} không hợp lệ; dùng legacy|two_stage"
+    )
 
 
 # ------------------------------------------------------------------------- API chính
@@ -620,7 +1038,7 @@ def _ung_vien_nhanh_text(
     return them
 
 
-def qa_pipeline(
+def _qa_pipeline_impl(
     query_vi: str,
     top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
     query_en: str | None = None,
@@ -745,13 +1163,29 @@ def qa_pipeline(
 
     best: tuple[int, ShotHit, str, int | None, float] | None = None  # (i, hit, answer, frame, confidence)
     tried_shot_ids: set[str] = set()
+    text_shot_ids = {h.shot_id for h in ung_vien_text}
+    attempt_order = 0
+    budget_exhausted = False
     for hit in thu_de_suy_luan:
         tried_shot_ids.add(hit.shot_id)
+        attempt_order += 1
+        attempt_token = _qa_attempt_ctx.set({
+            "origin": "text_fallback" if hit.shot_id in text_shot_ids else "main",
+            "order": attempt_order,
+        })
         try:
             ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
+        except QAGenerationBudgetExceeded as e:
+            print(f"  [giới hạn] {e}")
+            budget_exhausted = True
+            break
+        except QAEvidenceCaptureError:
+            raise
         except Exception as e:
             print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A, thử shot kế tiếp: {e}")
             continue
+        finally:
+            _qa_attempt_ctx.reset(attempt_token)
         if ket_qua is None:
             continue
         answer, frame, confidence = ket_qua
@@ -772,7 +1206,7 @@ def qa_pipeline(
     # (query_vi, còn từ khoá cụ thể mà event_vi thuần thị giác không có).
     # `candidate_shots` được NỐI THÊM (không thay list gốc) để `_dua_len_dau`
     # cuối hàm vẫn dùng index bình thường.
-    if best is None or best[4] < HIGH_CONFIDENCE_EARLY_STOP:
+    if not budget_exhausted and (best is None or best[4] < HIGH_CONFIDENCE_EARLY_STOP):
         seen_videos: list[str] = []
         for hit in thu_de_suy_luan:
             vid = hit.shot_id.split("#")[0]
@@ -789,11 +1223,24 @@ def qa_pipeline(
                 candidate_shots.append(hit)
                 i = len(candidate_shots) - 1
                 tried_shot_ids.add(hit.shot_id)
+                attempt_order += 1
+                attempt_token = _qa_attempt_ctx.set({
+                    "origin": "video_expand",
+                    "order": attempt_order,
+                })
                 try:
                     ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
+                except QAGenerationBudgetExceeded as e:
+                    print(f"  [giới hạn] {e}")
+                    budget_exhausted = True
+                    break
+                except QAEvidenceCaptureError:
+                    raise
                 except Exception as e:
                     print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A: {e}")
                     continue
+                finally:
+                    _qa_attempt_ctx.reset(attempt_token)
                 if ket_qua is None:
                     continue
                 answer, frame, confidence = ket_qua
@@ -804,29 +1251,80 @@ def qa_pipeline(
                     break
             if best is not None and best[4] >= HIGH_CONFIDENCE_EARLY_STOP:
                 break
+            if budget_exhausted:
+                break
 
     if best is None:
+        suffix = (
+            f" Đã chạm trần {QA_TWO_STAGE_MAX_GENERATIONS} generation two-stage."
+            if budget_exhausted else ""
+        )
         raise RuntimeError(
             f"Thử {len(tried_shot_ids)} shot (kể cả ứng viên nhánh text và mở rộng trong video) đều "
             "không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) "
-            "của các shot này có rỗng không."
+            f"của các shot này có rỗng không.{suffix}"
         )
 
     i, hit, answer, evidence_frame_idx, confidence = best
+    if evidence_frame_idx is None:
+        raise RuntimeError("Q&A winner thiếu evidence_frame_idx; từ chối ghép answer với frame đoán")
+    video_id = hit.shot_id.split("#", 1)[0]
+    winning_keyframe_id = _keyframe_id_for_frame(
+        video_id, int(evidence_frame_idx), preferred=hit.best_keyframe_id,
+    )
     if i > 0:
         print(f"  shot thắng là hạng {i + 1} ({hit.shot_id}, confidence={confidence:.2f}) — đẩy lên "
               "hạng 1 để frame nộp khớp với shot đã sinh ra câu trả lời")
-    ranked_hits = _dua_len_dau(candidate_shots, i)
+    ranked_hits = _dua_len_dau(
+        candidate_shots, i, winning_keyframe_id=winning_keyframe_id,
+    )
+    submitted_frame = load_frame_map().get(ranked_hits[0].best_keyframe_id)
+    if submitted_frame != int(evidence_frame_idx):
+        raise RuntimeError(
+            "không pin được frame nộp Q&A vào evidence winner: "
+            f"keyframe={ranked_hits[0].best_keyframe_id!r} -> {submitted_frame}, "
+            f"evidence={evidence_frame_idx}"
+        )
     if return_trace:
+        runtime = qa_runtime_config()
+        budget = _generation_budget_ctx.get()
         return ranked_hits, answer, {
             "event_vi": parts.event_vi,
             "question_vi": parts.question_vi,
             "evidence_type": evidence_type,
             "answer_shot_id": hit.shot_id,
             "evidence_frame_idx": evidence_frame_idx,
+            "submitted_keyframe_id": winning_keyframe_id,
+            "submitted_frame_idx": submitted_frame,
             "confidence": confidence,
+            "qa_runtime": runtime,
+            "generations_used": budget.used if budget is not None else None,
+            "generation_limit": budget.limit if budget is not None else None,
+            "generation_limit_reached": budget_exhausted,
         }
     return ranked_hits, answer
+
+
+def qa_pipeline(
+    query_vi: str,
+    top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
+    query_en: str | None = None,
+    return_trace: bool = False,
+) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
+    """Đóng băng mode và tạo generation budget riêng cho từng query Q&A."""
+    mode = qa_inference_mode()
+    mode_token = _qa_mode_ctx.set(mode)
+    budget_token = None
+    if mode == "two_stage":
+        budget_token = _generation_budget_ctx.set(
+            QAGenerationBudget(limit=QA_TWO_STAGE_MAX_GENERATIONS)
+        )
+    try:
+        return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace)
+    finally:
+        if budget_token is not None:
+            _generation_budget_ctx.reset(budget_token)
+        _qa_mode_ctx.reset(mode_token)
 
 
 def _expand_within_video(
@@ -850,7 +1348,53 @@ def _expand_within_video(
     return out
 
 
-def _dua_len_dau(shots: list[ShotHit], i: int) -> list[ShotHit]:
+@lru_cache(maxsize=1)
+def _reverse_frame_map() -> dict[tuple[str, int], tuple[str, ...]]:
+    """Reverse map frame tuyệt đối → keyframe_id; ưu tiên ID BTC dạng `#k`."""
+    grouped: dict[tuple[str, int], set[str]] = {}
+    for keyframe_id, frame_idx in load_frame_map().items():
+        if "#" in keyframe_id:
+            video_id = keyframe_id.split("#", 1)[0]
+        elif "_" in keyframe_id:
+            video_id = keyframe_id.rsplit("_", 1)[0]
+        else:
+            continue
+        grouped.setdefault((video_id, int(frame_idx)), set()).add(keyframe_id)
+    return {
+        key: tuple(sorted(ids, key=lambda value: ("#k" not in value, value)))
+        for key, ids in grouped.items()
+    }
+
+
+def _keyframe_id_for_frame(
+    video_id: str,
+    frame_idx: int,
+    *,
+    preferred: str | None = None,
+) -> str:
+    """Tra keyframe có frame tuyệt đối đúng bằng evidence; không suy tên/hậu tố."""
+    fmap = load_frame_map()
+    if preferred and fmap.get(preferred) == frame_idx:
+        preferred_video = (
+            preferred.split("#", 1)[0]
+            if "#" in preferred else preferred.rsplit("_", 1)[0]
+        )
+        if preferred_video == video_id:
+            return preferred
+    candidates = _reverse_frame_map().get((video_id, int(frame_idx)), ())
+    if not candidates:
+        raise RuntimeError(
+            f"frame evidence {video_id}:{frame_idx} không có keyframe tương ứng trong frame_map"
+        )
+    return candidates[0]
+
+
+def _dua_len_dau(
+    shots: list[ShotHit],
+    i: int,
+    *,
+    winning_keyframe_id: str | None = None,
+) -> list[ShotHit]:
     """Đưa phần tử thứ i lên đầu, GIỮ NGUYÊN thứ tự tương đối của phần còn lại.
 
     Không sửa `score`: allocator tự `sorted(hits, key=score, reverse=True)` nên
@@ -858,13 +1402,16 @@ def _dua_len_dau(shots: list[ShotHit], i: int) -> list[ShotHit]:
     mọi thứ đọc `score` về sau (score_simulator, log phân tích). Thay vào đó gán
     lại điểm shot thắng = điểm cao nhất + một khoảng nhỏ, và ghi rõ trong log.
     """
-    if i == 0:
-        return shots
     thang = shots[i]
+    pinned = winning_keyframe_id or thang.best_keyframe_id
+    if i == 0:
+        if pinned == thang.best_keyframe_id:
+            return shots
+        return [ShotHit(thang.shot_id, thang.score, pinned)] + shots[1:]
     con_lai = shots[:i] + shots[i + 1:]
     diem_cao_nhat = max(s.score for s in shots)
     # +1e-6: đủ để thắng sorted() mà không làm biến dạng thang điểm RRF (~0.01-0.03)
-    return [ShotHit(thang.shot_id, diem_cao_nhat + 1e-6, thang.best_keyframe_id)] + con_lai
+    return [ShotHit(thang.shot_id, diem_cao_nhat + 1e-6, pinned)] + con_lai
 
 
 def main() -> None:

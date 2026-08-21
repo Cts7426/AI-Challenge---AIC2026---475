@@ -47,8 +47,11 @@ def test_kis_dung_2_cot(kis):
 
 def test_qa_dung_3_cot(qa):
     """BTC mục 2.1.2: <video_id>, <frame_id>, <answer>."""
-    dong = doc_csv(to_submission(qa))
+    raw = to_submission(qa)
+    dong = doc_csv(raw)
     assert len(dong[0]) == 3 and dong[0][2] == "5"
+    assert raw.splitlines()[0].endswith(',"5"'), \
+        "phòng vệ bảo thủ: answer đơn giản vẫn luôn được quote"
 
 
 def test_trake_dung_1_cong_N_cot(trake):
@@ -423,6 +426,9 @@ def test_tieng_viet_khong_hong_khi_ghi_doc(qa, tmp_path):
 
 def test_answer_co_dau_phay_khong_lam_lech_cot(qa):
     """CSV phải escape dấu phẩy trong answer, không thì lệch toàn bộ cột."""
-    sub = replace_answer(qa, 0, answer_text="5, có thể hơn")
-    dong = doc_csv(to_submission(sub))
-    assert dong[0][2] == "5, có thể hơn" and len(dong[0]) == 3
+    answer = '5, anh ấy nói "có thể hơn"'
+    sub = replace_answer(qa, 0, answer_text=answer)
+    raw = to_submission(sub)
+    dong = doc_csv(raw)
+    assert dong[0][2] == answer and len(dong[0]) == 3
+    assert '"5, anh ấy nói ""có thể hơn"""' in raw

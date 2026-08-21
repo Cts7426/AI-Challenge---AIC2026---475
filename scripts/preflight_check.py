@@ -151,12 +151,32 @@ def check_optional_libs() -> tuple[bool | None, str]:
 
 
 def check_qa_runtime() -> tuple[bool | None, str]:
-    """Backend LLM được chọn có SDK + key cần thiết cho Q&A release hay chưa.
+    """Chỉ báo backend/model người vận hành đã chọn; không tự đổi hay gọi API.
 
-    Không gọi API để tránh đốt quota trong preflight. Thiếu điều kiện là SKIP ở
-    development, nhưng Check.required_in_release sẽ nâng thành FAIL ở release.
+    Model được đặt thủ công ngay trước lệnh chạy. Preflight chỉ kiểm SDK/key và
+    in lại giá trị resolve để người vận hành nhìn thấy sai cấu hình mà không tốn
+    thêm một network request.
     """
+    from backend.llm.adapter import (
+        DEFAULT_API_MODEL,
+        DEFAULT_GEMINI_MODEL,
+        DEFAULT_LOCAL_MODEL,
+    )
+    from data.config.qa_inference import qa_runtime_config
+
+    try:
+        qa_runtime = qa_runtime_config()
+    except ValueError as e:
+        return False, str(e)
     backend = os.environ.get("LLM_BACKEND", "api")
+    if backend == "api":
+        model = os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL)
+    elif backend == "gemini":
+        model = os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+    elif backend == "local":
+        model = os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL)
+    else:
+        return False, f"LLM_BACKEND={backend!r} không hợp lệ"
     env_file = REPO_ROOT / ".env"
 
     def has_secret(name: str) -> bool:
@@ -177,15 +197,17 @@ def check_qa_runtime() -> tuple[bool | None, str]:
         sdk_ok = _try_import("anthropic")[0]
         if not sdk_ok or not has_secret("ANTHROPIC_API_KEY"):
             return None, "LLM_BACKEND=api thiếu anthropic hoặc ANTHROPIC_API_KEY"
-        return True, "LLM_BACKEND=api · SDK/key sẵn sàng"
-    if backend == "gemini":
+    elif backend == "gemini":
         sdk_ok = _try_import("google.genai")[0]
         if not sdk_ok or not has_secret("GEMINI_API_KEY"):
             return None, "LLM_BACKEND=gemini thiếu google-genai hoặc GEMINI_API_KEY"
-        return True, "LLM_BACKEND=gemini · SDK/key sẵn sàng"
-    if backend == "local":
+    elif backend == "local":
         return None, "LLM_BACKEND=local chưa hỗ trợ ảnh; chỉ dùng được đường text-first"
-    return False, f"LLM_BACKEND={backend!r} không hợp lệ"
+    return True, (
+        f"LLM_BACKEND={backend} · model={model} · QA mode={qa_runtime['mode']} · "
+        f"cohort={qa_runtime['screen_n']}+{qa_runtime['confirm_additional_n']} · "
+        f"cap={qa_runtime['two_stage_max_generations']} · SDK/key sẵn sàng"
+    )
 
 
 # ============================================================ B. HẠ TẦNG

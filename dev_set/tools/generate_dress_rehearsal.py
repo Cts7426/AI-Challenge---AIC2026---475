@@ -73,7 +73,7 @@ def _kis_query(img_path: str) -> tuple[str, str]:
         "ngữ cảnh ngoài khung hình) — văn phong giống câu truy vấn tìm khoảnh khắc "
         "video, ví dụ: 'Cảnh hiện trường vụ tai nạn giao thông giữa xe máy và xe ba "
         "gác trên đường, có người bị ngã xuống đường.' Kèm bản dịch tiếng Anh ngắn.",
-        images=[img_path], json_schema=KIS_SCHEMA,
+        images=[img_path], json_schema=KIS_SCHEMA, max_tokens=384,
     )
     d = json.loads(raw)
     return d["query_vi"].strip(), d["query_en"].strip()
@@ -92,7 +92,7 @@ def _qa_pair(img_path: str, asr_text: str) -> tuple[str, str, str, list[str]]:
         "có thể (vd '5', '30m', 'Hà Nội'). answer_variants: >= 3 cách diễn đạt KHÁC "
         "nhau của CÙNG một đáp án đó (vd '30m', '30 mét', 'khoảng 30 mét').\n\n"
         f"Lời thoại: {asr_text}",
-        images=[img_path], json_schema=QA_SCHEMA,
+        images=[img_path], json_schema=QA_SCHEMA, max_tokens=512,
     )
     d = json.loads(raw)
     event_vi, _ = _kis_query(img_path)
@@ -112,7 +112,7 @@ def _event_caption(img_path: str) -> str:
         "Một khung hình trong chuỗi nhiều bước của cùng một video. Viết một cụm từ "
         "NGẮN mô tả đúng hành động/cảnh trong khung hình này (5-10 từ), không suy "
         "đoán ngoài khung hình.",
-        images=[img_path], json_schema=EVENT_SCHEMA,
+        images=[img_path], json_schema=EVENT_SCHEMA, max_tokens=256,
     )
     return json.loads(raw)["caption_vi"].strip()
 

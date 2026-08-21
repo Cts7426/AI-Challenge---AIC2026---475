@@ -23,6 +23,20 @@ from backend.slot import ShotHit
 from backend.tasks import qa as Q
 
 
+@pytest.fixture(autouse=True)
+def _pin_frame_gia(monkeypatch):
+    """Các test retrieval dùng frame giả; vẫn giữ hợp đồng rank-1 map đúng frame."""
+    fmap = {}
+
+    def resolve(video_id, frame_idx, *, preferred=None):
+        keyframe_id = f"{video_id}#kTEST{frame_idx}"
+        fmap[keyframe_id] = int(frame_idx)
+        return keyframe_id
+
+    monkeypatch.setattr(Q, "_keyframe_id_for_frame", resolve)
+    monkeypatch.setattr(Q, "load_frame_map", lambda: fmap)
+
+
 def _hit(shot: str, score: float = 1.0) -> ShotHit:
     return ShotHit(shot, score, f"{shot}_kf")
 

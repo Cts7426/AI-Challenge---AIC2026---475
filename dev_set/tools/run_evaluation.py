@@ -1,6 +1,8 @@
-import sys
-import json
 import argparse
+import hashlib
+import json
+import os
+import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -12,12 +14,75 @@ from backend.retrieval.search import search
 from backend.indexing.frame_map import load_frame_map
 from backend.slot.allocator import allocate, ShotHit, shot_bounds
 from backend.export import QuerySubmission, write_submissions
-from backend.tasks.qa import qa_pipeline
+from backend.tasks.qa import qa_pipeline, validate_evidence_capture
 
 from data.config.submit_format import Answer
 from data.config.qa_evaluation import QA_MATCH_POLICIES
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
 from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis
+
+
+RUN_SNAPSHOT_SCHEMA_VERSION = 2
+
+
+def _hash_json(payload: dict) -> str:
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _runtime_snapshot(split: str) -> tuple[dict, dict[str, str], dict[str, str]]:
+    """Hash QA knobs/source + LLM env đã chọn; không tự chọn hay đổi model."""
+    from backend.llm.adapter import (
+        DEFAULT_API_MODEL,
+        DEFAULT_GEMINI_MODEL,
+        DEFAULT_LOCAL_MODEL,
+    )
+    from data.config.qa_inference import qa_runtime_config
+
+    configs = {
+        cfg.name: cfg.read_text(encoding="utf-8")
+        for cfg in sorted(Path("data/config").glob("*.py"))
+    }
+    critical_sources = {
+        label: hashlib.sha256(path.read_bytes()).hexdigest()
+        for label, path in {
+            "backend/tasks/qa.py": Path("backend/tasks/qa.py"),
+            "dev_set/tools/run_evaluation.py": Path(__file__),
+        }.items()
+    }
+    backend = os.environ.get("LLM_BACKEND", "api")
+    model_by_backend = {
+        "api": os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL),
+        "gemini": os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
+        "local": os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL),
+    }
+    llm_provenance = {
+        "backend": backend,
+        "model": model_by_backend.get(backend, "<invalid-backend>"),
+        "source": "environment override or adapter default",
+    }
+    manifest = {
+        "commit": get_git_commit(),
+        "split": split,
+        "qa_runtime": qa_runtime_config(),
+        "llm_provenance": llm_provenance,
+        "config_sources_sha256": _hash_json(configs),
+        "critical_sources_sha256": critical_sources,
+    }
+    return manifest, configs, llm_provenance
+
+
+def _validate_resume_snapshot(snapshot: dict, current_fingerprint: str) -> str:
+    """Fail closed nếu run cũ không cùng LLM env/QA knobs/config/source."""
+    if snapshot.get("schema_version") != RUN_SNAPSHOT_SCHEMA_VERSION:
+        raise RuntimeError("run cũ không có fingerprint schema v2")
+    prior_fingerprint = snapshot.get("runtime_fingerprint")
+    if prior_fingerprint != current_fingerprint:
+        raise RuntimeError(
+            "LLM env/QA mode/knobs/config/code hiện tại khác run cũ: "
+            f"cũ={prior_fingerprint}, mới={current_fingerprint}"
+        )
+    return str(snapshot.get("run_id") or "")
 
 
 def load_jsonl(path: Path):
@@ -180,27 +245,44 @@ def run_evaluation():
         print("Không có query nào để chạy.")
         return
 
-    # 3. Thư mục output — tạo mới, hoặc tiếp tục run cũ (#3)
+    # 3. Thư mục output — fingerprint khóa model/mode/config khi resume.
+    runtime_manifest, config_sources, llm_provenance = _runtime_snapshot(args.split)
+    runtime_fingerprint = _hash_json(runtime_manifest)
     if args.resume:
         out_dir = Path(args.resume)
         if not out_dir.exists():
             print(f"LỖI: không tìm thấy thư mục resume {out_dir}")
             sys.exit(1)
-        run_id = out_dir.name.replace("run_", "")
+        snapshot_path = out_dir / "config_snapshot.json"
+        try:
+            prior_snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"LỖI: resume thiếu/hỏng config_snapshot.json: {e}")
+            sys.exit(1)
+        try:
+            snapshot_run_id = _validate_resume_snapshot(prior_snapshot, runtime_fingerprint)
+        except RuntimeError as e:
+            print(f"LỖI: {e}; từ chối resume")
+            sys.exit(1)
+        run_id = snapshot_run_id or out_dir.name.replace("run_", "")
         print(f"Tiếp tục run cũ tại {out_dir}")
     else:
-        run_id = datetime.now().strftime("%Y%m%d_%H%M")
+        run_id = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{runtime_fingerprint[:8]}"
         out_dir = Path(f"dev_set/results/run_{run_id}")
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        config_snapshot = {}
-        for cfg in Path("data/config").glob("*.py"):
-            config_snapshot[cfg.name] = cfg.read_text()
+        out_dir.mkdir(parents=True, exist_ok=False)
 
         (out_dir / "config_snapshot.json").write_text(json.dumps({
-            "commit": get_git_commit(),
-            "configs": config_snapshot
+            "schema_version": RUN_SNAPSHOT_SCHEMA_VERSION,
+            "run_id": run_id,
+            "runtime_fingerprint": runtime_fingerprint,
+            "runtime_manifest": runtime_manifest,
+            "llm_provenance": llm_provenance,
+            "configs": config_sources,
         }, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Gắn run/query cho evidence capture. Không can thiệp model hoặc gọi API thêm.
+    os.environ["LLM_RUN_ID"] = run_id
+    os.environ["QA_EVIDENCE_LOG_PATH"] = str(out_dir / "qa_evidence.jsonl")
 
     scores_jsonl_path = out_dir / "scores.jsonl"
     answers_jsonl_path = out_dir / "answers.jsonl"
@@ -234,6 +316,7 @@ def run_evaluation():
          open(candidates_jsonl_path, "a", encoding="utf-8") as candidates_f:
 
         for q in tqdm(queries):
+            os.environ["LLM_QUERY_ID"] = q.query_id
             if q.query_id not in gts:
                 print(f"\n[BỎ QUA] {q.query_id} không có Ground Truth.")
                 continue
@@ -267,7 +350,9 @@ def run_evaluation():
                     # không trả lại thứ hạng thô từng nhánh — chấp nhận mất
                     # tính năng debug phụ để giữ đúng hành vi production, đo
                     # ranks riêng cho QA là việc làm thêm sau nếu cần.
-                    hits, answer_text = qa_pipeline(q.query_vi, query_en=q_en)
+                    hits, answer_text, qa_trace = qa_pipeline(
+                        q.query_vi, query_en=q_en, return_trace=True,
+                    )
                     ans = allocate(hits, q.task_type, answer_text=answer_text)
                 elif q.task_type == "TRAKE":
                     # ⚠️ SỬA 16/08: bản cũ KHÔNG hề gọi pipeline TRAKE thật
@@ -425,6 +510,7 @@ def run_evaluation():
                     "query_id": q.query_id,
                     "task_type": q.task_type,
                     "answer_text": answer_text,
+                    "qa_trace": qa_trace if q.task_type == "QA" else None,
                     "n_trake": n_trake,
                     "candidates": cand_list,
                 }, ensure_ascii=False) + "\n")
@@ -461,10 +547,27 @@ def run_evaluation():
         rec = json.loads(line)
         per_query_by_id[rec["query_id"]] = rec
 
+    successful_qa_qids = {
+        qid for qid, rec in per_query_by_id.items()
+        if task_of.get(qid) == "QA" and rec.get("failure_class") != "F0_CRASH"
+    }
+    if successful_qa_qids:
+        capture_stats = validate_evidence_capture(
+            out_dir / "qa_evidence.jsonl",
+            expected_query_ids=successful_qa_qids,
+            validate_images=True,
+        )
+        print(
+            "QA evidence capture hợp lệ: "
+            f"{capture_stats['evidence_records']} evidence + "
+            f"{capture_stats['inference_records']} output"
+        )
+
     scores = {
         "run_id": run_id,
         "commit": get_git_commit(),
         "split": args.split,
+        "runtime_fingerprint": runtime_fingerprint,
         "per_query": list(per_query_by_id.values()),
     }
     (out_dir / "scores.json").write_text(
@@ -514,6 +617,10 @@ def run_evaluation():
             print("CẢNH BÁO: file nộp có vấn đề:")
             for i in loi_file:
                 print(f"  {i}")
+
+    os.environ.pop("LLM_QUERY_ID", None)
+    os.environ.pop("LLM_RUN_ID", None)
+    os.environ.pop("QA_EVIDENCE_LOG_PATH", None)
 
     print(f"\nĐã hoàn thành! Kết quả lưu tại: {out_dir}")
     print(f"Tổng query lỗi (lần chạy này): {err_count} / {len(queries) - len(done_qids)}")

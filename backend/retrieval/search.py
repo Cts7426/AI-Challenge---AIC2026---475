@@ -307,7 +307,17 @@ def search(
     """
     if query_en is None:
         from backend.retrieval.text_query import translate_to_english
-        query_en = translate_to_english(query_vi)
+        try:
+            query_en = translate_to_english(query_vi)
+        except Exception as e:
+            # LLM chết (hết credit/mất mạng/429) KHÔNG được kéo sập cả truy vấn.
+            # Trước bản vá này, bước dịch nằm NGOÀI _an_toan() nên một lỗi ở đây
+            # là 0 điểm cho MỌI dạng bài, kể cả KIS vốn không cần LLM để chấm.
+            # Rơi về query gốc: nhánh vector/objects yếu hẳn (CLIP là model tiếng
+            # Anh), nhưng metadata/OCR/ASR vẫn chạy đúng trên tiếng Việt — điểm
+            # giảm chứ không mất trắng.
+            print(f"  [cảnh báo] dịch VI→EN lỗi ({e}) — dùng nguyên query tiếng Việt")
+            query_en = query_vi
 
     bat = {**BRANCHES, **(branches or {})}
     gom_shot = GROUP_BY_SHOT if group_by_shot is None else group_by_shot

@@ -37,6 +37,54 @@ from dev_set.tools.scoring import final_score, recall_at_k, rscore_kis
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def load_zero_llm_queries(q_path: Path, fallback_path: Path) -> list[Query]:
+    """Nạp KIS và bảo đảm `query_en` cố định trước khi chạm DB/search.
+
+    `tune_kis.jsonl` là nguồn query chính. Khi một dòng thiếu bản dịch, chỉ điền
+    theo đúng `query_id` từ `tune_all.json`; không tự dịch và không đoán từ câu VI.
+    Trả list Query có `query_en` không rỗng, hoặc fail closed.
+    """
+    primary_rows = [row for row in load_jsonl(q_path) if row.get("task_type") == "KIS"]
+
+    fallback_rows = []
+    if fallback_path.is_file():
+        try:
+            raw = json.loads(fallback_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise RuntimeError(f"không đọc được fallback query_en {fallback_path}: {e}") from e
+        if not isinstance(raw, list):
+            raise RuntimeError(f"{fallback_path} phải là JSON array")
+        fallback_rows = [row for row in raw if isinstance(row, dict) and row.get("task_type") == "KIS"]
+
+    fallback_by_id: dict[str, str] = {}
+    for row in fallback_rows:
+        query_id = str(row.get("query_id", "")).strip()
+        query_en = str(row.get("query_en") or "").strip()
+        if not query_id or not query_en:
+            continue
+        previous = fallback_by_id.get(query_id)
+        if previous is not None and previous != query_en:
+            raise RuntimeError(f"tune_all.json có hai query_en mâu thuẫn cho {query_id}")
+        fallback_by_id[query_id] = query_en
+
+    queries: list[Query] = []
+    for row in primary_rows:
+        merged = dict(row)
+        query_en = str(merged.get("query_en") or "").strip()
+        if not query_en:
+            query_en = fallback_by_id.get(str(merged.get("query_id", "")), "")
+        merged["query_en"] = query_en or None
+        queries.append(Query(**merged))
+
+    missing_en = [q.query_id for q in queries if not (q.query_en or "").strip()]
+    if missing_en:
+        raise RuntimeError(
+            "không thể chạy KIS 0-LLM: thiếu query_en trong tune_kis.jsonl và "
+            f"tune_all.json cho {missing_en}"
+        )
+    return queries
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--split", choices=["tune"], default="tune",
@@ -44,13 +92,13 @@ def main() -> None:
     args = ap.parse_args()
 
     q_path = REPO_ROOT / "dev_set" / "queries" / f"{args.split}_kis.jsonl"
+    fallback_path = REPO_ROOT / "dev_set" / "queries" / "tune_all.json"
     gt_path = REPO_ROOT / "dev_set" / "ground_truth" / f"{args.split}_gt.jsonl"
 
-    queries = [Query(**row) for row in load_jsonl(q_path) if row.get("task_type") == "KIS"]
-    missing_en = [q.query_id for q in queries if not q.query_en]
-    if missing_en:
-        print(f"CẢNH BÁO: {len(missing_en)} câu thiếu query_en sẵn ({missing_en}) — "
-              "search() sẽ TỰ DỊCH QUA llm() cho các câu này, có thể crash nếu hết tiền API.")
+    try:
+        queries = load_zero_llm_queries(q_path, fallback_path)
+    except RuntimeError as e:
+        ap.error(str(e))
 
     gts = {}
     for row in load_jsonl(gt_path):
@@ -69,7 +117,9 @@ def main() -> None:
             print(f"[BỎ QUA] {q.query_id} không có Ground Truth.")
             continue
 
-        res = search(q.query_vi, q.query_en, top_k=100, group_by_shot=True)
+        # load_zero_llm_queries() đã chặn None/rỗng: search không thể rơi vào
+        # nhánh translate_to_english() gọi llm().
+        res = search(q.query_vi, query_en=q.query_en, top_k=100, group_by_shot=True)
         hits = _to_shot_hits(res)
         ans = allocate(hits, "KIS", answer_text=None)
 

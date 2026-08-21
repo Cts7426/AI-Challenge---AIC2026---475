@@ -3,425 +3,425 @@
     "candidates_per_event": 6,
     "min_gap": 30,
     "formula": "sum (baseline)",
-    "avg_final_all": 0.17208333333333334,
+    "avg_final_all": 0.17541666666666667,
     "avg_r1_all": 0.09375,
-    "avg_final_human": 0.45,
-    "avg_r1_human": 0.25
+    "avg_final_human": 0.575,
+    "avg_r1_human": 0.375
   },
   "best": {
-    "candidates_per_event": 20,
+    "candidates_per_event": 6,
     "min_gap": 10,
-    "formula": "min_blend_2.0",
-    "avg_final_all": 0.20875,
+    "formula": "sum (baseline)",
+    "avg_final_all": 0.17541666666666667,
     "avg_r1_all": 0.09375,
-    "avg_final_human": 0.5166666666666666,
-    "avg_r1_human": 0.25
+    "avg_final_human": 0.575,
+    "avg_r1_human": 0.375
   },
   "all_results": [
     {
       "candidates_per_event": 6,
       "min_gap": 10,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 10,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 10,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 10,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.18875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 10,
       "formula": "geomean",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 20,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 20,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 20,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 20,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.18875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 20,
       "formula": "geomean",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 30,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 30,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 30,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 30,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.18875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 6,
       "min_gap": 30,
       "formula": "geomean",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 10,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 10,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 10,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 10,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.18875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 10,
       "formula": "geomean",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 20,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 20,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 20,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 20,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.18875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 20,
       "formula": "geomean",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 30,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 30,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 30,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 30,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.18875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 12,
       "min_gap": 30,
       "formula": "geomean",
-      "avg_final_all": 0.17208333333333334,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 10,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 10,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 10,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 10,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.20875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 10,
       "formula": "geomean",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 20,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 20,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 20,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 20,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.20875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 20,
       "formula": "geomean",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 30,
       "formula": "sum (baseline)",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 30,
       "formula": "min_blend_0.5",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 30,
       "formula": "min_blend_1.0",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 30,
       "formula": "min_blend_2.0",
-      "avg_final_all": 0.20875,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.5166666666666666,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     },
     {
       "candidates_per_event": 20,
       "min_gap": 30,
       "formula": "geomean",
-      "avg_final_all": 0.19208333333333333,
+      "avg_final_all": 0.17541666666666667,
       "avg_r1_all": 0.09375,
-      "avg_final_human": 0.45,
-      "avg_r1_human": 0.25
+      "avg_final_human": 0.575,
+      "avg_r1_human": 0.375
     }
   ]
 }

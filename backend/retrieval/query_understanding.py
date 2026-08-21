@@ -97,7 +97,8 @@ def translate(query_vi: str) -> str:
             "narrative words like 'video shows' or 'scene of'; no invented details; "
             f"under {MAX_CAPTION_TOKENS} tokens.{them}\n"
             "Reply with ONLY the caption, no quotes, no explanation.\n\n"
-            f"Vietnamese: {query_vi}"
+            f"Vietnamese: {query_vi}",
+            max_tokens=128,
         ).strip().strip('"')
 
     return _ep_do_dai(hoi(), lambda: hoi(" Make it noticeably SHORTER than before."))
@@ -129,6 +130,7 @@ def expand(query_vi: str, n: int = N_EXPANDED) -> list[str]:
         "image caption, not a sentence about a video.\n\n"
         f"Vietnamese description: {query_vi}",
         json_schema=EXPAND_SCHEMA,
+        max_tokens=512,
     )
     caps = [c.strip() for c in json.loads(raw)["captions"] if c and c.strip()]
 
@@ -173,6 +175,7 @@ def extract_constraints(query_vi: str) -> dict:
         "a correct answer.\n\n"
         f"Vietnamese description: {query_vi}",
         json_schema=CONSTRAINTS_SCHEMA,
+        max_tokens=512,
     )
     return json.loads(raw)
 

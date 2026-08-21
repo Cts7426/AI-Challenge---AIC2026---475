@@ -59,7 +59,10 @@ dev_set/            tune/holdout, scorer và artefact regression
 ### Bốn lớp dữ liệu không được trộn
 
 1. CSV BTC chỉ là **manifest URL**, không chứa video/keyframe.
-2. Archive tải về phải có tên, kích thước và SHA-256 trong data manifest.
+2. Archive tải về phải có tên, kích thước và SHA-256 trong data manifest. Audit
+   vẫn giữ đủ 32 URL, nhưng đợt 1 chỉ bắt buộc 14 keyframe + 4 gói lõi; 14 gói
+   video mang trạng thái `deferred_not_required_round1` tới khi có task cần
+   pixel video/frame dày đã được đo lường.
 3. Raw asset sau giải nén là nguồn ảnh/video BTC; giải nén không được tự sửa
    parquet hay index.
 4. Parquet/index là dữ liệu dẫn xuất có provenance; nạp delta idempotent, không
@@ -97,6 +100,10 @@ dev_set/            tune/holdout, scorer và artefact regression
 9. VLM/Whisper/Paddle local nặng không nằm trong `/search`; Q&A batch có thể dùng
    LLM/VLM qua adapter và phải lưu cache/evidence để replay.
 10. Mọi path/model/weight/policy nằm trong `data/config/`, không hardcode ở caller.
+11. Model LLM do người vận hành đặt **thủ công bằng biến môi trường của process**
+   ngay trước lệnh chạy. Preflight chỉ in lại backend/model, không tự chọn, không
+   gọi thử API và không đổi provider. Một run/resume phải giữ nguyên model trong
+   runtime fingerprint để số đo không trộn hai model.
 
 ## Quy trình đánh giá và nhận thay đổi
 
@@ -110,16 +117,28 @@ dev_set/            tune/holdout, scorer và artefact regression
 - Q&A replay semantic/exact trên cùng answer/evidence; không so hai lần gọi LLM
   ngẫu nhiên. Khi luật chưa rõ, chọn policy tối đa hóa `min(semantic, exact)`, hòa
   thì chọn semantic cao hơn. Cấu hình vận hành đợt 1 là `robust`.
-- Giữ `SLOT_BUDGET = [(100, 1)]` tới khi cửa sổ KIS gán nhãn độc lập chứng minh
-  chiều sâu tốt hơn chiều rộng.
+- Giữ `SLOT_BUDGET = [(1, 2), (2, 2), (94, 1)]` (97 shot/100 dòng) tới khi
+  holdout KIS chứng minh chiều sâu tốt hơn chiều rộng. Replay hiện tại cho thấy
+  các bảng sâu hơn đều giảm điểm và bỏ đói 0 correct candidate.
+- Q&A release giữ `QA_INFERENCE_MODE=legacy` cho tới khi `two_stage` được replay
+  trên evidence cố định bằng model release, qua tune + holdout và không sinh
+  failure mới.
+  Không promotion chỉ dựa vào số request lý thuyết giảm.
 - Một thử nghiệm = một thay đổi config/code có baseline và query-level diff. Không
   tune trên worktree trộn nhiều thay đổi chưa truy nguồn được.
 
 ## Quy trình release ba đợt
 
+Luật nộp đã khóa: mỗi query đúng một CSV UTF-8 không header, tối đa/định mức vận
+hành 100 dòng; tên giữ nguyên stem file TXT; video không `.mp4`; Q&A ≤100 ký tự;
+TRAKE mỗi dòng đúng N frame. ZIP phải có top-level `submission/`. Mỗi gói tối đa
+3 lượt, lần cuối được tính; file sai format vẫn mất một lượt. Public chỉ dùng 50%
+đáp án nên không promotion theo dao động nhỏ trên Public.
+
 1. Ingest/audit dữ liệu mới và so schema/model/map với đợt trước.
-2. Chạy test, tune regression và holdout promotion.
-3. Tạo clean checkpoint; chạy `preflight --profile release`.
+2. Chạy test, tune regression và holdout promotion; lưu evidence + runtime fingerprint.
+3. Đặt backend/model thủ công, tạo clean checkpoint rồi chạy
+   `preflight --profile release`; kiểm bằng mắt model được in ra đúng cấu hình định chạy.
 4. Chạy full batch, validator và sinh các portfolio Q&A từ cùng checkpoint.
 5. Chọn đúng một ZIP, ghi SHA-256, nộp và lưu receipt.
 6. Đóng băng ít nhất 24 giờ cho đợt 2, 48 giờ cho đợt 3 nếu lịch cho phép.
@@ -151,11 +170,12 @@ Không thêm model/reranker/kiến trúc mới.
 
 | Hạng mục | Trạng thái | Nguồn/cấu hình | Cách phòng vệ |
 |---|---|---|---|
-| `frame_map` | Đã có và đã audit | `data/derived/frame_map.parquet` | Mọi submit tra map; resolver/test cấm suy hậu tố |
+| `frame_map` | Đã audit cấu trúc; pixel parity mới 84/873 video | `data/derived/frame_map.parquet`, `reports/data_audit.md` | 177.321 dòng đã kiểm schema/khóa/biên; 789 video chưa đối chiếu pixel, mọi submit vẫn tra map và cấm suy hậu tố |
 | Submit frame | Đã chốt là frame tuyệt đối | `data/config/submit_format.py` | Format không có logic mapping |
 | Fusion | weighted RRF hiện hành | `data/config/search_weights.py` | Ablation từng nguồn, snapshot config |
 | Metric vector | L2 + COSINE hiện hành | `load_clip.py`, `clip_model.py` | Norm/cosine verification bắt buộc |
-| Model/preprocess CLIP BTC | Chưa có xác nhận đủ mạnh | `data/config/clip_model.py` | Meta guard + encode lại ảnh mẫu trước reindex |
+| Model/preprocess CLIP BTC | Đã kiểm chứng trên ảnh raw BTC | `data/config/clip_model.py`, `scripts/verify_clip_space.py` | 12 mẫu: cosine trung bình 0,9999, nhỏ nhất 0,9993; giữ meta guard trước reindex |
 | Cách chấm answer Q&A | Semantic và exact còn mâu thuẫn | `data/config/qa_evaluation.py` | Sinh semantic/exact/robust từ cùng evidence |
+| LLM release | Người vận hành chọn thủ công | `LLM_BACKEND`, `LLM_API_MODEL` | Preflight in giá trị; fingerprint cấm resume trộn model |
 | Dữ liệu/lịch đợt 2–3 | Chưa công bố | `docs/contest.md` | Ingest delta → đo → cải tiến → freeze |
-| Internet chung kết | Chưa công bố, chưa thuộc sơ tuyển | `LLM_BACKEND` | Adapter API/Gemini/local; không sửa caller |
+| Internet chung kết | Chưa công bố, chưa thuộc sơ tuyển | `LLM_BACKEND` | Giữ adapter; không tự đổi provider giữa một run |

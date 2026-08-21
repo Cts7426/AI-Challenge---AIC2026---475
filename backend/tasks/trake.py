@@ -74,7 +74,14 @@ from data.config.search_weights import (
     TRAKE_MIN_FRAME_GAP,
     TRAKE_ORDER_BONUS,
 )
-from data.config.submit_format import Answer
+from data.config.slot_budget import (
+    TRAKE_ALT_BUDGET,
+    TRAKE_ALT_GENERATED,
+    TRAKE_BREADTH_ROWS,
+    TRAKE_PAD_SHIFT_FRAMES,
+    budget_per_shot,
+)
+from data.config.submit_format import ANSWERS_PER_QUERY, Answer
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ASR_PATH = REPO_ROOT / "data" / "derived" / "asr.parquet"
@@ -191,6 +198,16 @@ class TrakeCandidate:
     keyframe_ids: tuple[str | None, ...]
     n_hit_events: int  # số vị trí có bằng chứng thật (trước nội suy)
     has_full_order: bool  # True: cả N vị trí có bằng chứng thật VÀ tăng dần ngặt
+
+    # Phương án THAY THẾ cho chính video này — mỗi phần tử là một bộ N frame
+    # khác `frame_ids`, dựng bằng cách đổi ĐÚNG MỘT vị trí sang ứng viên tốt kế
+    # tiếp của vị trí đó (xem `_alternative_frame_sets`). Rỗng khi không có ứng
+    # viên nào để đổi. Xếp theo mức đáng ngờ giảm dần của vị trí bị đổi.
+    #
+    # Vì sao nằm trong TrakeCandidate mà không tính lại ở tầng trên: rổ ứng viên
+    # từng vị trí chỉ tồn tại bên trong `_localize_in_video`; tính lại ở chỗ
+    # khác nghĩa là gọi search() lần nữa cho cùng một thứ.
+    alternatives: tuple[tuple[int, ...], ...] = ()
 
 
 def _topk_per_video(hits: list[dict], k: int) -> dict[str, list[dict]]:
@@ -566,6 +583,77 @@ def _blend_score(position_scores: list[float]) -> float:
     return sum(position_scores) + TRAKE_MIN_BLEND_LAMBDA * min(position_scores)
 
 
+def _alternative_frame_sets(
+    base: list[int],
+    candidates_by_position: list[list[dict]],
+    chosen_score_at: dict[int, float],
+    n_frames_video: int,
+    n_alt: int = TRAKE_ALT_GENERATED,
+) -> list[tuple[int, ...]]:
+    """Bộ frame gốc + rổ ứng viên từng vị trí → tối đa `n_alt` phương án THAY THẾ.
+
+    Vào : `base` = N frame DP đã chốt · rổ ứng viên mỗi vị trí · điểm của ứng
+          viên đang được chọn ở mỗi vị trí · độ dài video.
+    Ra  : list bộ N frame, mỗi bộ khác `base` ở ĐÚNG MỘT vị trí, đã tăng dần
+          ngặt và nằm trong [0, n_frames_video). Không trùng nhau, không trùng
+          `base`. Rỗng khi không có gì để đổi.
+
+    ===== Vì sao đổi MỘT vị trí, không phải sinh chuỗi DP tốt-thứ-hai =====
+    DP tốt-thứ-hai thường khác chuỗi tốt nhất ở NHIỀU vị trí cùng lúc, mà TRAKE
+    tính điểm THEO TỪNG VỊ TRÍ (`R-Score = (1/N)·Σ I(frame_j ∈ [sⱼ,eⱼ])`). Đổi
+    nhiều vị trí một lúc là đánh cược lại cả những vị trí ĐANG ĐÚNG — có thể mất
+    nhiều hơn được. Đổi đúng một vị trí giữ nguyên phần đã đúng, chỉ mua lại
+    phần nghi ngờ nhất. Đo được (TR01): vị trí 1/3/4 đã đúng, chỉ vị trí 2 sai —
+    một phương án đổi riêng vị trí 2 đưa 3/4 lên 4/4.
+
+    ===== Thứ tự: XOAY VÒNG theo vị trí, đáng ngờ trước =====
+    Vòng 1 lấy ứng viên tốt-thứ-2 của từng vị trí (vị trí có ứng viên đang chọn
+    điểm THẤP NHẤT đi trước — đáng ngờ nhất), vòng 2 lấy tốt-thứ-3, v.v.
+
+    ⚠️ Phải XOAY VÒNG chứ không "mỗi vị trí đúng một phương án rồi thôi". Đo trên
+    TR01: ứng viên ĐÚNG của vị trí 2 nằm ở **hạng 11/12** trong rổ của chính vị
+    trí đó. Bản chỉ-lấy-một không bao giờ chạm tới nó, và TR01 đứng im 0.750 ở
+    lần đo đầu. Xoay vòng thì vị trí đáng ngờ được đào tới độ sâu cần thiết,
+    miễn `n_alt` đủ lớn.
+
+    Vị trí không có ứng viên nào (frame là giá trị nội suy) không đổi được, bỏ
+    qua — không có gì để thay vào.
+    """
+    if n_alt <= 0:
+        return []
+    # Vị trí đáng ngờ trước: điểm ứng viên đang chọn thấp nhất lên đầu. Vị trí
+    # không nằm trong `chosen_score_at` là vị trí nội suy → không có rổ để đổi.
+    thu_tu = sorted(chosen_score_at, key=lambda j: chosen_score_at[j])
+    # Ứng viên thay thế của từng vị trí, tốt nhất trước, bỏ cái đang dùng.
+    kho = {
+        j: sorted(
+            (c for c in candidates_by_position[j] if c["frame_idx"] != base[j]),
+            key=lambda c: c["score"], reverse=True,
+        )
+        for j in thu_tu
+    }
+
+    ra: list[tuple[int, ...]] = []
+    da_co: set[tuple[int, ...]] = {tuple(base)}
+    for vong in range(max(len(v) for v in kho.values()) if kho else 0):
+        for j in thu_tu:
+            if len(ra) >= n_alt:
+                return ra
+            if vong >= len(kho[j]):
+                continue
+            moi = list(base)
+            moi[j] = kho[j][vong]["frame_idx"]
+            moi = _repair_strictly_increasing(moi, n_frames_video)
+            khoa = tuple(moi)
+            # `_repair_strictly_increasing` có thể đẩy tràn khỏi video hoặc đẩy
+            # về đúng `base` — cả hai đều là dòng vô giá trị, bỏ.
+            if khoa in da_co or any(not (0 <= f < n_frames_video) for f in moi):
+                continue
+            da_co.add(khoa)
+            ra.append(khoa)
+    return ra
+
+
 def _localize_in_video(
     vid: str, candidates_by_position: list[list[dict]],
     events: list[str] | None = None,
@@ -597,6 +685,11 @@ def _localize_in_video(
         (j, c["frame_idx"]): c.get("_orig_score", c["score"])
         for j, cands in enumerate(candidates_by_position) for c in cands
     }
+
+    # Điểm của ứng viên ĐANG được chọn ở mỗi vị trí — đầu vào để xếp thứ tự
+    # "vị trí nào đáng ngờ nhất" khi dựng phương án thay thế. Chỉ vị trí nằm
+    # trong chuỗi DP mới có; vị trí nội suy không có gì để đổi.
+    chosen_score_at: dict[int, float] = {j: s for j, _, _, s in chain}
 
     if has_full_order:
         frame_ids = [f for _, f, _, _ in chain]
@@ -631,7 +724,8 @@ def _localize_in_video(
         score = _blend_score(position_scores) if position_scores else 0.0
         frame_ids = _fill_missing(frame_or_none)
 
-    frame_ids = _repair_strictly_increasing(frame_ids, n_frames_of(vid))
+    n_frames_video = n_frames_of(vid)
+    frame_ids = _repair_strictly_increasing(frame_ids, n_frames_video)
     return TrakeCandidate(
         video_id=vid,
         score=score,
@@ -639,6 +733,9 @@ def _localize_in_video(
         keyframe_ids=tuple(keyframe_ids),
         n_hit_events=n_hit_events,
         has_full_order=has_full_order,
+        alternatives=tuple(_alternative_frame_sets(
+            frame_ids, candidates_by_position, chosen_score_at, n_frames_video
+        )),
     )
 
 
@@ -723,19 +820,71 @@ def trake_search(
     return candidates[:top_videos]
 
 
-def to_answers(candidates: list[TrakeCandidate]) -> list[Answer]:
-    """list[TrakeCandidate] → list[Answer] cho export/allocate — chuyển thẳng
-    frame_ids đã định vị bằng DP, KHÔNG đi qua backend/slot/allocator.py
-    (`_allocate_trake` chỉ biết carve đều 1 shot đại diện thành N đoạn giả —
-    đúng vấn đề bản sửa 16/08 này giải quyết, xem đầu file)."""
-    return [
-        Answer(
-            video_id=c.video_id,
-            frame_ids=c.frame_ids,
-            keyframe_id=next((kf for kf in c.keyframe_ids if kf), None),
-        )
-        for c in candidates
+def _row(c: TrakeCandidate, frames: tuple[int, ...], la_goc: bool) -> Answer:
+    """Một dòng nộp. `keyframe_id` chỉ gắn cho dòng GỐC — dòng thay thế đã đổi
+    một vị trí nên bộ frame không còn ứng đúng keyframe nào, gắn vào là nói dối
+    tầng debug/UI (cùng lối nghĩ với `pad_answers` cũ khi shift)."""
+    return Answer(
+        video_id=c.video_id,
+        frame_ids=frames,
+        keyframe_id=next((kf for kf in c.keyframe_ids if kf), None) if la_goc else None,
+    )
+
+
+def to_answers(
+    candidates: list[TrakeCandidate], total: int = ANSWERS_PER_QUERY
+) -> list[Answer]:
+    """list[TrakeCandidate] → list[Answer] cho export — chuyển thẳng frame_ids
+    đã định vị bằng DP, KHÔNG đi qua backend/slot/allocator.py (`_allocate_trake`
+    chỉ biết carve đều 1 shot đại diện thành N đoạn giả — đúng vấn đề bản sửa
+    16/08 này giải quyết, xem đầu file).
+
+    ⚠️ SỬA 21/08 — CHIỀU SÂU. Bản cũ trả ĐÚNG 1 dòng mỗi video, nên 100 dòng nộp
+    là 100 video khác nhau, mỗi video một phương án duy nhất. BTC chấm
+    `R@k = R-Score CAO NHẤT trong k dòng đầu`, nên khi video đúng đã ở hạng 1 thì
+    99 dòng còn lại KHÔNG THỂ cải thiện điểm — điểm đóng băng ở đúng một dòng.
+    Đo trên file nộp thật (`dev_set/results/run_20260820_2101/`): TR01 Final
+    0.500 đóng băng, TR02 0.533. Xem `data/config/slot_budget.py` mục TRAKE.
+
+    Bố cục dòng trả về:
+      · dòng 1..TRAKE_BREADTH_ROWS — dòng GỐC của từng video, ĐÚNG THỨ TỰ CŨ.
+        Giữ nguyên vẹn để R@1/R@5/R@20 **không thể tệ đi về mặt cấu trúc**.
+      · phần còn lại — xen kẽ: một phương án thay thế của video hạng cao, rồi
+        một dòng gốc của video tiếp theo, luân phiên. Vừa mua thêm cơ hội cho
+        video đã tin, vừa không bỏ rơi chiều rộng.
+
+    `total` có giá trị mặc định nên MỌI chỗ gọi cũ (`to_answers(candidates)`)
+    chạy y nguyên, không phải sửa run.py / run_minimal.py / run_evaluation.py.
+    """
+    if not candidates:
+        return []
+
+    goc = [(_row(c, c.frame_ids, True), i) for i, c in enumerate(candidates)]
+    # Mỗi video được dùng bao nhiêu phương án thay thế — theo HẠNG, bảng
+    # TRAKE_ALT_BUDGET. Dùng lại `budget_per_shot` của slot_budget.py (đã có test,
+    # đã xử mọi ca lệch số lượng) thay vì viết bản trải bảng thứ hai.
+    han_muc = budget_per_shot(len(candidates), TRAKE_ALT_BUDGET, sum(n * k for n, k in TRAKE_ALT_BUDGET))
+    alt: list[Answer] = [
+        _row(c, frames, False)
+        for c, q in zip(candidates, han_muc) for frames in c.alternatives[:q]
     ]
+
+    ra: list[Answer] = []
+    # --- phần CHIỀU RỘNG: giữ y hệt hành vi cũ
+    for row, _ in goc[:TRAKE_BREADTH_ROWS]:
+        ra.append(row)
+        if len(ra) >= total:
+            return ra
+
+    # --- phần XEN KẼ: 1 phương án thay thế, 1 video mới, luân phiên
+    con_goc = [row for row, _ in goc[TRAKE_BREADTH_ROWS:]]
+    i_alt = i_goc = 0
+    while len(ra) < total and (i_alt < len(alt) or i_goc < len(con_goc)):
+        if i_alt < len(alt):
+            ra.append(alt[i_alt]); i_alt += 1
+        if len(ra) < total and i_goc < len(con_goc):
+            ra.append(con_goc[i_goc]); i_goc += 1
+    return ra
 
 
 def pad_answers(candidates: list[TrakeCandidate], total: int) -> list[Answer]:
@@ -748,12 +897,37 @@ def pad_answers(candidates: list[TrakeCandidate], total: int) -> list[Answer]:
 
     Vẫn tốt hơn `_allocate_trake`: dòng đệm bám sát video ỨNG VIÊN THẬT (đã có
     bằng chứng cho ít nhất 1 sự kiện) thay vì carve rỗng 1 shot bất kỳ.
+
+    ⚠️ SỬA 21/08 — hai điểm.
+    1. Dùng hết PHƯƠNG ÁN THAY THẾ trước khi dịch mù (`to_answers` đã lo phần
+       chính, nhưng khi rất ít video ứng viên thì hàm này mới là nơi lấp 100 dòng
+       — vẫn nên tiêu bằng chứng thật trước khi tiêu số bịa).
+    2. Bước dịch `+1, +2, +3` frame → `TRAKE_PAD_SHIFT_FRAMES` (60). Hai ca trượt
+       đo được của TR01/TR02 đều là chọn nhầm ĐÚNG MỘT SHOT liền kề, lệch ~45
+       frame; dịch 1 frame thì vẫn nằm nguyên trong shot sai, tức toàn bộ dòng
+       đệm là rác. Shot trung vị 69 frame nên 60 là "sang shot kề".
     """
     if not candidates:
         raise ValueError("Không có video ứng viên TRAKE nào để đệm")
 
     answers: list[Answer] = []
     used: set[tuple[str, tuple[int, ...]]] = set()
+
+    def them(vid: str, frames: tuple[int, ...], kf: str | None) -> None:
+        if (vid, frames) not in used:
+            used.add((vid, frames))
+            answers.append(Answer(video_id=vid, frame_ids=frames, keyframe_id=kf))
+
+    # 1) dòng gốc, rồi 2) phương án thay thế — cả hai đều là bằng chứng thật
+    for c in candidates:
+        them(c.video_id, c.frame_ids, next((k for k in c.keyframe_ids if k), None))
+    for c in candidates:
+        for frames in c.alternatives:
+            if len(answers) >= total:
+                break
+            them(c.video_id, frames, None)
+
+    # 3) hết bằng chứng thật → dịch cả bộ sang shot kề, xa dần
     shift = 0
     i = 0
     guard = 0
@@ -764,21 +938,17 @@ def pad_answers(candidates: list[TrakeCandidate], total: int) -> list[Answer]:
                 f"Không đệm đủ {total} dòng TRAKE — chỉ dựng được {len(answers)} dòng "
                 f"KHÔNG TRÙNG từ {len(candidates)} video ứng viên."
             )
-        c = candidates[i % len(candidates)]
-        if shift == 0:
-            frames, kf = c.frame_ids, next((k for k in c.keyframe_ids if k), None)
-        else:
-            frames = tuple(_repair_strictly_increasing(
-                [f + shift for f in c.frame_ids], n_frames_of(c.video_id)
-            ))
-            kf = None  # dòng đệm dịch khỏi bằng chứng thật — không gán nhầm keyframe
-        key = (c.video_id, frames)
-        if key not in used:
-            used.add(key)
-            answers.append(Answer(video_id=c.video_id, frame_ids=frames, keyframe_id=kf))
-        i += 1
         if i % len(candidates) == 0:
             shift += 1
+        c = candidates[i % len(candidates)]
+        # xen kẽ tiến/lùi: khoảnh khắc đúng nằm ở shot kề nào thì chưa biết
+        delta = TRAKE_PAD_SHIFT_FRAMES * ((shift + 1) // 2) * (1 if shift % 2 else -1)
+        frames = tuple(_repair_strictly_increasing(
+            [f + delta for f in c.frame_ids], n_frames_of(c.video_id)
+        ))
+        if all(0 <= f < n_frames_of(c.video_id) for f in frames):
+            them(c.video_id, frames, None)  # dịch khỏi bằng chứng → không gán keyframe
+        i += 1
     return answers
 
 

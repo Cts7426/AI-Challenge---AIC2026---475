@@ -121,11 +121,7 @@ def main() -> int:
                 candidates = trake_search(events, top_videos=args.answers)
                 if not candidates:
                     raise RuntimeError("trake_search() không tìm được video ứng viên nào")
-                # Truyền `args.answers` tường minh: từ 21/08 `to_answers()` sinh
-                # thêm dòng PHƯƠNG ÁN THAY THẾ cho tới đủ `total` (mặc định 100),
-                # nên không truyền thì `--answers 50` sẽ ra 100 dòng và validator
-                # từ chối cả file. Lúc thi luôn là 100 nên mặc định vẫn đúng.
-                answers = to_answers(candidates, args.answers)
+                answers = to_answers(candidates)
                 if len(answers) < args.answers:
                     answers = pad_answers(candidates, args.answers)
             except Exception as e:

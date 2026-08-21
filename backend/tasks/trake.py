@@ -832,7 +832,7 @@ def _row(c: TrakeCandidate, frames: tuple[int, ...], la_goc: bool) -> Answer:
 
 
 def to_answers(
-    candidates: list[TrakeCandidate], total: int = ANSWERS_PER_QUERY
+    candidates: list[TrakeCandidate], total: int | None = None
 ) -> list[Answer]:
     """list[TrakeCandidate] → list[Answer] cho export — chuyển thẳng frame_ids
     đã định vị bằng DP, KHÔNG đi qua backend/slot/allocator.py (`_allocate_trake`
@@ -853,11 +853,20 @@ def to_answers(
         một dòng gốc của video tiếp theo, luân phiên. Vừa mua thêm cơ hội cho
         video đã tin, vừa không bỏ rơi chiều rộng.
 
-    `total` có giá trị mặc định nên MỌI chỗ gọi cũ (`to_answers(candidates)`)
-    chạy y nguyên, không phải sửa run.py / run_minimal.py / run_evaluation.py.
+    `total=None` (mặc định) = "đúng bằng số video ứng viên, tối đa
+    ANSWERS_PER_QUERY". Chọn vậy để KHÔNG phải sửa một dòng nào ở run.py /
+    run_minimal.py / run_evaluation.py — cả ba đều gọi `to_answers(candidates)`
+    rồi mới `pad_answers(candidates, total)` cho đủ, và đều lấy
+    `trake_search(top_videos=total)` nên `len(candidates) <= total` LUÔN đúng.
+    Nếu cứ mặc định 100 thì `run_minimal.py --answers 50` sẽ nhả 100 dòng và
+    validator từ chối cả file. Lúc thi `total=100` và trake_search trả đủ 100
+    video ứng viên nên chiều sâu vẫn hoạt động nguyên vẹn; khi ít video hơn thì
+    `pad_answers` (cũng đã sửa 21/08) tiêu nốt các phương án thay thế còn lại.
     """
     if not candidates:
         return []
+    if total is None:
+        total = min(ANSWERS_PER_QUERY, len(candidates))
 
     goc = [(_row(c, c.frame_ids, True), i) for i, c in enumerate(candidates)]
     # Mỗi video được dùng bao nhiêu phương án thay thế — theo HẠNG, bảng

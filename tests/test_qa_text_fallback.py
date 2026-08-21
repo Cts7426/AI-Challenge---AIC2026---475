@@ -128,7 +128,7 @@ def test_ung_vien_text_duoc_thu_du_nam_ngoai_top_3(monkeypatch):
 
     def _try(hit, *a, **kw):
         da_thu.append(hit.shot_id)
-        return ("bến phà Vàm Cống", 123) if hit.shot_id == "S_TEXT" else None
+        return ("bến phà Vàm Cống", 123, 0.9) if hit.shot_id == "S_TEXT" else None
 
     monkeypatch.setattr(Q, "_try_shot", _try)
     shots, answer = Q.qa_pipeline("câu hỏi")
@@ -150,7 +150,7 @@ def test_thu_tu_ung_vien_goc_khong_doi(monkeypatch):
                         lambda q: Q.QuestionParts(event_vi="sk", question_vi="ai nói gì?"))
     monkeypatch.setattr(Q, "route_question", lambda q: ("asr", False))
     monkeypatch.setattr(Q, "_try_shot",
-                        lambda hit, *a, **kw: ("x", 1) if hit.shot_id == "A" else None)
+                        lambda hit, *a, **kw: ("x", 1, 0.9) if hit.shot_id == "A" else None)
 
     shots, _ = Q.qa_pipeline("câu hỏi")
     assert [h.shot_id for h in shots] == ["A", "B", "C", "D", "Z"], \
@@ -170,7 +170,7 @@ def test_shot_dau_bang_du_nhanh_KHONG_duoc_cat_duong_ung_vien_text(monkeypatch):
                         lambda q: Q.QuestionParts(event_vi="sk", question_vi="ai nói gì?"))
     monkeypatch.setattr(Q, "route_question", lambda q: ("asr", False))
     monkeypatch.setattr(Q, "_try_shot", lambda hit, *a, **kw: (
-        ("Phà Châu Giang", 1) if hit.shot_id == "S_CLIP" else ("bến phà Vàm Cống", 2)))
+        ("Phà Châu Giang", 1, 0.9) if hit.shot_id == "S_CLIP" else ("bến phà Vàm Cống", 2, 0.9)))
 
     _, answer = Q.qa_pipeline("câu hỏi")
     assert answer == "bến phà Vàm Cống"
@@ -185,6 +185,6 @@ def test_route_thi_giac_van_uu_tien_bang_du_nhanh(monkeypatch):
     monkeypatch.setattr(Q, "route_question", lambda q: ("visual", True))
     da_thu = []
     monkeypatch.setattr(Q, "_try_shot",
-                        lambda hit, *a, **kw: (da_thu.append(hit.shot_id), ("đỏ", 1))[1])
+                        lambda hit, *a, **kw: (da_thu.append(hit.shot_id), ("đỏ", 1, 0.9))[1])
     Q.qa_pipeline("câu hỏi")
     assert da_thu[0] == "S_CLIP"

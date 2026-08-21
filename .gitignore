@@ -67,7 +67,9 @@ _local_backup_*/
 .env.*
 
 # Dữ liệu lớn cục bộ (KHÔNG được đẩy lên git — vd .zip keyframe 46GB đã từng
-# xuất hiện ở gốc repo, có thể phá git nếu lỡ `git add -A`)
+# xuất hiện ở gốc repo, có thể phá git nếu lỡ `git add -A`). `data/derived/*`
+# ở trên đã bao trọn mọi thư mục con của data/derived — giữ thêm các mục dưới
+# đây vì chúng KHÔNG nằm trong data/derived/.
 *.zip
 backup_running/
 data/derived/_audit/

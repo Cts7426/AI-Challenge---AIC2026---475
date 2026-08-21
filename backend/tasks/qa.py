@@ -72,8 +72,31 @@ QA_ASR_WINDOW_MS = 3000        # ±3s quanh keyframe đại diện shot — KHÁ
                                 # ASR "đề cử" keyframe ứng viên, việc khác hẳn)
 SELF_CONSISTENCY_N = 3
 LOW_CONFIDENCE = 0.5           # dưới ngưỡng này (thang [0,1] model tự báo) mới thử thêm ảnh
-MAX_SHOTS_TRIED = 3            # thử tối đa bấy nhiêu shot trước khi bỏ cuộc
 TOP_K_SHOTS = 5                # BUILD_TASKS C3.1: "top 5 shots" — chỉ để SUY LUẬN
+# ⚠️ SỬA 20/08 — trước là 3, LỆCH với TOP_K_SHOTS=5 (BUILD_TASKS ghi rõ "top 5
+# shots" nhưng code chỉ thử 3). Điều tra QA_004 (holdout đội bạn): shot đúng
+# (bằng chứng ASR có sẵn câu trả lời, ask_llm() cho ra đúng 3/3 khi test cô
+# lập) nằm ở HẠNG 3 trong search() — nhưng vòng lặp cũ dừng ở shot #1 (video
+# sai) ngay khi nó "đủ tự tin" theo ngưỡng cũ, không bao giờ thử tới hạng 3.
+# Cùng với đổi "dừng ở kết quả ĐẦU TIÊN" → "thử hết rồi chọn confidence cao
+# nhất" bên dưới, đây là cặp sửa trực tiếp cho lỗi QA gần-như-hỏng-hoàn-toàn.
+MAX_SHOTS_TRIED = TOP_K_SHOTS
+# Ngưỡng dừng sớm: confidence-cross-shot (xem _try_shot) đạt mức này thì
+# không cần thử thêm shot — tiết kiệm gọi LLM cho ca rõ ràng ("Hà Nội" ở
+# ngay shot #1, tự tin tuyệt đối) mà vẫn cho các ca mù mờ cơ hội thử hết
+# MAX_SHOTS_TRIED trước khi chốt.
+HIGH_CONFIDENCE_EARLY_STOP = 0.9
+# ⚠️ THÊM 21/08 — điều tra "dress rehearsal" (25 câu tự sinh, chạy qua đúng
+# pipeline production): 2/4 câu QA trượt vì search(event_vi) đúng VIDEO nhưng
+# SAI SHOT trong video đó — event_vi (mô tả THỊ GIÁC) không đủ đặc trưng để
+# phân biệt hai cảnh nấu ăn giống nhau trong CÙNG video, trong khi bằng chứng
+# (con số/tên riêng) lại nằm ở một shot KHÁC của đúng video đó. Xem
+# `_expand_within_video` — khi vòng chính không ra câu trả lời đủ tin cậy, tìm
+# THÊM shot trong TỪNG VIDEO đã xuất hiện, dùng nguyên câu hỏi ĐẦY ĐỦ (còn cả
+# từ khoá cụ thể như "giá tàu lá" mà event_vi thuần thị giác không có) — nhánh
+# OCR/ASR bắt được từ khoá này dù nhánh vector đã chọn nhầm shot.
+VIDEO_EXPAND_SHOTS = 3   # tối đa bấy nhiêu shot MỚI thử thêm mỗi video mở rộng
+MAX_VIDEOS_EXPANDED = 3  # tối đa bấy nhiêu video KHÁC NHAU được mở rộng mỗi câu
 
 # Số shot lấy về để CẤP SLOT. Tách hẳn khỏi TOP_K_SHOTS vì hai việc khác nhau:
 #
@@ -479,9 +502,13 @@ def ask_llm(question_vi: str, ev: Evidence) -> list[QAResult]:
 
 def _try_shot(
     hit: ShotHit, question_vi: str, evidence_type: str, needs_images: bool
-) -> tuple[str, int | None] | None:
-    """Thử suy luận trên MỘT shot. Trả `(answer, evidence_frame_idx)`, hoặc None
-    nếu bằng chứng không đủ để chốt (chỗ gọi thử shot kế tiếp).
+) -> tuple[str, int | None, float] | None:
+    """Thử suy luận trên MỘT shot. Trả `(answer, evidence_frame_idx, confidence)`,
+    hoặc None nếu bằng chứng không đủ để chốt (chỗ gọi thử shot kế tiếp).
+
+    `confidence` ∈ [0,1] dùng để SO SÁNH GIỮA CÁC SHOT — chỗ gọi (`qa_pipeline`)
+    thử hết `MAX_SHOTS_TRIED` shot rồi chọn confidence cao nhất, KHÔNG dừng ở
+    shot đầu tiên "đủ tự tin". Xem ⚠️ SỬA 20/08 ở `qa_pipeline`.
 
     ⚠️ SỬA 16/08 — bản trước chỉ trả `str`, nên `evidence_frame_idx` mà `ask_llm()`
     đã cất công kẹp về tập frame CÓ THẬT (xem "hai cửa tử độc lập" đầu file) bị
@@ -498,8 +525,9 @@ def _try_shot(
         # không khớp, không phải sự thật.
         if ev.object_count is not None and ev.object_count > 0:
             # detector, KHÔNG hỏi VLM (BUILD_TASKS C3.1). Bằng chứng nằm ở đúng
-            # keyframe vừa đếm.
-            return str(ev.object_count), ev.best_frame_idx
+            # keyframe vừa đếm — coi như tin cậy tuyệt đối, không có gì để so
+            # self-consistency (detector không "phiếu bầu" nhiều lần).
+            return str(ev.object_count), ev.best_frame_idx, 1.0
         print(f"  [cảnh báo] shot {hit.shot_id}: không đếm được bằng detector, hỏi LLM (kém tin cậy hơn)")
 
     results = ask_llm(question_vi, ev)
@@ -523,7 +551,16 @@ def _try_shot(
     frame = next((r.evidence_frame_idx for r in results if r.answer == answer), None)
     if frame is None:
         frame = results[0].evidence_frame_idx
-    return answer, frame
+
+    # Điểm so sánh liên-shot = tự-tin trung bình CỦA RIÊNG các lượt đồng thuận với
+    # đáp án thắng cuộc, nhân tỉ lệ đồng thuận. Một shot 3/3 phiếu cùng answer,
+    # confidence tự báo 0.9 (=0.9×1.0=0.9) phải thắng một shot 2/3 phiếu cùng
+    # confidence tự báo (=0.9×0.667=0.6) — 1 phiếu lạc không được tính vào trung
+    # bình (nếu không, một lượt sinh lạc-đề tự tin cao sẽ kéo điểm shot sai lên).
+    winner_confs = [r.confidence for r in results if r.answer == answer]
+    winner_avg_conf = sum(winner_confs) / len(winner_confs)
+    confidence = winner_avg_conf * (votes / len(results))
+    return answer, frame, confidence
 
 
 # ------------------------------------------------------------------------- API chính
@@ -610,11 +647,38 @@ def qa_pipeline(
       shot #1 — chính cái shot pipeline vừa kết luận là không đủ bằng chứng.
       Q&A có hai cửa tử ĐỘC LẬP (frame và answer): ghép answer của shot #3 với
       frame của shot #1 là tự tay phá cửa thứ nhất trong khi cửa thứ hai đã đúng.
+
+    ⚠️ SỬA 20/08 — "dừng ở shot ĐẦU TIÊN đủ tự tin" → "thử hết MAX_SHOTS_TRIED
+    shot rồi chọn confidence CAO NHẤT". Điều tra câu QA_004 (holdout đội bạn,
+    "cách mặt đường bao xa"): search() xếp video đúng ở HẠNG 3, nhưng shot hạng
+    1 (video sai) đã đủ tự tin để `_try_shot` chốt ngay ở ngưỡng cũ → pipeline
+    KHÔNG BAO GIỜ chạm tới bằng chứng đúng ở hạng 3 (ASR có sẵn câu trả lời,
+    test cô lập cho 3/3 đúng). Với retrieval còn nhiễu (chỉ 6/26 câu QA holdout
+    có video đúng lọt top-3), "câu trả lời hợp lý đầu tiên" gần như chắc chắn
+    SAI VIDEO — thử hết rồi lấy tốt nhất mới cho các shot xếp sau cơ hội. Vẫn
+    dừng sớm khi shot đang thử đã VƯỢT `HIGH_CONFIDENCE_EARLY_STOP` để không
+    đốt thêm tiền LLM cho ca đã rõ ràng ở shot #1.
     """
     parts = parse_question(query_vi)
     evidence_type, needs_images = route_question(parts.question_vi)
 
-    hits = search(parts.event_vi, query_en=query_en, top_k=top_k_shots, group_by_shot=True)
+    # ⚠️ SỬA 20/08 — KHÔNG chuyển thẳng `query_en` (mọi chỗ gọi production —
+    # run.py, run_minimal.py, backend/api/main.py — đều truyền vào đây là bản
+    # dịch của CẢ CÂU HỎI GỐC `query_vi`, ví dụ "How far did the car fly from
+    # the road after the crash?") sang `search(parts.event_vi, ...)`.
+    # `parts.event_vi` là một CÂU TIẾNG VIỆT KHÁC — chỉ phần mô tả sự kiện
+    # thị giác do `parse_question()` tách ra (vd "chiếc ô tô văng xuống ruộng
+    # lúa"), KHÔNG có phần câu hỏi. Đưa bản dịch của câu hỏi vào
+    # `encode_text()` (nhánh CLIP) và nhánh objects (`match: labels.txt`) làm
+    # CLIP so khớp lệch — phát hiện khi điều tra QA_004 (holdout đội bạn):
+    # video đúng tụt hạng, cùng lúc với lỗi "dừng ở shot đầu tiên" đã sửa ở
+    # trên. Chỉ tái dùng `query_en` của caller khi `parse_question()` KHÔNG
+    # tách được (rơi về nguyên câu gốc, `event_vi == query_vi` — lúc đó hai
+    # bản dịch chắc chắn khớp nhau); còn lại để `search()` tự dịch
+    # `event_vi` mới — thêm đúng một lượt gọi llm(), không đáng kể so với
+    # hàng chục lượt `ask_llm()` suy luận QA đã tốn ngay sau đó.
+    event_query_en = query_en if parts.event_vi == query_vi else None
+    hits = search(parts.event_vi, query_en=event_query_en, top_k=top_k_shots, group_by_shot=True)
     if not hits:
         raise RuntimeError(f"search() không trả shot nào cho sự kiện: '{parts.event_vi}'")
 
@@ -633,7 +697,7 @@ def qa_pipeline(
     #     Chen lên đầu là đổi thứ hạng frame của cả bài nộp bằng một tín hiệu chưa
     #     được kiểm chứng.
     #   · SUY LUẬN (sinh answer) — phải được THỬ, nếu không bản vá vô nghĩa:
-    #     vòng dưới chỉ lấy MAX_SHOTS_TRIED = 3 shot đầu, mà ứng viên vừa nối
+    #     vòng dưới chỉ lấy MAX_SHOTS_TRIED shot đầu, mà ứng viên vừa nối
     #     nằm ở vị trí 100+. Đây chính là chỗ QA05 cần: video đúng đứng hạng 16
     #     theo bảng đủ nhánh (ngoài tầm suy luận) nhưng hạng 3 theo nhánh text.
     #
@@ -658,16 +722,18 @@ def qa_pipeline(
     #
     # Đo 20/08 (run_20260820_2225): ứng viên nhánh text ĐÃ vào danh sách — log
     # ghi rõ "nhánh text đề cử ... L28_V014#s0133" — mà điểm QA không nhúc nhích.
-    # Lý do: vòng dưới DỪNG ở shot ĐẦU TIÊN trả lời được. Shot #1 của bảng đủ
-    # nhánh (một cảnh phà, CLIP chọn) trả lời trôi chảy "Phà Châu Giang" nên
-    # vòng lặp return ngay, không bao giờ chạm tới ứng viên xếp sau.
-    # Nối thêm vào SAU người thắng thì có nối bao nhiêu cũng vô nghĩa.
+    # Lý do bản đầu: vòng dưới DỪNG ở shot ĐẦU TIÊN trả lời được, nối thêm vào
+    # SAU người thắng thì có nối bao nhiêu cũng vô nghĩa.
     #
     # Nên với câu hỏi mà `route_question` đã kết luận bằng chứng nằm trong
-    # CHỮ/TIẾNG, shot do nhánh text xếp hạng được thử TRƯỚC. Đó chính là ý nghĩa
-    # của định tuyến ("lời nói → ASR") — trước nay nó mới chỉ áp cho việc CHỌN
-    # LOẠI BẰNG CHỨNG, chưa áp cho việc chọn SHOT để đọc bằng chứng đó.
+    # CHỮ/TIẾNG, shot do nhánh text xếp hạng được thử TRƯỚC — đó chính là ý
+    # nghĩa của định tuyến ("lời nói → ASR"), áp dụng cho cả việc CHỌN SHOT để
+    # đọc bằng chứng, không chỉ chọn LOẠI bằng chứng.
     #
+    # ⚠️ SỬA 21/08 (Công Lý, "dress rehearsal" 25 câu) — thứ tự ưu tiên KHÔNG
+    # thay thế nguyên tắc "thử hết rồi chọn confidence cao nhất" (xem docstring
+    # trên): dừng ở kết quả ĐẦU TIÊN "đủ tự tin" vẫn là đúng lỗi QA_004 đã sửa —
+    # chỉ khác chỗ danh sách để thử giờ có thêm ứng viên nhánh text đứng trước.
     # Chỉ đổi thứ tự SUY LUẬN. Thứ tự 100 dòng nộp bên dưới vẫn nguyên vẹn.
     thu_de_suy_luan: list[ShotHit] = []
     for h in ung_vien_text + candidate_shots[:MAX_SHOTS_TRIED]:
@@ -677,7 +743,10 @@ def qa_pipeline(
     co_roi = {h.shot_id for h in candidate_shots}
     candidate_shots += [h for h in ung_vien_text if h.shot_id not in co_roi]
 
+    best: tuple[int, ShotHit, str, int | None, float] | None = None  # (i, hit, answer, frame, confidence)
+    tried_shot_ids: set[str] = set()
     for hit in thu_de_suy_luan:
+        tried_shot_ids.add(hit.shot_id)
         try:
             ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
         except Exception as e:
@@ -685,29 +754,100 @@ def qa_pipeline(
             continue
         if ket_qua is None:
             continue
-        answer, evidence_frame_idx = ket_qua
-        # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh text
-        # mang `score` của bảng text nên khác object với bản nằm trong bể chính —
-        # `.index()` sẽ ném ValueError đúng lúc vừa suy luận ra câu trả lời.
-        i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
-        if i > 0:
-            print(f"  shot thắng là hạng {i + 1} ({hit.shot_id}) — đẩy lên hạng 1 để "
-                  "frame nộp khớp với shot đã sinh ra câu trả lời")
-        ranked_hits = _dua_len_dau(candidate_shots, i)
-        if return_trace:
-            return ranked_hits, answer, {
-                "event_vi": parts.event_vi,
-                "question_vi": parts.question_vi,
-                "evidence_type": evidence_type,
-                "answer_shot_id": hit.shot_id,
-                "evidence_frame_idx": evidence_frame_idx,
-            }
-        return ranked_hits, answer
+        answer, frame, confidence = ket_qua
+        print(f"  ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
+        if best is None or confidence > best[4]:
+            # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh
+            # text mang `score` của bảng text nên khác object với bản nằm trong
+            # bể chính — `.index()` sẽ ném ValueError đúng lúc vừa có câu trả lời.
+            i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
+            best = (i, hit, answer, frame, confidence)
+        if confidence >= HIGH_CONFIDENCE_EARLY_STOP:
+            break
 
-    raise RuntimeError(
-        f"Thử {len(thu_de_suy_luan)} shot đều không suy luận được câu trả lời đủ tin cậy "
-        "— kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không."
-    )
+    # ⚠️ THÊM 21/08 — vòng chính (kể cả ứng viên nhánh text) chưa đủ tin cậy: có
+    # thể ĐÚNG VIDEO nhưng SAI SHOT (event_vi thuần thị giác không phân biệt
+    # được hai cảnh giống nhau trong cùng video — xem VIDEO_EXPAND_SHOTS). Mở
+    # rộng tìm thêm shot trong từng video đã thấy, dùng nguyên câu hỏi ĐẦY ĐỦ
+    # (query_vi, còn từ khoá cụ thể mà event_vi thuần thị giác không có).
+    # `candidate_shots` được NỐI THÊM (không thay list gốc) để `_dua_len_dau`
+    # cuối hàm vẫn dùng index bình thường.
+    if best is None or best[4] < HIGH_CONFIDENCE_EARLY_STOP:
+        seen_videos: list[str] = []
+        for hit in thu_de_suy_luan:
+            vid = hit.shot_id.split("#")[0]
+            if vid not in seen_videos:
+                seen_videos.append(vid)
+
+        for vid in seen_videos[:MAX_VIDEOS_EXPANDED]:
+            try:
+                extra_hits = _expand_within_video(vid, query_vi, query_en, tried_shot_ids)
+            except Exception as e:
+                print(f"  [cảnh báo] mở rộng video {vid} lỗi: {e}")
+                continue
+            for hit in extra_hits:
+                candidate_shots.append(hit)
+                i = len(candidate_shots) - 1
+                tried_shot_ids.add(hit.shot_id)
+                try:
+                    ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
+                except Exception as e:
+                    print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A: {e}")
+                    continue
+                if ket_qua is None:
+                    continue
+                answer, frame, confidence = ket_qua
+                print(f"  [mở rộng {vid}] ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
+                if best is None or confidence > best[4]:
+                    best = (i, hit, answer, frame, confidence)
+                if confidence >= HIGH_CONFIDENCE_EARLY_STOP:
+                    break
+            if best is not None and best[4] >= HIGH_CONFIDENCE_EARLY_STOP:
+                break
+
+    if best is None:
+        raise RuntimeError(
+            f"Thử {len(tried_shot_ids)} shot (kể cả ứng viên nhánh text và mở rộng trong video) đều "
+            "không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) "
+            "của các shot này có rỗng không."
+        )
+
+    i, hit, answer, evidence_frame_idx, confidence = best
+    if i > 0:
+        print(f"  shot thắng là hạng {i + 1} ({hit.shot_id}, confidence={confidence:.2f}) — đẩy lên "
+              "hạng 1 để frame nộp khớp với shot đã sinh ra câu trả lời")
+    ranked_hits = _dua_len_dau(candidate_shots, i)
+    if return_trace:
+        return ranked_hits, answer, {
+            "event_vi": parts.event_vi,
+            "question_vi": parts.question_vi,
+            "evidence_type": evidence_type,
+            "answer_shot_id": hit.shot_id,
+            "evidence_frame_idx": evidence_frame_idx,
+            "confidence": confidence,
+        }
+    return ranked_hits, answer
+
+
+def _expand_within_video(
+    video_id: str, query_vi: str, query_en: str | None, tried_shot_ids: set[str]
+) -> list[ShotHit]:
+    """Tìm THÊM shot ứng viên trong MỘT video cụ thể, dùng nguyên câu hỏi đầy đủ
+    (còn từ khoá cụ thể, khác `event_vi` thuần thị giác) — xem VIDEO_EXPAND_SHOTS.
+
+    Lọc bỏ shot đã thử ở vòng chính (`tried_shot_ids`) — không tốn lại 1 lượt LLM
+    cho evidence đã biết là không đủ tin cậy.
+    """
+    hits = search(query_vi, query_en=query_en, top_k=VIDEO_EXPAND_SHOTS + len(tried_shot_ids),
+                  group_by_shot=True, filter_video_id=video_id)
+    out = []
+    for r in hits:
+        if r["shot_id"] is None or r["shot_id"] in tried_shot_ids:
+            continue
+        out.append(ShotHit(r["shot_id"], r["score"], r["keyframe_id"]))
+        if len(out) >= VIDEO_EXPAND_SHOTS:
+            break
+    return out
 
 
 def _dua_len_dau(shots: list[ShotHit], i: int) -> list[ShotHit]:

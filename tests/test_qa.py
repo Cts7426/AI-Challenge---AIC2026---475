@@ -19,8 +19,11 @@ from backend.tasks.qa import (
     TOP_K_SHOTS,
     TOP_K_SHOTS_FOR_SLOTS,
     Evidence,
+    QuestionParts,
     _dua_len_dau,
+    _expand_within_video,
     ask_llm,
+    qa_pipeline,
 )
 
 
@@ -102,6 +105,89 @@ def test_100_shot_phu_rong_hon_han_5_shot():
     it, nhieu = budget_per_shot(5), budget_per_shot(TOP_K_SHOTS_FOR_SLOTS)
     assert max(it) >= 20, "bằng chứng: 5 shot thì 1 shot ôm ít nhất 1/5 cả bài nộp"
     assert sum(1 for x in nhieu if x) > 6 * sum(1 for x in it if x)
+
+
+# --------------------- query_en của CẢ CÂU không được lẫn vào search(event_vi)
+
+def test_qa_pipeline_khong_dua_query_en_cau_goc_cho_search_khi_event_vi_khac():
+    """⚠️ SỬA 20/08 — bug phát hiện qua QA_004 (holdout): mọi chỗ gọi production
+    (run.py, backend/api/main.py...) truyền `query_en` là bản dịch CẢ CÂU HỎI
+    GỐC, không phải bản dịch của `event_vi` (câu `parse_question()` tách ra).
+    Đưa thẳng vào `search(event_vi, query_en=...)` làm CLIP so khớp giữa một
+    câu tiếng Việt và một câu tiếng Anh KHÔNG cùng nghĩa."""
+    parts = QuestionParts(event_vi="ô tô văng xuống ruộng lúa", question_vi="Cách mặt đường bao xa?")
+    with patch("backend.tasks.qa.parse_question", return_value=parts), \
+         patch("backend.tasks.qa.route_question", return_value=("default", False)), \
+         patch("backend.tasks.qa.search", return_value=[
+             {"shot_id": "s0", "score": 1.0, "keyframe_id": "k0"}
+         ]) as mock_search, \
+         patch("backend.tasks.qa._try_shot", return_value=("30m", 5, 0.95)):
+        qa_pipeline("Ô tô văng xuống ruộng lúa cách mặt đường bao xa?",
+                    query_en="How far from the road did the car land?")
+    assert mock_search.call_args.kwargs["query_en"] is None
+
+
+def test_qa_pipeline_giu_query_en_khi_parse_question_khong_tach_duoc():
+    """`parse_question()` fallback (không tách được) trả event_vi == query_vi gốc
+    — lúc đó query_en của caller CHẮC CHẮN đúng nghĩa event_vi, tái dùng được
+    để đỡ một lượt dịch."""
+    query_vi = "Câu hỏi khó tách"
+    parts = QuestionParts(event_vi=query_vi, question_vi=query_vi)
+    with patch("backend.tasks.qa.parse_question", return_value=parts), \
+         patch("backend.tasks.qa.route_question", return_value=("default", False)), \
+         patch("backend.tasks.qa.search", return_value=[
+             {"shot_id": "s0", "score": 1.0, "keyframe_id": "k0"}
+         ]) as mock_search, \
+         patch("backend.tasks.qa._try_shot", return_value=("30m", 5, 0.95)):
+        qa_pipeline(query_vi, query_en="Hard to split question")
+    assert mock_search.call_args.kwargs["query_en"] == "Hard to split question"
+
+
+# ------------------- mở rộng trong video khi vòng chính không đủ tin cậy
+
+def test_expand_within_video_dung_filter_video_id_va_loc_shot_da_thu():
+    """`_expand_within_video` phải gọi search() ép TRONG video đã cho, và loại
+    bỏ shot đã thử ở vòng chính (không tốn lại 1 lượt LLM cho evidence đã biết
+    không đủ tin cậy)."""
+    with patch("backend.tasks.qa.search", return_value=[
+        {"shot_id": "L21_V001#s0005", "score": 0.9, "keyframe_id": "k1"},
+        {"shot_id": "L21_V001#s0009", "score": 0.8, "keyframe_id": "k2"},  # đã thử — bị loại
+    ]) as mock_search:
+        out = _expand_within_video("L21_V001", "câu hỏi đầy đủ", None, {"L21_V001#s0009"})
+    assert mock_search.call_args.kwargs["filter_video_id"] == "L21_V001"
+    assert [h.shot_id for h in out] == ["L21_V001#s0005"]
+
+
+def test_qa_pipeline_mo_rong_trong_video_cuu_duoc_cau_tra_loi():
+    """⚠️ SỬA 21/08 — phát hiện qua "dress rehearsal" (25 câu tự sinh chạy qua
+    đúng pipeline production, đêm 20/08): search(event_vi) đúng VIDEO nhưng SAI
+    SHOT (event_vi thuần thị giác không phân biệt được hai cảnh giống nhau
+    trong cùng video). Vòng chính CHỈ có 1 shot của video đúng, `_try_shot` trả
+    None (không đủ tin cậy) — mở rộng trong đúng video đó phải tìm ra shot khác
+    chứa bằng chứng thật và cứu được câu trả lời."""
+    parts = QuestionParts(event_vi="cận cảnh rau", question_vi="Giá tàu lá là bao nhiêu?")
+    main_shot = {"shot_id": "L28_V016#s0058", "score": 0.13, "keyframe_id": "k1"}
+    extra_shot = {"shot_id": "L28_V016#s0099", "score": 0.05, "keyframe_id": "k2"}
+
+    def fake_search(query, query_en=None, top_k=100, group_by_shot=True, filter_video_id=None):
+        if filter_video_id == "L28_V016":
+            return [extra_shot]
+        return [main_shot]
+
+    def fake_try_shot(hit, question_vi, evidence_type, needs_images):
+        if hit.shot_id == "L28_V016#s0099":
+            return "300 và 350", 9500, 0.95
+        return None  # shot chính không đủ tin cậy
+
+    with patch("backend.tasks.qa.parse_question", return_value=parts), \
+         patch("backend.tasks.qa.route_question", return_value=("default", False)), \
+         patch("backend.tasks.qa.search", side_effect=fake_search), \
+         patch("backend.tasks.qa._try_shot", side_effect=fake_try_shot):
+        hits, answer = qa_pipeline("Cận cảnh rau. Giá tàu lá là bao nhiêu?",
+                                    query_en="How much are the leaves?")
+
+    assert answer == "300 và 350"
+    assert hits[0].shot_id == "L28_V016#s0099"
 
 
 # --------------------------------------------------- effort của bước suy luận

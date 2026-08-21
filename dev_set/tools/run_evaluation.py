@@ -96,7 +96,10 @@ def _score_metrics(ans: list[Answer], gt, task_type: str, qa_match_policy: str) 
 
 def run_evaluation():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--split", choices=["tune", "holdout"], default="tune")
+    # "dress25" (20/08): bộ 25 câu mô phỏng 1 buổi thi thật, sinh bởi
+    # generate_dress_rehearsal.py — KHÔNG qua hạn mức holdout (không phải bộ đề
+    # chuẩn dùng để đánh giá cuối, chỉ để đo điểm hệ thống hiện tại một lần).
+    parser.add_argument("--split", choices=["tune", "holdout", "dress25", "gen10", "gen2"], default="tune")
     parser.add_argument("--resume", help="Thư mục run cũ (vd: dev_set/results/run_20260812_1000) để chạy tiếp")
     args = parser.parse_args()
 

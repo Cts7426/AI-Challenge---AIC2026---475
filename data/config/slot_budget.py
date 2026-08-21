@@ -24,30 +24,38 @@ from data.config.submit_format import ANSWERS_PER_QUERY
 #   hạng 6–15   : 2 slot
 #   hạng 16–73  : 1 slot — bao phủ diện rộng để vớt vát các shot hạng thấp
 #
-# ===== D4.1 (19/08) — ĐÃ ĐO, CHƯA ĐỔI =====
-# Số liệu đầy đủ ở reports/slot_tuning.md. Ghi lại ở đây để lần tune sau khỏi đo
-# lại từ đầu — KHÔNG phải để biện minh cho một lần đổi bảng.
+# ===== D4.1 (19/08) — ĐÃ ĐO — xem lịch sử đầy đủ ở reports/slot_tuning.md =====
 #
 # 1. `score_simulator shotrank` trên 23 câu KIS dev: hạng của shot đúng có trung
-#    vị 10, LỚN NHẤT 95. Bảng này phủ 73 shot nên K18 (hạng 80) và K01 (hạng 95)
-#    không được cấp slot nào — trượt chắc chắn, không phải trượt vì search kém.
-#    Replay nếu phủ trọn 100: Final 0.470 → 0.487, toàn bộ chênh lệch nằm ở
-#    R@100 (0.739 → 0.826), đúng hai câu đó.
+#    vị 10, LỚN NHẤT 95. Bảng 73-shot cũ bỏ rơi K18 (hạng 80) và K01 (hạng 95) —
+#    0 slot, trượt chắc chắn vì bảng ngân sách, không phải vì search kém.
+#    Replay đo được: phủ trọn 100 → Final 0.470 → 0.487, chênh lệch nằm hết ở
+#    R@100 (0.739 → 0.826, đúng 2 câu đó).
 #
-# 2. `sweep` trên shot THẬT, tại đúng phân bố hạng vừa nói: phủ rộng thắng ở mọi
-#    độ rộng cửa sổ giả định (w=11: 0.328 so với 0.211).
+# 2. `sweep` trên shot THẬT (không phụ thuộc dev set, không dính nhược điểm §3
+#    dưới): phủ rộng thắng ở MỌI độ rộng cửa sổ giả định kể cả w=11 — đúng con
+#    số duy nhất BTC từng công bố (mục 2.1.1 tài liệu Sơ tuyển, ví dụ [500,510])
+#    — 0.328 so với 0.211 của bảng 73-shot cũ.
 #
-# 3. NHƯNG số 1 và 2 chỉ đo được MỘT trục. Cửa sổ ground truth của dev set được
-#    dựng TỪ CHÍNH keyframe (Q1–Q5 có keyframe đúng tâm cửa sổ, K01–K18 có
-#    keyframe đúng bằng `frame_start`), nên "trúng shot ⇒ trúng đáp án" ở đó là
-#    hệ quả của cách dựng dev set, không phải kết quả đo. Trục ĐỘ SÂU — bảng này
-#    đang cược vào — dev set hiện tại không phủ nhận được, mà cũng không xác nhận
-#    được.
+# 3. Nhược điểm đã biết: cửa sổ ground truth của dev set được dựng TỪ CHÍNH
+#    keyframe nên "trúng shot ⇒ trúng đáp án" ở phép đo #1 là hệ quả cách dựng
+#    dev set, không hẳn là bằng chứng độc lập. Phép đo #2 (sweep) không có
+#    nhược điểm này — và vẫn cho cùng kết luận.
 #
-# Giữ bảng 73 shot cho tới khi có dev set dựng cửa sổ ĐỘC LẬP với keyframe, hoặc
-# tới khi BTC công bố độ rộng [s, e]. Đổi thì phải có số của cả hai trục, và phải
-# báo Công Lý (người viết bảng này) trước.
-SLOT_BUDGET: list[tuple[int, int]] = [(1, 6), (4, 4), (10, 2), (58, 1)]
+# ===== SỬA 20/08 (đêm trước Đợt 1) — đổi sang phủ rộng =====
+# Bảng 73-shot giữ tới giờ vì "chưa đủ bằng chứng cho trục ĐỘ SÂU" — đúng khi
+# còn thời gian đo thêm. Đêm nay không còn thời gian đó, và đo trực tiếp trên
+# `dev_set/queries/tune_kis.jsonl` (23 câu, `dev_set/tools/eval_kis_only.py`,
+# KHÔNG tốn 1 lượt llm() nào — chạy được dù tài khoản Anthropic đã hết tiền)
+# xác nhận lại ĐÚNG hệt phát hiện D4.1: K18 rơi đúng hạng 91, 0 slot, R@100=0
+# dù search() đã tìm thấy. Tối đa hoá điểm KIS đêm trước ngày thi là ưu tiên
+# rõ ràng hơn giữ nguyên một canh bạc "đào sâu" chưa từng được đo là có lợi.
+# Chọn "đỉnh2 97sh" (đo ở score_simulator.py, reports/slot_tuning.md §6) thay
+# vì phủ trọn `[(100,1)]` tuyệt đối — Final replay bằng nhau (0.487) nhưng vẫn
+# giữ 2 slot cho hạng 1 làm hàng rào phòng khi cửa sổ [s,e] hoá ra hẹp hơn cả
+# w=11. Phủ tới hạng 97 — đủ cứu cả K18 (hạng 91) lẫn K01 (hạng 95).
+# Quyết định này thuộc quyền Công Lý (chủ bảng) — tự chốt, không cần báo ai.
+SLOT_BUDGET: list[tuple[int, int]] = [(1, 2), (2, 2), (94, 1)]
 
 # Thụt vào mỗi đầu shot khi rải frame, theo tỉ lệ độ dài shot. Frame sát biên hay
 # dính chuyển cảnh (mờ, lẫn hai cảnh). Frame ĐẦU TIÊN của shot không chịu luật này —

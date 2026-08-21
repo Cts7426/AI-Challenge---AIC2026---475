@@ -1,0 +1,36 @@
+{"query_id": "Q1", "task_type": "KIS", "r_at_1": 1.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 1.0, "failure_class": "SUCCESS", "ranks": {"vector": 1, "metadata": 113}}
+{"query_id": "Q2", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.8, "failure_class": "SUCCESS", "ranks": {"vector": 2}}
+{"query_id": "Q3", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.8, "failure_class": "SUCCESS", "ranks": {"objects": 4, "metadata": 5}}
+{"query_id": "Q4", "task_type": "KIS", "r_at_1": 1.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 1.0, "failure_class": "SUCCESS", "ranks": {"vector": 1, "metadata": 371}}
+{"query_id": "Q5", "task_type": "KIS", "r_at_1": 1.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 1.0, "failure_class": "SUCCESS", "ranks": {"vector": 1, "metadata": 73}}
+{"query_id": "K01", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {}}
+{"query_id": "K02", "task_type": "KIS", "r_at_1": 1.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 1.0, "failure_class": "SUCCESS", "ranks": {"vector": 1, "metadata": 108, "asr": 19}}
+{"query_id": "K03", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {}}
+{"query_id": "K04", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.6, "failure_class": "SUCCESS", "ranks": {"vector": 6, "metadata": 263, "asr": 45}}
+{"query_id": "K05", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.6, "failure_class": "SUCCESS", "ranks": {"vector": 13, "metadata": 9}}
+{"query_id": "K06", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {}}
+{"query_id": "K07", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.8, "failure_class": "SUCCESS", "ranks": {"vector": 2}}
+{"query_id": "K08", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {}}
+{"query_id": "K09", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {}}
+{"query_id": "K10", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.6, "failure_class": "SUCCESS", "ranks": {"vector": 36, "metadata": 333, "asr": 1}}
+{"query_id": "K11", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {}}
+{"query_id": "K12", "task_type": "KIS", "r_at_1": 1.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 1.0, "failure_class": "SUCCESS", "ranks": {"vector": 1, "metadata": 22}}
+{"query_id": "K13", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 1.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.8, "failure_class": "SUCCESS", "ranks": {"vector": 1, "metadata": 391}}
+{"query_id": "K14", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.6, "failure_class": "SUCCESS", "ranks": {"vector": 8, "metadata": 29}}
+{"query_id": "K15", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.4, "failure_class": "SUCCESS", "ranks": {"vector": 18, "metadata": 1, "asr": 145}}
+{"query_id": "K16", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 1.0, "final": 0.2, "failure_class": "SUCCESS", "ranks": {"vector": 20, "metadata": 163}}
+{"query_id": "K17", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.6, "failure_class": "SUCCESS", "ranks": {"vector": 44, "ocr": 10, "metadata": 1, "asr": 427}}
+{"query_id": "K18", "task_type": "KIS", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {"vector": 36, "metadata": 19}}
+{"query_id": "QA01", "task_type": "QA", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_QA_REASONING_FAILED", "ranks": {}}
+{"query_id": "QA02", "task_type": "QA", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 1.0, "r_at_50": 1.0, "r_at_100": 1.0, "final": 0.6, "failure_class": "F_QA_REASONING_FAILED", "ranks": {}}
+{"query_id": "QA03", "task_type": "QA", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_QA_REASONING_FAILED", "ranks": {}}
+{"query_id": "QA04", "task_type": "QA", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_QA_REASONING_FAILED", "ranks": {}}
+{"query_id": "QA05", "task_type": "QA", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_QA_REASONING_FAILED", "ranks": {}}
+{"query_id": "TR01", "task_type": "TRAKE", "r_at_1": 0.75, "r_at_5": 0.75, "r_at_20": 0.75, "r_at_50": 0.75, "r_at_100": 0.75, "final": 0.75, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 1}}
+{"query_id": "TR02", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.6666666666666666, "r_at_20": 0.6666666666666666, "r_at_50": 0.6666666666666666, "r_at_100": 0.6666666666666666, "final": 0.5333333333333333, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 3}}
+{"query_id": "STR01", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 1}}
+{"query_id": "STR02", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 1}}
+{"query_id": "STR03", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.3333333333333333, "r_at_100": 0.3333333333333333, "final": 0.13333333333333333, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 25}}
+{"query_id": "STR04", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 42}}
+{"query_id": "STR05", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.0, "r_at_20": 0.0, "r_at_50": 0.0, "r_at_100": 0.0, "final": 0.0, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 1}}
+{"query_id": "STR06", "task_type": "TRAKE", "r_at_1": 0.0, "r_at_5": 0.2, "r_at_20": 0.2, "r_at_50": 0.2, "r_at_100": 0.2, "final": 0.16, "failure_class": "F_UNKNOWN", "ranks": {"trake_video_rank": 2}}

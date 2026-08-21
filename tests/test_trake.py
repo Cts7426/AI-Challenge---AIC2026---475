@@ -7,15 +7,24 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from backend.tasks.trake import (
     TrakeCandidate,
     _align_events_in_video,
+    _apply_asr_context_bonus,
+    _cross_event_bonus,
     _fill_missing,
     _localize_in_video,
-    _repair_strictly_increasing,
+    _significant_tokens,
+    _split_events_heuristic,
     _topk_per_video,
+    _repair_strictly_increasing,
+    _UnitWeight,
+    parse_events,
+    trake_search,
 )
 
 # --------------------------------------------------------------- _topk_per_video
@@ -181,8 +190,11 @@ def test_localize_du_ca_N_su_kien_tang_dan_duoc_bonus():
     assert result.has_full_order is True
     assert result.frame_ids == (100, 200, 300)
     assert result.keyframe_ids == ("k1", "k2", "k3")
-    from data.config.search_weights import TRAKE_ORDER_BONUS
-    assert result.score == pytest.approx((0.9 + 0.3 + 0.3) * TRAKE_ORDER_BONUS)
+    from data.config.search_weights import TRAKE_MIN_BLEND_LAMBDA, TRAKE_ORDER_BONUS
+    # score = (Σ điểm vị trí + λ × điểm vị trí YẾU NHẤT) × bonus — sửa 20/08,
+    # xem _blend_score() trong backend/tasks/trake.py + reports/trake_hardening.md
+    expected = (0.9 + 0.3 + 0.3 + TRAKE_MIN_BLEND_LAMBDA * 0.3) * TRAKE_ORDER_BONUS
+    assert result.score == pytest.approx(expected)
 
 
 def test_localize_video_khop_ca_N_su_kien_diem_cao_hon_video_khop_1():
@@ -208,3 +220,229 @@ def test_localize_thieu_bang_chung_mot_vi_tri_noi_suy():
     assert result.keyframe_ids == ("k1", None, "k3")
     assert result.frame_ids[1] == 200  # nội suy tuyến tính giữa 100 và 300
     assert all(a < b for a, b in zip(result.frame_ids, result.frame_ids[1:]))
+
+
+# ------------------------------------------------------ C4.4: lưới an toàn
+
+def test_split_events_heuristic_uu_tien_dau_cham():
+    assert _split_events_heuristic("A . B . C") == ["A", "B", "C"]
+
+
+def test_split_events_heuristic_lien_tu_tuan_tu():
+    out = _split_events_heuristic("người đàn ông bước vào sau đó ngồi xuống ghế")
+    assert len(out) == 2
+    assert out[0] == "người đàn ông bước vào"
+    assert out[1] == "ngồi xuống ghế"
+
+
+def test_split_events_heuristic_khong_dau_cham_van_ra_it_nhat_2():
+    out = _split_events_heuristic("một hai ba bốn năm sáu")
+    assert len(out) >= 2
+
+
+def test_split_events_heuristic_khong_bao_gio_rong():
+    out = _split_events_heuristic("một")
+    assert len(out) >= 2
+
+
+def test_parse_events_fallback_khi_llm_loi():
+    """C4.4: llm() lỗi (mạng/API) KHÔNG được làm parse_events() raise — quan
+    sát thật ở run.py::main(): raise ở đây → câu TRAKE mất trắng khỏi bài nộp
+    (0 tuyệt đối), thay vì có cơ hội ăn điểm từng phần nhờ đoán heuristic."""
+    with patch("backend.tasks.trake.llm", side_effect=RuntimeError("giả lập mất mạng")):
+        events = parse_events(
+            "người đàn ông đội mũ bước vào . sau đó ngồi xuống ghế . cuối cùng đứng dậy"
+        )
+    assert len(events) >= 2
+
+
+def test_parse_events_duong_binh_thuong_khong_doi():
+    """LLM chạy tốt → parse_events() vẫn dùng thẳng kết quả LLM, KHÔNG rơi
+    xuống heuristic (đường bình thường không đổi hành vi)."""
+    with patch("backend.tasks.trake.llm") as mock_llm:
+        mock_llm.return_value = '{"events_vi": ["sự kiện A", "sự kiện B"]}'
+        events = parse_events("câu hỏi bất kỳ")
+    assert events == ["sự kiện A", "sự kiện B"]
+
+
+def test_trake_search_fallback_khi_tat_ca_su_kien_rong():
+    """C4.4: toàn bộ N search riêng lẻ rỗng (mô phỏng ES/Milvus chết cho mọi
+    sự kiện) → trake_search() phải thử tìm kiếm cứu cánh (câu ghép), KHÔNG
+    trả [] ngay khi vẫn còn chỗ để tìm."""
+    events = ["sự kiện A", "sự kiện B"]
+
+    def fake_search(query_vi, top_k=10, group_by_shot=None, **kw):
+        if query_vi in events:
+            return []
+        return [
+            {"video_id": "V1", "score": 0.5, "frame_idx": 100, "keyframe_id": "k1"},
+            {"video_id": "V1", "score": 0.4, "frame_idx": 300, "keyframe_id": "k2"},
+        ]
+
+    with patch("backend.tasks.trake.search", side_effect=fake_search), \
+         patch("backend.tasks.trake.n_frames_of", return_value=10_000_000):
+        result = trake_search(events)
+    assert result != []
+    assert result[0].video_id == "V1"
+
+
+def test_trake_search_duong_binh_thuong_khong_dung_fallback():
+    """Có ≥1 sự kiện search ra kết quả bình thường → KHÔNG kích hoạt nhánh
+    cứu cánh (chỉ gọi search() đúng N lần, không có lần ghép câu thứ N+1)."""
+    events = ["sự kiện A", "sự kiện B"]
+    calls: list[str] = []
+
+    def fake_search(query_vi, top_k=10, group_by_shot=None, **kw):
+        calls.append(query_vi)
+        return [{"video_id": "V1", "score": 0.5, "frame_idx": 100, "keyframe_id": "k1"}]
+
+    with patch("backend.tasks.trake.search", side_effect=fake_search), \
+         patch("backend.tasks.trake.n_frames_of", return_value=10_000_000):
+        result = trake_search(events)
+    assert result != []
+    assert sorted(calls) == sorted(events)  # đúng N lần, không có lần cứu cánh
+
+
+# ------------------------------------- 20/08: bonus cộng hưởng nội dung ASR
+
+def test_significant_tokens_bo_dau_ha_thuong_loc_hu_tu():
+    toks = _significant_tokens("Xe máy va chạm với xe ba gác trên đường")
+    assert "xe" not in toks  # 2 ký tự, dưới ngưỡng 3
+    assert "may" in toks
+    assert "cham" in toks  # "chạm" bỏ dấu
+    assert "voi" not in toks  # hư từ
+
+
+def test_cross_event_bonus_dem_dung_tu_khoa_su_kien_khac():
+    """token_weight=_UnitWeight() (mọi từ trọng số 1.0) — tương đương đếm thô,
+    để kiểm đúng LOGIC chọn từ (own_position bị loại khỏi other_tokens),
+    không lẫn với việc trọng số IDF làm giảm bonus (test riêng bên dưới)."""
+    with patch("backend.tasks.trake._asr_text_at",
+               return_value="va chạm mạnh làm người đàn ông ngã xuống đường"):
+        events_tokens = [
+            _significant_tokens("thanh niên điều khiển xe máy"),   # vị trí 0
+            _significant_tokens("va chạm mạnh với xe ba gác"),     # vị trí 1 (đang tính bonus CHO vị trí này)
+            _significant_tokens("người đàn ông ngã xuống đường"),  # vị trí 2
+        ]
+        bonus = _cross_event_bonus("V1", 100, own_position=1, events_tokens=events_tokens,
+                                    token_weight=_UnitWeight())
+    # ASR text trùng từ khoá vị trí 2 ("người","đàn","ông","ngã","xuống","đường")
+    # nhưng KHÔNG tính từ khoá của chính vị trí 1 ("va","chạm"... dù cũng xuất
+    # hiện trong text — own_position bị loại khỏi other_tokens một cách chủ ý)
+    assert bonus > 0
+
+
+def test_cross_event_bonus_khong_co_asr_tra_0():
+    with patch("backend.tasks.trake._asr_text_at", return_value=""):
+        bonus = _cross_event_bonus("V1", 100, own_position=0, events_tokens=[{"a"}, {"b"}],
+                                    token_weight=_UnitWeight())
+    assert bonus == 0
+
+
+def test_cross_event_bonus_tu_hiem_dong_gop_nhieu_hon_tu_chung_chung():
+    """⚠️ Kịch bản Y HỆT bug thật khi chưa có trọng số IDF (đo 20/08): đếm thô
+    làm R@1 toàn bộ 8 câu TRAKE dev-set về 0.000 vì từ vựng chung chung (vd
+    "cắt", "nước") lặp ở HẦU HẾT ứng viên nấu ăn, nhiễu ngang từ khoá THẬT SỰ
+    đặc trưng. Trọng số thấp cho từ chung chung, cao cho từ hiếm → bonus phải
+    PHẢN ÁNH ĐÚNG mức đặc trưng, không đếm ngang hàng."""
+    token_weight = {"chung": 0.02, "hiem": 1.0}  # "chung" xuất hiện 50 ứng viên, "hiem" chỉ 1
+    with patch("backend.tasks.trake._asr_text_at", return_value="tu chung tu hiem"):
+        bonus_chung = _cross_event_bonus("V1", 100, own_position=0,
+                                          events_tokens=[set(), {"chung"}], token_weight=token_weight)
+        bonus_hiem = _cross_event_bonus("V1", 100, own_position=0,
+                                         events_tokens=[set(), {"hiem"}], token_weight=token_weight)
+    assert bonus_hiem > bonus_chung
+
+
+def test_build_token_weight_tu_xuat_hien_nhieu_ung_vien_trong_so_thap():
+    """Từ "chung" xuất hiện trong ASR của 3 ứng viên (2 video khác nhau) →
+    trọng số 1/3. Từ "hiem" chỉ 1 ứng viên → trọng số 1.0 (tối đa)."""
+    from backend.tasks.trake import _build_token_weight
+
+    def fake_asr(vid, frame_idx):
+        return {("V1", 100): "chung", ("V1", 200): "chung hiem", ("V2", 300): "chung"}.get((vid, frame_idx), "")
+
+    topk_per_event_video = [
+        {"V1": [{"frame_idx": 100, "score": 0.1}, {"frame_idx": 200, "score": 0.1}]},
+        {"V2": [{"frame_idx": 300, "score": 0.1}]},
+    ]
+    with patch("backend.tasks.trake._asr_text_at", side_effect=fake_asr):
+        weights = _build_token_weight(topk_per_event_video)
+    assert weights["chung"] == pytest.approx(1 / 3)
+    assert weights["hiem"] == pytest.approx(1.0)
+
+
+def test_apply_asr_context_bonus_tat_khi_weight_0():
+    """TRAKE_ASR_CONTEXT_BONUS_WEIGHT=0 — bonus không được đụng vào candidates
+    (kể cả khi có events) — hành vi CŨ y hệt, không đổi gì. Patch tường minh
+    về 0, KHÔNG dựa vào giá trị mặc định của config (mặc định thật là 0.5,
+    xem data/config/search_weights.py — test này chỉ kiểm NHÁNH TẮT của hàm)."""
+    cands = [[{"score": 0.5, "frame_idx": 100, "keyframe_id": "k1"}]]
+    with patch("backend.tasks.trake.TRAKE_ASR_CONTEXT_BONUS_WEIGHT", 0.0):
+        out = _apply_asr_context_bonus("V1", cands, events=["sự kiện A"])
+    assert out is cands  # trả nguyên object, không copy/sửa gì
+
+
+def test_apply_asr_context_bonus_tat_khi_khong_co_events():
+    cands = [[{"score": 0.5, "frame_idx": 100, "keyframe_id": "k1"}]]
+    out = _apply_asr_context_bonus("V1", cands, events=None)
+    assert out is cands
+
+
+def test_apply_asr_context_bonus_cong_diem_khi_co_cong_huong():
+    """Với weight > 0 và có cộng hưởng ASR: score được CỘNG THÊM, KHÔNG mutate
+    dict gốc (an toàn — dict gốc có thể còn dùng ở video/lần gọi khác)."""
+    cands = [
+        [{"score": 0.5, "frame_idx": 100, "keyframe_id": "k1"}],
+        [{"score": 0.5, "frame_idx": 200, "keyframe_id": "k2"}],
+    ]
+    with patch("backend.tasks.trake.TRAKE_ASR_CONTEXT_BONUS_WEIGHT", 0.1), \
+         patch("backend.tasks.trake._asr_text_at", return_value="mô tả sự kiện B ở đây"):
+        out = _apply_asr_context_bonus("V1", cands, events=["sự kiện A", "sự kiện B"])
+    assert out[0][0]["score"] > 0.5          # vị trí 0: bonus vì text nhắc "sự kiện B"
+    assert cands[0][0]["score"] == 0.5        # dict GỐC không bị mutate
+
+
+def test_localize_in_video_uu_tien_ung_vien_cong_huong_asr_hon_diem_cao():
+    """⚠️ Kịch bản Y HỆT bug thật (reports/trake_hardening.md §6): 1 sự kiện
+    diễn đạt chung chung có 2 ứng viên hợp lệ cùng thứ tự trong CÙNG video —
+    ứng viên ĐÚNG (điểm thấp hơn nhưng văn bản ASR nhắc tới sự kiện khác) và
+    ứng viên SAI (điểm cao hơn nhưng thuộc 1 đoạn không liên quan). Với bonus
+    cộng hưởng ASR đủ mạnh, DP phải chọn ứng viên ĐÚNG thay vì điểm cao hơn."""
+    cands = [
+        [{"score": 0.9, "frame_idx": 100, "keyframe_id": "e1"}],
+        [
+            {"score": 0.02, "frame_idx": 300, "keyframe_id": "dung"},   # ĐÚNG — điểm thấp
+            {"score": 0.05, "frame_idx": 900, "keyframe_id": "sai"},    # SAI — điểm cao hơn
+        ],
+    ]
+
+    def fake_asr_text(vid, frame_idx):
+        if frame_idx == 300:
+            return "mô tả liên quan tới sự kiện đầu tiên"  # cộng hưởng với event 0
+        if frame_idx == 900:
+            return "một đoạn hoàn toàn không liên quan"
+        return ""
+
+    with patch("backend.tasks.trake.TRAKE_ASR_CONTEXT_BONUS_WEIGHT", 0.1), \
+         patch("backend.tasks.trake._asr_text_at", side_effect=fake_asr_text), \
+         patch("backend.tasks.trake.n_frames_of", return_value=10_000_000):
+        result = _localize_in_video("V1", cands, events=["sự kiện đầu tiên", "sự kiện chung chung"])
+
+    assert result.keyframe_ids[1] == "dung"
+
+
+def test_localize_in_video_khong_events_giu_hanh_vi_cu():
+    """Không truyền events (tương thích ngược, vd test cũ/chỗ gọi khác) →
+    _apply_asr_context_bonus() không đụng gì, DP chọn thuần theo điểm gốc —
+    xác nhận KHÔNG có ai bị buộc phải truyền events."""
+    cands = [
+        [{"score": 0.9, "frame_idx": 100, "keyframe_id": "e1"}],
+        [
+            {"score": 0.02, "frame_idx": 300, "keyframe_id": "thap_diem"},
+            {"score": 0.05, "frame_idx": 900, "keyframe_id": "cao_diem"},
+        ],
+    ]
+    with patch("backend.tasks.trake.n_frames_of", return_value=10_000_000):
+        result = _localize_in_video("V1", cands)  # KHÔNG truyền events
+    assert result.keyframe_ids[1] == "cao_diem"  # thuần theo điểm, đúng hành vi cũ

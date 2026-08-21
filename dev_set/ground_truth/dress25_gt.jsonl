@@ -1,0 +1,25 @@
+{"query_id": "DRESS_KIS_01", "task_type": "KIS", "video_id": "L21_V003", "frame_start": 12307, "frame_end": 12545}
+{"query_id": "DRESS_KIS_02", "task_type": "KIS", "video_id": "L22_V015", "frame_start": 11061, "frame_end": 11150}
+{"query_id": "DRESS_KIS_03", "task_type": "KIS", "video_id": "L23_V015", "frame_start": 6695, "frame_end": 6986}
+{"query_id": "DRESS_KIS_04", "task_type": "KIS", "video_id": "L24_V021", "frame_start": 4397, "frame_end": 4831}
+{"query_id": "DRESS_KIS_05", "task_type": "KIS", "video_id": "L25_V085", "frame_start": 44921, "frame_end": 45819}
+{"query_id": "DRESS_KIS_06", "task_type": "KIS", "video_id": "L26_V368", "frame_start": 4897, "frame_end": 5040}
+{"query_id": "DRESS_KIS_07", "task_type": "KIS", "video_id": "L27_V014", "frame_start": 8679, "frame_end": 8765}
+{"query_id": "DRESS_KIS_08", "task_type": "KIS", "video_id": "L28_V011", "frame_start": 12266, "frame_end": 12446}
+{"query_id": "DRESS_KIS_09", "task_type": "KIS", "video_id": "L29_V004", "frame_start": 1186, "frame_end": 1243}
+{"query_id": "DRESS_KIS_10", "task_type": "KIS", "video_id": "L30_V063", "frame_start": 4781, "frame_end": 4831}
+{"query_id": "DRESS_KIS_11", "task_type": "KIS", "video_id": "L21_V016", "frame_start": 20980, "frame_end": 21018}
+{"query_id": "DRESS_KIS_12", "task_type": "KIS", "video_id": "L22_V017", "frame_start": 2883, "frame_end": 2989}
+{"query_id": "DRESS_KIS_13", "task_type": "KIS", "video_id": "L23_V011", "frame_start": 1734, "frame_end": 1931}
+{"query_id": "DRESS_KIS_14", "task_type": "KIS", "video_id": "L24_V011", "frame_start": 7071, "frame_end": 7135}
+{"query_id": "DRESS_KIS_15", "task_type": "KIS", "video_id": "L25_V069", "frame_start": 44382, "frame_end": 45131}
+{"query_id": "DRESS_KIS_16", "task_type": "KIS", "video_id": "L26_V425", "frame_start": 5808, "frame_end": 5854}
+{"query_id": "DRESS_KIS_17", "task_type": "KIS", "video_id": "L27_V003", "frame_start": 8098, "frame_end": 8534}
+{"query_id": "DRESS_KIS_18", "task_type": "KIS", "video_id": "L28_V004", "frame_start": 2672, "frame_end": 2737}
+{"query_id": "DRESS_KIS_19", "task_type": "KIS", "video_id": "L29_V003", "frame_start": 21251, "frame_end": 21342}
+{"query_id": "DRESS_QA_01", "task_type": "QA", "video_id": "L28_V003", "frame_start": 23592, "frame_end": 24127, "answer_text": "Trương Chí Hùng", "answer_variants": ["Trương Chí Hùng", "nhà văn Trương Chí Hùng", "Trương Chi Hùng", "ông Trương Chí Hùng"]}
+{"query_id": "DRESS_QA_02", "task_type": "QA", "video_id": "L26_V221", "frame_start": 5446, "frame_end": 5966, "answer_text": "Dồi trường hấp hành gừng", "answer_variants": ["Dồi trường hấp hành gừng", "Món dồi trường hấp hành gừng", "Dò trường hấp hành gừng", "Hấp hành gừng dồi trường"]}
+{"query_id": "DRESS_QA_03", "task_type": "QA", "video_id": "L21_V026", "frame_start": 26554, "frame_end": 27202, "answer_text": "Tự cung tự cấp cho gia đình", "answer_variants": ["Tự cung tự cấp cho gia đình", "Để phục vụ nhu cầu gia đình", "Nuôi để tự cung cấp thực phẩm cho gia đình", "Tự túc cho gia đình"]}
+{"query_id": "DRESS_QA_04", "task_type": "QA", "video_id": "L28_V016", "frame_start": 9215, "frame_end": 9740, "answer_text": "300 và 350", "answer_variants": ["300 và 350", "300, 350", "300 - 350", "từ 300 đến 350"]}
+{"query_id": "DRESS_QA_05", "task_type": "QA", "video_id": "L26_V186", "frame_start": 7281, "frame_end": 7756, "answer_text": "Lẩu cháo mực", "answer_variants": ["Lẩu cháo mực", "Món lẩu cháo mực", "Lẩu mực (cháo mực)", "lau chao muc"]}
+{"query_id": "DRESS_TRAKE_01", "task_type": "TRAKE", "video_id": "L22_V028", "frames": [{"start": 0, "end": 44}, {"start": 15820, "end": 15873}, {"start": 33350, "end": 33444}]}

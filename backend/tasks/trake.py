@@ -57,19 +57,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 from backend.export import n_frames_of
 from backend.llm.adapter import llm
 from backend.retrieval.search import search
 from data.config.search_weights import (
+    TRAKE_ASR_CONTEXT_BONUS_WEIGHT,
     TRAKE_CANDIDATES_PER_EVENT,
     TRAKE_EVENT_SEARCH_POOL,
+    TRAKE_MIN_BLEND_LAMBDA,
     TRAKE_MIN_FRAME_GAP,
     TRAKE_ORDER_BONUS,
 )
 from data.config.submit_format import Answer
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ASR_PATH = REPO_ROOT / "data" / "derived" / "asr.parquet"
 
 TOP_VIDEOS = 10  # BUILD_TASKS C3.2: "trả top-10 video xếp hạng"
 
@@ -81,13 +89,11 @@ PARSE_EVENTS_SCHEMA = {
 }
 
 
-def parse_events(query_vi: str) -> list[str]:
-    """Câu hỏi TRAKE → list N mô tả sự kiện, ĐÚNG thứ tự thời gian đề bài nói.
-
-    N = len(kết quả) — KHÔNG đọc TRAKE_DEFAULT_N từ config. dev_set/tools/scoring
-    (rscore_trake) cho 0 điểm TUYỆT ĐỐI nếu số khoảnh khắc nộp khác N thật của
-    đề — đoán N sai là mất trắng dù mọi frame đều đúng.
-    """
+def _parse_events_llm(query_vi: str) -> list[str]:
+    """Thân hàm gốc của parse_events() — tách bằng LLM. Raise khi LLM lỗi hoặc
+    tách được <2 sự kiện; parse_events() bên dưới bắt cả hai trường hợp và rơi
+    về _split_events_heuristic() (C4.4 — không bao giờ để 1 câu hỏng làm mất
+    trắng cả câu TRAKE, xem parse_events())."""
     raw = llm(
         "Câu sau mô tả MỘT CHUỖI các sự kiện liên tiếp xảy ra trong một video "
         "(bài toán TRAKE — định vị từng khoảnh khắc theo đúng thứ tự). Tách thành "
@@ -106,6 +112,65 @@ def parse_events(query_vi: str) -> list[str]:
             f"từ câu: '{query_vi}'. Kiểm tra câu hỏi có đúng là dạng bài TRAKE không."
         )
     return events
+
+
+# C4.4 — thứ tự ưu tiên: dấu câu/liên từ tuần tự tiếng Việt RÕ RÀNG nhất trước,
+# dấu phẩy (yếu nhất, dễ cắt nhầm giữa câu) thử SAU CÙNG trước khi chẻ đôi mù.
+_HEURISTIC_DELIMITERS = [
+    r"\s*\.\s+",
+    r"\s*,?\s*sau\s+đó\s+",
+    r"\s*,?\s*rồi\s+",
+    r"\s*,?\s*tiếp\s+theo\s*,?\s*",
+    r"\s*,?\s*kế\s+(?:đó|tiếp)\s*,?\s*",
+    r"\s*,?\s*xong\s+(?:thì\s+)?",
+    r"\s*,?\s*cuối\s+cùng\s*,?\s*",
+    r"\s*;\s*",
+    r"\s*,\s*",
+]
+
+
+def _split_events_heuristic(query_vi: str) -> list[str]:
+    """Tách N sự kiện KHÔNG cần LLM — lưới an toàn cuối khi _parse_events_llm()
+    hỏng (mạng/API lỗi, LLM trả JSON hỏng, hoặc tách được <2 sự kiện).
+
+    Đoán còn hơn bỏ trống (CLAUDE.md §5.3): thử lần lượt các dấu hiệu tuần tự
+    tiếng Việt RÕ RÀNG nhất trước — câu TRAKE thường được viết đúng như một
+    danh sách sự kiện nối bằng dấu câu (xem TR01/TR02 dev-set: nối bằng " . ").
+    Không có dấu hiệu nào tách được ≥2 phần → chẻ đôi theo số từ (đoán N=2,
+    vẫn tốt hơn raise vì rscore_trake cho 0 cả hai trường hợp, nhưng chỉ
+    trường hợp NÀY còn cơ hội ăn điểm nếu đoán đúng)."""
+    for pat in _HEURISTIC_DELIMITERS:
+        parts = [p.strip() for p in re.split(pat, query_vi, flags=re.IGNORECASE) if p.strip()]
+        if len(parts) >= 2:
+            return parts
+    words = query_vi.split()
+    if len(words) < 2:
+        return [query_vi, query_vi]
+    mid = max(1, len(words) // 2)
+    return [" ".join(words[:mid]), " ".join(words[mid:])]
+
+
+def parse_events(query_vi: str) -> list[str]:
+    """Câu hỏi TRAKE → list N mô tả sự kiện, ĐÚNG thứ tự thời gian đề bài nói.
+
+    N = len(kết quả) — KHÔNG đọc TRAKE_DEFAULT_N từ config. dev_set/tools/scoring
+    (rscore_trake) cho 0 điểm TUYỆT ĐỐI nếu số khoảnh khắc nộp khác N thật của
+    đề — đoán N sai là mất trắng dù mọi frame đều đúng.
+
+    ⚠️ C4.4 — KHÔNG BAO GIỜ raise cho câu không rỗng: nếu LLM lỗi (mạng/API/
+    JSON hỏng) hoặc tách được <2 sự kiện, rơi về _split_events_heuristic()
+    (không cần LLM). trake_fallback.py cũ (đã xoá khi gộp DP 16/08) từng giữ
+    vai trò lưới an toàn này ở tầng khác — quan sát thật (run.py::main()):
+    parse_events() raise → giai_mot_query() raise → query KHÔNG được ghi
+    checkpoint → biến mất hoàn toàn khỏi bài nộp (0 tuyệt đối mọi R@k), tệ hơn
+    hẳn một dự đoán N/sự kiện có thể sai.
+    """
+    try:
+        return _parse_events_llm(query_vi)
+    except Exception as e:
+        print(f"  [cảnh báo] parse_events(): llm() lỗi hoặc tách <2 sự kiện ({e}) "
+              "— chuyển sang tách heuristic không LLM.")
+        return _split_events_heuristic(query_vi)
 
 
 @dataclass(frozen=True)
@@ -291,20 +356,253 @@ def _repair_strictly_increasing(frames: list[int], n_frames_video: int) -> list[
     return out
 
 
+# ═══════════════════════════════════ 20/08: tín hiệu "cùng mạch nội dung"
+#
+# ⚠️ Vì sao cần: TRAKE hiện tại = N lần search() ĐỘC LẬP (y hệt KIS) + DP chỉ
+# ép thứ tự vị trí/khoảng cách tối thiểu — DP KHÔNG biết "4 khoảnh khắc này
+# có cùng 1 mạch chuyện hay không", vì nó chỉ thấy (vị trí, frame_idx, điểm),
+# không thấy nội dung. Đo thật (reports/trake_hardening.md §6, truy vấn tai
+# nạn giao thông thật): 1 sự kiện diễn đạt chung chung ("lực lượng chức năng
+# có mặt tại hiện trường") lọt sang MỘT TIN KHÁC hẳn trong cùng video bản tin
+# nhiều mục (đúng thứ tự, đúng khoảng cách, chỉ sai vì thuộc chuyện khác) —
+# DP không có cách nào phát hiện.
+#
+# ⚠️ Vì sao KHÔNG sửa bằng "phạt khoảng cách frame" (đã thử, loại bỏ): so
+# TR01 (nấu ăn, ĐÚNG, khoảng cách hợp lệ tới 22.5% độ dài video) với ca tin
+# tức trên (SAI, chỉ cách 5.1% video) — khoảng cách "sai" NHỎ HƠN khoảng cách
+# "đúng". Không có ngưỡng khoảng cách nào phân biệt được 2 trường hợp: video
+# nấu ăn là 1 câu chuyện xuyên suốt (xa vẫn hợp lệ), bản tin nhiều mục là
+# NHIỀU câu chuyện độc lập nối lại (gần cũng có thể sai chuyện).
+#
+# ⚠️ Vì sao KHÔNG dùng `seg_id` của asr.parquet làm ranh giới câu chuyện:
+# kiểm tra thật — seg_id chỉ là đoạn CẮT TRANSCRIPT kỹ thuật (~500-600 frame/
+# đoạn, đếm liên tục 0..N cho cả video), KHÔNG phải ranh giới chủ đề. 1 câu
+# chuyện thật (vd đúng đoạn tai nạn) trải dài qua NHIỀU seg_id liền nhau.
+#
+# ===== Cơ chế: cộng điểm ứng viên theo mức "cộng hưởng nội dung" =====
+# Với mỗi ứng viên ở vị trí j, tra văn bản ASR bao phủ frame đó (nếu có), đếm
+# xem có bao nhiêu TỪ KHOÁ CỦA CÁC SỰ KIỆN KHÁC (không phải sự kiện j đang
+# tìm) xuất hiện trong đúng văn bản đó. Ứng viên thật của 1 chuỗi sự kiện liên
+# quan thường được người dẫn tường thuật LIỀN MẠCH (nhắc luôn các chi tiết
+# trước/sau trong cùng câu) — đo thật cả 2 phía: đoạn ASR chứa frame ĐÚNG của
+# sự kiện 4 (vụ tai nạn) nhắc tới "va chạm"/"xe ba gác"/"ngã" (từ khoá sự
+# kiện 2-3); đoạn ASR chứa frame SAI (tin Phú Yên) không nhắc gì tới vựng của
+# 3 sự kiện còn lại. TR01 (nấu ăn) cũng có cùng hiện tượng: đoạn ASR chứa GT
+# "mít non cắt" nhắc luôn "vả" (từ khoá sự kiện kế tiếp).
+#
+# An toàn: KHÔNG có ASR (video câm, hoặc frame ngoài vùng phủ ASR) → bonus=0,
+# quay lại hành vi CŨ y hệt (không đổi gì). Đây là CỘNG THÊM, không phải điều
+# kiện lọc — ứng viên không có ASR vẫn được xét bình thường theo điểm gốc.
+
+_VI_STOPWORDS = frozenset({
+    "va", "voi", "cua", "cho", "khong", "duoc", "nhung", "nhieu", "mot",
+    "hai", "ba", "cac", "nay", "do", "tai", "tren", "duong", "sau", "truoc",
+    "khi", "thi", "la", "co", "da", "se", "bi", "vao", "ra", "len", "xuong",
+    "theo", "nen", "vi", "de", "nhu", "hon", "rat", "cung", "con", "chi",
+    "day", "ay", "nao", "gi", "ai", "sao", "vay", "ma", "roi", "luon",
+})
+
+
+def _strip_diacritics_lower(text: str) -> str:
+    """Bỏ dấu tiếng Việt + hạ chữ thường — so khớp từ khoá không phân biệt
+    dấu (ASR đôi khi thiếu dấu/sai dấu, event_vi từ câu hỏi luôn có dấu chuẩn,
+    so trực tiếp có dấu sẽ bỏ sót nhiều khớp thật)."""
+    import unicodedata
+    nfkd = unicodedata.normalize("NFKD", text.lower())
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+def _significant_tokens(text: str) -> set[str]:
+    """Tách từ có nghĩa: bỏ dấu, hạ thường, giữ từ >= 3 ký tự và không phải
+    hư từ phổ biến. Ngưỡng 3 ký tự lọc bớt từ đơn âm tiếng Việt ít mang nghĩa
+    riêng (đo thô, không cần chuẩn NLP đầy đủ — chỉ dùng để tính TRÙNG LẶP
+    tương đối, không phải phân tích ngữ nghĩa chính xác)."""
+    words = re.findall(r"[a-zđ]+", _strip_diacritics_lower(text))
+    return {w for w in words if len(w) >= 3 and w not in _VI_STOPWORDS}
+
+
+@lru_cache(maxsize=1)
+def _asr_by_video() -> dict[str, list[tuple[int, int, str]]]:
+    """video_id → [(start_frame, end_frame, text_vi), ...] sort theo
+    start_frame. Đọc thẳng asr.parquet (B1.3) — cache 1 lần/tiến trình, cùng
+    kiểu với _keyframes_by_shot() trong qa.py. Rỗng nếu chưa có ASR (chưa
+    chạy job, hoặc video câm) — KHÔNG raise, để _asr_text_at() trả rỗng."""
+    if not ASR_PATH.exists():
+        return {}
+    import pandas as pd
+
+    df = pd.read_parquet(ASR_PATH, columns=["video_id", "start_frame", "end_frame", "text_vi"])
+    out: dict[str, list[tuple[int, int, str]]] = {}
+    for vid, s, e, text in df.itertuples(index=False):
+        out.setdefault(vid, []).append((int(s), int(e), text or ""))
+    for segs in out.values():
+        segs.sort()
+    return out
+
+
+def _asr_text_at(video_id: str, frame_idx: int) -> str:
+    """Văn bản ASR bao phủ frame_idx trong video, rỗng nếu không có (video
+    câm, chưa có ASR, hoặc frame nằm ngoài mọi đoạn đã nhận diện tiếng nói)."""
+    for s, e, text in _asr_by_video().get(video_id, []):
+        if s <= frame_idx <= e:
+            return text
+        if s > frame_idx:  # đã sort theo start_frame — qua khỏi điểm cần tìm
+            break
+    return ""
+
+
+def _cross_event_bonus(video_id: str, frame_idx: int, own_position: int,
+                        events_tokens: list[set[str]],
+                        token_weight: dict[str, float]) -> float:
+    """Tổng TRỌNG SỐ (không phải đếm thô) các từ khoá CỦA CÁC SỰ KIỆN KHÁC
+    (không phải own_position) xuất hiện trong văn bản ASR bao phủ frame_idx.
+
+    ⚠️ SỬA — đo thật (quét trọng số trên dev-set 20/08): đếm thô làm sập điểm
+    8/8 câu TRAKE hiện có (R@1 → 0.000) vì video nấu ăn dùng chung một lượng
+    lớn từ vựng CHUNG CHUNG giữa các TẬP KHÁC NHAU trong cùng thể loại (vd
+    "cắt", "nước", "cho vào" lặp ở HẦU HẾT video nấu ăn) — đếm thô coi những
+    từ này ngang hàng với từ khoá THẬT SỰ hiếm/đặc trưng (vd "xe ba gác",
+    "lực lượng chức năng"), khiến bonus nhiễu nặng cả trong-video lẫn giữa-
+    các-video. `token_weight` (tính 1 lần/lần gọi trake_search(), xem
+    _build_token_weight()) hạ giá từ càng xuất hiện càng nhiều ỨNG VIÊN
+    TRONG CHÍNH CÂU HỎI NÀY — không cần bảng tần suất toàn kho dữ liệu."""
+    text = _asr_text_at(video_id, frame_idx)
+    if not text:
+        return 0.0
+    local_tokens = _significant_tokens(text)
+    if not local_tokens:
+        return 0.0
+    other_tokens: set[str] = set()
+    for j, toks in enumerate(events_tokens):
+        if j != own_position:
+            other_tokens |= toks
+    matched = local_tokens & other_tokens
+    return sum(token_weight.get(tok, 0.0) for tok in matched)
+
+
+def _build_token_weight(topk_per_event_video: list[dict[str, list[dict]]]) -> dict[str, float]:
+    """Trọng số kiểu IDF cho mỗi từ khoá, tính trên TOÀN BỘ ứng viên (mọi vị
+    trí, mọi video) của MỘT lần gọi trake_search() — không phải toàn kho dữ
+    liệu (không có sẵn, và cũng không cần: cái cần phân biệt là "từ này có
+    đặc trưng cho VIDEO/KHOẢNH KHẮC nào đó trong SỐ CÁC ỨNG VIÊN CỦA CÂU HỎI
+    NÀY hay không", không phải độ hiếm tuyệt đối toàn kho).
+
+    weight(từ) = 1 / (số ứng viên có từ đó trong văn bản ASR bao phủ). Từ
+    xuất hiện ở 1 ứng viên duy nhất → trọng số 1.0 (tin cậy tối đa). Từ xuất
+    hiện ở 50 ứng viên (kiểu "cắt"/"nước" lặp khắp mọi video nấu ăn cùng thể
+    loại) → trọng số 0.02 (gần như bỏ qua). Đơn giản hơn log-IDF, đủ dùng vì
+    chỉ cần XẾP HẠNG tương đối trong phạm vi 1 câu hỏi, không cần chuẩn hoá
+    xác suất."""
+    doc_freq: dict[str, int] = {}
+    for by_video in topk_per_event_video:
+        for vid, cands in by_video.items():
+            for c in cands:
+                text = _asr_text_at(vid, c["frame_idx"])
+                if not text:
+                    continue
+                for tok in _significant_tokens(text):
+                    doc_freq[tok] = doc_freq.get(tok, 0) + 1
+    return {tok: 1.0 / n for tok, n in doc_freq.items()}
+
+
+class _UnitWeight(dict):
+    """Giả lập dict trọng số toàn 1.0 — dùng khi chỗ gọi cố tình muốn đếm thô
+    (vd test cô lập 1 video, không có ngữ cảnh toàn bộ ứng viên để tính IDF)."""
+
+    def get(self, key, default=None):  # noqa: D102 — override có chủ đích
+        return 1.0
+
+
+def _apply_asr_context_bonus(
+    vid: str, candidates_by_position: list[list[dict]], events: list[str] | None,
+    token_weight: dict[str, float] | None = None,
+) -> list[list[dict]]:
+    """Trả bản SAO của candidates_by_position với score đã cộng thêm bonus
+    cộng hưởng ASR (xem block comment phía trên). KHÔNG mutate dict gốc —
+    cùng dict object có thể còn được đọc ở chỗ khác (vd keyframe_id).
+
+    events=None hoặc TRAKE_ASR_CONTEXT_BONUS_WEIGHT=0 → trả nguyên
+    candidates_by_position, KHÔNG tính toán gì thêm (an toàn/nhanh cho chỗ
+    gọi không có events, vd test cũ). token_weight=None (có events nhưng
+    không truyền bảng trọng số IDF) → coi mọi từ trọng số 1.0 (đếm thô — chỉ
+    nên dùng khi test cô lập, KHÔNG dùng trong đường chạy thật vì đếm thô đã
+    đo được là làm sập điểm trên corpus từ vựng lặp lại — xem _cross_event_bonus)."""
+    if not events or not TRAKE_ASR_CONTEXT_BONUS_WEIGHT:
+        return candidates_by_position
+    events_tokens = [_significant_tokens(e) for e in events]
+    weight_lookup = token_weight if token_weight is not None else _UnitWeight()
+    out: list[list[dict]] = []
+    for j, cands in enumerate(candidates_by_position):
+        new_cands = []
+        for c in cands:
+            bonus = _cross_event_bonus(vid, c["frame_idx"], j, events_tokens, weight_lookup)
+            if bonus:
+                # "_orig_score" (điểm search() gốc, CHƯA cộng bonus) giữ lại
+                # riêng — DP dùng "score" (đã cộng bonus) để CHỌN ứng viên
+                # đúng mạch nội dung trong CÙNG video, nhưng điểm XẾP HẠNG
+                # GIỮA CÁC VIDEO (_localize_in_video → _blend_score) phải
+                # dùng "_orig_score" gốc. Lý do — đo thật (quét 20/08): dùng
+                # điểm đã cộng bonus cho CẢ HAI việc làm TR02 dao động hạng
+                # 5↔6 (đúng ranh giới R@5) vì bonus tình cờ ưu ái video KHÁC
+                # nhiều hơn — bonus chỉ nên "chọn đúng frame trong video này",
+                # KHÔNG nên can thiệp "video nào thắng video nào" (việc đó đã
+                # có TRAKE_MIN_BLEND_LAMBDA lo, tune riêng trên dev-set).
+                c = {**c, "_orig_score": c["score"],
+                     "score": c["score"] + TRAKE_ASR_CONTEXT_BONUS_WEIGHT * bonus}
+            new_cands.append(c)
+        out.append(new_cands)
+    return out
+
+
+def _blend_score(position_scores: list[float]) -> float:
+    """Tổng điểm mỗi vị trí + λ × điểm vị trí YẾU NHẤT — λ=TRAKE_MIN_BLEND_LAMBDA.
+
+    ⚠️ SỬA 20/08 — đo thật (reports/trake_hardening.md): công thức CŨ (chỉ
+    tổng) để lọt video sai hạng cao hơn video đúng khi video sai có 1 vị trí
+    khớp RẤT MẠNH + các vị trí khác yếu — tổng vẫn thắng dù không NHẤT QUÁN
+    bằng video khớp đều cả N vị trí. Cộng thêm điểm vị trí yếu nhất phạt đúng
+    kiểu "thắng 1 chỗ, đuối các chỗ còn lại" này. λ=0 quay lại công thức gốc
+    (chỉ tổng) — quét dev-set cho λ=2.0 (xem TRAKE_MIN_BLEND_LAMBDA)."""
+    return sum(position_scores) + TRAKE_MIN_BLEND_LAMBDA * min(position_scores)
+
+
 def _localize_in_video(
-    vid: str, candidates_by_position: list[list[dict]]
+    vid: str, candidates_by_position: list[list[dict]],
+    events: list[str] | None = None,
+    token_weight: dict[str, float] | None = None,
 ) -> TrakeCandidate:
     """1 video ứng viên + rổ ứng viên mỗi vị trí (đã lọc riêng cho video này)
-    → TrakeCandidate hoàn chỉnh (điểm xếp hạng + N frame_ids đúng vị trí)."""
+    → TrakeCandidate hoàn chỉnh (điểm xếp hạng + N frame_ids đúng vị trí).
+
+    events: mô tả N sự kiện gốc — dùng để cộng bonus "cộng hưởng nội dung ASR"
+    trước khi chạy DP (xem block comment _apply_asr_context_bonus). None →
+    bỏ qua bước này, giữ hành vi CŨ y hệt (tương thích ngược cho test cũ gọi
+    hàm này không kèm events). token_weight: bảng trọng số IDF tính SẴN trên
+    toàn bộ ứng viên của lần gọi trake_search() này (_build_token_weight()) —
+    None mà vẫn có events → coi mọi từ trọng số 1.0 (đếm thô, chỉ dùng cho
+    test cô lập, xem cảnh báo trong _apply_asr_context_bonus)."""
+    candidates_by_position = _apply_asr_context_bonus(vid, candidates_by_position, events, token_weight)
     n = len(candidates_by_position)
     n_hit_events = sum(1 for c in candidates_by_position if c)
     chain, chain_score = _align_events_in_video(candidates_by_position)
     has_full_order = len(chain) == n
 
+    # (vị_trí, frame_idx) → điểm GỐC (chưa cộng bonus ASR) — DP ở trên đã
+    # dùng điểm ĐÃ CỘNG BONUS để CHỌN đúng ứng viên (việc bonus nên làm), còn
+    # điểm dùng để XẾP HẠNG GIỮA CÁC VIDEO (position_scores → _blend_score)
+    # phải là điểm GỐC (xem cảnh báo trong _apply_asr_context_bonus — dùng
+    # điểm đã cộng bonus cho cả hai việc làm TR02 dao động hạng qua ranh giới
+    # R@5 vì bonus tình cờ ưu ái video khác nhiều hơn).
+    orig_score_at: dict[tuple[int, int], float] = {
+        (j, c["frame_idx"]): c.get("_orig_score", c["score"])
+        for j, cands in enumerate(candidates_by_position) for c in cands
+    }
+
     if has_full_order:
         frame_ids = [f for _, f, _, _ in chain]
         keyframe_ids: list[str | None] = [kf for _, _, kf, _ in chain]
-        score = chain_score * TRAKE_ORDER_BONUS
+        position_scores = [orig_score_at[(j, f)] for j, f, _, _ in chain]
+        score = _blend_score(position_scores) * TRAKE_ORDER_BONUS
     else:
         # Không đủ/không xếp tăng dần được cả N vị trí bằng 1 dãy DP duy nhất
         # → KHÔNG bonus, nhưng vẫn thưởng ĐỘ PHỦ: mỗi vị trí lấy ứng viên điểm
@@ -313,14 +611,14 @@ def _localize_in_video(
         # hảo) vẫn phải thắng video chỉ khớp 1 sự kiện dù khớp rất mạnh.
         frame_or_none: list[int | None] = [None] * n
         keyframe_ids = [None] * n
-        score = 0.0
+        position_scores = []
         # Vị trí đã có trong chuỗi DP (mảnh tăng dần dài nhất tìm được) —
         # dùng nguyên, đây là bằng chứng THẬT và ĐÃ tăng dần giữa chúng.
         chain_positions = {j for j, _, _, _ in chain}
-        for j, f, kf, s in chain:
+        for j, f, kf, _ in chain:
             frame_or_none[j] = f
             keyframe_ids[j] = kf
-            score += s
+            position_scores.append(orig_score_at[(j, f)])
         # Vị trí có bằng chứng nhưng DP bỏ (phá thứ tự với chuỗi đã chọn) —
         # lấy điểm cao nhất của riêng nó cho ĐIỂM xếp hạng (độ phủ), nhưng
         # frame_ids để trống cho bước nội suy xử lý — đưa giá trị KHÔNG tăng
@@ -329,7 +627,8 @@ def _localize_in_video(
         for j, cands in enumerate(candidates_by_position):
             if not cands or j in chain_positions:
                 continue
-            score += max(c["score"] for c in cands)
+            position_scores.append(max(c.get("_orig_score", c["score"]) for c in cands))
+        score = _blend_score(position_scores) if position_scores else 0.0
         frame_ids = _fill_missing(frame_or_none)
 
     frame_ids = _repair_strictly_increasing(frame_ids, n_frames_of(vid))
@@ -375,16 +674,48 @@ def trake_search(
         per_event_hits = list(pool.map(_search_one, events))
 
     topk_per_event_video = [_topk_per_video(hits, candidates_per_event) for hits in per_event_hits]
+    # Tính 1 LẦN cho cả lần gọi trake_search() này — token_weight cần nhìn
+    # thấy ứng viên của MỌI video để biết từ nào chung chung trong PHẠM VI
+    # câu hỏi này (xem _build_token_weight()), không tính lại mỗi video.
+    token_weight = (_build_token_weight(topk_per_event_video)
+                    if TRAKE_ASR_CONTEXT_BONUS_WEIGHT else {})
 
     all_videos: set[str] = set()
     for by_video in topk_per_event_video:
         all_videos.update(by_video)
     if not all_videos:
-        return []
+        # C4.4 — toàn bộ N search riêng lẻ đều rỗng (ES/Milvus tạm chết CHO CẢ
+        # N sự kiện, hoặc index thật sự không có gì khớp). Thử MỘT lần search
+        # cứu cánh bằng câu ghép toàn bộ sự kiện — chấp nhận có thể bị CLIP cắt
+        # cụt do vượt 77 token (bất biến CLAUDE.md #4, xem cảnh báo đầu file)
+        # vì có ứng viên (dù yếu) còn hơn 0 tuyệt đối. Không đụng nhánh bình
+        # thường ở trên — chỉ kích hoạt khi rỗng HOÀN TOÀN.
+        print(f"  [cảnh báo] trake_search(): 0 video ứng viên từ {n} tìm kiếm riêng lẻ "
+              "theo sự kiện — thử tìm kiếm cứu cánh bằng câu ghép toàn bộ sự kiện.")
+        try:
+            fallback_hits = search(" . ".join(events), top_k=pool_per_event, group_by_shot=True)
+        except Exception as e:
+            print(f"  [cảnh báo] trake_search(): tìm kiếm cứu cánh cũng lỗi, trả rỗng: {e}")
+            return []
+        fallback_by_video = _topk_per_video(fallback_hits, candidates_per_event)
+        if not fallback_by_video:
+            return []
+        # Không biết hit nào khớp sự kiện nào (1 câu ghép, không tách được theo
+        # vị trí) → dùng CHUNG một rổ ứng viên cho MỌI vị trí j; DP vẫn chọn
+        # đúng 1 ứng viên/vị trí, tăng dần ngặt, cách nhau >= min_gap. Ở nhánh
+        # này n_hit_events/has_full_order KHÔNG còn nghĩa "bằng chứng riêng
+        # từng sự kiện" — chỉ là tín hiệu độ phủ tạm thời.
+        candidates = [
+            _localize_in_video(vid, [cands] * n)
+            for vid, cands in fallback_by_video.items()
+        ]
+        candidates.sort(key=lambda c: c.score, reverse=True)
+        return candidates[:top_videos]
 
     candidates = [
         _localize_in_video(
-            vid, [by_video.get(vid, []) for by_video in topk_per_event_video]
+            vid, [by_video.get(vid, []) for by_video in topk_per_event_video], events,
+            token_weight,
         )
         for vid in all_videos
     ]

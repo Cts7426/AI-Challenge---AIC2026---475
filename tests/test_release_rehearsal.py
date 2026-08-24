@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import backend.export.release_rehearsal as release_rehearsal
 from backend.export import Issue, QuerySubmission
 from backend.export.release_rehearsal import (
     ReleaseBlocked,
@@ -19,6 +20,18 @@ from data.config.submit_format import Answer
 
 
 FP = "a" * 64
+SCORER_SHA = "6" * 64
+
+
+@pytest.fixture(autouse=True)
+def fixed_release_context(monkeypatch):
+    monkeypatch.setattr(release_rehearsal, "runtime_fingerprint", lambda: FP, raising=False)
+    monkeypatch.setattr(
+        release_rehearsal,
+        "_current_scorer_source_sha256",
+        lambda: SCORER_SHA,
+        raising=False,
+    )
 
 
 def _hypothesis() -> dict:
@@ -53,6 +66,7 @@ def _traces() -> list[dict]:
         {
             "query_id": "q-qa", "task_type": "QA", "status": "success",
             "retryable": False, "runtime_fingerprint": FP,
+            "query_plan": {"query_vi": "màu gì", "question_vi": "màu gì"},
             "qa_hypotheses": [hypothesis],
             "answers": [{
                 "video_id": hypothesis["video_id"],
@@ -70,13 +84,21 @@ def _cache_manifest() -> dict:
         "parse_status": "valid",
         "evidence_digest": "b" * 64,
         "runtime_fingerprint": FP,
+        "query_sha256": hashlib.sha256("màu gì".encode("utf-8")).hexdigest(),
+        "full_query_sha256": hashlib.sha256("màu gì".encode("utf-8")).hexdigest(),
     }]}
 
 
-def _promotion_audit() -> dict:
+def _promotion_audit(
+    *, runtime_fingerprint: str = FP, scorer_policy: str = "semantic",
+    scorer_source_sha256: str = SCORER_SHA,
+) -> dict:
     payload = {
         "status": "ELIGIBLE", "eligible": True,
         "scorer_contract": "btc-final-score-v1",
+        "current_runtime_fingerprint": runtime_fingerprint,
+        "scorer_policy": scorer_policy,
+        "scorer_source_sha256": scorer_source_sha256,
         "input_sha256": {
             "holdout_manifest": "1" * 64,
             "regression_manifest": "2" * 64,
@@ -87,6 +109,13 @@ def _promotion_audit() -> dict:
     }
     canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return {**payload, "audit_sha256": hashlib.sha256(canonical.encode()).hexdigest()}
+
+
+def _write_trace(path: Path, traces: list[dict]) -> None:
+    path.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in traces) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _subs() -> list[QuerySubmission]:
@@ -147,15 +176,19 @@ def test_no_partial_zip_call_khi_gate_hong(tmp_path):
     traces = _traces()
     traces[1]["qa_hypotheses"] = []
     trace_path = tmp_path / "trace.jsonl"
-    trace_path.write_text("{}\n", encoding="utf-8")
+    _write_trace(trace_path, traces)
+    cache_path = tmp_path / "cache.json"
+    cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
+    queries_path = tmp_path / "queries.json"
+    queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
 
     with pytest.raises(ReleaseBlocked):
         create_release_package(
             queries=_queries(), traces=traces, submissions=_subs(), out_dir=tmp_path,
-            trace_path=trace_path, evidence_cache_manifest_path=tmp_path / "cache.json",
+            trace_path=trace_path, evidence_cache_manifest_path=cache_path,
             evidence_cache_manifest=_cache_manifest(),
             validator_issues=[], promotion_audit=_promotion_audit(),
-            query_manifest_path=tmp_path / "queries.json", gt_manifest_path=None,
+            query_manifest_path=queries_path, gt_manifest_path=None,
             scorer_policy="semantic", submission_policy="robust",
             reproduction_command="python run.py --release-rehearsal",
             write_zip=lambda *args, **kwargs: called.append(1),
@@ -170,6 +203,8 @@ def test_evidence_cache_manifest_hash_va_runtime(tmp_path):
     cache.mkdir()
     identity = {
         "query_sha256": hashlib.sha256("màu gì".encode()).hexdigest(),
+        "full_query_sha256": hashlib.sha256("màu gì".encode()).hexdigest(),
+        "evidence_digest": "b" * 64,
         "runtime_fingerprint": FP,
     }
     (cache / "b.json").write_text(json.dumps({"identity": identity}), encoding="utf-8")
@@ -184,7 +219,7 @@ def test_receipt_checksum_config_trace_cache_reproduce_va_atomic(tmp_path, monke
     queries_path = tmp_path / "queries.json"
     queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
     trace_path = tmp_path / "trace.jsonl"
-    trace_path.write_text("\n".join(json.dumps(x) for x in _traces()) + "\n", encoding="utf-8")
+    _write_trace(trace_path, _traces())
     cache_manifest_path = tmp_path / "evidence_cache_manifest.json"
     cache_manifest = {"schema_version": 1, **_cache_manifest()}
     cache_manifest_path.write_text(json.dumps(cache_manifest), encoding="utf-8")
@@ -226,13 +261,15 @@ def test_receipt_checksum_config_trace_cache_reproduce_va_atomic(tmp_path, monke
 
 def test_writer_tra_ve_validator_failure_thi_khong_co_receipt(tmp_path):
     trace_path = tmp_path / "trace.jsonl"
-    trace_path.write_text("{}\n", encoding="utf-8")
+    _write_trace(trace_path, _traces())
     cache_path = tmp_path / "cache.json"
-    cache_path.write_text('{"entries":[{"path":"x"}]}', encoding="utf-8")
+    cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
     queries_path = tmp_path / "queries.json"
-    queries_path.write_text("[]", encoding="utf-8")
+    queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
+    calls = []
 
     def bad_writer(subs, out_dir, **kwargs):
+        calls.append(1)
         path = Path(out_dir) / "submission.zip"
         path.write_bytes(b"not usable")
         return path, [Issue("zip_corrupt", "bad")]
@@ -247,12 +284,13 @@ def test_writer_tra_ve_validator_failure_thi_khong_co_receipt(tmp_path):
             scorer_policy="semantic", submission_policy="robust",
             reproduction_command="reproduce", write_zip=bad_writer,
         )
+    assert calls == [1]
     assert not list(tmp_path.glob("*.receipt.json"))
 
 
 def test_cache_planner_only_hoac_runtime_khac_khong_du_evidence(tmp_path):
     trace = tmp_path / "trace.jsonl"
-    trace.write_text("{}\n", encoding="utf-8")
+    _write_trace(trace, _traces())
     for manifest in (
         {"entries": [{"parse_status": "valid", "runtime_fingerprint": FP}]},
         {"entries": [{
@@ -272,7 +310,7 @@ def test_cache_planner_only_hoac_runtime_khac_khong_du_evidence(tmp_path):
 
 def test_receipt_tu_choi_commit_unknown_va_audit_thieu_contract(tmp_path, monkeypatch):
     trace_path = tmp_path / "trace.jsonl"
-    trace_path.write_text("{}\n", encoding="utf-8")
+    _write_trace(trace_path, _traces())
     cache_path = tmp_path / "cache.json"
     cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
     queries_path = tmp_path / "queries.json"
@@ -309,7 +347,7 @@ def test_receipt_tu_choi_commit_unknown_va_audit_thieu_contract(tmp_path, monkey
 
 def test_submission_thieu_query_hoac_cache_manifest_lech_file_chan_writer(tmp_path):
     trace_path = tmp_path / "trace.jsonl"
-    trace_path.write_text("{}\n", encoding="utf-8")
+    _write_trace(trace_path, _traces())
     cache_path = tmp_path / "cache.json"
     cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
     queries_path = tmp_path / "queries.json"
@@ -322,7 +360,8 @@ def test_submission_thieu_query_hoac_cache_manifest_lech_file_chan_writer(tmp_pa
         validator_issues=[], promotion_audit=_promotion_audit(),
         query_manifest_path=queries_path, gt_manifest_path=None,
         scorer_policy="semantic", submission_policy="robust",
-        reproduction_command="reproduce", write_zip=lambda *a, **kw: called.append(1),
+        reproduction_command="reproduce",
+        write_zip=lambda *a, **kw: (called.append(1) or (tmp_path / "x.zip", [])),
     )
     with pytest.raises(ReleaseBlocked, match="submission"):
         create_release_package(
@@ -331,5 +370,68 @@ def test_submission_thieu_query_hoac_cache_manifest_lech_file_chan_writer(tmp_pa
     with pytest.raises(ReleaseBlocked, match="cache manifest"):
         create_release_package(
             **base, submissions=_subs(), evidence_cache_manifest={"entries": []},
+        )
+    assert called == []
+
+
+@pytest.mark.parametrize("identity_field", ["query_sha256", "full_query_sha256"])
+def test_cache_cung_evidence_nhung_khac_query_identity_bi_chan(
+    tmp_path, identity_field,
+):
+    trace_path = tmp_path / "trace.jsonl"
+    _write_trace(trace_path, _traces())
+    manifest = _cache_manifest()
+    manifest["entries"][0][identity_field] = hashlib.sha256(
+        "câu hỏi khác".encode("utf-8")
+    ).hexdigest()
+    result = assess_release_batch(
+        queries=_queries(), traces=_traces(), validator_issues=[],
+        trace_path=trace_path, cache_manifest=manifest,
+    )
+    assert result.eligible is False
+    assert "qa_evidence_cache_mismatch" in {
+        reason["code"] for reason in result.reasons
+    }
+
+
+def test_trace_ram_khac_file_duoc_hash_thi_bi_chan(tmp_path):
+    trace_path = tmp_path / "trace.jsonl"
+    _write_trace(trace_path, _traces())
+    ram_traces = _traces()
+    ram_traces[0]["status"] = "failed"
+    result = assess_release_batch(
+        queries=_queries(), traces=ram_traces, validator_issues=[],
+        trace_path=trace_path, cache_manifest=_cache_manifest(),
+    )
+    assert result.eligible is False
+    assert "trace_content_mismatch" in {reason["code"] for reason in result.reasons}
+
+
+def test_release_recompute_runtime_scorer_va_policy_phai_khop_audit(tmp_path):
+    trace_path = tmp_path / "trace.jsonl"
+    _write_trace(trace_path, _traces())
+    cache_path = tmp_path / "cache.json"
+    cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
+    queries_path = tmp_path / "queries.json"
+    queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
+    called = []
+    base = dict(
+        queries=_queries(), traces=_traces(), submissions=_subs(), out_dir=tmp_path,
+        trace_path=trace_path, evidence_cache_manifest_path=cache_path,
+        evidence_cache_manifest=_cache_manifest(), validator_issues=[],
+        query_manifest_path=queries_path, gt_manifest_path=None,
+        scorer_policy="semantic", submission_policy="robust",
+        reproduction_command="reproduce", write_zip=lambda *a, **kw: called.append(1),
+    )
+    for audit in (
+        _promotion_audit(runtime_fingerprint="c" * 64),
+        _promotion_audit(scorer_source_sha256="d" * 64),
+    ):
+        with pytest.raises(ReleaseBlocked, match="runtime|scorer"):
+            create_release_package(**base, promotion_audit=audit)
+    with pytest.raises(ReleaseBlocked, match="runtime|scorer"):
+        create_release_package(
+            **{**base, "scorer_policy": "exact"},
+            promotion_audit=_promotion_audit(),
         )
     assert called == []

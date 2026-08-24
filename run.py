@@ -451,7 +451,10 @@ def main() -> int:
     all_queries = _doc_queries(Path(args.queries))
     promotion_audit: dict | None = None
     if args.release_rehearsal:
-        from backend.export.release_rehearsal import promotion_audit_is_valid
+        from backend.export.release_rehearsal import (
+            promotion_audit_is_valid,
+            release_context_reasons,
+        )
 
         audit_path = Path(args.promotion_audit)
         try:
@@ -461,6 +464,15 @@ def main() -> int:
             return 1
         if not isinstance(promotion_audit, dict) or not promotion_audit_is_valid(promotion_audit):
             print("[release] DỪNG trước preflight/search: promotion audit chưa ELIGIBLE.")
+            return 1
+        context_reasons = release_context_reasons(
+            promotion_audit, scorer_policy=args.scorer_policy,
+        )
+        if context_reasons:
+            details = " · ".join(
+                f"{reason['code']}: {reason['message']}" for reason in context_reasons
+            )
+            print(f"[release] DỪNG trước preflight/search: {details}")
             return 1
     queries = all_queries
     out_dir = Path(args.out)

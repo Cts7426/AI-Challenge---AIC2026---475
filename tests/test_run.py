@@ -401,6 +401,11 @@ def test_release_rehearsal_tao_receipt_khi_promotion_va_batch_sach(chay, tmp_pat
     payload = {
         "status": "ELIGIBLE", "eligible": True,
         "scorer_contract": "btc-final-score-v1",
+        "current_runtime_fingerprint": R.build_runtime_fingerprint(),
+        "scorer_policy": "semantic",
+        "scorer_source_sha256": hashlib.sha256(
+            (R.REPO_ROOT / "dev_set/tools/scoring.py").read_bytes()
+        ).hexdigest(),
         "input_sha256": {
             "holdout_manifest": "1" * 64,
             "regression_manifest": "2" * 64,

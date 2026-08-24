@@ -25,8 +25,13 @@ from backend.tasks.runner import (
 )
 
 from data.config.submit_format import Answer
-from data.config.qa_evaluation import QA_MATCH_POLICIES
+from data.config.qa_evaluation import DEFAULT_QA_MATCH_POLICY, QA_MATCH_POLICIES
 from data.config.release_gate import PROMOTION_SCORER_CONTRACT
+from dev_set.tools.promotion_provenance import (
+    ground_truth_record_sha256,
+    ground_truth_set_sha256,
+    query_set_sha256,
+)
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
 from dev_set.tools.scoring import (
     assess_promotion_ground_truth,
@@ -639,6 +644,10 @@ def run_evaluation():
             f"{capture_stats['inference_records']} output"
         )
 
+    ground_truth_by_query_sha256 = {
+        query_id: ground_truth_record_sha256(ground_truth)
+        for query_id, ground_truth in sorted(gts.items())
+    }
     scores = {
         "run_id": run_id,
         "commit": get_git_commit(),
@@ -647,6 +656,19 @@ def run_evaluation():
         "query_runtime_fingerprint": query_runtime_fingerprint,
         "evaluation_artifact_fingerprint": evaluation_artifact_fingerprint,
         "scorer_contract": PROMOTION_SCORER_CONTRACT,
+        "scorer_policy": DEFAULT_QA_MATCH_POLICY,
+        "scorer_source_sha256": evaluation_artifact_manifest[
+            "critical_sources_sha256"
+        ]["dev_set/tools/scoring.py"],
+        "promotion_ready": bool(args.promotion and gt_readiness.eligible),
+        "verified_query_ids": (
+            sorted(ground_truth_by_query_sha256) if gt_readiness.eligible else []
+        ),
+        "query_set_sha256": query_set_sha256(queries),
+        "ground_truth_by_query_sha256": ground_truth_by_query_sha256,
+        "ground_truth_set_sha256": ground_truth_set_sha256(
+            ground_truth_by_query_sha256
+        ),
         "per_query": list(per_query_by_id.values()),
     }
     (out_dir / "scores.json").write_text(

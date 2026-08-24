@@ -16,15 +16,25 @@ from typing import Any, Mapping, Sequence
 
 from data.config.release_gate import (
     HOLDOUT_EXPECTED_TASK_COUNTS,
+    HOLDOUT_EXPECTED_QUERY_IDS,
     HOLDOUT_KIS_MIN,
     HOLDOUT_MANIFEST_ID,
     HOLDOUT_OVERALL_MIN,
     HOLDOUT_QA_MIN,
+    HOLDOUT_QUERY_SET_SHA256,
     PROMOTION_GATE_SCHEMA_VERSION,
     PROMOTION_SCORER_CONTRACT,
+    PROMOTION_SCORER_POLICY,
     REGRESSION_EXPECTED_COUNT,
+    REGRESSION_EXPECTED_QUERY_IDS,
     REGRESSION_MANIFEST_ID,
+    REGRESSION_QUERY_SET_SHA256,
     REGRESSION_SCORE_EPSILON,
+)
+from dev_set.tools.promotion_provenance import (
+    ground_truth_set_sha256,
+    is_sha256,
+    query_set_sha256,
 )
 
 
@@ -42,6 +52,9 @@ class PromotionGateResult:
     query_level_diff: tuple[dict[str, Any], ...] = ()
     unverified_query_ids: tuple[str, ...] = ()
     missing_query_ids: tuple[str, ...] = ()
+    current_runtime_fingerprint: str | None = None
+    scorer_policy: str | None = None
+    scorer_source_sha256: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -55,6 +68,9 @@ class PromotionGateResult:
             "missing_query_ids": list(self.missing_query_ids),
             "public_score_used": False,
             "scorer_contract": PROMOTION_SCORER_CONTRACT,
+            "current_runtime_fingerprint": self.current_runtime_fingerprint,
+            "scorer_policy": self.scorer_policy,
+            "scorer_source_sha256": self.scorer_source_sha256,
         }
 
 
@@ -63,6 +79,8 @@ def _reason(code: str, message: str, **details: Any) -> dict[str, Any]:
 
 
 def _manifest_rows(manifest: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    if not isinstance(manifest, Mapping):
+        raise ValueError("manifest phải là JSON object")
     rows = manifest.get("entries", manifest.get("queries"))
     if not isinstance(rows, list) or not all(isinstance(row, Mapping) for row in rows):
         raise ValueError("manifest phải có list entries/queries")
@@ -81,6 +99,9 @@ def _audit_verified(rows: Sequence[Mapping[str, Any]]) -> tuple[list[str], list[
         if any(not isinstance(row.get(name), str) or not str(row[name]).strip()
                for name in required):
             malformed.append(query_id)
+            continue
+        if not is_sha256(row.get("ground_truth_sha256")):
+            malformed.append(query_id)
     return unverified, malformed
 
 
@@ -89,6 +110,8 @@ def _validate_manifest_identity(
     *,
     expected_id: str,
     expected_count: int,
+    expected_query_ids: Sequence[str],
+    expected_query_set_sha256: str,
 ) -> tuple[list[Mapping[str, Any]], list[dict[str, Any]]]:
     rows = _manifest_rows(manifest)
     reasons: list[dict[str, Any]] = []
@@ -104,6 +127,21 @@ def _validate_manifest_identity(
             f"manifest phải có đúng {expected_count} query_id duy nhất, không rỗng",
             actual_count=len(rows), unique_count=len(set(ids)),
         ))
+    if set(ids) != set(expected_query_ids):
+        reasons.append(_reason(
+            "frozen_query_set", "manifest không khớp exact query IDs đã đóng băng",
+            manifest_id=expected_id,
+            missing=sorted(set(expected_query_ids) - set(ids)),
+            unexpected=sorted(set(ids) - set(expected_query_ids)),
+        ))
+    actual_query_set_sha256 = query_set_sha256(rows)
+    if actual_query_set_sha256 != expected_query_set_sha256:
+        reasons.append(_reason(
+            "frozen_query_set", "nội dung query khác frozen manifest",
+            manifest_id=expected_id,
+            expected_sha256=expected_query_set_sha256,
+            actual_sha256=actual_query_set_sha256,
+        ))
     return rows, reasons
 
 
@@ -112,7 +150,9 @@ def _parse_scores(
     *,
     label: str,
     expected_ids: Sequence[str],
-) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    expected_query_set_sha256: str,
+    expected_ground_truth_by_query: Mapping[str, str],
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]], dict[str, str]]:
     if not isinstance(artifact, Mapping):
         raise ValueError(f"{label} thiếu hoặc không phải JSON object")
     rows = artifact.get("per_query")
@@ -123,8 +163,35 @@ def _parse_scores(
             f"{label}.scorer_contract phải là {PROMOTION_SCORER_CONTRACT}"
         )
     fingerprint = artifact.get("runtime_fingerprint")
-    if not isinstance(fingerprint, str) or not fingerprint.strip():
-        raise ValueError(f"{label} thiếu runtime_fingerprint")
+    if not is_sha256(fingerprint):
+        raise ValueError(f"{label} thiếu runtime_fingerprint SHA-256 hợp lệ")
+    if artifact.get("promotion_ready") is not True:
+        raise ValueError(f"{label} không được sinh từ evaluation --promotion")
+    verified_query_ids = artifact.get("verified_query_ids")
+    if not isinstance(verified_query_ids, list) or not all(
+        isinstance(query_id, str) for query_id in verified_query_ids
+    ):
+        raise ValueError(f"{label} thiếu verified_query_ids")
+    query_set_hash = artifact.get("query_set_sha256")
+    if not is_sha256(query_set_hash):
+        raise ValueError(f"{label} thiếu query_set_sha256 hợp lệ")
+    ground_truth_by_query = artifact.get("ground_truth_by_query_sha256")
+    if not isinstance(ground_truth_by_query, Mapping) or not all(
+        isinstance(query_id, str) and is_sha256(value)
+        for query_id, value in ground_truth_by_query.items()
+    ):
+        raise ValueError(f"{label} thiếu ground_truth_by_query_sha256 hợp lệ")
+    ground_truth_set_hash = artifact.get("ground_truth_set_sha256")
+    if not is_sha256(ground_truth_set_hash):
+        raise ValueError(f"{label} thiếu ground_truth_set_sha256 hợp lệ")
+    scorer_policy = artifact.get("scorer_policy")
+    if scorer_policy != PROMOTION_SCORER_POLICY:
+        raise ValueError(
+            f"{label}.scorer_policy phải là {PROMOTION_SCORER_POLICY}"
+        )
+    scorer_source_sha256 = artifact.get("scorer_source_sha256")
+    if not is_sha256(scorer_source_sha256):
+        raise ValueError(f"{label} thiếu scorer_source_sha256 hợp lệ")
 
     parsed: dict[str, dict[str, Any]] = {}
     for raw in rows:
@@ -161,7 +228,31 @@ def _parse_scores(
             artifact=label,
             missing=sorted(expected - actual), unexpected=sorted(actual - expected),
         ))
-    return parsed, reasons
+    if sorted(verified_query_ids) != sorted(expected_ids):
+        reasons.append(_reason(
+            "ground_truth_provenance",
+            f"{label} không xác nhận đủ exact query IDs đã verified",
+            artifact=label,
+        ))
+    if query_set_hash != expected_query_set_sha256:
+        reasons.append(_reason(
+            "score_query_set", f"{label} được chấm trên tập query khác manifest",
+            artifact=label, expected=expected_query_set_sha256, actual=query_set_hash,
+        ))
+    expected_gt = dict(expected_ground_truth_by_query)
+    if dict(ground_truth_by_query) != expected_gt or (
+        ground_truth_set_hash != ground_truth_set_sha256(dict(ground_truth_by_query))
+    ):
+        reasons.append(_reason(
+            "ground_truth_provenance",
+            f"{label} không khớp GT verified trong manifest",
+            artifact=label,
+        ))
+    return parsed, reasons, {
+        "runtime_fingerprint": fingerprint,
+        "scorer_policy": scorer_policy,
+        "scorer_source_sha256": scorer_source_sha256,
+    }
 
 
 def _mean(rows: Sequence[dict[str, Any]]) -> float:
@@ -221,10 +312,14 @@ def assess_promotion(
         holdout_rows, reasons = _validate_manifest_identity(
             holdout_manifest, expected_id=HOLDOUT_MANIFEST_ID,
             expected_count=sum(HOLDOUT_EXPECTED_TASK_COUNTS.values()),
+            expected_query_ids=HOLDOUT_EXPECTED_QUERY_IDS,
+            expected_query_set_sha256=HOLDOUT_QUERY_SET_SHA256,
         )
         regression_rows, regression_manifest_reasons = _validate_manifest_identity(
             regression_manifest, expected_id=REGRESSION_MANIFEST_ID,
             expected_count=REGRESSION_EXPECTED_COUNT,
+            expected_query_ids=REGRESSION_EXPECTED_QUERY_IDS,
+            expected_query_set_sha256=REGRESSION_QUERY_SET_SHA256,
         )
         reasons.extend(regression_manifest_reasons)
 
@@ -243,18 +338,32 @@ def assess_promotion(
 
         holdout_ids = [str(row["query_id"]) for row in holdout_rows]
         regression_ids = [str(row["query_id"]) for row in regression_rows]
-        holdout, score_reasons = _parse_scores(
+        holdout_gt = {
+            str(row["query_id"]): str(row["ground_truth_sha256"])
+            for row in holdout_rows
+        }
+        regression_gt = {
+            str(row["query_id"]): str(row["ground_truth_sha256"])
+            for row in regression_rows
+        }
+        holdout, score_reasons, holdout_metadata = _parse_scores(
             holdout_scores, label="holdout_scores", expected_ids=holdout_ids,
+            expected_query_set_sha256=HOLDOUT_QUERY_SET_SHA256,
+            expected_ground_truth_by_query=holdout_gt,
         )
         reasons.extend(score_reasons)
-        baseline, score_reasons = _parse_scores(
+        baseline, score_reasons, baseline_metadata = _parse_scores(
             regression_baseline, label="regression_baseline",
             expected_ids=regression_ids,
+            expected_query_set_sha256=REGRESSION_QUERY_SET_SHA256,
+            expected_ground_truth_by_query=regression_gt,
         )
         reasons.extend(score_reasons)
-        current, score_reasons = _parse_scores(
+        current, score_reasons, current_metadata = _parse_scores(
             regression_current, label="regression_current",
             expected_ids=regression_ids,
+            expected_query_set_sha256=REGRESSION_QUERY_SET_SHA256,
+            expected_ground_truth_by_query=regression_gt,
         )
         reasons.extend(score_reasons)
 
@@ -284,11 +393,24 @@ def assess_promotion(
                 mismatches=task_mismatches,
             ))
 
-        current_fp = str(regression_current["runtime_fingerprint"])
-        if str(holdout_scores["runtime_fingerprint"]) != current_fp:
+        current_fp = current_metadata["runtime_fingerprint"]
+        if holdout_metadata["runtime_fingerprint"] != current_fp:
             reasons.append(_reason(
                 "current_runtime_mismatch",
                 "holdout và regression current phải cùng runtime fingerprint",
+            ))
+        scorer_policies = {
+            holdout_metadata["scorer_policy"], baseline_metadata["scorer_policy"],
+            current_metadata["scorer_policy"],
+        }
+        scorer_sources = {
+            holdout_metadata["scorer_source_sha256"],
+            baseline_metadata["scorer_source_sha256"],
+            current_metadata["scorer_source_sha256"],
+        }
+        if len(scorer_policies) != 1 or len(scorer_sources) != 1:
+            reasons.append(_reason(
+                "scorer_mismatch", "ba score artefact phải dùng cùng scorer policy/source",
             ))
     except (KeyError, TypeError, ValueError) as error:
         return PromotionGateResult(
@@ -371,6 +493,9 @@ def assess_promotion(
         reasons=tuple(gate_reasons),
         metrics=metrics,
         query_level_diff=tuple(diffs),
+        current_runtime_fingerprint=current_fp,
+        scorer_policy=current_metadata["scorer_policy"],
+        scorer_source_sha256=current_metadata["scorer_source_sha256"],
     )
 
 
@@ -387,7 +512,12 @@ def _canonical_json(value: Mapping[str, Any]) -> str:
 def _input_sha256(path: Path | None) -> str:
     if path is None:
         return "not_provided"
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except FileNotFoundError:
+        return "missing"
+    except OSError:
+        return "read_error"
 
 
 def main(argv: Sequence[str] | None = None) -> int:

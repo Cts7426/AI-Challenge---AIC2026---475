@@ -34,6 +34,14 @@ QA_SENTINEL_ANSWERS = frozenset({
     "not enough information",
 })
 
+# Chỉ reject prefix khi token kế tiếp là một continuation mang nghĩa "không có
+# evidence". Nhờ vậy answer thật như "No Information Technology" hay
+# "Không có thông tin liên lạc" không bị loại chỉ vì cùng tiền tố.
+QA_SENTINEL_PREFIX_CONTINUATIONS = frozenset({
+    "để", "trong", "từ", "về", "được", "có", "nhằm",
+    "is", "was", "to", "in", "from", "about", "available", "provided",
+})
+
 
 def qa_hypothesis_cache_dir() -> Path:
     """Đường cache có thể đổi bằng env cho test/job; caller không tự ghép path."""
@@ -52,4 +60,5 @@ def qa_hypothesis_config_snapshot() -> dict[str, object]:
         "cache_schema_version": QA_HYPOTHESIS_CACHE_SCHEMA_VERSION,
         "alternatives_per_hypothesis": QA_HYPOTHESIS_ALTERNATIVES_PER_HYPOTHESIS,
         "sentinel_answers": sorted(QA_SENTINEL_ANSWERS),
+        "sentinel_prefix_continuations": sorted(QA_SENTINEL_PREFIX_CONTINUATIONS),
     }

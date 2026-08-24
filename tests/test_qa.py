@@ -12,10 +12,12 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from unittest.mock import patch
 
 import pytest
 
+import backend.tasks.qa as Q
 from backend.slot import ShotHit
 from backend.tasks.qa import (
     MAX_SHOTS_TRIED,
@@ -47,6 +49,19 @@ from data.config.qa_inference import (
 def _hits(n: int) -> list[ShotHit]:
     """n shot giả, điểm giảm dần như tầng search thật trả về."""
     return [ShotHit(f"s{i}", 1.0 - i * 0.01) for i in range(n)]
+
+
+def _fake_inference_with_hash(result, digest: str = "f" * 64):
+    """Test double explicit: pipeline production không tổng hợp evidence digest."""
+    if result is not None:
+        attempt = Q._qa_attempt_ctx.get()
+        assert attempt is not None
+        attempt.update({
+            "evidence_hash": digest,
+            "evidence_type": "test",
+            "evidence_stage": "text",
+        })
+    return result
 
 
 @pytest.fixture
@@ -186,10 +201,11 @@ def test_qa_pipeline_khong_dua_query_en_cau_goc_cho_search_khi_event_vi_khac(fak
          patch("backend.tasks.qa.search", return_value=[
              {"shot_id": "s0", "score": 1.0, "keyframe_id": "k0"}
          ]) as mock_search, \
-         patch("backend.tasks.qa._try_shot", return_value=("30m", 5, 0.95)):
+         patch("backend.tasks.qa._try_shot",
+               side_effect=lambda *a, **kw: _fake_inference_with_hash(("30m", 5, 0.95))):
         qa_pipeline("Ô tô văng xuống ruộng lúa cách mặt đường bao xa?",
                     query_en="How far from the road did the car land?")
-    assert mock_search.call_args.kwargs["query_en"] is None
+    assert mock_search.call_args_list[0].kwargs["query_en"] is None
 
 
 def test_qa_pipeline_giu_query_en_khi_parse_question_khong_tach_duoc(fake_frame_pin):
@@ -203,7 +219,8 @@ def test_qa_pipeline_giu_query_en_khi_parse_question_khong_tach_duoc(fake_frame_
          patch("backend.tasks.qa.search", return_value=[
              {"shot_id": "s0", "score": 1.0, "keyframe_id": "k0"}
          ]) as mock_search, \
-         patch("backend.tasks.qa._try_shot", return_value=("30m", 5, 0.95)):
+         patch("backend.tasks.qa._try_shot",
+               side_effect=lambda *a, **kw: _fake_inference_with_hash(("30m", 5, 0.95))):
         qa_pipeline(query_vi, query_en="Hard to split question")
     assert mock_search.call_args.kwargs["query_en"] == "Hard to split question"
 
@@ -241,7 +258,7 @@ def test_qa_pipeline_mo_rong_trong_video_cuu_duoc_cau_tra_loi(fake_frame_pin):
 
     def fake_try_shot(hit, question_vi, evidence_type, needs_images):
         if hit.shot_id == "L28_V016#s0099":
-            return "300 và 350", 9500, 0.95
+            return _fake_inference_with_hash(("300 và 350", 9500, 0.95))
         return None  # shot chính không đủ tin cậy
 
     with patch("backend.tasks.qa.parse_question", return_value=parts), \
@@ -358,6 +375,7 @@ def test_two_stage_shot_yeu_khong_goi_confirm():
 def test_two_stage_cap_42_phu_text_main_image_va_expansion(monkeypatch, fake_frame_pin):
     """Mọi origin dùng chung một budget; lượt thứ 43 bị chặn trước khi gọi llm()."""
     monkeypatch.setenv("QA_INFERENCE_MODE", "two_stage")
+    monkeypatch.setenv("LLM_NO_CACHE", "1")
     monkeypatch.delenv("QA_EVIDENCE_LOG_PATH", raising=False)
     monkeypatch.setattr(
         "backend.tasks.qa.parse_question",
@@ -379,10 +397,21 @@ def test_two_stage_cap_42_phu_text_main_image_va_expansion(monkeypatch, fake_fra
             for j in range(3)
         ],
     )
-    monkeypatch.setattr(
-        "backend.tasks.qa.collect_evidence",
-        lambda hit, *a, **kw: Evidence(hit.shot_id, hit.shot_id.split("#")[0], [], [], "", None, [], 10),
-    )
+    def fake_collect(hit, *args, **kwargs):
+        evidence = Evidence(
+            hit.shot_id, hit.shot_id.split("#")[0], [], [], "", None, [], 10,
+            hashlib.sha256(hit.shot_id.encode("utf-8")).hexdigest(),
+        )
+        attempt = Q._qa_attempt_ctx.get()
+        assert attempt is not None
+        attempt.update({
+            "evidence_hash": evidence.evidence_hash,
+            "evidence_type": "test",
+            "evidence_stage": "text",
+        })
+        return evidence
+
+    monkeypatch.setattr("backend.tasks.qa.collect_evidence", fake_collect)
     raw = json.dumps({
         "answer": "x", "answer_vi": "x", "answer_en": "x",
         "evidence_frame_idx": 10, "confidence": 0.6,

@@ -46,6 +46,19 @@ def _res(*shots: str) -> list[dict]:
             for i, s in enumerate(shots)]
 
 
+def _fake_inference_with_hash(result, digest: str = "f" * 64):
+    """Test double explicit: production không tự tổng hợp evidence digest."""
+    if result is not None:
+        attempt = Q._qa_attempt_ctx.get()
+        assert attempt is not None
+        attempt.update({
+            "evidence_hash": digest,
+            "evidence_type": "test",
+            "evidence_stage": "text",
+        })
+    return result
+
+
 # ------------------------------------------------- cổng chặn theo loại câu hỏi
 
 @pytest.mark.parametrize("route", ["ocr", "asr", "metadata", "text_first"])
@@ -142,7 +155,8 @@ def test_ung_vien_text_duoc_thu_du_nam_ngoai_top_3(monkeypatch):
 
     def _try(hit, *a, **kw):
         da_thu.append(hit.shot_id)
-        return ("bến phà Vàm Cống", 123, 0.9) if hit.shot_id == "S_TEXT" else None
+        result = ("bến phà Vàm Cống", 123, 0.9) if hit.shot_id == "S_TEXT" else None
+        return _fake_inference_with_hash(result)
 
     monkeypatch.setattr(Q, "_try_shot", _try)
     shots, answer = Q.qa_pipeline("câu hỏi")
@@ -164,7 +178,9 @@ def test_thu_tu_ung_vien_goc_khong_doi(monkeypatch):
                         lambda q: Q.QuestionParts(event_vi="sk", question_vi="ai nói gì?"))
     monkeypatch.setattr(Q, "route_question", lambda q: ("asr", False))
     monkeypatch.setattr(Q, "_try_shot",
-                        lambda hit, *a, **kw: ("x", 1, 0.9) if hit.shot_id == "A" else None)
+                        lambda hit, *a, **kw: _fake_inference_with_hash(
+                            ("x", 1, 0.9) if hit.shot_id == "A" else None
+                        ))
 
     shots, _ = Q.qa_pipeline("câu hỏi")
     assert [h.shot_id for h in shots] == ["A", "B", "C", "D", "Z"], \
@@ -183,8 +199,10 @@ def test_shot_dau_bang_du_nhanh_KHONG_duoc_cat_duong_ung_vien_text(monkeypatch):
     monkeypatch.setattr(Q, "parse_question",
                         lambda q: Q.QuestionParts(event_vi="sk", question_vi="ai nói gì?"))
     monkeypatch.setattr(Q, "route_question", lambda q: ("asr", False))
-    monkeypatch.setattr(Q, "_try_shot", lambda hit, *a, **kw: (
-        ("Phà Châu Giang", 1, 0.9) if hit.shot_id == "S_CLIP" else ("bến phà Vàm Cống", 2, 0.9)))
+    monkeypatch.setattr(Q, "_try_shot", lambda hit, *a, **kw: _fake_inference_with_hash(
+        ("Phà Châu Giang", 1, 0.9)
+        if hit.shot_id == "S_CLIP" else ("bến phà Vàm Cống", 2, 0.9)
+    ))
 
     _, answer = Q.qa_pipeline("câu hỏi")
     assert answer == "bến phà Vàm Cống"
@@ -199,6 +217,8 @@ def test_route_thi_giac_van_uu_tien_bang_du_nhanh(monkeypatch):
     monkeypatch.setattr(Q, "route_question", lambda q: ("visual", True))
     da_thu = []
     monkeypatch.setattr(Q, "_try_shot",
-                        lambda hit, *a, **kw: (da_thu.append(hit.shot_id), ("đỏ", 1, 0.9))[1])
+                        lambda hit, *a, **kw: _fake_inference_with_hash(
+                            (da_thu.append(hit.shot_id), ("đỏ", 1, 0.9))[1]
+                        ))
     Q.qa_pipeline("câu hỏi")
     assert da_thu[0] == "S_CLIP"

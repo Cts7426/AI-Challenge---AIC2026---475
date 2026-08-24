@@ -240,6 +240,7 @@ def runtime_manifest() -> dict[str, Any]:
             "backend/retrieval/search.py",
             "backend/slot/allocator.py",
             "backend/tasks/qa.py",
+            "backend/tasks/qa_portfolio.py",
             "backend/tasks/trake.py",
             "backend/tasks/runner.py",
         )

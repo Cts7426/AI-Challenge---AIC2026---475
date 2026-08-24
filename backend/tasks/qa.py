@@ -51,6 +51,7 @@ import hashlib
 import json
 import os
 import threading
+import unicodedata
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
@@ -71,6 +72,15 @@ from backend.llm.adapter import llm
 from backend.retrieval.search import search
 from backend.slot import ShotHit, shot_bounds
 from data.config.qa_routing import route_question
+from data.config.qa_hypotheses import (
+    ANSWER_MODES,
+    QA_HYPOTHESIS_CACHE_SCHEMA_VERSION,
+    QA_INFERENCE_PROMPT_VERSION,
+    QA_PLANNER_PROMPT_VERSION,
+    QA_SENTINEL_ANSWERS,
+    qa_hypothesis_cache_dir,
+    qa_hypothesis_config_snapshot,
+)
 from data.config.qa_inference import (
     QA_CONFIRM_ADDITIONAL_N,
     QA_CONFIRM_EFFORT,
@@ -99,10 +109,8 @@ TOP_K_SHOTS = 5                # BUILD_TASKS C3.1: "top 5 shots" — chỉ để
 # Cùng với đổi "dừng ở kết quả ĐẦU TIÊN" → "thử hết rồi chọn confidence cao
 # nhất" bên dưới, đây là cặp sửa trực tiếp cho lỗi QA gần-như-hỏng-hoàn-toàn.
 MAX_SHOTS_TRIED = TOP_K_SHOTS
-# Ngưỡng dừng sớm: confidence-cross-shot (xem _try_shot) đạt mức này thì
-# không cần thử thêm shot — tiết kiệm gọi LLM cho ca rõ ràng ("Hà Nội" ở
-# ngay shot #1, tự tin tuyệt đối) mà vẫn cho các ca mù mờ cơ hội thử hết
-# MAX_SHOTS_TRIED trước khi chốt.
+# Ngưỡng mở rộng video: vẫn thử đủ candidate budget chính để thu hypothesis,
+# nhưng answer đã rõ ở mức này thì không fan-out thêm shot trong cùng video.
 HIGH_CONFIDENCE_EARLY_STOP = 0.9
 # ⚠️ THÊM 21/08 — điều tra "dress rehearsal" (25 câu tự sinh, chạy qua đúng
 # pipeline production): 2/4 câu QA trượt vì search(event_vi) đúng VIDEO nhưng
@@ -136,6 +144,62 @@ _evidence_log_lock = threading.Lock()
 class QuestionParts:
     event_vi: str
     question_vi: str
+    answer_mode: str | None = None
+    planner_fallback: bool = False
+
+
+@dataclass(frozen=True)
+class QAHypothesis:
+    """Một answer gắn chặt với candidate và evidence đã thực sự sinh ra nó."""
+
+    answer_text: str
+    video_id: str
+    shot_id: str
+    keyframe_id: str
+    evidence_frame_idx: int
+    confidence: float
+    evidence_hash: str
+    provenance: str
+    evidence_type: str
+    answer_mode: str
+
+    def __post_init__(self) -> None:
+        if not self.evidence_hash.strip():
+            raise ValueError("QAHypothesis phải có evidence_hash")
+        normalized = _normalize_answer(self.answer_text)
+        if not normalized or normalized in QA_SENTINEL_ANSWERS:
+            raise ValueError("QAHypothesis không được chứa answer rỗng/sentinel")
+        if self.answer_mode not in ANSWER_MODES:
+            raise ValueError(f"answer_mode không hợp lệ: {self.answer_mode!r}")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "answer_text": self.answer_text,
+            "video_id": self.video_id,
+            "shot_id": self.shot_id,
+            "keyframe_id": self.keyframe_id,
+            "evidence_frame_idx": self.evidence_frame_idx,
+            "confidence": self.confidence,
+            "evidence_hash": self.evidence_hash,
+            "provenance": self.provenance,
+            "evidence_type": self.evidence_type,
+            "answer_mode": self.answer_mode,
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, object]) -> "QAHypothesis":
+        return cls(
+            answer_text=str(value["answer_text"]),
+            video_id=str(value["video_id"]),
+            shot_id=str(value["shot_id"]),
+            keyframe_id=str(value["keyframe_id"]),
+            evidence_frame_idx=int(value["evidence_frame_idx"]),
+            confidence=float(value["confidence"]),
+            evidence_hash=str(value["evidence_hash"]),
+            provenance=str(value["provenance"]),
+            evidence_type=str(value["evidence_type"]),
+            answer_mode=str(value["answer_mode"]),
+        )
 
 
 @dataclass(frozen=True)
@@ -172,6 +236,10 @@ class QAEvidenceCaptureError(RuntimeError):
     """Capture đã bật nhưng ảnh/digest/record không thể ghi đủ để replay."""
 
 
+class QANoValidHypothesisError(RuntimeError):
+    """Không candidate nào tạo được answer có evidence hợp lệ; caller nên retry."""
+
+
 @dataclass
 class QAGenerationBudget:
     """Bộ đếm logic n của screen/confirm; legacy không tạo bộ đếm này."""
@@ -196,6 +264,9 @@ _generation_budget_ctx: ContextVar[QAGenerationBudget | None] = ContextVar(
 _qa_mode_ctx: ContextVar[str | None] = ContextVar("qa_inference_mode", default=None)
 _qa_attempt_ctx: ContextVar[dict[str, object] | None] = ContextVar(
     "qa_attempt", default=None,
+)
+_qa_runtime_fingerprint_ctx: ContextVar[str] = ContextVar(
+    "qa_runtime_fingerprint", default="<unset>",
 )
 
 
@@ -224,8 +295,9 @@ PARSE_QUESTION_SCHEMA = {
     "properties": {
         "event_vi": {"type": "string"},
         "question_vi": {"type": "string"},
+        "answer_mode": {"type": "string", "enum": list(ANSWER_MODES)},
     },
-    "required": ["event_vi", "question_vi"],
+    "required": ["event_vi", "question_vi", "answer_mode"],
     "additionalProperties": False,
 }
 
@@ -238,19 +310,143 @@ def parse_question(query_vi: str) -> QuestionParts:
     Câu không tách rõ được (hiếm) → cả hai phần dùng nguyên câu gốc, pipeline
     vẫn chạy được chứ không chặn lại.
     """
-    raw = llm(
-        "Câu sau là một câu hỏi Q&A cho hệ tìm kiếm khoảnh khắc video. Tách thành 2 phần:\n"
-        "- event_vi: mô tả SỰ KIỆN/KHOẢNH KHẮC cần tìm (đưa vào công cụ tìm kiếm hình ảnh) — "
-        "giữ nguyên chi tiết thị giác gốc, KHÔNG thêm chi tiết mới không có trong câu gốc\n"
-        "- question_vi: CÂU HỎI cần trả lời sau khi đã tìm thấy khoảnh khắc đó\n"
-        "Câu không tách rõ ràng được thì dùng nguyên câu gốc cho cả hai phần.\n\n"
-        f"Câu hỏi: {query_vi}",
-        json_schema=PARSE_QUESTION_SCHEMA,
-        max_tokens=384,
+    try:
+        fingerprint = _qa_runtime_fingerprint_ctx.get()
+        planner_identity = _planner_cache_identity(query_vi, fingerprint)
+        planner_key = _qa_cache_key(planner_identity)
+        cached = (
+            _qa_cache_get(planner_key, planner_identity)
+            if fingerprint != "<unset>" else None
+        )
+        if cached is None:
+            raw = llm(
+                f"Prompt version: {QA_PLANNER_PROMPT_VERSION}\n"
+                "Câu sau là một câu hỏi Q&A cho hệ tìm kiếm khoảnh khắc video. "
+                "Tách thành 3 phần:\n"
+                "- event_vi: mô tả SỰ KIỆN/KHOẢNH KHẮC cần tìm (đưa vào công cụ "
+                "tìm kiếm hình ảnh) — giữ nguyên chi tiết thị giác gốc, KHÔNG "
+                "thêm chi tiết mới không có trong câu gốc\n"
+                "- question_vi: CÂU HỎI cần trả lời sau khi đã tìm thấy khoảnh khắc đó\n"
+                "- answer_mode: đúng một trong visual_count, visual_read, ocr, asr, "
+                "metadata, visual_attribute\n"
+                "Câu không tách rõ ràng được thì dùng nguyên câu gốc cho cả hai phần.\n\n"
+                f"Câu hỏi: {query_vi}",
+                json_schema=PARSE_QUESTION_SCHEMA,
+                max_tokens=384,
+            )
+            if fingerprint != "<unset>":
+                _qa_cache_put(planner_key, planner_identity, [raw])
+        else:
+            raw = cached[0]
+        d = json.loads(raw)
+        event_vi = str(d["event_vi"]).strip()
+        question_vi = str(d["question_vi"]).strip()
+        answer_mode = str(d["answer_mode"]).strip()
+        if answer_mode not in ANSWER_MODES:
+            raise ValueError(f"answer_mode không hợp lệ: {answer_mode!r}")
+        return QuestionParts(
+            event_vi=event_vi or query_vi,
+            question_vi=question_vi or query_vi,
+            answer_mode=answer_mode,
+        )
+    except QAEvidenceCaptureError:
+        raise
+    except Exception as error:
+        # Planner là nhánh hỗ trợ. Lỗi mạng/JSON/schema phải quay về đúng route
+        # rule-based hiện hành, không làm mất cả query.
+        evidence_type, _ = route_question(query_vi)
+        answer_mode = _answer_mode_for_evidence_type(evidence_type)
+        print(f"  [cảnh báo] Q&A planner lỗi, dùng rule fallback: {error}")
+        return QuestionParts(query_vi, query_vi, answer_mode, planner_fallback=True)
+
+
+def _answer_mode_for_evidence_type(evidence_type: str) -> str:
+    """Map route legacy sang enum planner mà không thay hành vi evidence hiện có."""
+    return {
+        "count": "visual_count",
+        "ocr": "ocr",
+        "asr": "asr",
+        "metadata": "metadata",
+        "visual": "visual_attribute",
+        "text_first": "visual_read",
+    }.get(evidence_type, "visual_read")
+
+
+def _route_for_answer_mode(answer_mode: str) -> tuple[str, bool]:
+    """Structured mode quyết định route; rule legacy chỉ dùng khi planner fallback."""
+    routes = {
+        "visual_count": ("count", False),
+        "visual_read": ("visual", True),
+        "ocr": ("ocr", False),
+        "asr": ("asr", False),
+        "metadata": ("metadata", False),
+        "visual_attribute": ("visual", True),
+    }
+    try:
+        return routes[answer_mode]
+    except KeyError:
+        raise ValueError(f"answer_mode không hợp lệ: {answer_mode!r}") from None
+
+
+def _normalize_answer(answer_text: str) -> str:
+    normalized = " ".join(str(answer_text).casefold().split())
+    while normalized and unicodedata.category(normalized[0]).startswith("P"):
+        normalized = normalized[1:].lstrip()
+    while normalized and unicodedata.category(normalized[-1]).startswith("P"):
+        normalized = normalized[:-1].rstrip()
+    return normalized
+
+
+def is_valid_qa_answer(answer_text: str | None) -> bool:
+    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV."""
+    if answer_text is None:
+        return False
+    normalized = _normalize_answer(answer_text)
+    return bool(normalized) and normalized not in QA_SENTINEL_ANSWERS
+
+
+def build_qa_hypothesis(
+    hit: ShotHit,
+    *,
+    answer_text: str,
+    evidence_frame_idx: int,
+    confidence: float,
+    evidence_hash: str,
+    provenance: str,
+    answer_mode: str,
+    evidence_type: str,
+) -> QAHypothesis | None:
+    """Pin answer vào keyframe/frame_map thật; sentinel không được tạo object."""
+    if not is_valid_qa_answer(answer_text):
+        return None
+    if not evidence_hash.strip():
+        raise QANoValidHypothesisError("Q&A hypothesis thiếu evidence_hash")
+    if answer_mode not in ANSWER_MODES:
+        raise ValueError(f"answer_mode không hợp lệ: {answer_mode!r}")
+    video_id = hit.shot_id.split("#", 1)[0]
+    keyframe_id = _keyframe_id_for_frame(
+        video_id,
+        int(evidence_frame_idx),
+        preferred=hit.best_keyframe_id,
     )
-    d = json.loads(raw)
-    return QuestionParts(event_vi=d["event_vi"].strip() or query_vi,
-                          question_vi=d["question_vi"].strip() or query_vi)
+    mapped_frame = load_frame_map().get(keyframe_id)
+    if mapped_frame != int(evidence_frame_idx):
+        raise QANoValidHypothesisError(
+            f"hypothesis pin sai frame: {keyframe_id!r}->{mapped_frame}, "
+            f"evidence={evidence_frame_idx}"
+        )
+    return QAHypothesis(
+        answer_text=str(answer_text).strip(),
+        video_id=video_id,
+        shot_id=hit.shot_id,
+        keyframe_id=keyframe_id,
+        evidence_frame_idx=int(evidence_frame_idx),
+        confidence=float(confidence),
+        evidence_hash=evidence_hash,
+        provenance=provenance,
+        evidence_type=evidence_type,
+        answer_mode=answer_mode,
+    )
 
 
 # ---------------------------------------------------------------- thu bằng chứng
@@ -490,6 +686,9 @@ def collect_evidence(
     return replace(ev, evidence_hash=evidence_hash)
 
 
+_ORIGINAL_COLLECT_EVIDENCE = collect_evidence
+
+
 def _sha256_file(path: Path) -> str:
     """Hash streaming; lỗi đọc ảnh là lỗi capture, không được ghi digest rỗng."""
     digest = hashlib.sha256()
@@ -551,13 +750,12 @@ def _append_capture_record(record: dict[str, object]) -> None:
 
 def capture_evidence(hit: ShotHit, question_vi: str, evidence_type: str,
                      needs_images: bool, ev: Evidence) -> str:
-    """Ghi record evidence có hash ổn định; trả hash rỗng khi capture chưa bật.
+    """Tính hash evidence ổn định và ghi record nếu capture được bật.
 
-    Promotion runner bật `QA_EVIDENCE_LOG_PATH`, nên thiếu ảnh/digest/ghi file sẽ
-    ném lỗi ngay thay vì tạo artefact trông hợp lệ nhưng không replay được.
+    Hash luôn tồn tại để hypothesis/cache không mất provenance ở development.
+    Promotion runner bật `QA_EVIDENCE_LOG_PATH`; khi đó thiếu ảnh/digest/ghi file
+    vẫn ném lỗi thay vì tạo artefact trông hợp lệ nhưng không replay được.
     """
-    if not os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip():
-        return ""
     frame_rows = [
         {"frame_idx": int(frame_idx), "path": str(path), "sha256": _sha256_file(path)}
         for frame_idx, path in ev.frames
@@ -591,6 +789,11 @@ def capture_evidence(hit: ShotHit, question_vi: str, evidence_type: str,
     evidence_hash = _hash_json(_stable_evidence_payload(record))
     record["evidence_hash"] = evidence_hash
     _append_capture_record(record)
+    if isinstance(attempt, dict):
+        # Context thuộc riêng query hiện tại; pipeline đọc lại sau `_try_shot`
+        # để gắn hypothesis đúng evidence cuối (text hoặc image escalation).
+        attempt["evidence_hash"] = evidence_hash
+        attempt["evidence_type"] = evidence_type
     return evidence_hash
 
 
@@ -755,6 +958,7 @@ QA_RESULT_SCHEMA = {
 
 def _build_prompt(question_vi: str, ev: Evidence) -> str:
     parts = [
+        f"Prompt version: {QA_INFERENCE_PROMPT_VERSION}",
         "Bạn đang suy luận để trả lời câu hỏi về MỘT khoảnh khắc trong video. "
         "CHỈ dùng bằng chứng dưới đây, KHÔNG suy đoán ngoài bằng chứng — "
         "không đủ căn cứ thì trả confidence THẤP thay vì bịa câu trả lời.",
@@ -781,6 +985,107 @@ def _build_prompt(question_vi: str, ev: Evidence) -> str:
     return "\n".join(parts)
 
 
+def _llm_identity() -> dict[str, str]:
+    """Chỉ lấy backend/model công khai; không đưa API key vào cache/trace."""
+    backend = str(os.environ.get("LLM_BACKEND") or "<unset>").strip()
+    model_env = {
+        "api": "LLM_API_MODEL",
+        "gemini": "LLM_GEMINI_MODEL",
+        "local": "LLM_LOCAL_MODEL",
+    }.get(backend)
+    model = str(os.environ.get(model_env) or "<unset>") if model_env else "<invalid>"
+    return {"backend": backend, "model": model}
+
+
+def _planner_cache_identity(query_vi: str, runtime_fingerprint: str) -> dict[str, object]:
+    """Planner không có evidence; các chiều còn lại vẫn khóa cache đầy đủ."""
+    return {
+        "cache_kind": "question_planner",
+        "query_sha256": hashlib.sha256(query_vi.encode("utf-8")).hexdigest(),
+        "llm": _llm_identity(),
+        "prompt_version": QA_PLANNER_PROMPT_VERSION,
+        "config_snapshot": {
+            "qa_inference": qa_runtime_config(),
+            "qa_hypotheses": qa_hypothesis_config_snapshot(),
+        },
+        "runtime_fingerprint": runtime_fingerprint,
+    }
+
+
+def _qa_cache_identity(
+    question_vi: str,
+    ev: Evidence,
+    *,
+    n: int,
+    effort: str,
+    max_tokens: int,
+    usage_tag: str,
+    runtime_fingerprint: str,
+) -> dict[str, object]:
+    """Identity đủ query/model/prompt/config/evidence để replay không trộn run."""
+    return {
+        "query_sha256": hashlib.sha256(question_vi.encode("utf-8")).hexdigest(),
+        "llm": _llm_identity(),
+        "prompt_version": QA_INFERENCE_PROMPT_VERSION,
+        "config_snapshot": {
+            "qa_inference": qa_runtime_config(),
+            "qa_hypotheses": qa_hypothesis_config_snapshot(),
+            "n": int(n),
+            "effort": effort,
+            "max_tokens": int(max_tokens),
+            "usage_tag": usage_tag,
+        },
+        "evidence_digest": ev.evidence_hash,
+        "runtime_fingerprint": runtime_fingerprint,
+    }
+
+
+def _qa_cache_key(identity: dict[str, object]) -> str:
+    canonical = json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _qa_cache_get(key: str, identity: dict[str, object]) -> list[str] | None:
+    if os.environ.get("LLM_NO_CACHE"):
+        return None
+    path = qa_hypothesis_cache_dir() / f"{key}.json"
+    if not path.is_file():
+        return None
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise QAEvidenceCaptureError(f"QA hypothesis cache hỏng {path}: {error}") from error
+    if (
+        record.get("schema_version") != QA_HYPOTHESIS_CACHE_SCHEMA_VERSION
+        or record.get("identity") != identity
+        or not isinstance(record.get("outputs"), list)
+        or not all(isinstance(item, str) for item in record["outputs"])
+    ):
+        raise QAEvidenceCaptureError(
+            f"QA hypothesis cache fingerprint/schema mismatch: {path}"
+        )
+    return list(record["outputs"])
+
+
+def _qa_cache_put(key: str, identity: dict[str, object], outputs: list[str]) -> None:
+    if os.environ.get("LLM_NO_CACHE"):
+        return
+    directory = qa_hypothesis_cache_dir()
+    path = directory / f"{key}.json"
+    temp_path = directory / f".{key}.{os.getpid()}.{threading.get_ident()}.tmp"
+    record = {
+        "schema_version": QA_HYPOTHESIS_CACHE_SCHEMA_VERSION,
+        "identity": identity,
+        "outputs": outputs,
+    }
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        temp_path.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+        temp_path.replace(path)
+    except OSError as error:
+        raise QAEvidenceCaptureError(f"không ghi được QA hypothesis cache {path}: {error}") from error
+
+
 def ask_llm(
     question_vi: str,
     ev: Evidence,
@@ -789,6 +1094,7 @@ def ask_llm(
     effort: str = "high",
     max_tokens: int = QA_LEGACY_MAX_TOKENS,
     usage_tag: str = "qa.legacy",
+    runtime_fingerprint: str | None = None,
 ) -> list[QAResult]:
     """Gọi llm() `n` lần, trả list QAResult đã
     kẹp evidence_frame_idx về tập frame CÓ THẬT (không tin thẳng số VLM tự bịa —
@@ -811,11 +1117,26 @@ def ask_llm(
     # CLAUDE.md mục 11 "Chưa chốt: internet lúc thi"). Không crash, không lộ ở
     # backend "gemini" (effort không ảnh hưởng gì bên đó) — lỗi im lặng thuần
     # chất lượng câu trả lời, chỉ lộ ra khi đổi ANTHROPIC_API_KEY lúc thi.
-    raw = llm(
-        prompt, images=images, json_schema=QA_RESULT_SCHEMA, n=n,
-        effort=effort, max_tokens=max_tokens,
+    fingerprint = runtime_fingerprint or _qa_runtime_fingerprint_ctx.get()
+    identity = _qa_cache_identity(
+        question_vi,
+        ev,
+        n=n,
+        effort=effort,
+        max_tokens=max_tokens,
+        usage_tag=usage_tag,
+        runtime_fingerprint=fingerprint,
     )
-    raw_list = raw if isinstance(raw, list) else [raw]
+    key = _qa_cache_key(identity)
+    raw_list = _qa_cache_get(key, identity) if ev.evidence_hash else None
+    if raw_list is None:
+        raw = llm(
+            prompt, images=images, json_schema=QA_RESULT_SCHEMA, n=n,
+            effort=effort, max_tokens=max_tokens,
+        )
+        raw_list = raw if isinstance(raw, list) else [raw]
+        if ev.evidence_hash:
+            _qa_cache_put(key, identity, list(raw_list))
 
     valid_frames = {fi for fi, _ in ev.frames} or ({ev.best_frame_idx} if ev.best_frame_idx is not None else set())
     fallback_frame = ev.best_frame_idx if ev.best_frame_idx is not None else (
@@ -870,6 +1191,7 @@ def _vote_results(results: list[QAResult]) -> tuple[str, int | None, float] | No
 def _infer_legacy(question_vi: str, hit: ShotHit, ev: Evidence,
                   evidence_type: str) -> tuple[str, int | None, float] | None:
     """Đường rollback n=3 cũ, giữ nguyên hành vi để so A/B và cứu release."""
+    original_evidence_hash = ev.evidence_hash
     results = ask_llm(question_vi, ev)
     if not results:
         return None
@@ -882,6 +1204,12 @@ def _infer_legacy(question_vi: str, hit: ShotHit, ev: Evidence,
             )
             if with_images:
                 results = with_images
+            else:
+                # Không có output ảnh thì vote vẫn dựa trên cohort text ban đầu;
+                # provenance phải quay lại digest text, không gắn nhầm ảnh vừa thử.
+                attempt = _qa_attempt_ctx.get()
+                if attempt is not None:
+                    attempt["evidence_hash"] = original_evidence_hash
     return _vote_results(results)
 
 
@@ -981,6 +1309,38 @@ def _try_shot(
     )
 
 
+# Test/caller cũ monkeypatch `_try_shot` bằng tuple nên không tạo evidence capture.
+# Production phải nhận đúng function này; thiếu digest ở đường production là lỗi.
+_ORIGINAL_TRY_SHOT = _try_shot
+
+
+def _evidence_hash_for_attempt(
+    attempt_details: dict[str, object],
+    *,
+    question_vi: str,
+    hit: ShotHit,
+    answer: str,
+    frame: int,
+    allow_legacy_test_double: bool,
+) -> str:
+    """Không giả evidence digest trong production; chỉ bridge test-double legacy."""
+    evidence_hash = str(attempt_details.get("evidence_hash") or "").strip()
+    if evidence_hash:
+        return evidence_hash
+    if not allow_legacy_test_double:
+        raise QANoValidHypothesisError(
+            f"shot {hit.shot_id} sinh answer nhưng thiếu evidence_hash"
+        )
+    return _hash_json({
+        "compatibility": "legacy_test_double",
+        "question_vi": question_vi,
+        "shot_id": hit.shot_id,
+        "evidence_frame_idx": int(frame),
+        "answer": str(answer),
+        "origin": str(attempt_details.get("origin", "legacy_caller")),
+    })
+
+
 # ------------------------------------------------------------------------- API chính
 
 def _ung_vien_nhanh_text(
@@ -1073,12 +1433,17 @@ def _qa_pipeline_impl(
     KHÔNG BAO GIỜ chạm tới bằng chứng đúng ở hạng 3 (ASR có sẵn câu trả lời,
     test cô lập cho 3/3 đúng). Với retrieval còn nhiễu (chỉ 6/26 câu QA holdout
     có video đúng lọt top-3), "câu trả lời hợp lý đầu tiên" gần như chắc chắn
-    SAI VIDEO — thử hết rồi lấy tốt nhất mới cho các shot xếp sau cơ hội. Vẫn
-    dừng sớm khi shot đang thử đã VƯỢT `HIGH_CONFIDENCE_EARLY_STOP` để không
-    đốt thêm tiền LLM cho ca đã rõ ràng ở shot #1.
+    SAI VIDEO — thử hết rồi lấy tốt nhất mới cho các shot xếp sau cơ hội. Khi
+    winner đã vượt `HIGH_CONFIDENCE_EARLY_STOP`, chỉ bỏ fan-out video expansion;
+    candidate budget chính vẫn được thử để thu candidate-specific hypotheses.
     """
     parts = parse_question(query_vi)
-    evidence_type, needs_images = route_question(parts.question_vi)
+    if parts.answer_mode is None or parts.planner_fallback:
+        evidence_type, needs_images = route_question(parts.question_vi)
+        answer_mode = parts.answer_mode or _answer_mode_for_evidence_type(evidence_type)
+    else:
+        answer_mode = parts.answer_mode
+        evidence_type, needs_images = _route_for_answer_mode(answer_mode)
 
     # ⚠️ SỬA 20/08 — KHÔNG chuyển thẳng `query_en` (mọi chỗ gọi production —
     # run.py, run_minimal.py, backend/api/main.py — đều truyền vào đây là bản
@@ -1166,6 +1531,8 @@ def _qa_pipeline_impl(
     text_shot_ids = {h.shot_id for h in ung_vien_text}
     attempt_order = 0
     budget_exhausted = False
+    hypotheses: list[QAHypothesis] = []
+    hypothesis_keys: set[tuple[str, int, str]] = set()
     for hit in thu_de_suy_luan:
         tried_shot_ids.add(hit.shot_id)
         attempt_order += 1
@@ -1173,6 +1540,7 @@ def _qa_pipeline_impl(
             "origin": "text_fallback" if hit.shot_id in text_shot_ids else "main",
             "order": attempt_order,
         })
+        attempt_details: dict[str, object] = {}
         try:
             ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
         except QAGenerationBudgetExceeded as e:
@@ -1185,10 +1553,51 @@ def _qa_pipeline_impl(
             print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A, thử shot kế tiếp: {e}")
             continue
         finally:
+            attempt_details = dict(_qa_attempt_ctx.get() or {})
             _qa_attempt_ctx.reset(attempt_token)
         if ket_qua is None:
             continue
         answer, frame, confidence = ket_qua
+        if not is_valid_qa_answer(answer):
+            print(f"  [cảnh báo] shot {hit.shot_id}: loại sentinel answer {answer!r}")
+            continue
+        if frame is None:
+            print(f"  [cảnh báo] shot {hit.shot_id}: answer thiếu evidence frame")
+            continue
+        evidence_hash = _evidence_hash_for_attempt(
+            attempt_details,
+            question_vi=parts.question_vi,
+            hit=hit,
+            answer=answer,
+            frame=int(frame),
+            allow_legacy_test_double=(
+                _try_shot is not _ORIGINAL_TRY_SHOT
+                or collect_evidence is not _ORIGINAL_COLLECT_EVIDENCE
+            ),
+        )
+        provenance = (
+            f"{attempt_details.get('origin', 'legacy_caller')}:"
+            f"{'detector' if evidence_type == 'count' else 'llm'}:{_current_qa_mode()}"
+        )
+        hypothesis = build_qa_hypothesis(
+            hit,
+            answer_text=answer,
+            evidence_frame_idx=int(frame),
+            confidence=confidence,
+            evidence_hash=evidence_hash,
+            provenance=provenance,
+            answer_mode=answer_mode,
+            evidence_type=evidence_type,
+        )
+        if hypothesis is not None:
+            hypothesis_key = (
+                hypothesis.video_id,
+                hypothesis.evidence_frame_idx,
+                _normalize_answer(hypothesis.answer_text),
+            )
+            if hypothesis_key not in hypothesis_keys:
+                hypotheses.append(hypothesis)
+                hypothesis_keys.add(hypothesis_key)
         print(f"  ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
         if best is None or confidence > best[4]:
             # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh
@@ -1196,8 +1605,6 @@ def _qa_pipeline_impl(
             # bể chính — `.index()` sẽ ném ValueError đúng lúc vừa có câu trả lời.
             i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
             best = (i, hit, answer, frame, confidence)
-        if confidence >= HIGH_CONFIDENCE_EARLY_STOP:
-            break
 
     # ⚠️ THÊM 21/08 — vòng chính (kể cả ứng viên nhánh text) chưa đủ tin cậy: có
     # thể ĐÚNG VIDEO nhưng SAI SHOT (event_vi thuần thị giác không phân biệt
@@ -1228,6 +1635,7 @@ def _qa_pipeline_impl(
                     "origin": "video_expand",
                     "order": attempt_order,
                 })
+                attempt_details = {}
                 try:
                     ket_qua = _try_shot(hit, parts.question_vi, evidence_type, needs_images)
                 except QAGenerationBudgetExceeded as e:
@@ -1240,26 +1648,56 @@ def _qa_pipeline_impl(
                     print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A: {e}")
                     continue
                 finally:
+                    attempt_details = dict(_qa_attempt_ctx.get() or {})
                     _qa_attempt_ctx.reset(attempt_token)
                 if ket_qua is None:
                     continue
                 answer, frame, confidence = ket_qua
+                if not is_valid_qa_answer(answer) or frame is None:
+                    print(f"  [cảnh báo] shot {hit.shot_id}: answer sentinel/thiếu frame bị loại")
+                    continue
+                evidence_hash = _evidence_hash_for_attempt(
+                    attempt_details,
+                    question_vi=parts.question_vi,
+                    hit=hit,
+                    answer=answer,
+                    frame=int(frame),
+                    allow_legacy_test_double=(
+                        _try_shot is not _ORIGINAL_TRY_SHOT
+                        or collect_evidence is not _ORIGINAL_COLLECT_EVIDENCE
+                    ),
+                )
+                hypothesis = build_qa_hypothesis(
+                    hit,
+                    answer_text=answer,
+                    evidence_frame_idx=int(frame),
+                    confidence=confidence,
+                    evidence_hash=evidence_hash,
+                    provenance=f"video_expand:{'detector' if evidence_type == 'count' else 'llm'}:{_current_qa_mode()}",
+                    answer_mode=answer_mode,
+                    evidence_type=evidence_type,
+                )
+                if hypothesis is not None:
+                    hypothesis_key = (
+                        hypothesis.video_id,
+                        hypothesis.evidence_frame_idx,
+                        _normalize_answer(hypothesis.answer_text),
+                    )
+                    if hypothesis_key not in hypothesis_keys:
+                        hypotheses.append(hypothesis)
+                        hypothesis_keys.add(hypothesis_key)
                 print(f"  [mở rộng {vid}] ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
                 if best is None or confidence > best[4]:
                     best = (i, hit, answer, frame, confidence)
-                if confidence >= HIGH_CONFIDENCE_EARLY_STOP:
-                    break
-            if best is not None and best[4] >= HIGH_CONFIDENCE_EARLY_STOP:
-                break
             if budget_exhausted:
                 break
 
-    if best is None:
+    if best is None or not hypotheses:
         suffix = (
             f" Đã chạm trần {QA_TWO_STAGE_MAX_GENERATIONS} generation two-stage."
             if budget_exhausted else ""
         )
-        raise RuntimeError(
+        raise QANoValidHypothesisError(
             f"Thử {len(tried_shot_ids)} shot (kể cả ứng viên nhánh text và mở rộng trong video) đều "
             "không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) "
             f"của các shot này có rỗng không.{suffix}"
@@ -1292,6 +1730,9 @@ def _qa_pipeline_impl(
             "event_vi": parts.event_vi,
             "question_vi": parts.question_vi,
             "evidence_type": evidence_type,
+            "answer_mode": answer_mode,
+            "planner_fallback": parts.planner_fallback,
+            "hypotheses": [hypothesis.to_dict() for hypothesis in hypotheses],
             "answer_shot_id": hit.shot_id,
             "evidence_frame_idx": evidence_frame_idx,
             "submitted_keyframe_id": winning_keyframe_id,
@@ -1310,10 +1751,14 @@ def qa_pipeline(
     top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
     query_en: str | None = None,
     return_trace: bool = False,
+    runtime_fingerprint: str | None = None,
 ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
     """Đóng băng mode và tạo generation budget riêng cho từng query Q&A."""
     mode = qa_inference_mode()
     mode_token = _qa_mode_ctx.set(mode)
+    fingerprint_token = _qa_runtime_fingerprint_ctx.set(
+        runtime_fingerprint or "<unset>"
+    )
     budget_token = None
     if mode == "two_stage":
         budget_token = _generation_budget_ctx.set(
@@ -1324,6 +1769,7 @@ def qa_pipeline(
     finally:
         if budget_token is not None:
             _generation_budget_ctx.reset(budget_token)
+        _qa_runtime_fingerprint_ctx.reset(fingerprint_token)
         _qa_mode_ctx.reset(mode_token)
 
 

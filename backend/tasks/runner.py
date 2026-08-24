@@ -150,6 +150,7 @@ class QueryRun:
     qa_trace: dict[str, Any] | None = None
     n_trake: int | None = None
     error: str | None = None
+    retryable: bool = False
 
     def __post_init__(self) -> None:
         if self.failure_class is not None and self.failure_class not in FAILURE_CLASSES:
@@ -178,6 +179,7 @@ class QueryRun:
             "status": self.status,
             "failure_class": self.failure_class,
             "error": self.error,
+            "retryable": self.retryable,
             "runtime_fingerprint": self.runtime_fingerprint,
             "query_plan": self.query_plan,
             "source_ranks": self.source_ranks,
@@ -266,6 +268,7 @@ def failure_trace(
     failure_class: FailureClass,
     runtime_fingerprint: str | None = None,
     timings: Mapping[str, float] | None = None,
+    retryable: bool = False,
 ) -> QueryRun:
     """Tạo trace lỗi JSON-safe, tuyệt đối không checkpoint answers bán phần."""
     if failure_class not in FAILURE_CLASSES:
@@ -280,6 +283,7 @@ def failure_trace(
         status="failed",
         runtime_fingerprint=runtime_fingerprint or globals()["runtime_fingerprint"](),
         error=f"{type(error).__name__}: {error}",
+        retryable=retryable,
     )
 
 
@@ -383,13 +387,15 @@ def solve_query(
         from backend.slot import ShotHit, allocate
 
         if task_type == "QA":
-            from backend.tasks.qa import qa_pipeline
+            from backend.tasks.qa import QAHypothesis, qa_pipeline
+            from backend.tasks.qa_portfolio import allocate_qa_portfolio
 
             stage_started = time.perf_counter()
             hits, answer_text, qa_trace = qa_pipeline(
                 str(_query_value(query, "query_vi", "")),
                 query_en=_query_value(query, "query_en"),
                 return_trace=True,
+                runtime_fingerprint=fingerprint,
             )
             timings["qa_seconds"] = round(time.perf_counter() - stage_started, 6)
             if not str(answer_text or "").strip():
@@ -404,10 +410,30 @@ def solve_query(
             ]
             plan.update({
                 key: qa_trace.get(key)
-                for key in ("event_vi", "question_vi", "evidence_type")
+                for key in (
+                    "event_vi", "question_vi", "evidence_type", "answer_mode",
+                    "planner_fallback",
+                )
                 if key in qa_trace
             })
-            answers = allocate(hits, "QA", answer_text=answer_text, total=total)
+            hypothesis_rows = qa_trace.get("hypotheses")
+            if hypothesis_rows is not None:
+                if not isinstance(hypothesis_rows, list) or not hypothesis_rows:
+                    raise RuntimeError("qa_pipeline() không có hypothesis evidence hợp lệ")
+                hypotheses = [
+                    QAHypothesis.from_dict(dict(item))
+                    for item in hypothesis_rows
+                    if isinstance(item, Mapping)
+                ]
+                if len(hypotheses) != len(hypothesis_rows):
+                    raise RuntimeError("qa_trace.hypotheses có record sai schema")
+                answers = allocate_qa_portfolio(hypotheses, hits, total=total)
+                serialized_hypotheses = [item.to_dict() for item in hypotheses]
+            else:
+                # Contract trace cũ chỉ được giữ cho caller/test chuyển tiếp;
+                # pipeline production mới luôn có khóa `hypotheses` fail-closed.
+                answers = allocate(hits, "QA", answer_text=answer_text, total=total)
+                serialized_hypotheses = []
             timings["total_seconds"] = round(time.perf_counter() - started, 6)
             return QueryRun(
                 query_id=str(_query_value(query, "query_id", "")),
@@ -420,6 +446,7 @@ def solve_query(
                 task_metadata={"hits": rows},
                 answer_text=answer_text,
                 qa_trace=qa_trace,
+                qa_hypotheses=serialized_hypotheses,
             )
 
         from backend.retrieval.multi_anchor import plan_query, search_multi
@@ -480,5 +507,6 @@ def solve_query(
             failure_class=failure_class,
             runtime_fingerprint=fingerprint,
             timings=timings,
+            retryable=task_type == "QA" and not isinstance(error, ValueError),
         )
         raise SolveQueryError(str(error), trace) from error

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from dataclasses import asdict, dataclass
 from typing import Literal
 
@@ -11,10 +12,8 @@ from backend.llm.adapter import llm
 from backend.retrieval.query_understanding import count_clip_tokens, translate
 from backend.retrieval.search import search
 from data.config.multi_anchor import (
-    COLOR_TERMS,
     COMPLEX_MARKERS,
     COMPLEX_MARKER_MIN,
-    COUNT_TERMS,
     ENABLED,
     MAX_ANCHORS,
     MAX_CLIP_TOKENS,
@@ -77,53 +76,64 @@ def _single_plan(query_vi: str, query_en: str | None, reason: str | None = None)
 
 
 def _needs_multiple(query_vi: str) -> bool:
-    normalized = f" {query_vi.casefold()} "
-    marker_count = sum(normalized.count(marker) for marker in COMPLEX_MARKERS)
+    marker_count = sum(_marker_occurrences(query_vi, marker) for marker in COMPLEX_MARKERS)
     return len(query_vi.split()) > SHORT_QUERY_MAX_WORDS or marker_count >= COMPLEX_MARKER_MIN
 
 
 def _is_ordered(query_vi: str) -> bool:
     """Chỉ bật temporal signal khi nguyên văn nêu quan hệ trước/sau."""
-    normalized = f" {query_vi.casefold()} "
-    return any(marker in normalized for marker in ORDER_MARKERS)
+    return any(_marker_occurrences(query_vi, marker) for marker in ORDER_MARKERS)
 
 
-def _lexical_terms(text: str, vocabulary: tuple[str, ...]) -> set[str]:
-    """Lấy term theo biên từ, ưu tiên phrase dài để phân biệt các sắc xanh."""
-    normalized = " ".join(text.casefold().split())
-    pattern = "|".join(
-        re.escape(term) for term in sorted(vocabulary, key=len, reverse=True)
+def _content_tokens(text: str) -> tuple[str, ...]:
+    """Token Unicode deterministic; bỏ punctuation nhưng giữ chữ số và dấu Việt."""
+    normalized = unicodedata.normalize("NFKC", text).casefold()
+    return tuple(re.findall(r"\w+", normalized, flags=re.UNICODE))
+
+
+def _marker_occurrences(text: str, marker: str) -> int:
+    """Đếm marker theo token phrase nên dấu phẩy/chấm không làm mất match."""
+    if marker in {";", "→"}:
+        return text.count(marker)
+    tokens = _content_tokens(text)
+    marker_tokens = _content_tokens(marker)
+    width = len(marker_tokens)
+    if width == 0:
+        return 0
+    return sum(
+        tokens[index:index + width] == marker_tokens
+        for index in range(len(tokens) - width + 1)
     )
-    return set(re.findall(rf"(?<!\w)(?:{pattern})(?!\w)", normalized))
 
 
 def _is_faithful(anchor_vi: str, original_vi: str) -> bool:
-    """Chặn constraint số/màu mới; không cố suy ngữ nghĩa bằng heuristic."""
-    original_numbers = set(re.findall(r"\d+(?:[.,]\d+)*", original_vi))
-    anchor_numbers = set(re.findall(r"\d+(?:[.,]\d+)*", anchor_vi))
-    if not anchor_numbers <= original_numbers:
-        return False
-    for vocabulary in (COLOR_TERMS, COUNT_TERMS):
-        if not _lexical_terms(anchor_vi, vocabulary) <= _lexical_terms(
-            original_vi, vocabulary
-        ):
-            return False
-    return True
+    """Fail closed: anchor chỉ được sắp xếp/tái dùng token có trong query gốc.
+
+    So theo tập token để việc tách anchor được lặp lại chủ thể và đổi trật tự từ
+    nhỏ, nhưng mọi màu/count/modifier mới (kể cả ngoài vocabulary biết trước)
+    đều làm plan invalid.
+    """
+    anchor_tokens = set(_content_tokens(anchor_vi))
+    original_tokens = set(_content_tokens(original_vi))
+    return bool(anchor_tokens) and anchor_tokens <= original_tokens
 
 
-def _validated_anchors(payload: object, query_vi: str) -> list[str]:
-    """Loại rỗng/trùng/không trung thành và áp trần trước mọi bước dịch."""
+def _validated_anchors(payload: object, query_vi: str) -> list[str] | None:
+    """Fail closed toàn plan nếu schema, uniqueness hay fidelity sai."""
     if not isinstance(payload, dict) or not isinstance(payload.get("anchors"), list):
-        return []
+        return None
+    raw_anchors = payload["anchors"]
+    if len(raw_anchors) > MAX_ANCHORS:
+        return None
     validated: list[str] = []
     seen: set[str] = set()
-    for raw_anchor in payload["anchors"][:MAX_ANCHORS]:
+    for raw_anchor in raw_anchors:
         if not isinstance(raw_anchor, str):
-            continue
+            return None
         anchor = " ".join(raw_anchor.split())
         canonical = anchor.casefold()
         if not anchor or canonical in seen or not _is_faithful(anchor, query_vi):
-            continue
+            return None
         seen.add(canonical)
         validated.append(anchor)
     return validated
@@ -147,7 +157,7 @@ def plan_query(query_vi: str, query_en: str | None = None) -> QueryPlan:
     except Exception:
         return _single_plan(query_vi, query_en, "planner_error")
 
-    if len(anchors_vi) < 2:
+    if anchors_vi is None or len(anchors_vi) < 2:
         return _single_plan(query_vi, query_en, "invalid_anchors")
 
     anchors: list[QueryAnchor] = []

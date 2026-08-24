@@ -116,8 +116,8 @@ def test_planner_loi_fallback_single_va_search_dung_mot_lan(monkeypatch):
     assert calls == 1
 
 
-def test_plan_toi_da_ba_anchor_va_moi_ban_dich_khong_qua_60_token(monkeypatch):
-    """Bắt lỗi planner nhận quá ba câu hoặc bỏ kiểm tokenizer CLIP thật."""
+def test_plan_ba_anchor_va_moi_ban_dich_khong_qua_60_token(monkeypatch):
+    """Bắt lỗi planner bỏ kiểm tokenizer CLIP thật trên từng anchor."""
     module = _module()
     query_vi = (
         "Người phụ nữ đi vào siêu thị rồi chọn rau ở quầy thực phẩm, sau đó "
@@ -127,7 +127,6 @@ def test_plan_toi_da_ba_anchor_va_moi_ban_dich_khong_qua_60_token(monkeypatch):
         "Người phụ nữ đi vào siêu thị",
         "Người phụ nữ chọn rau ở quầy thực phẩm",
         "Người phụ nữ đặt món hàng lên xe đẩy",
-        "Người phụ nữ tiến về khu vực thanh toán",
     ]
     translated: list[str] = []
 
@@ -145,8 +144,8 @@ def test_plan_toi_da_ba_anchor_va_moi_ban_dich_khong_qua_60_token(monkeypatch):
     plan = module.plan_query(query_vi)
 
     assert plan.strategy == "multi"
-    assert [anchor.query_vi for anchor in plan.anchors] == proposed[:3]
-    assert translated == proposed[:3]
+    assert [anchor.query_vi for anchor in plan.anchors] == proposed
+    assert translated == proposed
     assert all(anchor.clip_tokens == 12 for anchor in plan.anchors)
     assert all(anchor.clip_tokens <= 60 for anchor in plan.anchors)
 
@@ -162,7 +161,7 @@ def test_plan_toi_da_ba_anchor_va_moi_ban_dich_khong_qua_60_token(monkeypatch):
     ],
 )
 def test_reject_anchor_bia_so_luong_chu_so_hoac_mau(monkeypatch, invented_anchor):
-    """Bắt lỗi anchor tự thêm constraint làm thu hẹp sai tập retrieval."""
+    """Bắt lỗi planner bỏ riêng anchor bịa rồi vẫn chạy multi trên phần còn lại."""
     module = _module()
     query_vi = (
         "Người bước vào cửa hàng rồi nhìn bảng giá, sau đó quay sang nói chuyện "
@@ -181,14 +180,119 @@ def test_reject_anchor_bia_so_luong_chu_so_hoac_mau(monkeypatch, invented_anchor
     )
     monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
     monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+    calls: list[tuple[tuple, dict]] = []
+
+    def fake_search(*args, **kwargs):
+        calls.append((args, kwargs))
+        return [_row()]
+
+    monkeypatch.setattr(module, "search", fake_search)
+
+    plan = module.plan_query(query_vi, "caller translation")
+    rows = module.search_multi(plan, top_k=7)
+
+    assert plan.strategy == "single"
+    assert plan.fallback_reason == "invalid_anchors"
+    assert rows == [_row()]
+    assert calls == [
+        ((query_vi,), {
+            "query_en": "caller translation",
+            "top_k": 7,
+            "group_by_shot": True,
+        })
+    ]
+
+
+@pytest.mark.parametrize(
+    "anchors",
+    [
+        ["Người bước vào cửa hàng", "", "Người nhìn bảng giá"],
+        ["Người bước vào cửa hàng", 123, "Người nhìn bảng giá"],
+        ["Người bước vào cửa hàng", "Người bước vào cửa hàng"],
+        ["Người bước vào cửa hàng", "Người nhìn bảng giá", "Người nói chuyện", "dư"],
+    ],
+)
+def test_payload_anchor_malformed_trung_hoac_qua_ba_fallback_toan_bo(monkeypatch, anchors):
+    """Bắt lỗi schema planner sai vẫn bị truncate/lọc để chạy multi bán phần."""
+    module = _module()
+    query_vi = (
+        "Người bước vào cửa hàng rồi nhìn bảng giá, sau đó quay sang nói chuyện "
+        "với nhân viên đang đứng cạnh quầy thanh toán phía trước"
+    )
+    monkeypatch.setattr(
+        module, "llm", lambda *args, **kwargs: json.dumps({"anchors": anchors})
+    )
+    monkeypatch.setattr(
+        module,
+        "translate",
+        lambda text: (_ for _ in ()).throw(AssertionError("plan invalid không được dịch")),
+    )
+
+    plan = module.plan_query(query_vi, "caller translation")
+
+    assert plan.strategy == "single"
+    assert plan.query_en == "caller translation"
+    assert plan.fallback_reason == "invalid_anchors"
+
+
+@pytest.mark.parametrize(
+    "invented_anchor",
+    [
+        "Nhóm người mặc áo màu rêu đứng cạnh quầy",
+        "Đám người đứng cạnh quầy",
+        "Hàng loạt người đứng cạnh quầy",
+        "Người duy nhất đứng cạnh quầy",
+    ],
+)
+def test_lexical_entailment_chan_modifier_ngoai_vocabulary(monkeypatch, invented_anchor):
+    """Bắt bypass bằng màu/count/modifier mới không nằm trong tuple đóng."""
+    module = _module()
+    query_vi = (
+        "Người bước vào cửa hàng rồi nhìn bảng giá, sau đó người đứng cạnh quầy "
+        "thanh toán nói chuyện với nhân viên phía trước"
+    )
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người bước vào cửa hàng", invented_anchor]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+
+    plan = module.plan_query(query_vi)
+
+    assert plan.strategy == "single"
+    assert plan.fallback_reason == "invalid_anchors"
+
+
+def test_lexical_entailment_cho_phep_tach_va_doi_trat_tu_token_goc():
+    """Bắt validator quá chặt: subset token gốc được đổi thứ tự vẫn faithful."""
+    module = _module()
+    original = "Người phụ nữ bước vào cửa hàng rồi nhìn bảng giá."
+
+    assert module._is_faithful("Bảng giá, người phụ nữ nhìn", original) is True
+
+
+def test_ordered_marker_nhan_dau_cau_va_punctuation(monkeypatch):
+    """Bắt lỗi marker tuần tự chỉ match khi có space literal hai bên."""
+    module = _module()
+    query_vi = "Đầu tiên, người đàn ông mở cửa. Sau đó, anh ấy bước vào."
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người đàn ông mở cửa", "Anh ấy bước vào"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
 
     plan = module.plan_query(query_vi)
 
     assert plan.strategy == "multi"
-    assert [anchor.query_vi for anchor in plan.anchors] == [
-        "Người bước vào cửa hàng",
-        "Người nói chuyện với nhân viên cạnh quầy thanh toán",
-    ]
+    assert plan.ordered is True
 
 
 def test_translation_hoac_tokenizer_loi_fallback_single(monkeypatch):

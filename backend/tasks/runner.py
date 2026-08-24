@@ -234,6 +234,7 @@ def runtime_manifest() -> dict[str, Any]:
     critical_hashes = {
         path: _source_hash(REPO_ROOT / path)
         for path in (
+            "backend/retrieval/multi_anchor.py",
             "backend/retrieval/search.py",
             "backend/slot/allocator.py",
             "backend/tasks/qa.py",
@@ -421,15 +422,26 @@ def solve_query(
                 qa_trace=qa_trace,
             )
 
-        from backend.retrieval.search import search
+        from backend.retrieval.multi_anchor import plan_query, search_multi
 
         stage_started = time.perf_counter()
-        rows = search(
-            str(_query_value(query, "query_vi", "")),
-            query_en=_query_value(query, "query_en"),
-            top_k=total,
-            group_by_shot=True,
-        )
+        query_vi = str(_query_value(query, "query_vi", ""))
+        query_en = _query_value(query, "query_en")
+        kis_plan = plan_query(query_vi, query_en=query_en)
+        plan = kis_plan.to_dict()
+        if kis_plan.strategy == "single":
+            # Giữ nguyên đường hiện hành cho query ngắn/fallback: đúng một lần
+            # gọi search và giữ bản dịch EN caller đã cung cấp.
+            from backend.retrieval.search import search
+
+            rows = search(
+                query_vi,
+                query_en=query_en,
+                top_k=total,
+                group_by_shot=True,
+            )
+        else:
+            rows = search_multi(kis_plan, top_k=total)
         timings["retrieval_seconds"] = round(time.perf_counter() - stage_started, 6)
         hits = [
             ShotHit(row["shot_id"], row["score"], row["keyframe_id"])

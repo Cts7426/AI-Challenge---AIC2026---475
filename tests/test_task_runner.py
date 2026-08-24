@@ -69,6 +69,70 @@ def test_query_run_giu_raw_rows_ranks_contributions_va_trace_json(monkeypatch):
     assert trace["query_plan"]["query_en"] == KIS["query_en"]
 
 
+def test_kis_multi_anchor_ghi_plan_outer_trace_va_khong_search_trung(monkeypatch):
+    """Bắt lỗi runner search lại query gốc hoặc làm mất outer-RRF provenance."""
+    runner = _runner()
+    multi = importlib.import_module("backend.retrieval.multi_anchor")
+    slot = importlib.import_module("backend.slot")
+    query = {
+        "query_id": "q-kis-multi",
+        "task_type": "KIS",
+        "query_vi": (
+            "Người bước vào cửa hàng rồi nhìn bảng giá, sau đó quay sang nói chuyện "
+            "với nhân viên đang đứng cạnh quầy thanh toán phía trước"
+        ),
+    }
+    proposed = ["Người bước vào cửa hàng", "Người nhìn bảng giá"]
+    search_calls: list[str] = []
+
+    monkeypatch.setattr(
+        multi, "llm", lambda *args, **kwargs: json.dumps({"anchors": proposed})
+    )
+    monkeypatch.setattr(multi, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(multi, "count_clip_tokens", lambda text: 11)
+
+    def fake_search(query_vi, **kwargs):
+        search_calls.append(query_vi)
+        rank = len(search_calls)
+        return [{
+            **_search_row(),
+            "timestamp_ms": 1000 * rank,
+            "score": 0.99 - rank,
+        }]
+
+    monkeypatch.setattr(multi, "search", fake_search)
+    monkeypatch.setattr(
+        importlib.import_module("backend.retrieval.search"),
+        "search",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("runner không được search lại query gốc")
+        ),
+    )
+    monkeypatch.setattr(
+        slot,
+        "allocate",
+        lambda hits, task, **kwargs: [
+            Answer("L01_V001", (120,), keyframe_id="L01_V001_001")
+        ],
+    )
+
+    result = runner.solve_query(query, total=1, runtime_fingerprint="fp-multi")
+
+    assert search_calls == proposed
+    assert result.query_plan["strategy"] == "multi"
+    assert [anchor["query_vi"] for anchor in result.query_plan["anchors"]] == proposed
+    assert result.search_rows[0]["temporal_order_match"] is True
+    assert result.source_ranks == [{
+        "keyframe_id": "L01_V001_001",
+        "ranks": {"anchor_1": 1, "anchor_2": 1},
+    }]
+    assert result.source_contributions[0]["contributions"] == pytest.approx({
+        "anchor_1": 1 / 8,
+        "anchor_2": 1 / 8,
+    })
+    json.dumps(result.to_trace_dict(), ensure_ascii=False, allow_nan=False)
+
+
 def test_trace_json_normalize_numpy_container_path_datetime_va_non_finite():
     """Bắt lỗi success trace vỡ sau solve vì scalar parquet/numpy không JSON-safe."""
     np = pytest.importorskip("numpy")

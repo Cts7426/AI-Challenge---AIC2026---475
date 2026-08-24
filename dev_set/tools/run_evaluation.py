@@ -19,7 +19,13 @@ from backend.tasks.qa import qa_pipeline, validate_evidence_capture
 from data.config.submit_format import Answer
 from data.config.qa_evaluation import QA_MATCH_POLICIES
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
-from dev_set.tools.scoring import recall_at_k, final_score, rscore_kis
+from dev_set.tools.scoring import (
+    assess_promotion_ground_truth,
+    final_score,
+    recall_at_k,
+    require_promotion_ground_truth,
+    rscore_kis,
+)
 
 
 RUN_SNAPSHOT_SCHEMA_VERSION = 2
@@ -166,6 +172,11 @@ def run_evaluation():
     # chuẩn dùng để đánh giá cuối, chỉ để đo điểm hệ thống hiện tại một lần).
     parser.add_argument("--split", choices=["tune", "holdout", "dress25", "gen10", "gen2"], default="tune")
     parser.add_argument("--resume", help="Thư mục run cũ (vd: dev_set/results/run_20260812_1000) để chạy tiếp")
+    parser.add_argument(
+        "--promotion",
+        action="store_true",
+        help="chỉ chạy khi toàn bộ GT đã verification_status=verified có provenance",
+    )
     args = parser.parse_args()
 
     print(f"Khởi động bộ đo trên tập '{args.split}'...")
@@ -186,18 +197,7 @@ def run_evaluation():
         if ans.lower() != 'y':
             sys.exit(0)
 
-    # 1. Connect DBs
-    print("Kết nối database...")
-    try:
-        es_connect()
-        milvus_connect()
-    except Exception as e:
-        print(f"LỖI DB: {e}. Bạn đã chạy Docker chưa?")
-        sys.exit(1)
-
-    fmap = load_frame_map()
-
-    # 2. Load Queries and GT — mỗi dòng lỗi bị cô lập, không crash cả batch (#5)
+    # 1. Load Queries and GT — mỗi dòng lỗi bị cô lập, không crash cả batch (#5)
     queries = []
     q_paths = [
         Path(f"dev_set/queries/{args.split}_kis.jsonl"),
@@ -241,9 +241,35 @@ def run_evaluation():
         except Exception as e:
             print(f"LỖI parse GT {qid}: {e} — bỏ qua dòng này")
 
+    # GT legacy vẫn hữu ích cho phân tích, nhưng tuyệt đối không được trông như
+    # một phép promotion: thiếu metadata mặc định là `unknown` và được báo rõ.
+    gt_readiness = assess_promotion_ground_truth(
+        gts.values(), expected_query_ids=task_of.keys(),
+    )
+    print(gt_readiness.message)
+    if args.promotion:
+        try:
+            require_promotion_ground_truth(
+                gts.values(), expected_query_ids=task_of.keys(),
+            )
+        except ValueError as e:
+            parser.error(str(e))
+
     if not queries:
         print("Không có query nào để chạy.")
         return
+
+    # 2. Chỉ kết nối sau khi gate promotion đã pass: thiếu provenance là lỗi
+    # input, không được che bởi lỗi service ngoài.
+    print("Kết nối database...")
+    try:
+        es_connect()
+        milvus_connect()
+    except Exception as e:
+        print(f"LỖI DB: {e}. Bạn đã chạy Docker chưa?")
+        sys.exit(1)
+
+    fmap = load_frame_map()
 
     # 3. Thư mục output — fingerprint khóa model/mode/config khi resume.
     runtime_manifest, config_sources, llm_provenance = _runtime_snapshot(args.split)

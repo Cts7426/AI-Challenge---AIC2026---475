@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Literal, Union
+from typing import Iterable, Literal, Protocol, Union
 
 # Sử dụng Answer từ định dạng nộp chung của toàn repo
 from data.config.submit_format import Answer
@@ -43,6 +43,12 @@ class GroundTruthKIS:
     video_id: str
     frame_start: int
     frame_end: int
+    verification_status: Literal["unknown", "verified"] = field(
+        default="unknown", kw_only=True,
+    )
+    provenance: str | None = field(default=None, kw_only=True)
+    verified_by: str | None = field(default=None, kw_only=True)
+    verified_at: str | None = field(default=None, kw_only=True)
 
     def __post_init__(self):
         if self.frame_start > self.frame_end:
@@ -51,6 +57,13 @@ class GroundTruthKIS:
             )
         if self.frame_start < 0:
             raise ValueError(f"[{self.query_id}] frame_start < 0")
+        _validate_verification_metadata(
+            self.query_id,
+            self.verification_status,
+            self.provenance,
+            self.verified_by,
+            self.verified_at,
+        )
 
 
 @dataclass(frozen=True)
@@ -71,6 +84,10 @@ class GroundTruthTRAKE:
     query_id: str
     video_id: str
     frames: list[dict]  # [{"start": int, "end": int, "desc": str}]
+    verification_status: Literal["unknown", "verified"] = "unknown"
+    provenance: str | None = None
+    verified_by: str | None = None
+    verified_at: str | None = None
 
     def __post_init__(self):
         if not self.frames:
@@ -88,6 +105,109 @@ class GroundTruthTRAKE:
             if start <= prev_end:
                 raise ValueError(f"[{self.query_id}] TRAKE window {i} overlaps or is unordered")
             prev_end = end
+        _validate_verification_metadata(
+            self.query_id,
+            self.verification_status,
+            self.provenance,
+            self.verified_by,
+            self.verified_at,
+        )
 
 
 GroundTruth = Union[GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE]
+
+
+class GroundTruthWithVerification(Protocol):
+    """Tối thiểu metadata cần có để gate biết nhãn có được xác minh hay chưa."""
+
+    query_id: str
+    verification_status: str
+    provenance: str | None
+    verified_by: str | None
+    verified_at: str | None
+
+
+@dataclass(frozen=True)
+class PromotionReadiness:
+    """Kết quả kiểm GT trước promotion, giữ query chưa xác minh để audit."""
+
+    unverified_query_ids: tuple[str, ...]
+    missing_query_ids: tuple[str, ...] = ()
+
+    @property
+    def eligible(self) -> bool:
+        return not self.unverified_query_ids and not self.missing_query_ids
+
+    @property
+    def message(self) -> str:
+        if self.eligible:
+            return "GT verification: đủ điều kiện promotion."
+        problems = []
+        if self.unverified_query_ids:
+            problems.append(f"nhãn chưa verified: {', '.join(self.unverified_query_ids)}")
+        if self.missing_query_ids:
+            problems.append(f"thiếu GT: {', '.join(self.missing_query_ids)}")
+        return (
+            "GT verification: không đủ điều kiện promotion; "
+            + "; ".join(problems)
+        )
+
+
+def assess_promotion_ground_truth(
+    ground_truth: Iterable[GroundTruthWithVerification],
+    *,
+    expected_query_ids: Iterable[str] | None = None,
+) -> PromotionReadiness:
+    """Đánh giá GT cho promotion, không coi file legacy là đã xác minh.
+
+    Input là các GT đã parse; output giữ danh sách query không `verified` để
+    chế độ phân tích báo rõ thiếu provenance. Invariant: chỉ nhãn `verified`
+    mới được gate promotion chấp nhận.
+    """
+    parsed_ground_truth = tuple(ground_truth)
+    unverified = tuple(
+        gt.query_id for gt in parsed_ground_truth if gt.verification_status != "verified"
+    )
+    parsed_query_ids = {gt.query_id for gt in parsed_ground_truth}
+    missing = () if expected_query_ids is None else tuple(
+        query_id for query_id in expected_query_ids if query_id not in parsed_query_ids
+    )
+    return PromotionReadiness(
+        unverified_query_ids=unverified,
+        missing_query_ids=missing,
+    )
+
+
+def require_promotion_ground_truth(
+    ground_truth: Iterable[GroundTruthWithVerification],
+    *,
+    expected_query_ids: Iterable[str] | None = None,
+) -> None:
+    """Từ chối promotion nếu còn bất kỳ GT nào chưa được xác minh."""
+    readiness = assess_promotion_ground_truth(
+        ground_truth,
+        expected_query_ids=expected_query_ids,
+    )
+    if not readiness.eligible:
+        raise ValueError(readiness.message)
+
+
+def _validate_verification_metadata(
+    query_id: str,
+    verification_status: str,
+    provenance: str | None,
+    verified_by: str | None,
+    verified_at: str | None,
+) -> None:
+    """Kiểm metadata GT ngay lúc parse để trạng thái `verified` có audit trail."""
+    if verification_status not in ("unknown", "verified"):
+        raise ValueError(f"[{query_id}] verification_status invalid: {verification_status}")
+    if verification_status != "verified":
+        return
+    for field_name, value in {
+        "provenance": provenance,
+        "verified_by": verified_by,
+        "verified_at": verified_at,
+    }.items():
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"[{query_id}] verified GT must have {field_name}")

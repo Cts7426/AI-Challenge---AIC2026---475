@@ -1,14 +1,24 @@
 from __future__ import annotations
 from backend.common.answer_match import answer_matches, exact_answer_matches
 from data.config.qa_evaluation import DEFAULT_QA_MATCH_POLICY, QA_MATCH_POLICIES
-from dev_set.tools.schema import GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE, Answer
+from dev_set.tools.schema import (
+    Answer,
+    GroundTruthKIS,
+    GroundTruthQA,
+    GroundTruthTRAKE,
+    PromotionReadiness,
+    assess_promotion_ground_truth,
+    require_promotion_ground_truth,
+)
 
 # answer_matches re-export ở đây để code cũ import từ dev_set.tools.scoring vẫn
 # chạy — cài đặt thật nằm ở backend/common/answer_match.py, DÙNG CHUNG với
 # majority voting của backend/tasks/qa.py (một nguồn sự thật cho "thế nào là
 # 2 câu trả lời giống nhau", xem docstring file đó).
 __all__ = ["rscore_kis", "rscore_qa", "rscore_trake", "recall_at_k", "final_score",
-           "ndcg_at_k", "answer_matches", "exact_answer_matches"]
+           "ndcg_at_k", "answer_matches", "exact_answer_matches",
+           "PromotionReadiness", "assess_promotion_ground_truth",
+           "require_promotion_ground_truth"]
 
 K_THRESHOLDS = (1, 5, 20, 50, 100)
 

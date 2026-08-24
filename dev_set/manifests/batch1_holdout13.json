@@ -1,0 +1,29 @@
+{
+  "manifest_id": "batch1_holdout13",
+  "created_at": "2026-08-24",
+  "purpose": "Regression set Batch 1; không phải ground truth đã xác minh và không được dùng promotion.",
+  "selection": {
+    "kis_count": 10,
+    "qa_count": 3,
+    "video_disjointness": {
+      "result": "13 video_id khác nhau trong dev_set/ground_truth/holdout_gt.jsonl hiện có",
+      "provenance": "legacy holdout GT, chưa human-verified",
+      "verification_status": "unknown"
+    }
+  },
+  "entries": [
+    {"query_id": "KIS_001", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_002", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_003", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_004", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_005", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_006", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_007", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_008", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_009", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_010", "task_type": "KIS", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "QA_011", "task_type": "QA", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_qa.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "QA_012", "task_type": "QA", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_qa.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "QA_013", "task_type": "QA", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_qa.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null}
+  ]
+}

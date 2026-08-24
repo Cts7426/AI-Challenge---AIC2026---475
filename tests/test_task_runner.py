@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -67,6 +69,44 @@ def test_query_run_giu_raw_rows_ranks_contributions_va_trace_json(monkeypatch):
     assert trace["query_plan"]["query_en"] == KIS["query_en"]
 
 
+def test_trace_json_normalize_numpy_container_path_datetime_va_non_finite():
+    """Bắt lỗi success trace vỡ sau solve vì scalar parquet/numpy không JSON-safe."""
+    np = pytest.importorskip("numpy")
+    runner = _runner()
+
+    class ParquetScalar:
+        def as_py(self):
+            return np.int64(11)
+
+    result = runner.QueryRun(
+        query_id="q-json",
+        task_type="KIS",
+        answers=[Answer("L01_V001", (np.int64(7),), keyframe_id="kf")],
+        query_plan={"anchors": ("a", "b")},
+        search_rows=[{
+            "frame_idx": np.int64(7),
+            "embedding_preview": np.array([0.25, 0.5], dtype=np.float32),
+            "asset": Path("derived/frame.jpg"),
+            "at": datetime(2026, 8, 24, tzinfo=timezone.utc),
+            "bad_scores": {np.float64("nan"), np.float64("inf")},
+            "parquet": ParquetScalar(),
+        }],
+    )
+
+    payload = result.to_trace_dict()
+    encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+    decoded = json.loads(encoded)
+
+    row = decoded["search_rows"][0]
+    assert row["frame_idx"] == 7
+    assert row["embedding_preview"] == [0.25, 0.5]
+    assert row["asset"] == "derived/frame.jpg"
+    assert row["at"] == "2026-08-24T00:00:00+00:00"
+    assert row["bad_scores"] == [None, None]
+    assert row["parquet"] == 11
+    assert decoded["answers"][0]["frame_ids"] == [7]
+
+
 def test_giai_mot_query_la_wrapper_parity_voi_solve_query(monkeypatch):
     """Bắt lỗi run.py giữ một dispatch riêng và lại lệch production runner."""
     runner = _runner()
@@ -107,7 +147,7 @@ def test_evaluator_goi_runner_chung_va_khong_search_lan_hai(monkeypatch):
 
     query = type("QueryLike", (), KIS)()
     result = evaluator._solve_for_evaluation(
-        query, total=1, runtime_fingerprint="eval-snapshot"
+        query, total=1, query_runtime_fingerprint="eval-snapshot"
     )
 
     assert isinstance(result, runner.QueryRun)

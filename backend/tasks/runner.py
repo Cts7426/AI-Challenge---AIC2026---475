@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import time
 from dataclasses import dataclass, field
+from datetime import date, datetime, time as datetime_time
 from pathlib import Path
 from typing import Any, Literal, Mapping
 
@@ -39,6 +41,70 @@ def _answer_to_dict(answer: Answer) -> dict[str, Any]:
         "answer_text": answer.answer_text,
         "keyframe_id": answer.keyframe_id,
     }
+
+
+def _json_safe(value: Any, *, path: str = "$") -> Any:
+    """Chuẩn hóa trace đệ quy mà không stringify tùy tiện làm mất cấu trúc.
+
+    Mapping giữ mapping; tuple/set/numpy container thành list; Path và thời gian
+    dùng biểu diễn chuẩn. Scalar numpy/parquet đi qua `item()`/`as_py()`. JSON
+    không có NaN/Infinity nên mọi float không hữu hạn được ghi `null` để
+    `json.dumps(..., allow_nan=False)` luôn kiểm chứng được artefact.
+    """
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, (datetime, date, datetime_time)):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        normalized: dict[Any, Any] = {}
+        for key, item in value.items():
+            safe_key = _json_safe(key, path=f"{path}.<key>")
+            if not isinstance(safe_key, (str, int, float, bool, type(None))):
+                raise TypeError(
+                    f"Trace mapping key tại {path} không phải JSON scalar: "
+                    f"{type(key).__name__}"
+                )
+            normalized[safe_key] = _json_safe(item, path=f"{path}.{safe_key}")
+        return normalized
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item, path=f"{path}[{index}]") for index, item in enumerate(value)]
+    if isinstance(value, (set, frozenset)):
+        items = [_json_safe(item, path=f"{path}[]") for item in value]
+        return sorted(
+            items,
+            key=lambda item: json.dumps(
+                item, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ),
+        )
+
+    # PyArrow/parquet scalar công khai protocol `as_py()`; gọi xong vẫn chuẩn
+    # hóa đệ quy vì kết quả có thể là datetime/Decimal/numpy scalar khác.
+    as_py = getattr(value, "as_py", None)
+    if callable(as_py):
+        converted = as_py()
+        if converted is not value:
+            return _json_safe(converted, path=path)
+
+    # Numpy container dùng `tolist()` để giữ shape/list thay vì ép thành chuỗi.
+    tolist = getattr(value, "tolist", None)
+    if callable(tolist):
+        converted = tolist()
+        if converted is not value:
+            return _json_safe(converted, path=path)
+
+    # Numpy/pandas scalar dùng `item()`; không nuốt lỗi và không fallback sang
+    # `str(value)` vì làm vậy che mất schema không được hỗ trợ.
+    item = getattr(value, "item", None)
+    if callable(item):
+        converted = item()
+        if converted is not value:
+            return _json_safe(converted, path=path)
+
+    raise TypeError(f"Trace value tại {path} không JSON-safe: {type(value).__name__}")
 
 
 def _query_value(query: object, name: str, default: Any = None) -> Any:
@@ -106,7 +172,7 @@ class QueryRun:
 
     def to_trace_dict(self) -> dict[str, Any]:
         """Đổi sang JSON-safe record; không chứa secret hay object backend."""
-        return {
+        trace = {
             "query_id": self.query_id,
             "task_type": self.task_type,
             "status": self.status,
@@ -125,6 +191,7 @@ class QueryRun:
             "n_trake": self.n_trake,
             "answers": [_answer_to_dict(answer) for answer in self.answers],
         }
+        return _json_safe(trace)
 
 
 class SolveQueryError(RuntimeError):

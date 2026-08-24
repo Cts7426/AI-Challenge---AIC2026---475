@@ -5,6 +5,7 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 from tqdm import tqdm
 
@@ -14,7 +15,14 @@ from backend.indexing.frame_map import load_frame_map
 from backend.slot.allocator import ShotHit, shot_bounds
 from backend.export import QuerySubmission, write_submissions
 from backend.tasks.qa import validate_evidence_capture
-from backend.tasks.runner import QueryRun, SolveQueryError, failure_trace, solve_query
+from backend.tasks.runner import (
+    QueryRun,
+    SolveQueryError,
+    failure_trace,
+    runtime_fingerprint as build_query_runtime_fingerprint,
+    runtime_manifest as build_query_runtime_manifest,
+    solve_query,
+)
 
 from data.config.submit_format import Answer
 from data.config.qa_evaluation import QA_MATCH_POLICIES
@@ -29,6 +37,32 @@ from dev_set.tools.scoring import (
 
 
 RUN_SNAPSHOT_SCHEMA_VERSION = 2
+EVALUATION_ENV_NAMES = (
+    "LLM_RUN_ID",
+    "LLM_QUERY_ID",
+    "QA_EVIDENCE_LOG_PATH",
+)
+_ENV_MISSING = object()
+
+
+def _restore_evaluation_environment(func):
+    """Bọc evaluator bằng finally để không leak env sang run/query kế tiếp."""
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        previous = {
+            name: os.environ.get(name, _ENV_MISSING)
+            for name in EVALUATION_ENV_NAMES
+        }
+        try:
+            return func(*args, **kwargs)
+        finally:
+            for name, value in previous.items():
+                if value is _ENV_MISSING:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+    return wrapped
 
 
 def _hash_json(payload: dict) -> str:
@@ -37,14 +71,7 @@ def _hash_json(payload: dict) -> str:
 
 
 def _runtime_snapshot(split: str) -> tuple[dict, dict[str, str], dict[str, str]]:
-    """Hash QA knobs/source + LLM env đã chọn; không tự chọn hay đổi model."""
-    from backend.llm.adapter import (
-        DEFAULT_API_MODEL,
-        DEFAULT_GEMINI_MODEL,
-        DEFAULT_LOCAL_MODEL,
-    )
-    from data.config.qa_inference import qa_runtime_config
-
+    """Snapshot artefact evaluation; query identity lấy nguyên từ runner chung."""
     configs = {
         cfg.name: cfg.read_text(encoding="utf-8")
         for cfg in sorted(Path("data/config").glob("*.py"))
@@ -54,40 +81,60 @@ def _runtime_snapshot(split: str) -> tuple[dict, dict[str, str], dict[str, str]]
         for label, path in {
             "backend/tasks/qa.py": Path("backend/tasks/qa.py"),
             "dev_set/tools/run_evaluation.py": Path(__file__),
+            "dev_set/tools/scoring.py": Path("dev_set/tools/scoring.py"),
         }.items()
     }
-    backend = os.environ.get("LLM_BACKEND", "api")
-    model_by_backend = {
-        "api": os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL),
-        "gemini": os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
-        "local": os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL),
+    evaluation_inputs = {
+        path.as_posix(): (
+            hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "missing"
+        )
+        for path in [
+            *(Path(f"dev_set/queries/{split}_{task}.jsonl")
+              for task in ("kis", "qa", "trake")),
+            Path(f"dev_set/ground_truth/{split}_gt.jsonl"),
+        ]
     }
+    query_manifest = build_query_runtime_manifest()
+    query_fingerprint = build_query_runtime_fingerprint()
     llm_provenance = {
-        "backend": backend,
-        "model": model_by_backend.get(backend, "<invalid-backend>"),
-        "source": "environment override or adapter default",
+        **query_manifest["llm"],
+        "source": "backend.tasks.runner.runtime_manifest",
     }
     manifest = {
         "commit": get_git_commit(),
         "split": split,
-        "qa_runtime": qa_runtime_config(),
+        "query_runtime_fingerprint": query_fingerprint,
         "llm_provenance": llm_provenance,
         "config_sources_sha256": _hash_json(configs),
         "critical_sources_sha256": critical_sources,
+        "evaluation_inputs_sha256": evaluation_inputs,
     }
     return manifest, configs, llm_provenance
 
 
-def _validate_resume_snapshot(snapshot: dict, current_fingerprint: str) -> str:
-    """Fail closed nếu run cũ không cùng LLM env/QA knobs/config/source."""
+def _validate_resume_snapshot(
+    snapshot: dict,
+    current_query_fingerprint: str,
+    current_artifact_fingerprint: str | None = None,
+) -> str:
+    """Fail closed nếu query runtime hoặc artefact evaluation khác run cũ."""
     if snapshot.get("schema_version") != RUN_SNAPSHOT_SCHEMA_VERSION:
         raise RuntimeError("run cũ không có fingerprint schema v2")
-    prior_fingerprint = snapshot.get("runtime_fingerprint")
-    if prior_fingerprint != current_fingerprint:
+    prior_fingerprint = snapshot.get(
+        "query_runtime_fingerprint", snapshot.get("runtime_fingerprint")
+    )
+    if prior_fingerprint != current_query_fingerprint:
         raise RuntimeError(
-            "LLM env/QA mode/knobs/config/code hiện tại khác run cũ: "
-            f"cũ={prior_fingerprint}, mới={current_fingerprint}"
+            "query runtime hiện tại khác run cũ: "
+            f"cũ={prior_fingerprint}, mới={current_query_fingerprint}"
         )
+    if current_artifact_fingerprint is not None:
+        prior_artifact = snapshot.get("evaluation_artifact_fingerprint")
+        if prior_artifact != current_artifact_fingerprint:
+            raise RuntimeError(
+                "split/scorer/GT artefact hiện tại khác run cũ: "
+                f"cũ={prior_artifact}, mới={current_artifact_fingerprint}"
+            )
     return str(snapshot.get("run_id") or "")
 
 
@@ -126,11 +173,11 @@ def _to_shot_hits(res: list[dict]) -> list[ShotHit]:
 
 
 def _solve_for_evaluation(
-    query: object, *, total: int, runtime_fingerprint: str
+    query: object, *, total: int, query_runtime_fingerprint: str
 ) -> QueryRun:
     """Evaluator dùng đúng dispatch production và ghim fingerprint run hiện có."""
     return solve_query(
-        query, total=total, runtime_fingerprint=runtime_fingerprint,
+        query, total=total, runtime_fingerprint=query_runtime_fingerprint,
     )
 
 
@@ -174,6 +221,7 @@ def _score_metrics(ans: list[Answer], gt, task_type: str, qa_match_policy: str) 
     }
 
 
+@_restore_evaluation_environment
 def run_evaluation():
     parser = argparse.ArgumentParser()
     # "dress25" (20/08): bộ 25 câu mô phỏng 1 buổi thi thật, sinh bởi
@@ -280,9 +328,12 @@ def run_evaluation():
 
     fmap = load_frame_map()
 
-    # 3. Thư mục output — fingerprint khóa model/mode/config khi resume.
-    runtime_manifest, config_sources, llm_provenance = _runtime_snapshot(args.split)
-    runtime_fingerprint = _hash_json(runtime_manifest)
+    # 3. Tách identity của lời giải khỏi artefact đánh giá: split/scorer/GT chỉ
+    # đổi artefact fingerprint, không được làm QueryRun khác production.
+    evaluation_artifact_manifest, config_sources, llm_provenance = _runtime_snapshot(args.split)
+    query_runtime_fingerprint = build_query_runtime_fingerprint()
+    query_runtime_manifest = build_query_runtime_manifest()
+    evaluation_artifact_fingerprint = _hash_json(evaluation_artifact_manifest)
     if args.resume:
         out_dir = Path(args.resume)
         if not out_dir.exists():
@@ -295,22 +346,35 @@ def run_evaluation():
             print(f"LỖI: resume thiếu/hỏng config_snapshot.json: {e}")
             sys.exit(1)
         try:
-            snapshot_run_id = _validate_resume_snapshot(prior_snapshot, runtime_fingerprint)
+            snapshot_run_id = _validate_resume_snapshot(
+                prior_snapshot,
+                query_runtime_fingerprint,
+                evaluation_artifact_fingerprint,
+            )
         except RuntimeError as e:
             print(f"LỖI: {e}; từ chối resume")
             sys.exit(1)
         run_id = snapshot_run_id or out_dir.name.replace("run_", "")
         print(f"Tiếp tục run cũ tại {out_dir}")
     else:
-        run_id = datetime.now().strftime("%Y%m%d_%H%M%S") + f"_{runtime_fingerprint[:8]}"
+        run_id = (
+            datetime.now().strftime("%Y%m%d_%H%M%S")
+            + f"_{evaluation_artifact_fingerprint[:8]}"
+        )
         out_dir = Path(f"dev_set/results/run_{run_id}")
         out_dir.mkdir(parents=True, exist_ok=False)
 
         (out_dir / "config_snapshot.json").write_text(json.dumps({
             "schema_version": RUN_SNAPSHOT_SCHEMA_VERSION,
             "run_id": run_id,
-            "runtime_fingerprint": runtime_fingerprint,
-            "runtime_manifest": runtime_manifest,
+            # Hai key legacy trỏ về query identity để consumer cũ không dùng
+            # nhầm split/scorer/GT làm cache key của lời giải.
+            "runtime_fingerprint": query_runtime_fingerprint,
+            "runtime_manifest": query_runtime_manifest,
+            "query_runtime_fingerprint": query_runtime_fingerprint,
+            "query_runtime_manifest": query_runtime_manifest,
+            "evaluation_artifact_fingerprint": evaluation_artifact_fingerprint,
+            "evaluation_artifact_manifest": evaluation_artifact_manifest,
             "llm_provenance": llm_provenance,
             "configs": config_sources,
         }, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -362,7 +426,9 @@ def run_evaluation():
 
             try:
                 query_run = _solve_for_evaluation(
-                    q, total=100, runtime_fingerprint=runtime_fingerprint,
+                    q,
+                    total=100,
+                    query_runtime_fingerprint=query_runtime_fingerprint,
                 )
                 ans = query_run.answers
                 res = query_run.search_rows
@@ -520,7 +586,7 @@ def run_evaluation():
                             else "trake_order" if q.task_type == "TRAKE"
                             else "retrieval_miss"
                         ),
-                        runtime_fingerprint=runtime_fingerprint,
+                        runtime_fingerprint=query_runtime_fingerprint,
                     )
                 record = {
                     "query_id": q.query_id,
@@ -576,7 +642,9 @@ def run_evaluation():
         "run_id": run_id,
         "commit": get_git_commit(),
         "split": args.split,
-        "runtime_fingerprint": runtime_fingerprint,
+        "runtime_fingerprint": query_runtime_fingerprint,
+        "query_runtime_fingerprint": query_runtime_fingerprint,
+        "evaluation_artifact_fingerprint": evaluation_artifact_fingerprint,
         "per_query": list(per_query_by_id.values()),
     }
     (out_dir / "scores.json").write_text(
@@ -626,10 +694,6 @@ def run_evaluation():
             print("CẢNH BÁO: file nộp có vấn đề:")
             for i in loi_file:
                 print(f"  {i}")
-
-    os.environ.pop("LLM_QUERY_ID", None)
-    os.environ.pop("LLM_RUN_ID", None)
-    os.environ.pop("QA_EVIDENCE_LOG_PATH", None)
 
     print(f"\nĐã hoàn thành! Kết quả lưu tại: {out_dir}")
     print(f"Tổng query lỗi (lần chạy này): {err_count} / {len(queries) - len(done_qids)}")

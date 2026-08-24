@@ -2,75 +2,103 @@
 
 ## Problem
 
-Hệ thống phải truy xuất đúng khoảnh khắc video và nộp đúng định dạng cho Batch
-1. Một thay đổi có số đo tốt trên GT chưa được con người xác minh có thể dẫn đến
-promotion sai; một frame tuyệt đối hoặc bằng chứng Q&A sai cũng có thể mất điểm.
+Batch 1 cần tìm đúng khoảnh khắc video, trả lời Q&A đúng evidence và nộp đúng
+frame tuyệt đối. Baseline tự động hiện đạt 6,8/13 trên `batch1_holdout13`, trong
+khi cùng evidence có manual lookup đạt 8,6/13; khoảng cách này chỉ ra lỗi còn ở
+planning, candidate/evidence và phân bổ kết quả, không phải lý do để bịa GT.
+GT legacy chưa human-verified không được biến thành tín hiệu promotion.
 
 ## Goals
 
-- Duy trì retrieval, Q&A và TRAKE có thể replay với evidence, provenance và
-  runtime fingerprint.
-- Chỉ promotion khi GT đã được xác minh, còn GT legacy chỉ phục vụ phân tích.
-- Đóng băng input 25 query vòng 1 và manifest `batch1_holdout13` để so sánh
-  thay đổi mà không sửa query đang vận hành.
+- Trong mốc triển khai 3 ngày, nâng pipeline tự động lên 10–13/13 trên
+  `batch1_holdout13` đã đóng băng, với trace/evidence có thể replay.
+- Dùng một entrypoint `solve_query()` và trace thống nhất cho KIS, Q&A, TRAKE;
+  trace đủ phân loại `retrieval_miss`, `wrong_frame`, `qa_reasoning`,
+  `missing_evidence`, `trake_order` và `format`.
+- Với KIS, tăng độ phủ bằng multi-anchor trung thành query; với Q&A, giữ
+  candidate-specific hypotheses gắn evidence thay vì một đáp án global.
+- Chỉ promotion bằng GT `verified` có provenance; GT legacy chỉ dùng phân tích.
 
 ## Non-goals
 
-- Không tạo hoặc suy đoán ground truth mới.
-- Không đổi CLIP, reindex ES/Milvus, tải raw video, hay thêm VLM rerank KIS.
-- Không phát triển AVS/KISC/UI thi đấu trước khi qua sơ tuyển.
+- Không tạo, suy đoán hay nâng trạng thái ground truth chưa human-verified.
+- Không đổi CLIP, reindex ES/Milvus, tải raw video, thêm generic KIS VLM rerank
+  hoặc dense-frame TRAKE.
+- Không đầu tư AVS/KISC/UI thi đấu, tự chọn provider/model LLM, hoặc dự báo điểm
+  thi từ regression nội bộ.
 
 ## User stories
 
-- Với vai trò operator, tôi chạy đánh giá phân tích trên GT legacy và thấy rõ
-  nó chưa đủ điều kiện promotion.
-- Với vai trò operator, tôi không thể chạy promotion khi còn một nhãn `unknown`
-  hoặc thiếu provenance xác minh.
-- Với vai trò operator, tôi có thể truy lại đúng 25 query vòng 1 và 13 query
-  holdout đã chọn từ artefact có provenance.
+- Operator chạy một query bất kỳ qua runner chung, xem answers, query plan,
+  source ranks/contributions, Q&A hypotheses, timing, failure class và runtime
+  fingerprint trong trace.
+- Operator chạy KIS có mô tả phức tạp, nhận tối đa ba anchor ngắn, trung thành
+  với query; planner lỗi phải fallback đường hiện hành.
+- Operator chạy Q&A, nhận portfolio theo evidence canonical của từng hypothesis;
+  không có hypothesis hợp lệ thì fail/retryable, không sinh ZIP một phần.
+- Operator chạy phân tích trên GT legacy và thấy rõ không đủ promotion; cờ
+  promotion từ chối nhãn `unknown`, provenance thiếu hoặc GT parse bị mất.
 
 ## Functional requirements
 
-- Schema GT hỗ trợ `verification_status`, `provenance`, `verified_by` và
-  `verified_at`; dữ liệu cũ thiếu các field này phải đọc được là `unknown`.
-- Giá trị `verified` phải có đủ provenance, người xác minh và thời điểm xác minh.
-- `python -m dev_set.tools.run_evaluation --promotion` phải từ chối nếu bất kỳ
-  GT đã nạp nào không `verified`; chạy không có cờ này là phân tích và phải in
-  trạng thái không đủ điều kiện khi dùng GT legacy.
-- Artefact query vòng 1 phải chứa đủ 25 query từ `HEAD:data/queries/sotuyen1_p1.jsonl`
-  cùng commit, blob hash và số bản ghi nguồn.
-- Manifest `batch1_holdout13` phải có đúng 10 KIS và 3 QA; mỗi entry mang
-  `unknown` đến khi human verification hoàn tất.
+- Schema GT hỗ trợ `verification_status`, `provenance`, `verified_by`,
+  `verified_at`; GT cũ thiếu field đọc là `unknown`, còn `verified` cần đủ audit
+  trail. Promotion fail-closed khi còn nhãn chưa verified hoặc query thiếu GT.
+- Đóng băng đủ 25 query vòng 1 từ `HEAD:data/queries/sotuyen1_p1.jsonl` và
+  manifest `batch1_holdout13` gồm 10 KIS + 3 QA. Nhãn chưa xác minh giữ
+  `unknown`; video-disjoint chỉ được khẳng định ở mức provenance dữ liệu có sẵn.
+- `backend/tasks/runner.py::solve_query(query, total=100)` là entrypoint chung;
+  `run.py` và evaluator dùng nó mà không đổi CLI, checkpoint hay submission.
+- KIS planner có tối đa 3 anchor, tối đa 60 token CLIP thực tế; chặn màu/số/số
+  lượng mới, encode từng anchor riêng, hợp nhất RRF k=7 ở shot/video và chỉ áp
+  temporal bonus mềm mặc định 1,25 cho query có thứ tự.
+- Q&A planner phân loại `visual_count`, `visual_read`, `ocr`, `asr`, `metadata`,
+  `visual_attribute`; mỗi `QAHypothesis` phải gắn answer, video/shot/keyframe/frame,
+  confidence, evidence hash và provenance. Cache key gồm query/model/prompt/config/evidence.
+- Release gate kiểm zero-crash, GT verified, overall >=0.82, KIS >=0.82,
+  QA >=0.75 và regression không giảm; release artefact giữ commit, config,
+  trace, evidence cache, runtime fingerprint, scorer policy, ZIP checksum và
+  lệnh tái lập.
 
 ## Non-functional requirements
 
-- Gate phải fail closed, có thông báo nêu rõ query chưa xác minh.
-- Metadata và manifest là UTF-8, deterministic, dễ audit, không gọi LLM hay DB.
-- Tương thích với tất cả GT legacy và không thay đổi cách tính metric phân tích.
+- Không gọi LLM/DB để xác minh manifest/gate; metadata UTF-8, deterministic,
+  replay được và các job vẫn checkpoint/resume an toàn.
+- Mọi thay đổi hành vi có TDD, baseline và query-level diff; lỗi một nguồn search
+  không kéo sập toàn query.
+- Không đổi provider/model tự động; runtime fingerprint chặn resume trộn model,
+  mode Q&A hay config.
 
 ## Constraints
 
 - `frame_id` nộp chỉ lấy từ `frame_map`; ordinal raw không được suy thành frame.
-- LLM chỉ qua `backend/llm/adapter.py`; model release do operator đặt bằng biến
-  môi trường và fingerprint không được trộn khi resume.
-- Tất cả query/label chưa human-verified là `unknown`; không dùng chúng để
-  promotion hoặc suy đoán đáp án.
+- LLM chỉ qua `backend/llm/adapter.py`; vector vẫn L2-normalize/COSINE và mọi
+  trọng số/knob nằm trong `data/config/`.
+- CLIP tối đa 77 token; anchor/query expansion không được thêm chi tiết không có
+  trong query gốc. Q&A release giữ `QA_INFERENCE_MODE=legacy` đến khi two-stage
+  replay qua tune + holdout trên evidence cố định.
+- Thời hạn 3 ngày chỉ cho phép thay đổi có evidence; khi còn dưới 24 giờ chỉ sửa
+  crash, format, mất dữ liệu, sai mapping hoặc P0.
 
 ## Acceptance criteria
 
-- Test schema chứng minh GT legacy thành `unknown`, `verified` thiếu audit trail
-  bị từ chối, và promotion chỉ nhận toàn bộ GT `verified`.
-- Chạy focused test và full suite xanh trong `.venv` của repo.
-- `dev_set/manifests/batch1_round1_queries.json` có đúng 25 query, provenance
-  tới commit `b8090cd85133433cbaa5a37d542abea48c778f5c` và blob
-  `7c7726920406cd3e26703dd33179fa6350f7b507`.
-- `dev_set/manifests/batch1_holdout13.json` có 10 KIS, 3 QA, và ghi rõ phép
-  kiểm video-disjoint chỉ dựa trên GT legacy, không phải xác minh con người.
+- Product run tự động đạt 10–13/13 trên `batch1_holdout13`, thay vì baseline
+  6,8/13, và giải thích được khoảng cách với mức 8,6/13 khi manual lookup.
+- Test schema/gate chứng minh GT legacy là `unknown`, audit trail của `verified`
+  là bắt buộc, và promotion chặn GT unknown/missing trước ES/Milvus.
+- KIS có test anchor/token/fidelity/fallback/RRF/temporal; Q&A có test answer
+  mode, evidence pinning, sentinel và portfolio; runner có test parity,
+  fingerprint/cache; release có zero-crash/GT/threshold/regression test.
+- Mọi ZIP release qua validator, không thiếu query/evidence, có đủ receipt và
+  SHA-256; chỉ một portfolio Q&A được chọn để nộp.
 
 ## Risks
 
-- GT legacy có thể chứa frame/video/answer sai hoặc không đầy đủ; gate phải giữ
-  chúng ngoài promotion cho đến khi có provenance human review.
-- Video-disjoint từ GT legacy là bằng chứng cấu trúc tạm thời, không xác nhận
-  nội dung đúng; manifest giữ trạng thái `unknown` để tránh diễn giải quá mức.
-- Score nội bộ không dự báo Public/điểm thi; chỉ dùng để phát hiện regression.
+- GT legacy có thể sai/incomplete; không được dùng nó promotion hay diễn giải
+  score nội bộ như dự báo điểm thi.
+- Public chỉ chấm 50% đáp án nên dao động nhỏ không đủ promotion; cần giữ replay
+  và gate đầy đủ thay vì tối ưu theo Public.
+- 10–13/13 là mục tiêu vận hành, không phải xác nhận đã đạt khi GT chưa verified;
+  manual lookup 8,6/13 chỉ là evidence về headroom, không phải hành vi tự động.
+- LLM/evidence không xác định, service lỗi hoặc mapping sai có thể làm kết quả
+  không replay được; trace, cache và runtime fingerprint là phòng vệ bắt buộc.

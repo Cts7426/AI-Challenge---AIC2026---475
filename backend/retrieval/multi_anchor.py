@@ -13,6 +13,7 @@ from backend.retrieval.query_understanding import count_clip_tokens, translate
 from backend.retrieval.search import search
 from data.config.multi_anchor import (
     COLOR_MARKER,
+    COMMON_COLOR_TERMS,
     COMPLEX_MARKERS,
     COMPLEX_MARKER_MIN,
     COUNT_CLASSIFIERS,
@@ -89,7 +90,8 @@ def _is_ordered(query_vi: str) -> bool:
     if any(_marker_occurrences(query_vi, marker) for marker in ORDER_MARKERS):
         return True
     return any(
-        _marker_occurrences(query_vi, first) and _marker_occurrences(query_vi, last)
+        any(first_pos < last_pos for first_pos in _marker_positions(query_vi, first)
+            for last_pos in _marker_positions(query_vi, last))
         for first, last in ORDER_MARKER_PAIRS
     )
 
@@ -104,14 +106,20 @@ def _marker_occurrences(text: str, marker: str) -> int:
     """Đếm marker theo token phrase nên dấu phẩy/chấm không làm mất match."""
     if marker in {";", "→"}:
         return text.count(marker)
+    return len(_marker_positions(text, marker))
+
+
+def _marker_positions(text: str, marker: str) -> tuple[int, ...]:
+    """Trả token offset của phrase để kiểm cả tồn tại lẫn thứ tự marker."""
     tokens = _content_tokens(text)
     marker_tokens = _content_tokens(marker)
     width = len(marker_tokens)
     if width == 0:
-        return 0
-    return sum(
-        tokens[index:index + width] == marker_tokens
+        return ()
+    return tuple(
+        index
         for index in range(len(tokens) - width + 1)
+        if tokens[index:index + width] == marker_tokens
     )
 
 
@@ -162,26 +170,45 @@ def _preserves_color_context(
 ) -> bool:
     """Giữ màu cạnh đúng head noun mà không dùng danh sách tên màu đóng."""
     marker = COLOR_MARKER.casefold()
-    declared_colors = {
-        tokens[index + 1]
+    color_phrases = {
+        (tokens[index + 1],)
         for tokens in (original_tokens, anchor_tokens)
         for index, token in enumerate(tokens[:-1])
         if token == marker
     }
-    for index, token in enumerate(anchor_tokens):
-        if token not in declared_colors:
-            continue
-        if len(anchor_tokens) == 1:
-            context = (token,)
-        elif index == 0:
-            context = anchor_tokens[:2]
-        elif anchor_tokens[index - 1] == marker and index >= 2:
-            context = anchor_tokens[index - 2:index + 1]
-        else:
-            context = anchor_tokens[index - 1:index + 1]
-        if not _contains_token_sequence(original_tokens, context):
-            return False
+    color_phrases.update(_content_tokens(term) for term in COMMON_COLOR_TERMS)
+    for color_phrase in sorted(color_phrases, key=len, reverse=True):
+        width = len(color_phrase)
+        for index in range(len(anchor_tokens) - width + 1):
+            if anchor_tokens[index:index + width] != color_phrase:
+                continue
+            if len(anchor_tokens) == width:
+                context = color_phrase
+            elif index == 0:
+                context = anchor_tokens[:width + 1]
+            elif anchor_tokens[index - 1] == marker and index >= 2:
+                context = anchor_tokens[index - 2:index + width]
+            else:
+                context = anchor_tokens[index - 1:index + width]
+            if not _contains_token_sequence(original_tokens, context):
+                return False
     return True
+
+
+def _chronological_anchors(
+    query_vi: str, anchors: tuple[QueryAnchor, ...]
+) -> tuple[tuple[QueryAnchor, ...], bool]:
+    """Xử lý hẹp `A sau khi B`; case không chứng minh được thì tắt bonus."""
+    after_positions = _marker_positions(query_vi, "sau khi")
+    if after_positions:
+        if len(after_positions) != 1 or len(anchors) != 2:
+            return anchors, False
+        ordered = anchors if after_positions[0] == 0 else tuple(reversed(anchors))
+        return tuple(
+            QueryAnchor(index, anchor.query_vi, anchor.query_en, anchor.clip_tokens)
+            for index, anchor in enumerate(ordered, 1)
+        ), True
+    return anchors, _is_ordered(query_vi)
 
 
 def _is_faithful(anchor_vi: str, original_vi: str) -> bool:
@@ -263,12 +290,13 @@ def plan_query(query_vi: str, query_en: str | None = None) -> QueryPlan:
     except Exception:
         return _single_plan(query_vi, query_en, "translation_error")
 
+    chronological, ordered = _chronological_anchors(query_vi, tuple(anchors))
     return QueryPlan(
         strategy="multi",
         query_vi=query_vi,
         query_en=query_en,
-        anchors=tuple(anchors),
-        ordered=_is_ordered(query_vi),
+        anchors=chronological,
+        ordered=ordered,
     )
 
 

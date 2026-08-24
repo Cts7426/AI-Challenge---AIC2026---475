@@ -38,9 +38,13 @@ ORDER_MARKER_PAIRS = (
 QUANTIFIER_TERMS = (
     "không", "một", "hai", "ba", "bốn", "tư", "năm", "sáu", "bảy",
     "tám", "chín", "mười", "chục", "trăm", "nghìn", "vài", "nhiều", "ít",
-    "duy nhất", "nhóm", "đám", "hàng loạt",
+    "duy nhất", "nhóm", "đám", "hàng loạt", "đôi", "cặp",
 )
 COUNT_CLASSIFIERS = (
     "chiếc", "cái", "con", "tấm", "quả", "bộ", "đôi", "cặp", "chùm",
 )
 COLOR_MARKER = "màu"
+COMMON_COLOR_TERMS = (
+    "xanh lá", "xanh dương", "xanh lam", "đỏ", "cam", "vàng", "xanh",
+    "tím", "hồng", "nâu", "đen", "trắng", "xám", "ghi", "bạc", "be", "kem",
+)

@@ -291,6 +291,28 @@ def test_fidelity_khong_chuyen_mau_do_cua_xe_sang_ao():
     assert module._is_faithful("Người mặc áo đỏ đứng cạnh xe", original) is False
 
 
+def test_fidelity_mau_khong_co_marker_van_giu_dung_head_noun():
+    """Bắt lỗi màu phổ biến không có chữ 'màu' bị chuyển từ xe sang áo."""
+    module = _module()
+    original = "Một người mặc áo trắng đứng cạnh xe đỏ"
+
+    assert module._is_faithful("Người mặc áo đỏ", original) is False
+
+
+@pytest.mark.parametrize(
+    ("anchor", "original"),
+    [
+        ("Đôi người đứng cạnh quầy", "Một người mang đôi giày đứng cạnh quầy"),
+        ("Cặp người đứng cạnh quầy", "Một người cầm cặp vé đứng cạnh quầy"),
+    ],
+)
+def test_fidelity_doi_cap_khong_duoc_chuyen_sang_head_nguoi(anchor, original):
+    """Bắt lỗi đôi/cặp chỉ là classifier nên không được bind local context."""
+    module = _module()
+
+    assert module._is_faithful(anchor, original) is False
+
+
 def test_ordered_marker_nhan_dau_cau_va_punctuation(monkeypatch):
     """Bắt lỗi marker tuần tự chỉ match khi có space literal hai bên."""
     module = _module()
@@ -320,6 +342,104 @@ def test_cuoi_cung_chi_vi_tri_trong_hang_khong_phai_event_order():
     )
 
     assert module._is_ordered(query_vi) is False
+
+
+def test_ordered_pair_dao_vi_tri_khong_duoc_bat_bonus():
+    """Bắt lỗi chỉ kiểm pair tồn tại mà không kiểm first đứng trước last."""
+    module = _module()
+    query_vi = "Cuối cùng người bước ra, đầu tiên người mở cửa"
+
+    assert module._is_ordered(query_vi) is False
+
+
+def test_sau_khi_hai_anchor_duoc_chuan_hoa_sang_chronology(monkeypatch):
+    """Bắt lỗi ordinal giữ surface A→B dù 'A sau khi B' có chronology B→A."""
+    module = _module()
+    query_vi = "Người rời đi sau khi đóng cửa"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người rời đi", "Đóng cửa"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+
+    plan = module.plan_query(query_vi)
+
+    assert plan.strategy == "multi"
+    assert plan.ordered is True
+    assert [(a.ordinal, a.query_vi) for a in plan.anchors] == [
+        (1, "Đóng cửa"),
+        (2, "Người rời đi"),
+    ]
+
+
+def test_sau_khi_fusion_khong_thuong_video_dao_chronology(monkeypatch):
+    """Bắt lỗi timestamp tăng theo surface A→B được thưởng sai chronology B→A."""
+    module = _module()
+    query_vi = "Người rời đi sau khi đóng cửa"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người rời đi", "Đóng cửa"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+    calls: list[str] = []
+
+    def fake_search(anchor_vi, **kwargs):
+        calls.append(anchor_vi)
+        if anchor_vi == "Đóng cửa":
+            return [
+                _fusion_row("L01_V001", "correct-b", "correct-b", 100),
+                _fusion_row("L02_V001", "wrong-b", "wrong-b", 200),
+            ]
+        return [
+            _fusion_row("L02_V001", "wrong-a", "wrong-a", 100),
+            _fusion_row("L01_V001", "correct-a", "correct-a", 200),
+        ]
+
+    monkeypatch.setattr(module, "search", fake_search)
+
+    plan = module.plan_query(query_vi)
+    rows = module.search_multi(plan, top_k=10)
+
+    assert calls == ["Đóng cửa", "Người rời đi"]
+    assert all(
+        row["temporal_order_match"] is True
+        for row in rows if row["video_id"] == "L01_V001"
+    )
+    assert all(
+        row["temporal_order_match"] is False
+        for row in rows if row["video_id"] == "L02_V001"
+    )
+    assert [anchor["query_vi"] for anchor in rows[0]["query_anchors"]] == [
+        "Đóng cửa", "Người rời đi"
+    ]
+
+
+def test_sau_khi_ba_anchor_mo_ho_tat_temporal_bonus(monkeypatch):
+    """Bắt lỗi parser hẹp vẫn đoán chronology khi có hơn hai anchor."""
+    module = _module()
+    query_vi = "Người rời đi sau khi đóng cửa rồi đèn tắt"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người rời đi", "Đóng cửa", "Đèn tắt"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+
+    plan = module.plan_query(query_vi)
+
+    assert plan.strategy == "multi"
+    assert plan.ordered is False
 
 
 def test_payload_extra_property_fallback_single_giu_query_en(monkeypatch):

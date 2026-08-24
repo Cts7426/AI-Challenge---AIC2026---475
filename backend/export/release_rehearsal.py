@@ -10,13 +10,16 @@ import hashlib
 import json
 import os
 import subprocess
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from backend.export.exporter import Issue, QuerySubmission, write_submission_zip
+from backend.export.qa_variants import apply_qa_submission_policy
 from backend.tasks.runner import runtime_fingerprint, runtime_manifest
+from data.config.submit_format import Answer
 from data.config.release_gate import (
     PROMOTION_SCORER_POLICY,
     RELEASE_CONFIG_SNAPSHOT_SCHEMA_VERSION,
@@ -24,6 +27,7 @@ from data.config.release_gate import (
     RELEASE_RECEIPT_SCHEMA_VERSION,
     PROMOTION_SCORER_CONTRACT,
 )
+from dev_set.tools.scorer_contract import scorer_contract_sha256
 
 
 @dataclass(frozen=True)
@@ -112,9 +116,8 @@ def promotion_audit_is_valid(audit: Mapping[str, Any]) -> bool:
 
 
 def _current_scorer_source_sha256() -> str:
-    """Băm đúng scorer source hiện tại để audit cũ không mở khóa code mới."""
-    root = Path(__file__).resolve().parents[2]
-    return _sha256_file(root / "dev_set" / "tools" / "scoring.py")
+    """Băm toàn bộ scorer contract để audit cũ không mở khóa code mới."""
+    return scorer_contract_sha256()
 
 
 def release_context_reasons(
@@ -419,6 +422,7 @@ def build_evidence_cache_manifest(cache_dir: Path) -> dict[str, Any]:
                 "full_query_sha256": identity.get("full_query_sha256"),
                 "evidence_digest": identity.get("evidence_digest"),
                 "runtime_fingerprint": identity.get("runtime_fingerprint"),
+                "provenance": identity.get("provenance"),
             })
     return {
         "schema_version": RELEASE_EVIDENCE_CACHE_MANIFEST_SCHEMA_VERSION,
@@ -467,6 +471,71 @@ def _git_commit() -> str:
 
 def _path_receipt(path: Path) -> str:
     return path.resolve().as_posix()
+
+
+def _answer_identity(answer: Any) -> tuple[str, tuple[int, ...], str | None, str | None]:
+    """Canonical row dùng so trace với checkpoint/submission trước khi ZIP."""
+    if isinstance(answer, Mapping):
+        return (
+            str(answer.get("video_id") or ""),
+            tuple(int(frame) for frame in (answer.get("frame_ids") or [])),
+            answer.get("answer_text"),
+            answer.get("keyframe_id"),
+        )
+    return (
+        str(answer.video_id), tuple(int(frame) for frame in answer.frame_ids),
+        answer.answer_text, answer.keyframe_id,
+    )
+
+
+def _submission_trace_reasons(
+    submissions: Sequence[QuerySubmission],
+    traces: Sequence[Mapping[str, Any]],
+    *,
+    submission_policy: str,
+) -> tuple[dict[str, Any], ...]:
+    """Chỉ nhận đúng rows từ latest trace và transform QA policy deterministic."""
+    latest = _latest_trace_by_query(traces)
+    reasons: list[dict[str, Any]] = []
+    for submission in submissions:
+        trace = latest.get(submission.query_id)
+        raw_answers = trace.get("answers") if isinstance(trace, Mapping) else None
+        if not isinstance(raw_answers, list):
+            reasons.append(_reason(
+                "submission_trace_mismatch",
+                f"{submission.query_id} trace thiếu answers canonical",
+                query_id=submission.query_id,
+            ))
+            continue
+        expected_answers = [
+            Answer(
+                video_id=str(row.get("video_id") or ""),
+                frame_ids=tuple(int(frame) for frame in (row.get("frame_ids") or [])),
+                answer_text=row.get("answer_text"),
+                keyframe_id=row.get("keyframe_id"),
+            )
+            for row in raw_answers if isinstance(row, Mapping)
+        ]
+        if len(expected_answers) != len(raw_answers):
+            reasons.append(_reason(
+                "submission_trace_mismatch",
+                f"{submission.query_id} trace answers sai schema",
+                query_id=submission.query_id,
+            ))
+            continue
+        if submission.task_type == "QA":
+            expected_answers = apply_qa_submission_policy(
+                expected_answers, submission_policy,
+            )
+        expected = tuple(_answer_identity(answer) for answer in expected_answers)
+        actual = tuple(_answer_identity(answer) for answer in submission.answers)
+        if actual != expected:
+            reasons.append(_reason(
+                "submission_trace_mismatch",
+                f"{submission.query_id} rows sắp ZIP khác trace/policy đã gate",
+                query_id=submission.query_id,
+            ))
+    return tuple(reasons)
 
 
 def create_release_package(
@@ -561,6 +630,14 @@ def create_release_package(
                 batch=batch.runtime_fingerprint,
             ),),
         )
+    trace_reasons = _submission_trace_reasons(
+        submissions, _latest_trace_by_query(traces).values(),
+        submission_policy=submission_policy,
+    )
+    if trace_reasons:
+        raise ReleaseBlocked(
+            "submission khác canonical trace/evidence", reasons=trace_reasons,
+        )
     if not query_manifest_path.is_file():
         raise ReleaseBlocked(
             "query manifest không tồn tại",
@@ -583,77 +660,127 @@ def create_release_package(
         )
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    config_snapshot_path = out_dir / "release_config_snapshot.json"
-    _atomic_write_json(config_snapshot_path, capture_config_snapshot())
-
-    zip_path, post_write_issues = write_zip(
-        submissions,
-        out_dir,
-        zip_name=zip_name,
-        expect_answers=expect_answers,
-        expected_n=expected_n,
-    )
-    if post_write_issues:
-        raise ReleaseBlocked(
-            "ZIP vừa ghi không qua validator; không tạo receipt",
-            reasons=(_reason(
-                "zip_validator_failure", "ZIP không sử dụng được",
-                issues=[_issue_dict(issue) for issue in post_write_issues],
-            ),),
-        )
-
-    if batch.trace_sha256 is None or _sha256_file(trace_path) != batch.trace_sha256:
-        raise ReleaseBlocked(
-            "trace thay đổi sau khi gate; không tạo receipt",
-            reasons=(_reason(
-                "trace_changed_after_gate",
-                "trace trên đĩa không còn là snapshot đã được gate",
-            ),),
-        )
-
-    gt_manifest = (
-        {"status": "not_applicable"}
-        if gt_manifest_path is None
-        else {
-            "status": "provided",
-            "path": _path_receipt(gt_manifest_path),
-            "sha256": _sha256_file(gt_manifest_path),
-        }
-    )
-    receipt = {
-        "schema_version": RELEASE_RECEIPT_SCHEMA_VERSION,
-        "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "commit": commit,
-        "runtime_fingerprint": promotion_audit["current_runtime_fingerprint"],
-        "config_snapshot": {
-            "path": _path_receipt(config_snapshot_path),
-            "sha256": _sha256_file(config_snapshot_path),
-        },
-        "trace": {
-            "path": _path_receipt(trace_path),
-            "sha256": batch.trace_sha256,
-        },
-        "evidence_cache_manifest": {
-            "path": _path_receipt(evidence_cache_manifest_path),
-            "sha256": _sha256_file(evidence_cache_manifest_path),
-        },
-        "scorer_policy": promotion_audit["scorer_policy"],
-        "scorer_contract": PROMOTION_SCORER_CONTRACT,
-        "scorer_source_sha256": promotion_audit["scorer_source_sha256"],
-        "submission_policy": submission_policy,
-        "promotion_audit": {
-            "status": promotion_audit.get("status"),
-            "audit_sha256": promotion_audit.get("audit_sha256"),
-        },
-        "query_manifest": {
-            "path": _path_receipt(query_manifest_path),
-            "sha256": _sha256_file(query_manifest_path),
-        },
-        "gt_manifest": gt_manifest,
-        "zip": {"path": _path_receipt(zip_path), "sha256": _sha256_file(zip_path)},
-        "validator": {"status": "valid", "issues": []},
-        "reproduction_command": reproduction_command,
-    }
+    transaction_id = f"{os.getpid()}.{uuid.uuid4().hex}"
+    zip_path = out_dir / zip_name
     receipt_path = zip_path.with_suffix(".receipt.json")
-    _atomic_write_json(receipt_path, receipt)
-    return receipt_path
+    config_snapshot_path = out_dir / "release_config_snapshot.json"
+    staging_zip = out_dir / f".{zip_name}.{transaction_id}.staging.zip"
+    staging_receipt = out_dir / f".{receipt_path.name}.{transaction_id}.staging.json"
+    staging_config = out_dir / f".{config_snapshot_path.name}.{transaction_id}.staging.json"
+    staging_paths = (staging_zip, staging_receipt, staging_config)
+    backup_paths: dict[Path, Path] = {}
+    promoted_paths: set[Path] = set()
+
+    try:
+        _atomic_write_json(staging_config, capture_config_snapshot())
+        written_zip, post_write_issues = write_zip(
+            submissions,
+            out_dir,
+            zip_name=staging_zip.name,
+            expect_answers=expect_answers,
+            expected_n=expected_n,
+        )
+        if written_zip.resolve() != staging_zip.resolve():
+            raise ReleaseBlocked(
+                "ZIP writer không tuân staging path",
+                reasons=(_reason("zip_staging_mismatch", str(written_zip)),),
+            )
+        if post_write_issues:
+            raise ReleaseBlocked(
+                "ZIP vừa ghi không qua validator; không tạo receipt",
+                reasons=(_reason(
+                    "zip_validator_failure", "ZIP không sử dụng được",
+                    issues=[_issue_dict(issue) for issue in post_write_issues],
+                ),),
+            )
+
+        if batch.trace_sha256 is None or _sha256_file(trace_path) != batch.trace_sha256:
+            raise ReleaseBlocked(
+                "trace thay đổi sau khi gate; không tạo receipt",
+                reasons=(_reason(
+                    "trace_changed_after_gate",
+                    "trace trên đĩa không còn là snapshot đã được gate",
+                ),),
+            )
+
+        gt_manifest = (
+            {"status": "not_applicable"}
+            if gt_manifest_path is None
+            else {
+                "status": "provided",
+                "path": _path_receipt(gt_manifest_path),
+                "sha256": _sha256_file(gt_manifest_path),
+            }
+        )
+        receipt = {
+            "schema_version": RELEASE_RECEIPT_SCHEMA_VERSION,
+            "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "commit": commit,
+            "runtime_fingerprint": promotion_audit["current_runtime_fingerprint"],
+            "config_snapshot": {
+                "path": _path_receipt(config_snapshot_path),
+                "sha256": _sha256_file(staging_config),
+            },
+            "trace": {
+                "path": _path_receipt(trace_path),
+                "sha256": batch.trace_sha256,
+            },
+            "evidence_cache_manifest": {
+                "path": _path_receipt(evidence_cache_manifest_path),
+                "sha256": _sha256_file(evidence_cache_manifest_path),
+            },
+            "scorer_policy": promotion_audit["scorer_policy"],
+            "scorer_contract": PROMOTION_SCORER_CONTRACT,
+            "scorer_source_sha256": promotion_audit["scorer_source_sha256"],
+            "submission_policy": submission_policy,
+            "promotion_audit": {
+                "status": promotion_audit.get("status"),
+                "audit_sha256": promotion_audit.get("audit_sha256"),
+            },
+            "query_manifest": {
+                "path": _path_receipt(query_manifest_path),
+                "sha256": _sha256_file(query_manifest_path),
+            },
+            "gt_manifest": gt_manifest,
+            "zip": {
+                "path": _path_receipt(zip_path),
+                "sha256": _sha256_file(staging_zip),
+            },
+            "validator": {"status": "valid", "issues": []},
+            "reproduction_command": reproduction_command,
+        }
+        _atomic_write_json(staging_receipt, receipt)
+
+        replacements = (
+            (staging_config, config_snapshot_path),
+            (staging_zip, zip_path),
+            (staging_receipt, receipt_path),
+        )
+        try:
+            for _, final_path in replacements:
+                if final_path.exists():
+                    backup = out_dir / f".{final_path.name}.{transaction_id}.backup"
+                    final_path.replace(backup)
+                    backup_paths[final_path] = backup
+            for staging, final_path in replacements:
+                staging.replace(final_path)
+                promoted_paths.add(final_path)
+        except Exception:
+            for _, final_path in reversed(replacements):
+                if final_path in promoted_paths and final_path.exists():
+                    final_path.unlink()
+                backup = backup_paths.get(final_path)
+                if backup is not None and backup.exists() and not final_path.exists():
+                    backup.replace(final_path)
+            raise
+        for backup in backup_paths.values():
+            if backup.exists():
+                backup.unlink()
+        return receipt_path
+    finally:
+        for staging in staging_paths:
+            if staging.exists():
+                staging.unlink()
+        for final_path, backup in backup_paths.items():
+            if backup.exists() and not final_path.exists():
+                backup.replace(final_path)

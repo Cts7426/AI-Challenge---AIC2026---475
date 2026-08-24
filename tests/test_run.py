@@ -22,6 +22,7 @@ import pytest
 
 import run as R
 from data.config.submit_format import Answer
+from dev_set.tools.scorer_contract import scorer_contract_sha256
 
 
 # ------------------------------------------------------------------ tiện ích
@@ -388,6 +389,28 @@ def test_only_voi_query_id_khong_ton_tai_thi_bao_loi(chay):
     assert ma == 2 and goi == []
 
 
+def test_only_id_la_dong_log_truoc_khi_return(monkeypatch, tmp_path, viet_queries):
+    """Main được gọi lặp trong process dài không được giữ file handle của Log."""
+    opened = []
+    real_log = R.Log
+
+    class TrackingLog(real_log):
+        def __init__(self, path):
+            super().__init__(path)
+            opened.append(self)
+
+    monkeypatch.setattr(R, "Log", TrackingLog)
+    out = tmp_path / "only-invalid"
+    monkeypatch.setattr(R.sys, "argv", [
+        "run.py", "--queries", str(viet_queries([KIS])), "--out", str(out),
+        "--only", "khong_co",
+    ])
+
+    assert R.main() == 2
+    assert len(opened) == 1
+    assert opened[0].f.closed is True
+
+
 # --------------------------------------------------------------------- --zip
 
 def test_zip_dung_chuan_btc(chay):
@@ -403,9 +426,7 @@ def test_release_rehearsal_tao_receipt_khi_promotion_va_batch_sach(chay, tmp_pat
         "scorer_contract": "btc-final-score-v1",
         "current_runtime_fingerprint": R.build_runtime_fingerprint(),
         "scorer_policy": "semantic",
-        "scorer_source_sha256": hashlib.sha256(
-            (R.REPO_ROOT / "dev_set/tools/scoring.py").read_bytes()
-        ).hexdigest(),
+        "scorer_source_sha256": scorer_contract_sha256(),
         "input_sha256": {
             "holdout_manifest": "1" * 64,
             "regression_manifest": "2" * 64,

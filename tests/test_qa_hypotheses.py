@@ -641,3 +641,47 @@ def test_runtime_fingerprint_phu_code_qa_portfolio(monkeypatch):
 
     monkeypatch.setattr(runner, "_source_hash", changed_hash)
     assert runner.runtime_fingerprint() != before
+
+
+def test_visual_count_persist_cache_identity_de_release_replay(monkeypatch, tmp_path):
+    """Detector không gọi provider nhưng vẫn phải có cache record cùng evidence/runtime."""
+    from backend.tasks import qa
+
+    cache_dir = tmp_path / "cache"
+    monkeypatch.setenv("QA_HYPOTHESIS_CACHE_DIR", str(cache_dir))
+    monkeypatch.delenv("LLM_NO_CACHE", raising=False)
+    monkeypatch.setattr(
+        qa, "parse_question",
+        lambda _: qa.QuestionParts("sự kiện", "Có bao nhiêu người?", "visual_count"),
+    )
+    monkeypatch.setattr(qa, "search", lambda *a, **kw: [{
+        "shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10",
+    }])
+    monkeypatch.setattr(qa, "_expand_within_video", lambda *a, **kw: [])
+    evidence_digest = "d" * 64
+    monkeypatch.setattr(qa, "collect_evidence", lambda *a, **kw: qa.Evidence(
+        "L21_V001#s1", "L21_V001", [], [], "", 3, [], 10, evidence_digest,
+    ))
+    monkeypatch.setattr(qa, "load_frame_map", lambda: {"L21_V001#k10": 10})
+    qa._reverse_frame_map.cache_clear()
+    try:
+        _, answer, trace = qa.qa_pipeline(
+            "Có bao nhiêu người trong sự kiện?", return_trace=True,
+            runtime_fingerprint="r" * 64,
+        )
+    finally:
+        qa._reverse_frame_map.cache_clear()
+
+    assert answer == "3"
+    records = [json.loads(path.read_text(encoding="utf-8")) for path in cache_dir.glob("*.json")]
+    detector = next(record for record in records if record["identity"].get("cache_kind") == "detector")
+    identity = detector["identity"]
+    assert identity["evidence_digest"] == evidence_digest
+    assert identity["runtime_fingerprint"] == "r" * 64
+    assert identity["query_sha256"] == qa.hashlib.sha256(
+        "Có bao nhiêu người?".encode("utf-8")
+    ).hexdigest()
+    assert identity["full_query_sha256"] == qa.hashlib.sha256(
+        "Có bao nhiêu người trong sự kiện?".encode("utf-8")
+    ).hexdigest()
+    assert detector["provenance"] == trace["hypotheses"][0]["provenance"]

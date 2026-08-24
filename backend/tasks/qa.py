@@ -1133,6 +1133,8 @@ def _qa_cache_put(key: str, identity: dict[str, object], outputs: list[str]) -> 
         "identity": identity,
         "outputs": outputs,
     }
+    if identity.get("provenance"):
+        record["provenance"] = identity["provenance"]
     try:
         directory.mkdir(parents=True, exist_ok=True)
         temp_path.write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
@@ -1377,6 +1379,13 @@ def _try_shot(
     và frame nộp hoàn toàn do thứ hạng shot của allocator quyết định.
     """
     ev = collect_evidence(hit, question_vi, evidence_type, needs_images)
+    attempt = _qa_attempt_ctx.get()
+    if isinstance(attempt, dict) and ev.evidence_hash:
+        attempt.update({
+            "evidence_hash": ev.evidence_hash,
+            "evidence_type": evidence_type,
+            "evidence_stage": "image" if ev.frames else "text",
+        })
 
     if evidence_type == "count":
         # `object_count == 0` KHÔNG còn tới được đây: `_object_count()` trả None khi
@@ -1389,9 +1398,44 @@ def _try_shot(
             # self-consistency (detector không "phiếu bầu" nhiều lần).
             if ev.best_frame_idx is None:
                 raise RuntimeError("detector có answer nhưng keyframe không tra được frame tuyệt đối")
+            provenance = (
+                f"{attempt.get('origin', 'direct') if isinstance(attempt, dict) else 'direct'}:"
+                f"detector:{_current_qa_mode()}"
+            )
+            identity = _qa_cache_identity(
+                question_vi,
+                ev,
+                n=0,
+                effort="detector",
+                max_tokens=0,
+                usage_tag="qa.detector.count",
+                runtime_fingerprint=_qa_runtime_fingerprint_ctx.get(),
+                full_query_sha256=(
+                    _qa_full_query_hash_ctx.get()
+                    or hashlib.sha256(question_vi.encode("utf-8")).hexdigest()
+                ),
+            )
+            identity.update({"cache_kind": "detector", "provenance": provenance})
+            key = _qa_cache_key(identity)
+
+            def produce_detector() -> list[str]:
+                return [json.dumps({
+                    "answer": str(ev.object_count),
+                    "answer_vi": str(ev.object_count),
+                    "answer_en": str(ev.object_count),
+                    "evidence_frame_idx": ev.best_frame_idx,
+                    "confidence": 1.0,
+                }, ensure_ascii=False, sort_keys=True)]
+
+            [raw_detector] = _qa_cached_outputs(key, identity, produce_detector)
+            parsed_detector = json.loads(raw_detector)
             direct = QAResult(
-                str(ev.object_count), str(ev.object_count), str(ev.object_count),
-                ev.best_frame_idx, 1.0, "count",
+                str(parsed_detector["answer"]),
+                str(parsed_detector.get("answer_vi", parsed_detector["answer"])),
+                str(parsed_detector.get("answer_en", parsed_detector["answer"])),
+                int(parsed_detector["evidence_frame_idx"]),
+                float(parsed_detector["confidence"]),
+                "count",
             )
             _capture_inference_output(
                 ev,
@@ -1402,7 +1446,7 @@ def _try_shot(
                 raw_count=1,
                 results=[direct],
             )
-            return str(ev.object_count), ev.best_frame_idx, 1.0
+            return direct.answer, direct.evidence_frame_idx, direct.confidence
         print(f"  [cảnh báo] shot {hit.shot_id}: không đếm được bằng detector, hỏi LLM (kém tin cậy hơn)")
 
     mode = _current_qa_mode()

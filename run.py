@@ -487,6 +487,7 @@ def main() -> int:
         la = chon - {q["query_id"] for q in all_queries}
         if la:
             log(f"[đầu vào] --only có query_id không tồn tại: {sorted(la)}")
+            log.dong_lai()
             return 2
         queries = [q for q in all_queries if q["query_id"] in chon]
 

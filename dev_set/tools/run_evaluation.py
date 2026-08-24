@@ -26,10 +26,18 @@ from backend.tasks.runner import (
 
 from data.config.submit_format import Answer
 from data.config.qa_evaluation import DEFAULT_QA_MATCH_POLICY, QA_MATCH_POLICIES
-from data.config.release_gate import PROMOTION_SCORER_CONTRACT
+from data.config.release_gate import (
+    HOLDOUT_MANIFEST_ID,
+    HOLDOUT_QUERY_SET_SHA256,
+    PROMOTION_SCORER_CONTRACT,
+    REGRESSION_MANIFEST_ID,
+    REGRESSION_QUERY_SET_SHA256,
+)
 from dev_set.tools.promotion_provenance import (
     ground_truth_record_sha256,
     ground_truth_set_sha256,
+    is_sha256,
+    query_record_sha256,
     query_set_sha256,
 )
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
@@ -40,6 +48,7 @@ from dev_set.tools.scoring import (
     require_promotion_ground_truth,
     rscore_kis,
 )
+from dev_set.tools.scorer_contract import scorer_contract_sha256
 
 
 RUN_SNAPSHOT_SCHEMA_VERSION = 2
@@ -76,7 +85,9 @@ def _hash_json(payload: dict) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _runtime_snapshot(split: str) -> tuple[dict, dict[str, str], dict[str, str]]:
+def _runtime_snapshot(
+    split: str, *, evaluation_paths: list[Path] | None = None,
+) -> tuple[dict, dict[str, str], dict[str, str]]:
     """Snapshot artefact evaluation; query identity lấy nguyên từ runner chung."""
     configs = {
         cfg.name: cfg.read_text(encoding="utf-8")
@@ -86,19 +97,22 @@ def _runtime_snapshot(split: str) -> tuple[dict, dict[str, str], dict[str, str]]
         label: hashlib.sha256(path.read_bytes()).hexdigest()
         for label, path in {
             "backend/tasks/qa.py": Path("backend/tasks/qa.py"),
+            "backend/common/answer_match.py": Path("backend/common/answer_match.py"),
             "dev_set/tools/run_evaluation.py": Path(__file__),
             "dev_set/tools/scoring.py": Path("dev_set/tools/scoring.py"),
+            "data/config/qa_evaluation.py": Path("data/config/qa_evaluation.py"),
         }.items()
     }
+    input_paths = evaluation_paths or [
+        *(Path(f"dev_set/queries/{split}_{task}.jsonl")
+          for task in ("kis", "qa", "trake")),
+        Path(f"dev_set/ground_truth/{split}_gt.jsonl"),
+    ]
     evaluation_inputs = {
         path.as_posix(): (
             hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "missing"
         )
-        for path in [
-            *(Path(f"dev_set/queries/{split}_{task}.jsonl")
-              for task in ("kis", "qa", "trake")),
-            Path(f"dev_set/ground_truth/{split}_gt.jsonl"),
-        ]
+        for path in input_paths
     }
     query_manifest = build_query_runtime_manifest()
     query_fingerprint = build_query_runtime_fingerprint()
@@ -149,6 +163,113 @@ def load_jsonl(path: Path):
         return []
     with open(path, "r", encoding="utf-8") as f:
         return [json.loads(line) for line in f]
+
+
+def _manifest_rows(manifest: dict) -> list[dict]:
+    rows = manifest.get("entries", manifest.get("queries"))
+    if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+        raise ValueError("manifest phải có list entries/queries")
+    return rows
+
+
+def _load_frozen_inputs(
+    manifest_path: Path,
+    ground_truth_path: Path | None,
+) -> tuple[str, list[Query], dict[str, object], list[Path]]:
+    """Nạp exact frozen IDs/content/GT; không tin hash tự khai trong manifest."""
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"không đọc được frozen manifest: {error}") from error
+    if not isinstance(manifest, dict):
+        raise ValueError("frozen manifest phải là JSON object")
+    manifest_id = str(manifest.get("manifest_id") or "")
+    expected_hash = {
+        HOLDOUT_MANIFEST_ID: HOLDOUT_QUERY_SET_SHA256,
+        REGRESSION_MANIFEST_ID: REGRESSION_QUERY_SET_SHA256,
+    }.get(manifest_id)
+    if expected_hash is None:
+        raise ValueError(f"manifest_id không phải frozen set chính thức: {manifest_id!r}")
+    rows = _manifest_rows(manifest)
+    ids = [str(row.get("query_id") or "") for row in rows]
+    if any(not query_id for query_id in ids) or len(ids) != len(set(ids)):
+        raise ValueError("frozen manifest có query_id rỗng/trùng")
+
+    source_paths: list[Path] = [manifest_path]
+    query_sources: dict[str, dict] = {}
+    if all(isinstance(row.get("query_vi"), str) and row["query_vi"] for row in rows):
+        query_sources = {str(row["query_id"]): dict(row) for row in rows}
+    elif manifest_id == HOLDOUT_MANIFEST_ID:
+        for task in ("kis", "qa", "trake"):
+            path = Path(f"dev_set/queries/holdout_{task}.jsonl")
+            source_paths.append(path)
+            for query in load_jsonl(path):
+                query_sources[str(query.get("query_id") or "")] = query
+    else:
+        raise ValueError("regression manifest thiếu nội dung query_vi đã đóng băng")
+
+    queries: list[Query] = []
+    for row in rows:
+        query_id = str(row["query_id"])
+        source = query_sources.get(query_id)
+        if source is None:
+            raise ValueError(f"manifest tham chiếu query không tồn tại: {query_id}")
+        actual_query_hash = query_record_sha256(source)
+        declared_query_hash = row.get("query_sha256")
+        if declared_query_hash is not None and declared_query_hash != actual_query_hash:
+            raise ValueError(
+                f"{query_id} query content hash khác frozen manifest: "
+                f"expected={declared_query_hash}, actual={actual_query_hash}"
+            )
+        if source.get("task_type") != row.get("task_type"):
+            raise ValueError(f"{query_id} task_type query khác manifest")
+        query_data = {
+            key: source[key]
+            for key in ("query_id", "task_type", "query_vi", "query_en", "n_events", "event_descs")
+            if key in source
+        }
+        query_data["split"] = source.get("split") or (
+            "holdout" if manifest_id == HOLDOUT_MANIFEST_ID else "dress25"
+        )
+        queries.append(Query(**query_data))
+    if query_set_sha256(queries) != expected_hash:
+        raise ValueError("tập query đã nạp không khớp frozen query-set digest")
+
+    if ground_truth_path is None:
+        if manifest_id == HOLDOUT_MANIFEST_ID:
+            ground_truth_path = Path("dev_set/ground_truth/holdout_gt.jsonl")
+        else:
+            raise ValueError("regression frozen set bắt buộc --ground-truth")
+    source_paths.append(ground_truth_path)
+    gt_rows = {
+        str(row.get("query_id") or ""): row for row in load_jsonl(ground_truth_path)
+    }
+    task_of = {query.query_id: query.task_type for query in queries}
+    gt_class = {"KIS": GroundTruthKIS, "QA": GroundTruthQA, "TRAKE": GroundTruthTRAKE}
+    ground_truth: dict[str, object] = {}
+    manifest_by_id = {str(row["query_id"]): row for row in rows}
+    for query_id, task_type in task_of.items():
+        raw = gt_rows.get(query_id)
+        if raw is None:
+            raise ValueError(f"frozen set thiếu GT cho {query_id}")
+        if raw.get("task_type") not in (None, task_type):
+            raise ValueError(f"{query_id} task_type GT khác query")
+        parsed = gt_class[task_type](**{
+            key: value for key, value in raw.items() if key != "task_type"
+        })
+        manifest_row = manifest_by_id[query_id]
+        expected_gt_hash = manifest_row.get("ground_truth_sha256")
+        actual_gt_hash = ground_truth_record_sha256(parsed)
+        if not is_sha256(expected_gt_hash) or expected_gt_hash != actual_gt_hash:
+            raise ValueError(
+                f"{query_id} GT hash thiếu/khác frozen manifest: "
+                f"expected={expected_gt_hash}, actual={actual_gt_hash}"
+            )
+        for field in ("verification_status", "provenance", "verified_by", "verified_at"):
+            if manifest_row.get(field) != getattr(parsed, field):
+                raise ValueError(f"{query_id} metadata {field} của GT khác manifest")
+        ground_truth[query_id] = parsed
+    return manifest_id, queries, ground_truth, source_paths
 
 
 def _record_succeeded(record: dict) -> bool:
@@ -228,7 +349,7 @@ def _score_metrics(ans: list[Answer], gt, task_type: str, qa_match_policy: str) 
 
 
 @_restore_evaluation_environment
-def run_evaluation():
+def run_evaluation(argv: list[str] | None = None):
     parser = argparse.ArgumentParser()
     # "dress25" (20/08): bộ 25 câu mô phỏng 1 buổi thi thật, sinh bởi
     # generate_dress_rehearsal.py — KHÔNG qua hạn mức holdout (không phải bộ đề
@@ -236,15 +357,40 @@ def run_evaluation():
     parser.add_argument("--split", choices=["tune", "holdout", "dress25", "gen10", "gen2"], default="tune")
     parser.add_argument("--resume", help="Thư mục run cũ (vd: dev_set/results/run_20260812_1000) để chạy tiếp")
     parser.add_argument(
+        "--manifest", type=Path,
+        help="frozen manifest chính thức; lọc exact IDs/content thay vì toàn split",
+    )
+    parser.add_argument(
+        "--ground-truth", type=Path,
+        help="GT JSONL thật phải khớp hash/audit trail trong frozen manifest",
+    )
+    parser.add_argument("--out", type=Path, help="thư mục artefact cụ thể (không dùng cùng --resume)")
+    parser.add_argument(
         "--promotion",
         action="store_true",
         help="chỉ chạy khi toàn bộ GT đã verification_status=verified có provenance",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    print(f"Khởi động bộ đo trên tập '{args.split}'...")
+    if args.resume and args.out:
+        parser.error("--resume và --out loại trừ nhau")
 
-    if args.split == "holdout":
+    evaluation_name = args.split
+    frozen_paths: list[Path] | None = None
+    frozen_gts: dict[str, object] | None = None
+    if args.manifest:
+        try:
+            evaluation_name, queries, frozen_gts, frozen_paths = _load_frozen_inputs(
+                args.manifest, args.ground_truth,
+            )
+        except ValueError as error:
+            parser.error(str(error))
+    else:
+        queries = []
+
+    print(f"Khởi động bộ đo trên tập '{evaluation_name}'...")
+
+    if evaluation_name in ("holdout", HOLDOUT_MANIFEST_ID):
         holdout_log = Path("dev_set/holdout_log.md")
         n_used = 0
         if holdout_log.exists():
@@ -261,18 +407,18 @@ def run_evaluation():
             sys.exit(0)
 
     # 1. Load Queries and GT — mỗi dòng lỗi bị cô lập, không crash cả batch (#5)
-    queries = []
-    q_paths = [
-        Path(f"dev_set/queries/{args.split}_kis.jsonl"),
-        Path(f"dev_set/queries/{args.split}_qa.jsonl"),
-        Path(f"dev_set/queries/{args.split}_trake.jsonl")
-    ]
-    for p in q_paths:
-        for row in load_jsonl(p):
-            try:
-                queries.append(Query(**row))
-            except Exception as e:
-                print(f"LỖI parse Query {row.get('query_id')}: {e} — bỏ qua dòng này")
+    if not args.manifest:
+        q_paths = [
+            Path(f"dev_set/queries/{args.split}_kis.jsonl"),
+            Path(f"dev_set/queries/{args.split}_qa.jsonl"),
+            Path(f"dev_set/queries/{args.split}_trake.jsonl")
+        ]
+        for p in q_paths:
+            for row in load_jsonl(p):
+                try:
+                    queries.append(Query(**row))
+                except Exception as e:
+                    print(f"LỖI parse Query {row.get('query_id')}: {e} — bỏ qua dòng này")
 
     # MỘT nguồn sự thật cho task_type: FILE QUERY.
     #
@@ -284,25 +430,28 @@ def run_evaluation():
     task_of = {q.query_id: q.task_type for q in queries}
     GT_CLASS = {"KIS": GroundTruthKIS, "QA": GroundTruthQA, "TRAKE": GroundTruthTRAKE}
 
-    gt_path = Path(f"dev_set/ground_truth/{args.split}_gt.jsonl")
-    gts = {}
-    for row in load_jsonl(gt_path):
-        qid = row.get("query_id")
-        try:
-            t = task_of.get(qid)
-            if t is None:
-                raise ValueError("không có query nào mang query_id này")
-            # `task_type` trong file GT chỉ còn vai trò ĐỐI CHỨNG. Có mà lệch thì
-            # báo lỗi tường minh, không im lặng chọn một trong hai.
-            t_gt = row.get("task_type")
-            if t_gt is not None and t_gt != t:
-                raise ValueError(
-                    f"task_type mâu thuẫn — file query ghi '{t}', file GT ghi '{t_gt}'"
-                )
-            row_clean = {k: v for k, v in row.items() if k != "task_type"}
-            gts[qid] = GT_CLASS[t](**row_clean)
-        except Exception as e:
-            print(f"LỖI parse GT {qid}: {e} — bỏ qua dòng này")
+    if frozen_gts is not None:
+        gts = frozen_gts
+    else:
+        gt_path = Path(f"dev_set/ground_truth/{args.split}_gt.jsonl")
+        gts = {}
+        for row in load_jsonl(gt_path):
+            qid = row.get("query_id")
+            try:
+                t = task_of.get(qid)
+                if t is None:
+                    raise ValueError("không có query nào mang query_id này")
+                # `task_type` trong file GT chỉ còn vai trò ĐỐI CHỨNG. Có mà lệch thì
+                # báo lỗi tường minh, không im lặng chọn một trong hai.
+                t_gt = row.get("task_type")
+                if t_gt is not None and t_gt != t:
+                    raise ValueError(
+                        f"task_type mâu thuẫn — file query ghi '{t}', file GT ghi '{t_gt}'"
+                    )
+                row_clean = {k: v for k, v in row.items() if k != "task_type"}
+                gts[qid] = GT_CLASS[t](**row_clean)
+            except Exception as e:
+                print(f"LỖI parse GT {qid}: {e} — bỏ qua dòng này")
 
     # GT legacy vẫn hữu ích cho phân tích, nhưng tuyệt đối không được trông như
     # một phép promotion: thiếu metadata mặc định là `unknown` và được báo rõ.
@@ -336,7 +485,9 @@ def run_evaluation():
 
     # 3. Tách identity của lời giải khỏi artefact đánh giá: split/scorer/GT chỉ
     # đổi artefact fingerprint, không được làm QueryRun khác production.
-    evaluation_artifact_manifest, config_sources, llm_provenance = _runtime_snapshot(args.split)
+    evaluation_artifact_manifest, config_sources, llm_provenance = _runtime_snapshot(
+        evaluation_name, evaluation_paths=frozen_paths,
+    )
     query_runtime_fingerprint = build_query_runtime_fingerprint()
     query_runtime_manifest = build_query_runtime_manifest()
     evaluation_artifact_fingerprint = _hash_json(evaluation_artifact_manifest)
@@ -367,7 +518,7 @@ def run_evaluation():
             datetime.now().strftime("%Y%m%d_%H%M%S")
             + f"_{evaluation_artifact_fingerprint[:8]}"
         )
-        out_dir = Path(f"dev_set/results/run_{run_id}")
+        out_dir = args.out or Path(f"dev_set/results/run_{run_id}")
         out_dir.mkdir(parents=True, exist_ok=False)
 
         (out_dir / "config_snapshot.json").write_text(json.dumps({
@@ -651,15 +802,14 @@ def run_evaluation():
     scores = {
         "run_id": run_id,
         "commit": get_git_commit(),
-        "split": args.split,
+        "split": evaluation_name,
+        "evaluation_manifest_id": evaluation_name if args.manifest else None,
         "runtime_fingerprint": query_runtime_fingerprint,
         "query_runtime_fingerprint": query_runtime_fingerprint,
         "evaluation_artifact_fingerprint": evaluation_artifact_fingerprint,
         "scorer_contract": PROMOTION_SCORER_CONTRACT,
         "scorer_policy": DEFAULT_QA_MATCH_POLICY,
-        "scorer_source_sha256": evaluation_artifact_manifest[
-            "critical_sources_sha256"
-        ]["dev_set/tools/scoring.py"],
+        "scorer_source_sha256": scorer_contract_sha256(),
         "promotion_ready": bool(args.promotion and gt_readiness.eligible),
         "verified_query_ids": (
             sorted(ground_truth_by_query_sha256) if gt_readiness.eligible else []

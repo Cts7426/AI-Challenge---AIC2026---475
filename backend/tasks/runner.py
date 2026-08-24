@@ -238,6 +238,7 @@ def runtime_manifest() -> dict[str, Any]:
         for path in (
             "backend/retrieval/multi_anchor.py",
             "backend/retrieval/search.py",
+            "backend/common/answer_match.py",
             "backend/slot/allocator.py",
             "backend/tasks/qa.py",
             "backend/tasks/qa_portfolio.py",

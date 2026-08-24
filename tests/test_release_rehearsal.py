@@ -62,6 +62,10 @@ def _traces() -> list[dict]:
         {
             "query_id": "q-kis", "task_type": "KIS", "status": "success",
             "retryable": False, "runtime_fingerprint": FP, "qa_hypotheses": [],
+            "answers": [{
+                "video_id": "L01_V001", "frame_ids": [1],
+                "answer_text": None, "keyframe_id": "kf",
+            }],
         },
         {
             "query_id": "q-qa", "task_type": "QA", "status": "success",
@@ -268,9 +272,12 @@ def test_writer_tra_ve_validator_failure_thi_khong_co_receipt(tmp_path):
     queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
     calls = []
 
+    final_zip = tmp_path / "submission.zip"
+    final_zip.write_bytes(b"old-valid-zip")
+
     def bad_writer(subs, out_dir, **kwargs):
         calls.append(1)
-        path = Path(out_dir) / "submission.zip"
+        path = Path(out_dir) / kwargs["zip_name"]
         path.write_bytes(b"not usable")
         return path, [Issue("zip_corrupt", "bad")]
 
@@ -285,7 +292,126 @@ def test_writer_tra_ve_validator_failure_thi_khong_co_receipt(tmp_path):
             reproduction_command="reproduce", write_zip=bad_writer,
         )
     assert calls == [1]
+    assert final_zip.read_bytes() == b"old-valid-zip"
+    assert not list(tmp_path.glob("*.staging.zip"))
     assert not list(tmp_path.glob("*.receipt.json"))
+
+
+def test_submission_phai_khop_canonical_trace_sau_qa_policy(tmp_path):
+    """Sửa checkpoint nhưng giữ ID/task không được tạo ZIP từ trace sạch."""
+    trace_path = tmp_path / "trace.jsonl"
+    _write_trace(trace_path, _traces())
+    cache_path = tmp_path / "cache.json"
+    cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
+    queries_path = tmp_path / "queries.json"
+    queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
+    tampered = _subs()
+    tampered[1] = QuerySubmission(
+        "q-qa", "QA", (Answer("L21_V001", (2,), "sai", "L21_V001_000002"),),
+    )
+    called = []
+
+    with pytest.raises(ReleaseBlocked, match="trace") as exc:
+        create_release_package(
+            queries=_queries(), traces=_traces(), submissions=tampered,
+            out_dir=tmp_path, trace_path=trace_path,
+            evidence_cache_manifest_path=cache_path,
+            evidence_cache_manifest=_cache_manifest(), validator_issues=[],
+            promotion_audit=_promotion_audit(), query_manifest_path=queries_path,
+            gt_manifest_path=None, scorer_policy="semantic",
+            submission_policy="robust", reproduction_command="reproduce",
+            write_zip=lambda *a, **kw: called.append(1), expect_answers=1,
+        )
+
+    assert "submission_trace_mismatch" in {r["code"] for r in exc.value.reasons}
+    assert called == []
+
+
+def test_qa_policy_transformation_deterministic_duoc_release_nhan(tmp_path):
+    """QA robust có thể đổi answer surface, nhưng chỉ đúng transform đã định nghĩa."""
+    traces = _traces()
+    hypothesis = traces[1]["qa_hypotheses"][0]
+    hypothesis["answer_text"] = "5"
+    traces[1]["answers"] = [{
+        "video_id": hypothesis["video_id"],
+        "frame_ids": [hypothesis["evidence_frame_idx"]],
+        "answer_text": "5",
+        "keyframe_id": hypothesis["keyframe_id"],
+    }]
+    trace_path = tmp_path / "trace.jsonl"
+    _write_trace(trace_path, traces)
+    cache_path = tmp_path / "cache.json"
+    cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
+    queries_path = tmp_path / "queries.json"
+    queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
+    transformed = [
+        _subs()[0],
+        QuerySubmission("q-qa", "QA", (Answer(
+            hypothesis["video_id"], (hypothesis["evidence_frame_idx"],),
+            "5", hypothesis["keyframe_id"],
+        ),)),
+    ]
+
+    def writer(subs, out_dir, **kwargs):
+        path = Path(out_dir) / kwargs["zip_name"]
+        path.write_bytes(b"zip")
+        return path, []
+
+    receipt = create_release_package(
+        queries=_queries(), traces=traces, submissions=transformed,
+        out_dir=tmp_path, trace_path=trace_path,
+        evidence_cache_manifest_path=cache_path,
+        evidence_cache_manifest=_cache_manifest(), validator_issues=[],
+        promotion_audit=_promotion_audit(), query_manifest_path=queries_path,
+        gt_manifest_path=None, scorer_policy="semantic",
+        submission_policy="robust", reproduction_command="reproduce",
+        write_zip=writer, expect_answers=1,
+    )
+    assert receipt.is_file()
+
+
+def test_atomic_replace_exception_khoi_phuc_zip_receipt_tot_cu(tmp_path, monkeypatch):
+    """Lỗi ngay lúc backup tên cuối không được xóa release tốt đang tồn tại."""
+    trace_path = tmp_path / "trace.jsonl"
+    _write_trace(trace_path, _traces())
+    cache_path = tmp_path / "cache.json"
+    cache_path.write_text(json.dumps(_cache_manifest()), encoding="utf-8")
+    queries_path = tmp_path / "queries.json"
+    queries_path.write_text(json.dumps(_queries()), encoding="utf-8")
+    final_zip = tmp_path / "submission.zip"
+    final_receipt = tmp_path / "submission.receipt.json"
+    final_config = tmp_path / "release_config_snapshot.json"
+    final_zip.write_bytes(b"old-good-zip")
+    final_receipt.write_bytes(b"old-good-receipt")
+    final_config.write_bytes(b"old-good-config")
+
+    def writer(subs, out_dir, **kwargs):
+        path = Path(out_dir) / kwargs["zip_name"]
+        path.write_bytes(b"new-good-zip")
+        return path, []
+
+    original_replace = Path.replace
+
+    def fail_backing_up_zip(self, target):
+        target_path = Path(target)
+        if self == final_zip and target_path.name.endswith(".backup"):
+            raise OSError("forced backup failure")
+        return original_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", fail_backing_up_zip)
+    with pytest.raises(OSError, match="forced backup failure"):
+        create_release_package(
+            queries=_queries(), traces=_traces(), submissions=_subs(), out_dir=tmp_path,
+            trace_path=trace_path, evidence_cache_manifest_path=cache_path,
+            evidence_cache_manifest=_cache_manifest(), validator_issues=[],
+            promotion_audit=_promotion_audit(), query_manifest_path=queries_path,
+            gt_manifest_path=None, scorer_policy="semantic", submission_policy="robust",
+            reproduction_command="reproduce", write_zip=writer, expect_answers=1,
+        )
+
+    assert final_zip.read_bytes() == b"old-good-zip"
+    assert final_receipt.read_bytes() == b"old-good-receipt"
+    assert final_config.read_bytes() == b"old-good-config"
 
 
 def test_cache_planner_only_hoac_runtime_khac_khong_du_evidence(tmp_path):

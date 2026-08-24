@@ -49,6 +49,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 import traceback
@@ -65,6 +66,7 @@ from backend.export import (  # noqa: E402
     QuerySubmission,
     write_submission_zip,
     write_submissions,
+    validate_all,
 )
 from backend.export.qa_variants import apply_qa_submission_policy  # noqa: E402
 from backend.tasks.runner import (  # noqa: E402
@@ -410,6 +412,23 @@ def main() -> int:
     ap.add_argument("--zip", action="store_true",
                     help="gói thêm submission.zip theo chuẩn BTC")
     ap.add_argument(
+        "--release-rehearsal", action="store_true",
+        help=("bật gate promotion/batch và ghi receipt; bắt buộc đi cùng --zip "
+              "và --promotion-audit"),
+    )
+    ap.add_argument(
+        "--promotion-audit",
+        help="JSON audit ELIGIBLE do dev_set.tools.promotion_gate tạo",
+    )
+    ap.add_argument(
+        "--gt-manifest",
+        help="GT manifest đã dùng promotion để receipt băm lại (nếu có)",
+    )
+    ap.add_argument(
+        "--scorer-policy", choices=("semantic", "exact"), default="semantic",
+        help="policy scorer đã dùng trong promotion audit/receipt",
+    )
+    ap.add_argument(
         "--qa-submission-policy",
         choices=(*QA_SUBMISSION_POLICIES, "all"),
         default="semantic",
@@ -422,8 +441,27 @@ def main() -> int:
 
     if args.qa_submission_policy == "all" and not args.zip:
         ap.error("--qa-submission-policy all cần --zip để không ghi đè CSV của các chiến lược")
+    if args.release_rehearsal and not args.zip:
+        ap.error("--release-rehearsal bắt buộc đi cùng --zip")
+    if args.release_rehearsal and not args.promotion_audit:
+        ap.error("--release-rehearsal bắt buộc có --promotion-audit")
+    if args.release_rehearsal and args.qa_submission_policy == "all":
+        ap.error("release rehearsal chỉ nhận đúng một QA submission policy, không nhận all")
 
     all_queries = _doc_queries(Path(args.queries))
+    promotion_audit: dict | None = None
+    if args.release_rehearsal:
+        from backend.export.release_rehearsal import promotion_audit_is_valid
+
+        audit_path = Path(args.promotion_audit)
+        try:
+            promotion_audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"[release] không đọc được promotion audit: {e}")
+            return 1
+        if not isinstance(promotion_audit, dict) or not promotion_audit_is_valid(promotion_audit):
+            print("[release] DỪNG trước preflight/search: promotion audit chưa ELIGIBLE.")
+            return 1
     queries = all_queries
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -622,7 +660,63 @@ def main() -> int:
                 )
                 for sub in subs
             ]
-            if args.zip:
+            if args.release_rehearsal:
+                from backend.export.release_rehearsal import (
+                    ReleaseBlocked,
+                    create_release_package,
+                    load_trace_jsonl,
+                    write_evidence_cache_manifest,
+                )
+                from data.config.qa_hypotheses import qa_hypothesis_cache_dir
+
+                zip_name = "submission.zip"
+                validator_issues = validate_all(
+                    policy_subs,
+                    expect_answers=args.answers,
+                    expected_n=n_trake or None,
+                )
+                cache_manifest_path = out_dir / "evidence_cache_manifest.json"
+                cache_manifest = write_evidence_cache_manifest(
+                    qa_hypothesis_cache_dir(), cache_manifest_path,
+                )
+                reproduction_command = subprocess.list2cmdline([
+                    sys.executable,
+                    str(REPO_ROOT / "run.py"),
+                    *sys.argv[1:],
+                ])
+                try:
+                    receipt_path = create_release_package(
+                        queries=all_queries,
+                        traces=load_trace_jsonl(out_dir / TRACE_NAME),
+                        submissions=policy_subs,
+                        out_dir=out_dir,
+                        trace_path=out_dir / TRACE_NAME,
+                        evidence_cache_manifest_path=cache_manifest_path,
+                        evidence_cache_manifest=cache_manifest,
+                        validator_issues=validator_issues,
+                        promotion_audit=promotion_audit or {},
+                        query_manifest_path=Path(args.queries),
+                        gt_manifest_path=Path(args.gt_manifest) if args.gt_manifest else None,
+                        scorer_policy=args.scorer_policy,
+                        submission_policy=policy,
+                        reproduction_command=reproduction_command,
+                        zip_name=zip_name,
+                        expect_answers=args.answers,
+                        expected_n=n_trake or None,
+                    )
+                except ReleaseBlocked as e:
+                    details = " · ".join(
+                        f"{reason.get('code')}: {reason.get('message')}"
+                        for reason in e.reasons
+                    )
+                    raise ValueError(f"release gate từ chối: {e}"
+                                     + (f" · {details}" if details else "")) from e
+                loi_file = []
+                log(
+                    f"\n[{policy}] Release rehearsal hợp lệ: submission.zip + "
+                    f"receipt {receipt_path}"
+                )
+            elif args.zip:
                 zip_name = (
                     "submission.zip" if len(policies) == 1 else f"submission_{policy}.zip"
                 )

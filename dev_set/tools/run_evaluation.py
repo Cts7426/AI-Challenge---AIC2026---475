@@ -26,6 +26,7 @@ from backend.tasks.runner import (
 
 from data.config.submit_format import Answer
 from data.config.qa_evaluation import QA_MATCH_POLICIES
+from data.config.release_gate import PROMOTION_SCORER_CONTRACT
 from dev_set.tools.schema import Query, GroundTruthKIS, GroundTruthQA, GroundTruthTRAKE
 from dev_set.tools.scoring import (
     assess_promotion_ground_truth,
@@ -645,6 +646,7 @@ def run_evaluation():
         "runtime_fingerprint": query_runtime_fingerprint,
         "query_runtime_fingerprint": query_runtime_fingerprint,
         "evaluation_artifact_fingerprint": evaluation_artifact_fingerprint,
+        "scorer_contract": PROMOTION_SCORER_CONTRACT,
         "per_query": list(per_query_by_id.values()),
     }
     (out_dir / "scores.json").write_text(

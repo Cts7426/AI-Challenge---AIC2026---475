@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import zipfile
 from pathlib import Path
 
@@ -393,6 +394,45 @@ def test_zip_dung_chuan_btc(chay):
     ma, out, _ = chay([KIS, QA], extra_args=["--zip"])
     assert ma == 0
     assert list(out.glob("*.zip")), "không thấy file zip nào"
+
+
+def test_release_rehearsal_tao_receipt_khi_promotion_va_batch_sach(chay, tmp_path):
+    audit = tmp_path / "promotion.json"
+    payload = {
+        "status": "ELIGIBLE", "eligible": True,
+        "scorer_contract": "btc-final-score-v1",
+        "input_sha256": {
+            "holdout_manifest": "1" * 64,
+            "regression_manifest": "2" * 64,
+            "holdout_scores": "3" * 64,
+            "regression_baseline": "4" * 64,
+            "regression_current": "5" * 64,
+        },
+    }
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    payload["audit_sha256"] = hashlib.sha256(canonical.encode()).hexdigest()
+    audit.write_text(json.dumps(payload), encoding="utf-8")
+    ma, out, _ = chay([KIS], extra_args=[
+        "--zip", "--release-rehearsal", "--promotion-audit", str(audit),
+    ])
+    assert ma == 0
+    assert (out / "submission.zip").is_file()
+    receipt = json.loads((out / "submission.receipt.json").read_text(encoding="utf-8"))
+    assert receipt["promotion_audit"]["status"] == "ELIGIBLE"
+    assert receipt["runtime_fingerprint"]
+
+
+def test_release_rehearsal_promotion_blocked_khong_tao_zip(chay, tmp_path):
+    audit = tmp_path / "promotion.json"
+    audit.write_text(json.dumps({
+        "status": "BLOCKED", "eligible": False,
+    }), encoding="utf-8")
+    ma, out, _ = chay([KIS], extra_args=[
+        "--zip", "--release-rehearsal", "--promotion-audit", str(audit),
+    ])
+    assert ma == 1
+    assert not list(out.glob("*.zip"))
+    assert not list(out.glob("*.receipt.json"))
 
 
 # ------------------------------------------------------------- exit code

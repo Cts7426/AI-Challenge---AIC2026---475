@@ -275,6 +275,22 @@ def test_lexical_entailment_cho_phep_tach_va_doi_trat_tu_token_goc():
     assert module._is_faithful("Bảng giá, người phụ nữ nhìn", original) is True
 
 
+def test_fidelity_khong_bien_hai_gio_thanh_hai_nguoi():
+    """Bắt lỗi token-set gắn số ở mốc giờ sang head noun người."""
+    module = _module()
+    original = "Lúc hai giờ, một người mặc áo trắng đứng cạnh xe màu đỏ"
+
+    assert module._is_faithful("Hai người đứng cạnh xe", original) is False
+
+
+def test_fidelity_khong_chuyen_mau_do_cua_xe_sang_ao():
+    """Bắt lỗi token-set gắn màu của xe sang một head noun khác."""
+    module = _module()
+    original = "Lúc hai giờ, một người mặc áo trắng đứng cạnh xe màu đỏ"
+
+    assert module._is_faithful("Người mặc áo đỏ đứng cạnh xe", original) is False
+
+
 def test_ordered_marker_nhan_dau_cau_va_punctuation(monkeypatch):
     """Bắt lỗi marker tuần tự chỉ match khi có space literal hai bên."""
     module = _module()
@@ -293,6 +309,86 @@ def test_ordered_marker_nhan_dau_cau_va_punctuation(monkeypatch):
 
     assert plan.strategy == "multi"
     assert plan.ordered is True
+
+
+def test_cuoi_cung_chi_vi_tri_trong_hang_khong_phai_event_order():
+    """Bắt lỗi vị trí đối tượng 'cuối cùng trong hàng' nhận temporal bonus."""
+    module = _module()
+    query_vi = (
+        "Người cuối cùng trong hàng đang đứng cạnh quầy cùng nhiều hành khách "
+        "chờ mua vé ở khu vực rộng phía trước"
+    )
+
+    assert module._is_ordered(query_vi) is False
+
+
+def test_payload_extra_property_fallback_single_giu_query_en(monkeypatch):
+    """Bắt lỗi code tin backend đã enforce additionalProperties=false."""
+    module = _module()
+    query_vi = "Người vào cửa hàng rồi người nhìn bảng giá ở quầy phía trước"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người vào cửa hàng", "Người nhìn bảng giá"],
+            "extra": "schema violation",
+        }),
+    )
+    monkeypatch.setattr(
+        module,
+        "translate",
+        lambda text: (_ for _ in ()).throw(AssertionError("schema sai không được dịch")),
+    )
+    calls: list[tuple[tuple, dict]] = []
+    monkeypatch.setattr(
+        module,
+        "search",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or [_row()],
+    )
+
+    plan = module.plan_query(query_vi, "caller translation")
+    rows = module.search_multi(plan, top_k=4)
+
+    assert plan.strategy == "single"
+    assert plan.query_en == "caller translation"
+    assert plan.fallback_reason == "invalid_anchors"
+    assert rows == [_row()]
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("empty_translation", ["", "   \t\n"])
+def test_anchor_translation_rong_fallback_single_giu_query_en(monkeypatch, empty_translation):
+    """Bắt lỗi caption EN rỗng vẫn được tokenizer/vector branch chấp nhận."""
+    module = _module()
+    query_vi = "Người vào cửa hàng rồi người nhìn bảng giá ở quầy phía trước"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người vào cửa hàng", "Người nhìn bảng giá"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: empty_translation)
+    tokenized: list[str] = []
+    monkeypatch.setattr(
+        module, "count_clip_tokens", lambda text: tokenized.append(text) or 2
+    )
+    calls: list[tuple[tuple, dict]] = []
+    monkeypatch.setattr(
+        module,
+        "search",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or [_row()],
+    )
+
+    plan = module.plan_query(query_vi, "caller translation")
+    rows = module.search_multi(plan, top_k=4)
+
+    assert plan.strategy == "single"
+    assert plan.query_en == "caller translation"
+    assert plan.fallback_reason == "translation_error"
+    assert rows == [_row()]
+    assert len(calls) == 1
+    assert tokenized == []
 
 
 def test_translation_hoac_tokenizer_loi_fallback_single(monkeypatch):

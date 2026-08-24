@@ -12,16 +12,20 @@ from backend.llm.adapter import llm
 from backend.retrieval.query_understanding import count_clip_tokens, translate
 from backend.retrieval.search import search
 from data.config.multi_anchor import (
+    COLOR_MARKER,
     COMPLEX_MARKERS,
     COMPLEX_MARKER_MIN,
+    COUNT_CLASSIFIERS,
     ENABLED,
     MAX_ANCHORS,
     MAX_CLIP_TOKENS,
+    ORDER_MARKER_PAIRS,
     ORDER_MARKERS,
     PER_ANCHOR_POOL,
     RRF_K,
     SHORT_QUERY_MAX_WORDS,
     TEMPORAL_BONUS,
+    QUANTIFIER_TERMS,
 )
 
 
@@ -81,8 +85,13 @@ def _needs_multiple(query_vi: str) -> bool:
 
 
 def _is_ordered(query_vi: str) -> bool:
-    """Chỉ bật temporal signal khi nguyên văn nêu quan hệ trước/sau."""
-    return any(_marker_occurrences(query_vi, marker) for marker in ORDER_MARKERS)
+    """Chỉ bật khi có transition rõ hoặc đủ cặp boundary của nhiều sự kiện."""
+    if any(_marker_occurrences(query_vi, marker) for marker in ORDER_MARKERS):
+        return True
+    return any(
+        _marker_occurrences(query_vi, first) and _marker_occurrences(query_vi, last)
+        for first, last in ORDER_MARKER_PAIRS
+    )
 
 
 def _content_tokens(text: str) -> tuple[str, ...]:
@@ -106,6 +115,75 @@ def _marker_occurrences(text: str, marker: str) -> int:
     )
 
 
+def _contains_token_sequence(tokens: tuple[str, ...], phrase: tuple[str, ...]) -> bool:
+    """Kiểm phrase local liên tiếp, không phụ thuộc punctuation/case."""
+    width = len(phrase)
+    return width > 0 and any(
+        tokens[index:index + width] == phrase
+        for index in range(len(tokens) - width + 1)
+    )
+
+
+def _preserves_quantifier_context(
+    anchor_tokens: tuple[str, ...], original_tokens: tuple[str, ...]
+) -> bool:
+    """Không cho tái gắn số lượng/thời lượng sang head noun khác."""
+    quantifiers = sorted(
+        (_content_tokens(term) for term in QUANTIFIER_TERMS),
+        key=len,
+        reverse=True,
+    )
+    classifiers = set(COUNT_CLASSIFIERS)
+    for index, token in enumerate(anchor_tokens):
+        matched = next(
+            (
+                phrase for phrase in quantifiers
+                if anchor_tokens[index:index + len(phrase)] == phrase
+            ),
+            None,
+        )
+        if matched is None and not token.isdigit():
+            continue
+        width = len(matched) if matched is not None else 1
+        end = index + width
+        context_end = end
+        if end < len(anchor_tokens):
+            context_end += 1
+            if anchor_tokens[end] in classifiers and context_end < len(anchor_tokens):
+                context_end += 1
+        context = anchor_tokens[index:context_end]
+        if not _contains_token_sequence(original_tokens, context):
+            return False
+    return True
+
+
+def _preserves_color_context(
+    anchor_tokens: tuple[str, ...], original_tokens: tuple[str, ...]
+) -> bool:
+    """Giữ màu cạnh đúng head noun mà không dùng danh sách tên màu đóng."""
+    marker = COLOR_MARKER.casefold()
+    declared_colors = {
+        tokens[index + 1]
+        for tokens in (original_tokens, anchor_tokens)
+        for index, token in enumerate(tokens[:-1])
+        if token == marker
+    }
+    for index, token in enumerate(anchor_tokens):
+        if token not in declared_colors:
+            continue
+        if len(anchor_tokens) == 1:
+            context = (token,)
+        elif index == 0:
+            context = anchor_tokens[:2]
+        elif anchor_tokens[index - 1] == marker and index >= 2:
+            context = anchor_tokens[index - 2:index + 1]
+        else:
+            context = anchor_tokens[index - 1:index + 1]
+        if not _contains_token_sequence(original_tokens, context):
+            return False
+    return True
+
+
 def _is_faithful(anchor_vi: str, original_vi: str) -> bool:
     """Fail closed: anchor chỉ được sắp xếp/tái dùng token có trong query gốc.
 
@@ -113,14 +191,25 @@ def _is_faithful(anchor_vi: str, original_vi: str) -> bool:
     nhỏ, nhưng mọi màu/count/modifier mới (kể cả ngoài vocabulary biết trước)
     đều làm plan invalid.
     """
-    anchor_tokens = set(_content_tokens(anchor_vi))
-    original_tokens = set(_content_tokens(original_vi))
-    return bool(anchor_tokens) and anchor_tokens <= original_tokens
+    anchor_sequence = _content_tokens(anchor_vi)
+    original_sequence = _content_tokens(original_vi)
+    anchor_tokens = set(anchor_sequence)
+    original_tokens = set(original_sequence)
+    return (
+        bool(anchor_tokens)
+        and anchor_tokens <= original_tokens
+        and _preserves_quantifier_context(anchor_sequence, original_sequence)
+        and _preserves_color_context(anchor_sequence, original_sequence)
+    )
 
 
 def _validated_anchors(payload: object, query_vi: str) -> list[str] | None:
     """Fail closed toàn plan nếu schema, uniqueness hay fidelity sai."""
-    if not isinstance(payload, dict) or not isinstance(payload.get("anchors"), list):
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"anchors"}
+        or not isinstance(payload.get("anchors"), list)
+    ):
         return None
     raw_anchors = payload["anchors"]
     if len(raw_anchors) > MAX_ANCHORS:
@@ -163,7 +252,10 @@ def plan_query(query_vi: str, query_en: str | None = None) -> QueryPlan:
     anchors: list[QueryAnchor] = []
     try:
         for ordinal, anchor_vi in enumerate(anchors_vi, 1):
-            anchor_en = translate(anchor_vi)
+            translated = translate(anchor_vi)
+            if not isinstance(translated, str) or not translated.strip():
+                return _single_plan(query_vi, query_en, "translation_error")
+            anchor_en = translated.strip()
             tokens = count_clip_tokens(anchor_en)
             if tokens > MAX_CLIP_TOKENS:
                 return _single_plan(query_vi, query_en, "token_limit")

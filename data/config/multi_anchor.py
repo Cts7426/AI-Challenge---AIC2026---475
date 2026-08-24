@@ -26,7 +26,21 @@ ORDER_MARKERS = (
     "sau khi",
     "tiếp theo",
     "kế tiếp",
-    "đầu tiên",
-    "cuối cùng",
     "→",
 )
+ORDER_MARKER_PAIRS = (
+    ("đầu tiên", "sau đó"),
+    ("đầu tiên", "cuối cùng"),
+)
+
+# Quantifier có thể mang nghĩa khác theo head noun ("hai giờ" != "hai người"),
+# nên validator buộc cụm local quantifier + head xuất hiện nguyên dạng trong query.
+QUANTIFIER_TERMS = (
+    "không", "một", "hai", "ba", "bốn", "tư", "năm", "sáu", "bảy",
+    "tám", "chín", "mười", "chục", "trăm", "nghìn", "vài", "nhiều", "ít",
+    "duy nhất", "nhóm", "đám", "hàng loạt",
+)
+COUNT_CLASSIFIERS = (
+    "chiếc", "cái", "con", "tấm", "quả", "bộ", "đôi", "cặp", "chùm",
+)
+COLOR_MARKER = "màu"

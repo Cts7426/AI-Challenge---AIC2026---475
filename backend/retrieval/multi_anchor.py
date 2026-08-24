@@ -87,13 +87,21 @@ def _needs_multiple(query_vi: str) -> bool:
 
 def _is_ordered(query_vi: str) -> bool:
     """Chỉ bật khi có transition rõ hoặc đủ cặp boundary của nhiều sự kiện."""
-    if any(_marker_occurrences(query_vi, marker) for marker in ORDER_MARKERS):
-        return True
-    return any(
-        any(first_pos < last_pos for first_pos in _marker_positions(query_vi, first)
-            for last_pos in _marker_positions(query_vi, last))
-        for first, last in ORDER_MARKER_PAIRS
-    )
+    pair_directions: list[bool] = []
+    for first, last in ORDER_MARKER_PAIRS:
+        first_positions = _marker_positions(query_vi, first)
+        last_positions = _marker_positions(query_vi, last)
+        if first_positions and last_positions:
+            pair_directions.append(any(
+                first_pos < last_pos
+                for first_pos in first_positions
+                for last_pos in last_positions
+            ))
+    # Khi query có boundary pair, direction của pair là bằng chứng mạnh hơn một
+    # transition token đơn lẻ như `sau đó`; bất kỳ pair đảo nào đều fail closed.
+    if pair_directions:
+        return all(pair_directions)
+    return any(_marker_occurrences(query_vi, marker) for marker in ORDER_MARKERS)
 
 
 def _content_tokens(text: str) -> tuple[str, ...]:
@@ -203,10 +211,30 @@ def _chronological_anchors(
     if after_positions:
         if len(after_positions) != 1 or len(anchors) != 2:
             return anchors, False
-        ordered = anchors if after_positions[0] == 0 else tuple(reversed(anchors))
+        marker_start = after_positions[0]
+        marker_end = marker_start + len(_content_tokens("sau khi"))
+        located: list[tuple[int, int, QueryAnchor]] = []
+        for anchor in anchors:
+            positions = _marker_positions(query_vi, anchor.query_vi)
+            if len(positions) != 1:
+                return anchors, False
+            start = positions[0]
+            located.append((start, start + len(_content_tokens(anchor.query_vi)), anchor))
+
+        before = [item for item in located if item[1] <= marker_start]
+        after = [item for item in located if item[0] >= marker_end]
+        if len(before) == 1 and len(after) == 1:
+            # `A sau khi B`: clause sau marker xảy ra trước clause trước marker.
+            chronological = (after[0][2], before[0][2])
+        elif not before and len(after) == 2:
+            # `[prefix] sau khi B, A`: cả hai anchor nằm sau marker nên chronology
+            # chính là surface position B→A, không suy từ marker-at-token-zero.
+            chronological = tuple(item[2] for item in sorted(after, key=lambda item: item[0]))
+        else:
+            return anchors, False
         return tuple(
             QueryAnchor(index, anchor.query_vi, anchor.query_en, anchor.clip_tokens)
-            for index, anchor in enumerate(ordered, 1)
+            for index, anchor in enumerate(chronological, 1)
         ), True
     return anchors, _is_ordered(query_vi)
 

@@ -442,6 +442,81 @@ def test_sau_khi_ba_anchor_mo_ho_tat_temporal_bonus(monkeypatch):
     assert plan.ordered is False
 
 
+def test_sau_khi_co_tien_to_locate_anchor_va_giu_chronology_dung(monkeypatch):
+    """Bắt lỗi marker không ở token 0 bị hiểu nhầm là có clause A phía trước."""
+    module = _module()
+    query_vi = "Vào buổi tối, sau khi đóng cửa, người rời đi"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Đóng cửa", "Người rời đi"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+    calls: list[str] = []
+
+    def fake_search(anchor_vi, **kwargs):
+        calls.append(anchor_vi)
+        if anchor_vi == "Đóng cửa":
+            return [
+                _fusion_row("L01_V001", "correct-b-prefix", "correct-b-prefix", 100),
+                _fusion_row("L02_V001", "wrong-b-prefix", "wrong-b-prefix", 200),
+            ]
+        return [
+            _fusion_row("L02_V001", "wrong-a-prefix", "wrong-a-prefix", 100),
+            _fusion_row("L01_V001", "correct-a-prefix", "correct-a-prefix", 200),
+        ]
+
+    monkeypatch.setattr(module, "search", fake_search)
+
+    plan = module.plan_query(query_vi)
+    rows = module.search_multi(plan, top_k=10)
+
+    assert [(anchor.ordinal, anchor.query_vi) for anchor in plan.anchors] == [
+        (1, "Đóng cửa"), (2, "Người rời đi")
+    ]
+    assert calls == ["Đóng cửa", "Người rời đi"]
+    assert all(row["temporal_order_match"] for row in rows if row["video_id"] == "L01_V001")
+    assert not any(
+        row["temporal_order_match"] for row in rows if row["video_id"] == "L02_V001"
+    )
+
+
+def test_pair_sau_do_truoc_dau_tien_uu_tien_gate_va_khong_bonus(monkeypatch):
+    """Bắt lỗi transition `sau đó` return sớm trước khi kiểm pair direction."""
+    module = _module()
+    query_vi = "Sau đó người bước ra, đầu tiên người mở cửa"
+    monkeypatch.setattr(
+        module,
+        "llm",
+        lambda *args, **kwargs: json.dumps({
+            "anchors": ["Người bước ra", "Người mở cửa"]
+        }),
+    )
+    monkeypatch.setattr(module, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(module, "count_clip_tokens", lambda text: 10)
+    monkeypatch.setattr(
+        module,
+        "search",
+        lambda anchor_vi, **kwargs: [
+            _fusion_row(
+                "L01_V001",
+                "pair-first" if anchor_vi == "Người bước ra" else "pair-second",
+                anchor_vi,
+                100 if anchor_vi == "Người bước ra" else 200,
+            )
+        ],
+    )
+
+    plan = module.plan_query(query_vi)
+    rows = module.search_multi(plan, top_k=10)
+
+    assert plan.ordered is False
+    assert not any(row["temporal_order_match"] for row in rows)
+
+
 def test_payload_extra_property_fallback_single_giu_query_en(monkeypatch):
     """Bắt lỗi code tin backend đã enforce additionalProperties=false."""
     module = _module()

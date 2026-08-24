@@ -1,6 +1,23 @@
 # HCMAIC 2026 — Multimedia Retrieval System
 
-A video moment retrieval system for AI Challenge HCMC 2026.
+Hệ thống truy xuất khoảnh khắc video cho AI Challenge HCMC 2026. Hệ thống
+phục vụ vòng sơ tuyển theo lô với ba dạng bài KIS, Q&A và TRAKE.
+
+## Tài liệu bắt đầu từ đây
+
+- [Kiến trúc hệ thống](ARCHITECTURE.md): ranh giới module, luồng dữ liệu và
+  các nguồn sự thật.
+- [Đặc tả sản phẩm](docs/product-spec.md): phạm vi, người dùng và tiêu chí
+  thành công của vòng sơ tuyển.
+- [Kiểm thử](docs/testing.md): lệnh kiểm tra và ý nghĩa từng lớp test.
+- [Triển khai/vận hành](docs/deployment.md): hạ tầng local, preflight và batch
+  release.
+- [Thể thức cuộc thi](docs/contest.md): luật BTC và cách chấm hiện hành.
+- [Runbook đợt 1](docs/RUNBOOK_ROUND1.md): thao tác theo thời điểm thi.
+- [Lộ trình công việc](BUILD_TASKS.md): các task P0/P1 và bằng chứng hoàn thành.
+
+`AGENTS.md` là hướng dẫn bắt buộc cho agent. Đọc `ARCHITECTURE.md` trước khi
+thay đổi ranh giới module, luồng dữ liệu hoặc hợp đồng giữa các tầng.
 
 ## Requirements
 
@@ -50,19 +67,18 @@ docker compose down -v   # stop and DELETE all data
 
 ```
 /
-+-- docker-compose.yml        # Milvus + Elasticsearch (2 containers)
-+-- embedEtcd.yaml            # Milvus standalone embedded etcd config
-+-- backend/
-|   +-- indexing/             # Load CLIP features, objects, metadata, OCR, ASR
-|   +-- retrieval/            # Search + fusion + rerank
-|   +-- llm/                  # LLM adapter llm() - single swap point
-|   +-- agent/                # KISC + auto-tracking (TODO)
-|   \-- api/                  # FastAPI endpoints
-+-- frontend/                 # Search-and-submit UI
-+-- preprocessing/            # OCR, ASR jobs (run on Colab/Kaggle)
-\-- data/
-    +-- sample/               # Sample data for testing
-    \-- config/               # submit_format.py, clip_model.py
++-- AGENTS.md                 # Quy ước bắt buộc và bất biến vận hành
++-- ARCHITECTURE.md           # Bản đồ kiến trúc ngắn, cập nhật theo code
++-- backend/                  # Indexing, retrieval, task, export, API và LLM
++-- data/
+|   +-- config/               # Model, metric, trọng số, format và policy
+|   +-- raw/btc/              # Asset gốc BTC (không chỉnh sửa bởi loader)
+|   \-- derived/              # Parquet, map và cache có provenance
++-- dev_set/                  # Tune/holdout, scorer và artefact regression
++-- docs/                     # Spec, vận hành, kiểm thử, thiết kế và kế hoạch
++-- preprocessing/            # Job offline/Colab/Kaggle có checkpoint
++-- tests/                    # Unit/integration tests của ứng dụng
+\-- run.py                   # Batch orchestrator để tạo submission
 ```
 
 ## Troubleshooting

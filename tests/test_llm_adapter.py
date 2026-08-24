@@ -16,7 +16,11 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from google.genai.errors import ClientError, ServerError
+
+try:
+    from google.genai.errors import ClientError, ServerError
+except ModuleNotFoundError:
+    pytest.skip("google-genai chưa được cài", allow_module_level=True)
 
 import backend.llm.adapter as adapter
 

@@ -79,3 +79,5 @@ data/derived/samples/
 data/derived/shots_parts/
 data/derived/shots_parts_backup/
 data/derived/real_metadata_temp.json
+.tmp_*
+

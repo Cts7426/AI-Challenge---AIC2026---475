@@ -8,8 +8,8 @@
 #   LLM_BACKEND      = "api" (mặc định) | "gemini" | "local"
 #   LLM_API_MODEL    = model khi dùng API (mặc định claude-opus-5)
 #   ANTHROPIC_API_KEY= bắt buộc khi LLM_BACKEND=api
-#   LLM_GEMINI_MODEL = model khi dùng Gemini (mặc định gemini-flash-latest — xem
-#                      lý do không mặc định "pro" ở comment DEFAULT_GEMINI_MODEL)
+#   LLM_GEMINI_MODEL = model khi dùng Gemini (mặc định gemini-3.6-flash — xem
+#                      lý do không mặc định "pro"/"-latest" ở DEFAULT_GEMINI_MODEL)
 #   GEMINI_API_KEY   = bắt buộc khi LLM_BACKEND=gemini, lấy tại aistudio.google.com/apikey
 #   LLM_LOCAL_MODEL  = model Ollama khi chạy offline (mặc định qwen2.5:7b-instruct)
 #   LLM_LOCAL_URL    = địa chỉ Ollama (mặc định http://localhost:11434)
@@ -53,16 +53,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_API_MODEL = "claude-opus-5"
 DEFAULT_LOCAL_MODEL = "qwen2.5:7b-instruct"
 
-# "gemini-2.5-flash" — CỐ ĐỊNH, không dùng "-latest"/"-pro". Đo thật trên key
-# free-tier của team (14/08):
-#   - mọi model đuôi "-pro" (kể cả gemini-pro-latest) → 429 RESOURCE_EXHAUSTED,
-#     quota free tier = 0 cho tier Pro
-#   - "gemini-flash-latest" (alias) → hay 503 "quá tải", có lần TREO NHIỀU PHÚT
-#     không timeout (nghi alias đang trỏ model/route không ổn định phía Google)
-#   - "gemini-2.5-flash" (bản cố định) → nhanh, ổn định, JSON schema + ảnh đều
-#     chạy đúng — chọn bản này làm mặc định
+# "gemini-3.6-flash" — CỐ ĐỊNH, không dùng "-latest"/"-pro". Vẫn giữ nguyên tắc
+# chốt bản cố định, chỉ đổi số hiệu. Đo thật trên key free-tier của team:
+#   - (14/08) mọi model đuôi "-pro" (kể cả gemini-pro-latest) → 429
+#     RESOURCE_EXHAUSTED, quota free tier = 0 cho tier Pro
+#   - (14/08) "gemini-flash-latest" (alias) → hay 503 "quá tải", có lần TREO
+#     NHIỀU PHÚT không timeout (alias trỏ model/route không ổn định phía Google)
+#   - ⚠️ (21/08) "gemini-2.5-flash" — bản cũ chốt ở đây — nay trả 404 NOT_FOUND:
+#     "no longer available to new users ... use models/gemini-3.6-flash".
+#     Google KHÔNG gỡ model với key đã dùng nó từ trước, nên lỗi chỉ nổ ra trên
+#     key mới → đây là loại hỏng "chạy được trên máy người khác". Đã đo lại
+#     "gemini-3.6-flash" trên key của team (21/08): dịch VI→EN đúng, ~9s cho
+#     lệnh gọi đầu (gồm dựng client), JSON schema + ảnh chạy đúng.
 # Đổi model chỉ cần set LLM_GEMINI_MODEL, không sửa code.
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
 
 # Giá USD / 1 triệu token. Claude: bảng giá Anthropic. Gemini: giá công khai
 # Google AI (flash) — CHỈ để ƯỚC LƯỢNG chi phí, sai số vài % không quan trọng,
@@ -75,6 +79,7 @@ PRICING = {
     "claude-haiku-4-5": (1.0, 5.0),
     "gemini-flash-latest": (0.30, 2.50),
     "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-3.6-flash": (0.30, 2.50),
 }
 
 # Mặc định effort thấp: việc của llm() trong đường ONLINE là dịch/mở rộng câu
@@ -158,17 +163,42 @@ def print_usage() -> None:
 
 # -------------------------------------------------------------------- backends
 
+def _nap_dotenv() -> None:
+    """Điền các biến còn THIẾU từ `.env` vào os.environ.
+
+    Hai sửa so với bản cũ (bản cũ nằm lọt trong `_anthropic_client()`):
+
+    1. KHÔNG ghi đè biến operator đã export. Bản cũ gán thẳng
+       `os.environ[k] = v`, nên `.env` LUÔN thắng — operator export
+       `LLM_API_MODEL=claude-sonnet-5` mà `.env` ghi opus thì chạy opus, im
+       lặng, không cảnh báo. Đúng thứ `_llm_runtime_errors()` trong run.py sinh
+       ra để chặn ("một biến bị quên không âm thầm rơi về API/Opus mặc định"),
+       nhưng preflight kiểm os.environ TRƯỚC khi adapter nạp `.env` nên không
+       thấy. Nay `.env` chỉ VÁ CHỖ TRỐNG, export tường minh luôn thắng.
+
+    2. Gọi được từ mọi backend, không riêng Anthropic. Trước đây `.env` chỉ
+       được nạp bên trong `_anthropic_client()`, nên `LLM_BACKEND=gemini` với
+       GEMINI_API_KEY nằm trong `.env` sẽ QUA được preflight của run.py (hàm
+       đó có đọc `.env`) rồi mới chết ở adapter với "Thiếu GEMINI_API_KEY" —
+       lệch hợp đồng giữa hai tầng.
+    """
+    env_path = REPO_ROOT / ".env"
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        if line.strip().startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k and v and not os.environ.get(k):
+            os.environ[k] = v
+
+
 def _anthropic_client():
     global _api_client
     if _api_client is None:
         if not os.environ.get("ANTHROPIC_API_KEY"):
-            # Thử đọc từ .env nếu chưa có trong os.environ
-            env_path = REPO_ROOT / ".env"
-            if env_path.exists():
-                for line in env_path.read_text(encoding="utf-8").splitlines():
-                    if "=" in line and not line.strip().startswith("#"):
-                        k, v = line.split("=", 1)
-                        os.environ[k.strip()] = v.strip()
+            _nap_dotenv()
         if not os.environ.get("ANTHROPIC_API_KEY"):
             raise RuntimeError(
                 "Thiếu ANTHROPIC_API_KEY. PowerShell: $env:ANTHROPIC_API_KEY='sk-ant-...' "
@@ -239,6 +269,8 @@ def _call_api(prompt: str, images, json_schema, model: str, effort: str,
 def _gemini_client():
     global _gemini_client_singleton
     if _gemini_client_singleton is None:
+        if not os.environ.get("GEMINI_API_KEY"):
+            _nap_dotenv()
         if not os.environ.get("GEMINI_API_KEY"):
             raise RuntimeError(
                 "Thiếu GEMINI_API_KEY. Lấy miễn phí tại aistudio.google.com/apikey, "

@@ -230,6 +230,12 @@ def test_chay_het_va_ghi_du_file(chay):
     for qid in ("q1", "q2", "q3"):
         assert (out / f"{qid}.csv").exists(), f"thiếu file nộp của {qid}"
     assert (out / R.CHECKPOINT_NAME).exists() and (out / R.LOG_NAME).exists()
+    traces = [
+        json.loads(line)
+        for line in (out / R.TRACE_NAME).read_text(encoding="utf-8").splitlines()
+    ]
+    assert [trace["query_id"] for trace in traces] == ["q1", "q2", "q3"]
+    assert all(trace["status"] == "success" for trace in traces)
 
 
 def test_mot_cau_hong_thi_cac_cau_khac_van_chay(chay):
@@ -240,6 +246,14 @@ def test_mot_cau_hong_thi_cac_cau_khac_van_chay(chay):
     assert not list(out.glob("*.zip"))
     assert set(R.Checkpoint(out / R.CHECKPOINT_NAME).doc()) == {"q1", "q3"}, \
         "câu chạy được vẫn phải được checkpoint để lần sau chỉ làm lại câu hỏng"
+    failed_trace = next(
+        json.loads(line)
+        for line in (out / R.TRACE_NAME).read_text(encoding="utf-8").splitlines()
+        if json.loads(line)["query_id"] == "q2"
+    )
+    assert failed_trace["status"] == "failed"
+    assert failed_trace["answers"] == []
+    assert failed_trace["failure_class"] == "missing_evidence"
     assert ma == 1, "có câu hỏng thì exit code phải khác 0"
 
 
@@ -282,6 +296,15 @@ def test_doi_de_thi_checkpoint_het_han(chay):
     chay([KIS, QA])
     _, _, goi2 = chay([dict(KIS, query_vi="ĐỀ ĐÃ SỬA"), QA])
     assert goi2 == ["q1"], "câu bị sửa đề phải chạy lại, câu không đổi thì không"
+
+
+def test_doi_model_thi_checkpoint_het_han(chay, monkeypatch):
+    """Bắt lỗi resume trộn answers sinh bởi hai model trong cùng checkpoint."""
+    monkeypatch.setenv("LLM_LOCAL_MODEL", "model-a")
+    chay([KIS, QA])
+    monkeypatch.setenv("LLM_LOCAL_MODEL", "model-b")
+    _, _, goi2 = chay([KIS, QA])
+    assert goi2 == ["q1", "q2"]
 
 
 def test_fresh_bo_qua_checkpoint(chay):

@@ -67,11 +67,19 @@ from backend.export import (  # noqa: E402
     write_submissions,
 )
 from backend.export.qa_variants import apply_qa_submission_policy  # noqa: E402
+from backend.tasks.runner import (  # noqa: E402
+    QueryRun,
+    SolveQueryError,
+    failure_trace,
+    runtime_fingerprint as build_runtime_fingerprint,
+    solve_query,
+)
 from data.config.qa_evaluation import QA_SUBMISSION_POLICIES  # noqa: E402
 from data.config.submit_format import TASK_TYPES, Answer, suggest_filename  # noqa: E402
 
 CHECKPOINT_NAME = "checkpoint.jsonl"
 LOG_NAME = "run.log"
+TRACE_NAME = "trace.jsonl"
 
 
 # ============================================================ đọc file truy vấn
@@ -382,70 +390,9 @@ def _preflight(log: "Log", bo_qua: bool) -> bool:
 # ============================================================ giải MỘT truy vấn
 
 def giai_mot_query(q: dict, total: int) -> tuple[list[Answer], dict]:
-    """Một truy vấn → đúng `total` Answer đã xếp hạng + thông tin phụ.
-
-    ⚠️ ĐÂY LÀ BẢN SAO THỨ BA của phép định tuyến theo dạng bài (hai bản kia:
-    run_minimal.py và dev_set/tools/run_evaluation.py). Lịch sử repo cho thấy
-    đúng chỗ này từng lệch nhau suốt hai tuần: run_evaluation đo TRAKE bằng
-    một pipeline KHÁC production, nên mọi số liệu TRAKE trên dev set đều đo
-    nhầm thứ. Gộp ba bản về một chỗ là việc nên làm — nhưng SAU 20/08 (mốc đóng
-    băng), vì nó đụng vào cả kịch bản dự phòng lẫn bộ đo.
-
-    Ném exception khi không dựng nổi câu trả lời — chỗ gọi bắt và đi tiếp.
-    """
-    from backend.slot import ShotHit, allocate
-
-    task = q["task_type"]
-
-    if task == "TRAKE":
-        from backend.tasks.trake import pad_answers, parse_events, to_answers, trake_search
-
-        # event_descs có sẵn thì dùng, khỏi tốn một lần gọi LLM và khỏi phụ thuộc
-        # vào việc LLM tách đúng — tách tay bao giờ cũng đáng tin hơn.
-        events = q.get("event_descs") or parse_events(q["query_vi"])
-        expected_n = q.get("n_events")
-        if isinstance(expected_n, bool) or not isinstance(expected_n, int) or expected_n < 2:
-            raise RuntimeError("TRAKE thiếu n_events hợp lệ — đầu vào phải được kiểm trước khi chạy")
-        if not isinstance(events, list) or len(events) != expected_n:
-            actual_n = len(events) if isinstance(events, list) else "không phải list"
-            raise RuntimeError(
-                f"TRAKE khai báo n_events={expected_n} nhưng tách được {actual_n} sự kiện; "
-                "dừng trước search để không nộp sai số frame"
-            )
-        candidates = trake_search(events, top_videos=total)
-        if not candidates:
-            raise RuntimeError("trake_search() không tìm được video ứng viên nào")
-        ans = to_answers(candidates)
-        if len(ans) < total:
-            ans = pad_answers(candidates, total)
-        return ans[:total], {"n_trake": expected_n, "answer_text": None}
-
-    if task == "QA":
-        from backend.tasks.qa import qa_pipeline
-
-        hits, answer_text, qa_trace = qa_pipeline(
-            q["query_vi"], query_en=q.get("query_en"), return_trace=True
-        )
-        if not str(answer_text or "").strip():
-            # Q&A chấm 3 điều kiện CÙNG LÚC: answer rỗng thì 100 dòng frame đúng
-            # cũng 0 điểm. Hỏng to ở đây để câu này vào danh sách lỗi, thay vì
-            # sinh ra một file trông hợp lệ mà chắc chắn 0 điểm.
-            raise RuntimeError("qa_pipeline() không suy ra được answer_text")
-        return allocate(hits, "QA", answer_text=answer_text, total=total), \
-            {"answer_text": answer_text, "qa_trace": qa_trace}
-
-    from backend.retrieval.search import search
-
-    res = search(q["query_vi"], query_en=q.get("query_en"), top_k=total,
-                 group_by_shot=True)
-    hits = [ShotHit(r["shot_id"], r["score"], r["keyframe_id"])
-            for r in res if r.get("shot_id")]
-    if not hits:
-        raise RuntimeError(
-            "search() không trả shot nào có shot_id — kiểm docker/index "
-            "(hoặc clip_kf_map.parquet chưa khớp index)"
-        )
-    return allocate(hits, task, total=total), {}
+    """Compatibility wrapper; định tuyến thật chỉ còn ở `solve_query()`."""
+    result = solve_query(q, total=total)
+    return result.answers, result.compatibility_metadata()
 
 
 # ======================================================================= main
@@ -483,6 +430,7 @@ def main() -> int:
 
     log = Log(out_dir / LOG_NAME)
     ck = Checkpoint(out_dir / CHECKPOINT_NAME)
+    current_runtime_fingerprint = build_runtime_fingerprint()
 
     if args.only:
         chon = {s.strip() for s in args.only.split(",") if s.strip()}
@@ -502,7 +450,10 @@ def main() -> int:
         rec = cu.get(q["query_id"])
         if not rec:
             continue
-        if rec.get("query_hash") != _query_hash(q):
+        if (
+            rec.get("query_hash") != _query_hash(q)
+            or rec.get("runtime_fingerprint") != current_runtime_fingerprint
+        ):
             het_han.append(q["query_id"])
         else:
             xong[q["query_id"]] = rec
@@ -526,13 +477,15 @@ def main() -> int:
     if xong:
         log(f"Checkpoint: {len(xong)} câu đã xong từ lần trước → bỏ qua")
     if het_han:
-        log(f"Checkpoint HẾT HẠN cho {len(het_han)} câu (đề đã sửa): "
+        log(f"Checkpoint HẾT HẠN cho {len(het_han)} câu (đề hoặc runtime đã đổi): "
             f"{', '.join(het_han[:5])}{'...' if len(het_han) > 5 else ''} → chạy lại")
     if args.fresh and cu:
         log("--fresh: bỏ qua toàn bộ checkpoint cũ")
 
     # --- vòng chạy chính
     ck.mo()
+    trace_log = Checkpoint(out_dir / TRACE_NAME)
+    trace_log.mo()
     hong: list[tuple[str, str]] = []
     bar = ThanhTienDo(len(can_chay)) if can_chay else None
     try:
@@ -548,6 +501,19 @@ def main() -> int:
                 break
             except Exception as e:
                 giay = time.perf_counter() - t0
+                if isinstance(e, SolveQueryError):
+                    failed_run = e.query_run
+                else:
+                    failure_class = (
+                        "missing_evidence" if task == "QA"
+                        else "trake_order" if task == "TRAKE"
+                        else "retrieval_miss"
+                    )
+                    failed_run = failure_trace(
+                        q, e, failure_class=failure_class,
+                        timings={"total_seconds": round(giay, 6)},
+                    )
+                trace_log.ghi(failed_run.to_trace_dict())
                 hong.append((qid, f"{type(e).__name__}: {e}"))
                 log(f"  ✗ {qid:<12} {task:<6} HỎNG sau {giay:5.1f}s — {type(e).__name__}: {e}",
                     chi_tiet=traceback.format_exc())
@@ -556,10 +522,32 @@ def main() -> int:
                 continue
 
             giay = time.perf_counter() - t0
+            query_run = phu.get("query_run")
+            if not isinstance(query_run, QueryRun):
+                # Chỉ dùng cho compatibility test doubles/caller cũ. Đường thật
+                # luôn nhận QueryRun đầy đủ từ solve_query().
+                query_run = QueryRun(
+                    query_id=qid,
+                    task_type=task,
+                    answers=answers,
+                    query_plan={
+                        "query_vi": q.get("query_vi"),
+                        "query_en": q.get("query_en"),
+                        "event_descs": q.get("event_descs"),
+                        "n_events": q.get("n_events"),
+                    },
+                    timings={"total_seconds": round(giay, 6)},
+                    runtime_fingerprint=current_runtime_fingerprint,
+                    answer_text=phu.get("answer_text"),
+                    qa_trace=phu.get("qa_trace"),
+                    n_trake=phu.get("n_trake"),
+                )
+            trace_log.ghi(query_run.to_trace_dict())
             # "Thật" = có keyframe_id (bằng chứng thật), phần còn lại là dòng đệm.
             that = sum(1 for a in answers if a.keyframe_id is not None)
             rec = {
                 "query_id": qid, "task_type": task, "query_hash": _query_hash(q),
+                "runtime_fingerprint": query_run.runtime_fingerprint,
                 "n_answers": len(answers), "n_real": that, "seconds": round(giay, 2),
                 "at": datetime.now().isoformat(timespec="seconds"),
                 "answer_text": phu.get("answer_text"),
@@ -577,6 +565,7 @@ def main() -> int:
                 bar.cap_nhat(f"✓ {qid}")
     finally:
         ck.dong()
+        trace_log.dong()
         if bar:
             bar.xuong_dong()
 

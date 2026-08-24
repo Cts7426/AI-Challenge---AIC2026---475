@@ -10,11 +10,11 @@ from tqdm import tqdm
 
 from backend.indexing.es_client import connect as es_connect
 from backend.indexing.milvus_client import connect as milvus_connect
-from backend.retrieval.search import search
 from backend.indexing.frame_map import load_frame_map
-from backend.slot.allocator import allocate, ShotHit, shot_bounds
+from backend.slot.allocator import ShotHit, shot_bounds
 from backend.export import QuerySubmission, write_submissions
-from backend.tasks.qa import qa_pipeline, validate_evidence_capture
+from backend.tasks.qa import validate_evidence_capture
+from backend.tasks.runner import QueryRun, SolveQueryError, failure_trace, solve_query
 
 from data.config.submit_format import Answer
 from data.config.qa_evaluation import QA_MATCH_POLICIES
@@ -98,11 +98,11 @@ def load_jsonl(path: Path):
         return [json.loads(line) for line in f]
 
 
-def get_failure_class(r_at_100: float) -> str:
-    # Phân loại failure đơn giản. Chi tiết F1-F7 sẽ do evaluate.py làm với metadata.
-    if r_at_100 >= 1.0:
-        return "SUCCESS"
-    return "F_UNKNOWN"
+def _record_succeeded(record: dict) -> bool:
+    """Đọc được cả artefact legacy F0_CRASH lẫn status mới của QueryRun."""
+    if "status" in record:
+        return record["status"] == "success"
+    return record.get("failure_class") != "F0_CRASH"
 
 
 def get_git_commit() -> str:
@@ -123,6 +123,15 @@ def _to_shot_hits(res: list[dict]) -> list[ShotHit]:
         for r in res
         if r.get("shot_id") is not None
     ]
+
+
+def _solve_for_evaluation(
+    query: object, *, total: int, runtime_fingerprint: str
+) -> QueryRun:
+    """Evaluator dùng đúng dispatch production và ghim fingerprint run hiện có."""
+    return solve_query(
+        query, total=total, runtime_fingerprint=runtime_fingerprint,
+    )
 
 
 def _answer_to_dict(a: Answer) -> dict:
@@ -326,7 +335,7 @@ def run_evaluation():
             if not line.strip():
                 continue
             rec = json.loads(line)
-            if rec.get("failure_class") != "F0_CRASH":
+            if _record_succeeded(rec):
                 done_qids.add(rec["query_id"])
     if done_qids:
         print(f"Đã có {len(done_qids)} câu hoàn thành từ trước, sẽ bỏ qua.")
@@ -352,71 +361,21 @@ def run_evaluation():
             gt = gts[q.query_id]
 
             try:
-                # KHÔNG fallback về query_vi: search()/qa_pipeline() coi
-                # query_en=None là tín hiệu "tự dịch qua llm()" (đúng đường
-                # sống thật, xem backend/api/main.py::post_search) — nếu dev
-                # set không có sẵn bản dịch tay thì để None, đừng đút thẳng
-                # tiếng Việt vào CLIP (huấn luyện trên caption tiếng Anh).
-                q_en = q.query_en
+                query_run = _solve_for_evaluation(
+                    q, total=100, runtime_fingerprint=runtime_fingerprint,
+                )
+                ans = query_run.answers
+                res = query_run.search_rows
+                answer_text = query_run.answer_text
+                qa_trace = query_run.qa_trace
+                n_trake = query_run.n_trake
+                hits = _to_shot_hits(res) if q.task_type != "TRAKE" else []
                 best_hit_ranks = {}
-                n_trake = None
-
-                if q.task_type == "QA":
-                    # ⚠️ SỬA 14/08 (code review phát hiện): bản cũ gán
-                    # `answer_text = gt.answer_text` — nghĩa là so sánh đáp án
-                    # với CHÍNH NÓ, R-Score của QA LUÔN LÀ 1.0 bất kể hệ thống
-                    # thật trả lời gì (đo thật: "màu xanh"/"CHUA_CO_ANSWER"/
-                    # "màu đỏ" đều ra R@1=1.0 với code cũ). Giờ gọi ĐÚNG
-                    # pipeline production (backend.tasks.qa.qa_pipeline, C3.1)
-                    # để answer_text là câu hệ THẬT SỰ sinh ra — 482 dòng
-                    # qa.py trước đây chưa từng được đo lần nào qua đường này.
-                    #
-                    # KHÔNG có best_hit_ranks debug ở nhánh này: qa_pipeline()
-                    # tự search trên event_vi đã tách (khác q.query_vi gốc),
-                    # không trả lại thứ hạng thô từng nhánh — chấp nhận mất
-                    # tính năng debug phụ để giữ đúng hành vi production, đo
-                    # ranks riêng cho QA là việc làm thêm sau nếu cần.
-                    hits, answer_text, qa_trace = qa_pipeline(
-                        q.query_vi, query_en=q_en, return_trace=True,
-                    )
-                    ans = allocate(hits, q.task_type, answer_text=answer_text)
-                elif q.task_type == "TRAKE":
-                    # ⚠️ SỬA 16/08: bản cũ KHÔNG hề gọi pipeline TRAKE thật
-                    # (parse_events + trake_search) — nó ném cả câu multi-event
-                    # vào search() NHƯ MỘT CÂU KIS ĐƠN (vi phạm giới hạn 77
-                    # token của CLIP, xem backend/tasks/trake.py), rồi để
-                    # allocate()/_allocate_trake() tự bịa N khoảnh khắc từ 1
-                    # shot của search đơn đó. Nghĩa là MỌI số liệu TRAKE trên
-                    # dev_set trước đây đo một pipeline khác hẳn production —
-                    # đây chính là gốc rễ "TRAKE hoạt động y hệt KIS" đo được.
-                    #
-                    # event_descs (nếu dev_set/queries/*_trake.jsonl có sẵn) ưu
-                    # tiên hơn parse_events(): tránh gọi LLM lặp lại mỗi lần
-                    # tune (tốn tiền + không xác định), và tách sự kiện thủ
-                    # công luôn đáng tin hơn LLM đoán trên đúng 1 câu ngắn.
-                    from backend.tasks.trake import pad_answers, parse_events, to_answers, trake_search
-                    events = q.event_descs if q.event_descs else parse_events(q.query_vi)
-                    n_trake = len(events)
-                    candidates = trake_search(events, top_videos=100)
-                    if not candidates:
-                        raise RuntimeError("trake_search() không tìm được video ứng viên nào")
-                    ans = to_answers(candidates)
-                    if len(ans) < 100:
-                        ans = pad_answers(candidates, 100)
-                    answer_text = None
-                    hits = []  # TRAKE không dùng ShotHit — candidates_f ghi từ `candidates` riêng bên dưới
-                    # Debug: hạng của ĐÚNG VIDEO trong danh sách ứng viên TRAKE
-                    # — TRAKE xếp hạng theo video (sai video = 0 điểm tuyệt
-                    # đối), không phải hạng 1 keyframe đơn lẻ như KIS.
-                    for rank, c in enumerate(candidates, 1):
-                        if c.video_id == gt.video_id:
+                if q.task_type == "TRAKE":
+                    for rank, row in enumerate(res, 1):
+                        if row["video_id"] == gt.video_id:
                             best_hit_ranks = {"trake_video_rank": rank}
                             break
-                else:
-                    res = search(q.query_vi, q_en, top_k=100, group_by_shot=True)
-                    hits = _to_shot_hits(res)
-                    answer_text = None
-                    ans = allocate(hits, q.task_type, answer_text=answer_text)
 
                 # Giữ các khoá cũ ở top-level là semantic để consumer cũ không
                 # đổi. Lưu song song exact giúp kiểm tra giả thuyết BTC mà không
@@ -450,7 +409,7 @@ def run_evaluation():
                             break
 
                 if fin >= 1.0:
-                    fc = "SUCCESS"
+                    fc = None
                 elif q.task_type == "QA":
                     # Retrieval coi là THÀNH CÔNG khi có shot ứng viên GIAO với cửa
                     # sổ đáp án — trượt là do suy luận, không do tìm kiếm.
@@ -477,9 +436,19 @@ def run_evaluation():
                                 break
                         except KeyError:
                             pass
-                    fc = "F_QA_REASONING_FAILED" if retrieval_success else "F_QA_RETRIEVAL_FAILED"
+                    fc = "qa_reasoning" if retrieval_success else "retrieval_miss"
+                elif q.task_type == "TRAKE":
+                    fc = (
+                        "trake_order"
+                        if any(row.get("video_id") == gt.video_id for row in res)
+                        else "retrieval_miss"
+                    )
                 else:
-                    fc = get_failure_class(r_100)
+                    fc = (
+                        "wrong_frame"
+                        if any(row.get("video_id") == gt.video_id for row in res)
+                        else "retrieval_miss"
+                    )
 
                 record = {
                     "query_id": q.query_id,
@@ -491,8 +460,10 @@ def run_evaluation():
                     "r_at_100": r_100,
                     "final": fin,
                     "score_by_qa_policy": score_by_qa_policy,
+                    "status": "success",
                     "failure_class": fc,
                     "ranks": best_hit_ranks,
+                    "runtime_fingerprint": query_run.runtime_fingerprint,
                 }
                 scores_f.write(json.dumps(record, ensure_ascii=False) + "\n")
                 scores_f.flush()
@@ -522,30 +493,35 @@ def run_evaluation():
                 # một job riêng thì tầng search có thể đã đổi và nguyên liệu không
                 # còn khớp bộ điểm nằm cạnh nó.
                 if q.task_type == "TRAKE":
-                    cand_list = [
-                        {"video_id": c.video_id, "score": float(c.score),
-                         "n_hit_events": c.n_hit_events, "has_full_order": c.has_full_order}
-                        for c in candidates
-                    ]
+                    cand_list = res
                 else:
                     cand_list = [
                         {"shot_id": h.shot_id, "score": float(h.score),
                          "best_keyframe_id": h.best_keyframe_id} for h in hits
                     ]
-                candidates_f.write(json.dumps({
-                    "query_id": q.query_id,
-                    "task_type": q.task_type,
-                    "answer_text": answer_text,
-                    "qa_trace": qa_trace if q.task_type == "QA" else None,
-                    "n_trake": n_trake,
-                    "candidates": cand_list,
-                }, ensure_ascii=False) + "\n")
+                trace_record = query_run.to_trace_dict()
+                trace_record["candidates"] = cand_list
+                candidates_f.write(json.dumps(trace_record, ensure_ascii=False) + "\n")
                 candidates_f.flush()
+                os.fsync(candidates_f.fileno())
 
             except Exception as e:
                 err_count += 1
                 print(f"\n[LỖI] Query {q.query_id} ném ngoại lệ:")
                 traceback.print_exc()
+                if isinstance(e, SolveQueryError):
+                    failed_run = e.query_run
+                else:
+                    failed_run = failure_trace(
+                        q,
+                        e,
+                        failure_class=(
+                            "missing_evidence" if q.task_type == "QA"
+                            else "trake_order" if q.task_type == "TRAKE"
+                            else "retrieval_miss"
+                        ),
+                        runtime_fingerprint=runtime_fingerprint,
+                    )
                 record = {
                     "query_id": q.query_id,
                     "task_type": q.task_type,
@@ -555,11 +531,18 @@ def run_evaluation():
                     "r_at_50": 0.0,
                     "r_at_100": 0.0,
                     "final": 0.0,
-                    "failure_class": "F0_CRASH",
+                    "status": "failed",
+                    "failure_class": failed_run.failure_class,
                     "ranks": {},
+                    "runtime_fingerprint": failed_run.runtime_fingerprint,
                 }
                 scores_f.write(json.dumps(record, ensure_ascii=False) + "\n")
                 scores_f.flush()
+                candidates_f.write(
+                    json.dumps(failed_run.to_trace_dict(), ensure_ascii=False) + "\n"
+                )
+                candidates_f.flush()
+                os.fsync(candidates_f.fileno())
                 # KHÔNG ghi answers.jsonl cho câu crash (#9)
 
     # 5. Gom scores.jsonl + answers.jsonl thành scores.json / file nộp. Đọc lại
@@ -575,7 +558,7 @@ def run_evaluation():
 
     successful_qa_qids = {
         qid for qid, rec in per_query_by_id.items()
-        if task_of.get(qid) == "QA" and rec.get("failure_class") != "F0_CRASH"
+        if task_of.get(qid) == "QA" and _record_succeeded(rec)
     }
     if successful_qa_qids:
         capture_stats = validate_evidence_capture(
@@ -616,7 +599,7 @@ def run_evaluation():
         # Nếu bản ghi THÀNH CÔNG cuối cùng của qid lại là F0_CRASH (câu từng
         # thành công ở lần chạy trước, nhưng đã bị xoá/hỏng dữ liệu và giờ
         # crash) thì đừng nộp answers cũ của nó.
-        if qid not in per_query_by_id or per_query_by_id[qid]["failure_class"] == "F0_CRASH":
+        if qid not in per_query_by_id or not _record_succeeded(per_query_by_id[qid]):
             continue
         subs.append(QuerySubmission(
             query_id=qid,

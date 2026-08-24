@@ -3,15 +3,17 @@
 ## Problem
 
 Batch 1 cần tìm đúng khoảnh khắc video, trả lời Q&A đúng evidence và nộp đúng
-frame tuyệt đối. Baseline tự động hiện đạt 6,8/13 trên `batch1_holdout13`, trong
-khi cùng evidence có manual lookup đạt 8,6/13; khoảng cách này chỉ ra lỗi còn ở
-planning, candidate/evidence và phân bổ kết quả, không phải lý do để bịa GT.
-GT legacy chưa human-verified không được biến thành tín hiệu promotion.
+frame tuyệt đối. Người vận hành báo automatic khoảng 6,8/13 và combined/manual
+lookup 8,6/13, nhưng hai số là external/unreproduced: chưa có evaluator run,
+artefact/config/runtime fingerprint hoặc GT verified đi kèm. Chúng chỉ nêu
+headroom cho planning/candidate/evidence, không phải evidence acceptance hay
+promotion. GT legacy chưa human-verified không được biến thành tín hiệu promotion.
 
 ## Goals
 
-- Trong mốc triển khai 3 ngày, nâng pipeline tự động lên 10–13/13 trên
-  `batch1_holdout13` đã đóng băng, với trace/evidence có thể replay.
+- Trong mốc triển khai 3 ngày, chuẩn bị pipeline tự động để đo mục tiêu 10–13/13
+  trên `batch1_holdout13` chỉ sau khi bộ này có GT verified, trace/evidence và
+  runtime fingerprint có thể replay.
 - Dùng một entrypoint `solve_query()` và trace thống nhất cho KIS, Q&A, TRAKE;
   trace đủ phân loại `retrieval_miss`, `wrong_frame`, `qa_reasoning`,
   `missing_evidence`, `trake_order` và `format`.
@@ -82,8 +84,10 @@ GT legacy chưa human-verified không được biến thành tín hiệu promoti
 
 ## Acceptance criteria
 
-- Product run tự động đạt 10–13/13 trên `batch1_holdout13`, thay vì baseline
-  6,8/13, và giải thích được khoảng cách với mức 8,6/13 khi manual lookup.
+- Chỉ khi toàn bộ `batch1_holdout13` là `verified`, release gate mới được phép
+  dùng số đo và phải đạt overall >=0.82, KIS >=0.82, QA >=0.75, zero-crash và
+  regression không giảm. Nếu còn bất kỳ nhãn `unknown`, gate phải fail closed;
+  không dùng 6,8/13, 8,6/13 hay điểm holdout legacy làm acceptance/promotion evidence.
 - Test schema/gate chứng minh GT legacy là `unknown`, audit trail của `verified`
   là bắt buộc, và promotion chặn GT unknown/missing trước ES/Milvus.
 - KIS có test anchor/token/fidelity/fallback/RRF/temporal; Q&A có test answer
@@ -99,6 +103,7 @@ GT legacy chưa human-verified không được biến thành tín hiệu promoti
 - Public chỉ chấm 50% đáp án nên dao động nhỏ không đủ promotion; cần giữ replay
   và gate đầy đủ thay vì tối ưu theo Public.
 - 10–13/13 là mục tiêu vận hành, không phải xác nhận đã đạt khi GT chưa verified;
-  manual lookup 8,6/13 chỉ là evidence về headroom, không phải hành vi tự động.
+  báo cáo 6,8/13 và 8,6/13 là external/unreproduced, chỉ là headroom được người
+  vận hành nêu chứ không phải hành vi tự động đã tái lập.
 - LLM/evidence không xác định, service lỗi hoặc mapping sai có thể làm kết quả
   không replay được; trace, cache và runtime fingerprint là phòng vệ bắt buộc.

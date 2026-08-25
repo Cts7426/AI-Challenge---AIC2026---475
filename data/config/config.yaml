@@ -31,3 +31,11 @@ keyframe_extraction:
   long_edge_px: 448                  # resize cạnh dài, giữ tỉ lệ
   max_workers: 0                     # 0 = tự chọn theo số nhân CPU
   ram_floor_gb: 2.0                  # dừng sạch nếu RAM khả dụng < giá trị này
+
+# --- B2.1: VLM Scene Graph ---
+vlm_scene_graph:
+  model_name_7b: "Qwen/Qwen2-VL-7B-Instruct-AWQ"
+  model_name_2b: "Qwen/Qwen2-VL-2B-Instruct-AWQ"
+  prompt_version: "v1"
+  vram_floor_gb: 0.5                 # dừng sạch nếu VRAM khả dụng < 0.5GB
+  ram_floor_gb: 2.0

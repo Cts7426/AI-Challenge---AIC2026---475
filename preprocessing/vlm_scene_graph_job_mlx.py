@@ -19,8 +19,6 @@ import pandas as pd
 import yaml
 import mlx.core as mx
 from mlx_vlm import load, generate
-from mlx_vlm.prompt_utils import get_message_profile
-from mlx_vlm.utils import load_config as load_mlx_config
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT_DIR / "data" / "config" / "config.yaml"
@@ -35,7 +33,7 @@ def load_config() -> dict:
 def get_video_shard(video_id: str, num_shards: int) -> int:
     return int(hashlib.md5(video_id.encode("utf-8")).hexdigest(), 16) % num_shards
 
-def process_single_video(video_id: str, model, processor, model_path: str, parts_dir: Path):
+def process_single_video(video_id: str, model, processor, parts_dir: Path):
     video_dir = KEYFRAMES_DIR / video_id
     if not video_dir.exists():
         return None
@@ -51,25 +49,31 @@ def process_single_video(video_id: str, model, processor, model_path: str, parts
     )
 
     results = []
-    config = load_mlx_config(model_path)
     
-    for img_path in images:
+    for i, img_path in enumerate(images):
         frame_idx = int(img_path.stem[1:])
         
-        # MLX-VLM format
-        messages = [{"role": "user", "content": [{"type": "text", "text": PROMPT}]}]
-        formatter = get_message_profile(config["model_type"])
-        prompt = formatter(messages)
+        # MLX sẽ mất khoảng 1-2 phút để "Compile Graph" (Làm nóng) cho bức ảnh ĐẦU TIÊN
+        if i == 0:
+            print(f"    ⏳ Đang làm nóng GPU (Warmup / JIT Compile) cho bức ảnh đầu tiên (Sẽ mất 1-2 phút, VUI LÒNG KHÔNG BẤM HUỶ)...")
+        else:
+            print(f"    📸 Xử lý Frame {frame_idx:07d}...")
+
+        # `<|image|>` là token ảnh RIÊNG của Llama-3.2-Vision, không phải chuẩn
+        # chung — Qwen2-VL dùng token khác (`<|vision_start|>...`). Model khác
+        # Llama-3.2 sẽ ra caption bịa mà KHÔNG báo lỗi (bị chặn ở main()).
+        prompt = f"<|image|>{PROMPT}"
         
-        # Generate
+        # Bật verbose=True để gõ chữ ra màn hình
         output = generate(
             model,
             processor,
             prompt=prompt,
             image=[str(img_path)],
-            verbose=False,
+            verbose=True,
             max_tokens=128
         )
+        print("\n") # Xuống dòng sau khi in text
 
         results.append({
             "kf_id": f"{video_id}_{frame_idx:07d}",
@@ -91,6 +95,15 @@ def main():
     ap.add_argument("--model", type=str, default="mlx-community/Llama-3.2-11B-Vision-Instruct-4bit")
     args = ap.parse_args()
 
+    # Prompt token ảnh trong process_single_video() hardcode riêng cho
+    # Llama-3.2 (xem comment ở đó). Model khác thì ra caption bịa, không lỗi —
+    # chặn sớm ở đây thay vì để lỗi im lặng lan xuống scene graph đã lưu.
+    if "llama-3.2" not in args.model.lower():
+        ap.error(
+            f"--model={args.model!r}: prompt hiện chỉ đúng định dạng cho "
+            "Llama-3.2-Vision. Cần thêm formatter riêng trước khi dùng model khác."
+        )
+
     SCENE_GRAPH_PARTS_DIR.mkdir(parents=True, exist_ok=True)
     videos = sorted([d.name for d in KEYFRAMES_DIR.iterdir() if d.is_dir()])
 
@@ -105,11 +118,16 @@ def main():
     model, processor = load(args.model)
     print("✅ Tải model siêu tốc độ qua MLX thành công.")
     
+    # Sửa lỗi thư viện MLX tự ném lỗi nếu processor không có chat_template
+    if not hasattr(processor, "chat_template") or processor.chat_template is None:
+        # Template đơn giản để lách qua hàm check của MLX, ta đã ghép sẵn <|image|> vào prompt ở trên rồi.
+        processor.chat_template = "{% for message in messages %}{{ message['content'] }}{% endfor %}"
+
     for i, vid in enumerate(todo, 1):
         t0 = time.perf_counter()
         print(f"[{i}/{len(todo)}] Đang chạy {vid}...")
         try:
-            n_frames = process_single_video(vid, model, processor, args.model, SCENE_GRAPH_PARTS_DIR)
+            n_frames = process_single_video(vid, model, processor, SCENE_GRAPH_PARTS_DIR)
             elapsed = time.perf_counter() - t0
             print(f"  ✅ Xong {vid}: {n_frames} frames trong {elapsed:.1f}s")
         except Exception as e:

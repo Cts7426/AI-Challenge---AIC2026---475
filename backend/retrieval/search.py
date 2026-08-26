@@ -288,22 +288,22 @@ def _rrf(rank: int) -> float:
     return 1.0 / (RRF_K + rank)
 
 
-def search(
+def _search_core(
     query_vi: str,
     query_en: str | None = None,
     top_k: int = 10,
     branches: dict[str, bool] | None = None,
-    group_by_shot: bool | None = None,
     filter_video_id: str | None = None,
-) -> list[dict]:
-    """Search hợp nhất bằng RRF. Trả top-K, mỗi phần tử kèm thứ hạng từng nhánh.
+) -> tuple[list[dict], dict]:
+    """Phần tính RRF thô: CHƯA gom shot, CHƯA cắt top_k, KHÔNG rerank.
 
-    Mỗi kết quả: {keyframe_id, video_id, frame_idx, timestamp_ms, shot_id,
-                  score, ranks: {nhánh: hạng}, contrib: {nhánh: đóng góp RRF}}
-
-    filter_video_id: ép mọi nhánh mức-keyframe chỉ tìm TRONG video này (C4.4 —
-    TRAKE fallback, khi giai đoạn 1 đã chốt video). None (mặc định) = KIS pipeline
-    y hệt trước khi có tham số này — không nhánh nào đổi hành vi.
+    Trả `(ket_qua đã sort theo score giảm dần, shot_map)`. Đây là ranh giới
+    DUY NHẤT cho hậu xử lý xem toàn bộ candidate pool trước khi bị cắt (vd:
+    VLM rerank thử nghiệm ở CLI `search.py --rerank`) — hàm này KHÔNG public,
+    `search()` công khai bên dưới không có tham số rerank, nên `solve_query()`
+    và mọi caller production không bao giờ với tới VLM qua đây (bất biến #9
+    AGENTS.md: VLM/local nặng không nằm trong đường chạy online, trừ Q&A qua
+    `llm()` adapter).
     """
     if query_en is None:
         from backend.retrieval.text_query import translate_to_english
@@ -320,7 +320,6 @@ def search(
             query_en = query_vi
 
     bat = {**BRANCHES, **(branches or {})}
-    gom_shot = GROUP_BY_SHOT if group_by_shot is None else group_by_shot
     pool = top_k * CANDIDATE_MULTIPLIER
 
     def _an_toan(ten: str, fn, *args) -> list[dict]:
@@ -371,7 +370,7 @@ def search(
             print(f"  [cảnh báo] ASR đề cử lỗi, bỏ qua: {e}")
 
     if not candidates:
-        return []
+        return [], {}
 
     try:
         _fill_from_milvus(candidates)
@@ -429,7 +428,14 @@ def search(
 
     ket_qua.sort(key=lambda r: r["score"], reverse=True)
 
-    # --- gom về shot: mỗi shot giữ 1 keyframe điểm cao nhất (đã sort nên là cái gặp đầu)
+    return ket_qua, shots
+
+
+def _finalize(
+    ket_qua: list[dict], shots: dict, top_k: int, group_by_shot: bool | None,
+) -> list[dict]:
+    """Gom về shot (mỗi shot giữ 1 keyframe điểm cao nhất) rồi cắt top_k."""
+    gom_shot = GROUP_BY_SHOT if group_by_shot is None else group_by_shot
     if gom_shot and shots:
         da_co: set[str] = set()
         gon = []
@@ -442,8 +448,31 @@ def search(
             da_co.add(s)
             gon.append(r)
         ket_qua = gon
-
     return ket_qua[:top_k]
+
+
+def search(
+    query_vi: str,
+    query_en: str | None = None,
+    top_k: int = 10,
+    branches: dict[str, bool] | None = None,
+    group_by_shot: bool | None = None,
+    filter_video_id: str | None = None,
+) -> list[dict]:
+    """Search hợp nhất bằng RRF. Trả top-K, mỗi phần tử kèm thứ hạng từng nhánh.
+
+    Mỗi kết quả: {keyframe_id, video_id, frame_idx, timestamp_ms, shot_id,
+                  score, ranks: {nhánh: hạng}, contrib: {nhánh: đóng góp RRF}}
+
+    filter_video_id: ép mọi nhánh mức-keyframe chỉ tìm TRONG video này (C4.4 —
+    TRAKE fallback, khi giai đoạn 1 đã chốt video). None (mặc định) = KIS pipeline
+    y hệt trước khi có tham số này — không nhánh nào đổi hành vi.
+
+    KHÔNG có tham số rerank: đây là hàm production duy nhất `solve_query()`
+    gọi, VLM không được phép nằm trong đường chạy này (xem `_search_core`).
+    """
+    ket_qua, shots = _search_core(query_vi, query_en, top_k, branches, filter_video_id)
+    return _finalize(ket_qua, shots, top_k, group_by_shot)
 
 
 # ------------------------------------------------------------------------- CLI
@@ -456,6 +485,7 @@ def main() -> None:
     ap.add_argument("--branches", help="chỉ bật các nhánh này, vd: vector,ocr")
     ap.add_argument("--no-group-shot", action="store_true", help="không gom theo shot")
     ap.add_argument("--filter-video-id", metavar="VIDEO_ID", help="chỉ tìm trong 1 video (C4.4)")
+    ap.add_argument("--rerank", action="store_true", help="bật Agentic VLM Reranker (chấm điểm ảnh bằng VLM)")
     args = ap.parse_args()
 
     branches = None
@@ -467,9 +497,23 @@ def main() -> None:
         branches = {b: (b in chon) for b in BRANCHES}
 
     t0 = time.perf_counter()
-    kq = search(args.query, query_en=args.en, top_k=args.top_k,
-                branches=branches, group_by_shot=not args.no_group_shot,
-                filter_video_id=args.filter_video_id)
+    if args.rerank:
+        # Agentic VLM rerank CHỈ tồn tại ở CLI này — cố ý không đi qua search()
+        # công khai (xem docstring `_search_core`), nên rerank cần tự gọi
+        # _search_core() để thấy TOÀN BỘ candidate pool trước khi bị cắt
+        # top_k/gom shot, giống hành vi cũ.
+        from backend.retrieval.agentic_reranker import VLMReranker
+        ket_qua, shots = _search_core(
+            args.query, query_en=args.en, top_k=args.top_k,
+            branches=branches, filter_video_id=args.filter_video_id,
+        )
+        reranker = VLMReranker()  # Mặc định gọi Llama 3.2 11B Vision (chỉ MLX/Apple Silicon)
+        ket_qua = reranker.rerank(args.query, ket_qua, top_k_to_rerank=50)
+        kq = _finalize(ket_qua, shots, args.top_k, not args.no_group_shot)
+    else:
+        kq = search(args.query, query_en=args.en, top_k=args.top_k,
+                    branches=branches, group_by_shot=not args.no_group_shot,
+                    filter_video_id=args.filter_video_id)
     ms = (time.perf_counter() - t0) * 1000
 
     print(f'\nTop {len(kq)} cho: "{args.query}"' + (f'  (EN: "{args.en}")' if args.en else ""))

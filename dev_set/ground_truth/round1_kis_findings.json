@@ -1,0 +1,139 @@
+{
+  "findings_id": "round1_kis_visual_review",
+  "created_at": "2026-08-26",
+  "reviewed_by": "Claude (soi keyframe trực tiếp), được Công Lý uỷ quyền",
+  "verification_status": "unknown",
+  "note": "Đây là KẾT QUẢ ĐIỀU TRA, chưa phải GT verified theo AGENTS.md. frame ghi ở đây là keyframe đã soi thấy đúng cảnh mô tả, KHÔNG phải biên cửa sổ [s,e] của BTC. Muốn dùng cho promotion gate phải qua mark_verified với người xác nhận.",
+  "method_legend": {
+    "CLIP-EN": "Claude tự dịch VI->EN rồi search vector",
+    "ASR+CLIP": "ASR khoanh video (tên món/lời thoại) rồi CLIP định vị frame",
+    "OCR-*": "OCR chữ trên hình khoanh trúng video",
+    "OCR+ASR+CLIP": "kết hợp cả ba"
+  },
+  "entries": {
+    "query-p1-1-kis": {
+      "video_id": "L30_V046",
+      "frame": 4903,
+      "how": "CLIP-EN",
+      "note": "nhóm tập thể dục, kf074 cúi chạm mũi chân",
+      "query_en_claude": "A group of more than five people standing in a row doing morning exercise, bending down with both hands touching their toes. One person wears glasses, three wear red hats."
+    },
+    "query-p1-10-kis": {
+      "video_id": "L29_V013",
+      "frame": 14139,
+      "how": "CLIP-EN",
+      "note": "kéo cắt chùm nho trên giàn",
+      "query_en_claude": "A hand cutting a bunch of grapes from the vine with black scissors. A blue string is tied to the stem of the grape bunch."
+    },
+    "query-p1-11-kis": {
+      "video_id": "L23_V025",
+      "frame": 13750,
+      "how": "CLIP-EN",
+      "note": "vạch đích đua xe đạp, góc sát đường, REPLAY",
+      "query_en_claude": "Slow motion at the finish line of a bicycle race, camera low near the road surface. First rider in yellow jersey black shorts, second in blue jersey black shorts, third in blue jersey red shorts."
+    },
+    "query-p1-12-kis": {
+      "video_id": "L22_V029",
+      "frame": 5998,
+      "how": "OCR-mazut",
+      "note": "ticker giá dầu mazut 15.562 đồng/kg",
+      "query_en_claude": "Motorbike taxi drivers waiting at a petrol filling station, oil price ticker"
+    },
+    "query-p1-13-kis": {
+      "video_id": "L28_V013",
+      "frame": 27538,
+      "how": "CLIP-EN",
+      "note": "ngư dân trên sông lúc bình minh",
+      "query_en_claude": "A person standing in the water shining a light, then pulling a fishing net at dawn, then a group of people approaching with video cameras to film him."
+    },
+    "query-p1-14-kis": {
+      "video_id": "L26_V467",
+      "frame": 6695,
+      "how": "CLIP-EN",
+      "note": "đề trùng hệt p1-8",
+      "query_en_claude": "A chef placing stick-shaped ingredients and flower-shaped slices onto a plate steaming in a pot, arranging them alternately with chopsticks, then spooning a soft ingredient from a glass bowl into the center."
+    },
+    "query-p1-18-kis": {
+      "video_id": "L26_V389",
+      "frame": 5935,
+      "how": "ASR+CLIP",
+      "note": "bún gà sả, cà rốt, nấm mèo",
+      "query_en_claude": "Ladling broth with chicken into a bowl of rice vermicelli noodles"
+    },
+    "query-p1-19-kis": {
+      "video_id": "L24_V026",
+      "frame": 3844,
+      "how": "CLIP-EN",
+      "note": "múa lân trên đỉnh cột, mai hoa thung",
+      "query_en_claude": "A lion dance puppet operated by two people standing upright and spinning on top of a pole, then leaping to nearby poles and biting a pumpkin with a yellow flower."
+    },
+    "query-p1-2-kis": {
+      "video_id": "L21_V003",
+      "frame": 2267,
+      "how": "OCR+ASR+CLIP",
+      "note": "đập THỦY ĐIỆN HÒA BÌNH xả nước",
+      "query_en_claude": "Aerial drone view of a large concrete dam with water reservoir, seen from above."
+    },
+    "query-p1-21-kis": {
+      "video_id": "L26_V289",
+      "frame": 2048,
+      "how": "ASR+CLIP",
+      "note": "tôm + nướng bánh mì",
+      "query_en_claude": "Peeled cooked shrimp on a plate with three loaves of bread behind"
+    },
+    "query-p1-22-kis": {
+      "video_id": "L25_V041",
+      "frame": 16619,
+      "how": "OCR-remember",
+      "note": "cô áo dài hồng, bảng remember V-ing/to-inf",
+      "query_en_claude": "A woman in a pink ao dai wearing glasses teaching the English verb remember at a blackboard"
+    },
+    "query-p1-24-kis": {
+      "video_id": "L29_V014",
+      "frame": 20077,
+      "how": "CLIP-EN",
+      "note": "nghệ nhân đan lát lục bình",
+      "query_en_claude": "Handicraft products woven from water hyacinth: handbags, a flower pot and a tea set, panned from left to right. Then a woman on the left picking up a teacup and holding it gently."
+    },
+    "query-p1-4-kis": {
+      "video_id": "L22_V021",
+      "frame": 19836,
+      "how": "CLIP-EN",
+      "note": "sư tử + biển LONDON ZOO + tin cân động vật",
+      "query_en_claude": "Lions resting and climbing on wooden platforms in a zoo enclosure, with a London Zoo information sign in front. Two keepers in green shirts weighing an animal."
+    },
+    "query-p1-5-kis": {
+      "video_id": "L26_V035",
+      "frame": 5174,
+      "how": "ASR+CLIP",
+      "note": "mực xào đậu Hà Lan, đĩa ớt đỏ bên cạnh",
+      "query_en_claude": "Green peas being added into squid stir-frying in a wok"
+    },
+    "query-p1-6-kis": {
+      "video_id": "L22_V023",
+      "frame": 18791,
+      "how": "ASR+CLIP",
+      "note": "khối kim cương thô lớn nhất thế giới",
+      "query_en_claude": "A man in a dark blue suit holding a large rough diamond up to his face"
+    },
+    "query-p1-7-kis": {
+      "video_id": "L26_V041",
+      "frame": 3763,
+      "how": "ASR+CLIP",
+      "note": "cà rốt hình sao trong rổ lưới, nước sôi",
+      "query_en_claude": "Star-shaped carrot slices boiling in water in a metal mesh basket"
+    },
+    "query-p1-8-kis": {
+      "video_id": "L26_V467",
+      "frame": 6695,
+      "how": "CLIP-EN",
+      "note": "đĩa hấp trong nồi, cà rốt thanh + gừng sợi",
+      "query_en_claude": "A chef using chopsticks to arrange stick-shaped ingredients and flower-shaped slices on a plate inside a steamer."
+    }
+  },
+  "unresolved": [
+    "query-p1-20-kis",
+    "query-p1-23-kis",
+    "query-p1-25-kis"
+  ]
+}

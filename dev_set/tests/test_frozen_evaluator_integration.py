@@ -77,6 +77,25 @@ def _verified_manifests_and_gt(tmp_path: Path):
     )
 
 
+def test_batch1_holdout13_manifest_loads_against_production_ground_truth():
+    """Manifest thật + GT thật phải tự nạp được, không chỉ fixture giả lập.
+
+    Trước khi có test này, `batch1_holdout13.json` thiếu `ground_truth_sha256`
+    nên `_load_frozen_inputs()` crash ngay ở câu đầu — bug này không bị bắt vì
+    integration test phía dưới tự sinh GT tạm, không đọc file thật.
+    """
+    from dev_set.tools.run_evaluation import _load_frozen_inputs
+
+    manifest_id, queries, gts, paths = _load_frozen_inputs(
+        REPO_ROOT / "dev_set/manifests/batch1_holdout13.json", None,
+    )
+    assert manifest_id == "batch1_holdout13"
+    assert len(queries) == 13
+    assert set(gts) == {q.query_id for q in queries}
+    for gt in gts.values():
+        assert gt.verification_status in ("unknown", "verified")
+
+
 def test_evaluator_frozen_artifact_di_thang_den_promotion_eligible(
     monkeypatch, tmp_path,
 ):

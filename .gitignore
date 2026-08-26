@@ -38,6 +38,9 @@ CLAUDE.md*Zone*
 .claude/*
 !.claude/skills/
 !.claude/launch.json
+# settings.json chứa hook chạy pytest + permissions dùng chung cho cả team
+# (không chứa secret). settings.local.json mới là chỗ để override riêng máy.
+!.claude/settings.json
 .claude/settings.local.json
 
 # Zone.Identifier (Windows downloaded files)

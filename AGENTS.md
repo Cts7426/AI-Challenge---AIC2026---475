@@ -105,6 +105,33 @@ dev_set/            tune/holdout, scorer và artefact regression
    gọi thử API và không đổi provider. Một run/resume phải giữ nguyên model trong
    runtime fingerprint để số đo không trộn hai model.
 
+## Chế độ làm việc tự chủ
+
+Mục tiêu: agent tự sửa → tự kiểm → tự báo cáo, chỉ dừng khi thật sự bị chặn.
+
+- **Thước đo duy nhất của "xong"**: `python scripts/selfcheck.py`. Exit 0 = xong,
+  exit 1 = còn thiếu và in rõ thiếu gì. Không tự tuyên bố xong bằng cảm giác;
+  không coi "test xanh" là xong khi selfcheck còn báo THIẾU.
+- **Hook `PostToolUse` tự chạy pytest** sau mỗi lần sửa `.py` trong repo
+  (`scripts/hooks/post_edit_pytest.sh`). Test đỏ chặn lại kèm lý do. Vì hook do
+  harness gọi, không thể "quên chạy test".
+- **Tự soi lỗi trước khi báo xong**: chạy `/code-review` trên diff của chính
+  mình. Phần lớn lỗi im lặng ở mục "Bất biến" không làm test đỏ.
+- **Không hỏi lại thứ tự quyết được**: chọn mặc định hợp lý, ghi lại lựa chọn,
+  đi tiếp. Chỉ dừng hỏi khi gặp đúng ba loại chặn dưới đây.
+
+### Ba thứ agent KHÔNG tự giải được — dừng và hỏi người
+
+1. **Ground truth chưa xác minh.** Không bịa, không tự phong `verified` (luật
+   cũ ở mục Bất biến). Người phải nhìn frame rồi ghi bằng
+   `python -m dev_set.tools.mark_verified`. Công cụ soát:
+   `python -m dev_set.tools.gt_verification_gallery --manifest <tên>`.
+2. **Credit/API key của LLM.** Hết credit làm hỏng cả KIS chứ không riêng Q&A —
+   `search()` dịch VI→EN qua `llm()`, dịch hỏng thì nhánh vector CLIP dạt về
+   nhóm video sai hoàn toàn mà KHÔNG báo lỗi.
+3. **Quyết định thuộc về người vận hành**: chọn provider/model, chọn ứng viên
+   nào là đáp án đúng, có nộp ZIP hay không, dừng hay tiếp một đợt.
+
 ## Quy trình đánh giá và nhận thay đổi
 
 - `tune`: dùng phát triển và phân tích query-level. `holdout`: chỉ dùng promotion.

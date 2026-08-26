@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/scripts/hooks/post_edit_pytest.sh\"",
+            "timeout": 180,
+            "statusMessage": "Chạy pytest sau khi sửa code..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Bash(wc*)",
+      "Bash(find*)",
+      "Bash(grep*)",
+      "Bash(rg*)",
+      "Bash(jq*)",
+      "Bash(du*)",
+      "Bash(df*)",
+      "Bash(which*)",
+      "Bash(echo*)",
+      "Bash(docker ps*)",
+      "Bash(curl -s http://localhost:*)",
+      "Bash(.venv/bin/python3.14 -m pytest*)",
+      "Bash(.venv/bin/python3.14 -m dev_set.tools.*)",
+      "Bash(.venv/bin/python3.14 -m backend.retrieval.search*)",
+      "Bash(.venv/bin/python3.14 scripts/selfcheck.py*)",
+      "Bash(.venv/bin/python3.14 scripts/preflight_check.py*)",
+      "Bash(.venv/bin/python3.14 scripts/verify_clip_space.py*)"
+    ],
+    "deny": [
+      "Bash(git reset*)",
+      "Bash(git checkout*)",
+      "Bash(git restore*)",
+      "Bash(git clean*)",
+      "Bash(rm -rf*)"
+    ]
+  }
+}

@@ -79,19 +79,31 @@ CLIP_KF_MAP = REPO_ROOT / "data" / "derived" / "clip_kf_map.parquet"
 # Không hàm nào trả điểm thô ra ngoài — điểm chỉ dùng để sắp xếp bên trong nhánh.
 
 def _branch_vector(query_en: str, limit: int, filter_video_id: str | None = None) -> list[dict]:
-    """Milvus CLIP → [{keyframe_id, video_id, frame_idx, timestamp_ms}] theo hạng."""
-    from backend.retrieval.text_query import encode_text
+    """Milvus → [{keyframe_id, video_id, frame_idx, timestamp_ms}] theo hạng.
 
-    # Index và query encoder phải CÙNG không gian vector, nếu không Milvus vẫn
-    # trả top-k với điểm 0.2–0.3 trông rất bình thường mà sai toàn bộ (A1.0a).
-    assert_index_meta(strict=False)
+    Encoder do `VECTOR_BACKEND` chọn: 'clip' (mặc định, giữ nguyên hành vi cũ)
+    hoặc 'siglip2'. Encoder và collection LUÔN đi theo cặp — dùng text encoder
+    này với index kia thì Milvus vẫn trả top-k điểm 0.2–0.3 trông bình thường
+    mà sai toàn bộ, nên hai thứ được chọn cùng một chỗ, không tách rời được.
+    """
+    from data.config.siglip2_model import SIGLIP2_COLLECTION, use_siglip2
+
+    if use_siglip2():
+        from backend.retrieval.siglip2_query import encode_text
+        collection = SIGLIP2_COLLECTION
+    else:
+        from backend.retrieval.text_query import encode_text
+        collection = COLLECTION_NAME
+        # Chỉ kiểm meta của index CLIP; index SigLIP2 có meta riêng do
+        # load_siglip2.py ghi và đã assert dim lúc encode_text.
+        assert_index_meta(strict=False)
 
     client = milvus_connect()
     kwargs: dict = {}
     if filter_video_id is not None:
         kwargs["filter"] = f'video_id == "{filter_video_id}"'
     hits = client.search(
-        COLLECTION_NAME,
+        collection,
         data=[encode_text(query_en).tolist()],
         limit=limit,
         output_fields=["video_id", "frame_idx", "timestamp_ms"],

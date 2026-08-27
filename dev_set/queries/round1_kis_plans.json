@@ -1,0 +1,340 @@
+{
+ "query-p1-1-kis": {
+  "anchors": [
+   "A group of more than five people lined up doing morning exercise outdoors",
+   "People bending down touching their toes with both hands",
+   "People wearing red caps and glasses exercising in a row"
+  ],
+  "ocr": [],
+  "asr": [
+   "tập thể dục",
+   "động tác"
+  ],
+  "hyp": [
+   "Morning group calisthenics in a schoolyard",
+   "A trainer leading a group workout outdoors"
+  ]
+ },
+ "query-p1-2-kis": {
+  "anchors": [
+   "A map with irrigation structure icons appearing on it",
+   "Aerial view of a large dam seen from above",
+   "Close-up of a dam in the rain"
+  ],
+  "ocr": [
+   "thủy lợi",
+   "đập"
+  ],
+  "asr": [
+   "công trình thủy lợi",
+   "con đập",
+   "bản đồ"
+  ],
+  "hyp": [
+   "A hydroelectric dam releasing water",
+   "Floodgates of a reservoir opened"
+  ]
+ },
+ "query-p1-4-kis": {
+  "anchors": [
+   "Lions resting and climbing on wooden platforms in a zoo enclosure",
+   "A London Zoo information sign in front of an animal enclosure",
+   "Two keepers in green shirts weighing an animal at a zoo"
+  ],
+  "ocr": [
+   "London Zoo",
+   "London"
+  ],
+  "asr": [
+   "sở thú",
+   "sư tử",
+   "vườn thú"
+  ],
+  "hyp": [
+   "Lion cubs lying on a platform at a zoo",
+   "Zookeepers weighing animals on a scale"
+  ]
+ },
+ "query-p1-5-kis": {
+  "anchors": [
+   "Green peas being added to squid stir-frying in a pan",
+   "A plate of sliced onion and red chili beside a wok",
+   "Slow motion shaking a wok over a flame"
+  ],
+  "ocr": [],
+  "asr": [
+   "đậu hà lan",
+   "mực"
+  ],
+  "hyp": [
+   "Stir-frying squid with vegetables in a home kitchen"
+  ]
+ },
+ "query-p1-6-kis": {
+  "anchors": [
+   "A man in a dark blue suit holding a large rough gemstone with both hands",
+   "A woman in black office wear with a pink headscarf standing and smiling",
+   "Aerial view of a large open-pit gemstone mine with terraced pits"
+  ],
+  "ocr": [],
+  "asr": [
+   "đá quý",
+   "khai thác"
+  ],
+  "hyp": [
+   "A large diamond held in a pair of hands",
+   "An open-pit diamond mine from the air"
+  ]
+ },
+ "query-p1-7-kis": {
+  "anchors": [
+   "Star-shaped carrot slices boiling in a pot of water in a metal mesh basket",
+   "A plate of boiled okra, cauliflower, star carrots and zucchini",
+   "A pink dipping sauce bowl in the middle of a vegetable plate"
+  ],
+  "ocr": [],
+  "asr": [
+   "đậu bắp",
+   "súp lơ",
+   "cà rốt"
+  ],
+  "hyp": [
+   "Blanching vegetables in boiling water for a platter",
+   "A vegetarian steamed vegetable platter"
+  ]
+ },
+ "query-p1-8-kis": {
+  "anchors": [
+   "A chef placing stick-shaped ingredients onto a plate steaming inside a pot",
+   "Flower-shaped vegetable slices arranged with chopsticks on a plate",
+   "A chef spooning a soft ingredient from a glass bowl onto a plate"
+  ],
+  "ocr": [
+   "hấp"
+  ],
+  "asr": [
+   "hấp",
+   "tô thủy tinh"
+  ],
+  "hyp": [
+   "Steamed fish on a plate garnished with vegetable strips",
+   "A steamed dish decorated with carrot flowers"
+  ]
+ },
+ "query-p1-10-kis": {
+  "anchors": [
+   "A hand cutting a bunch of grapes from the vine with black scissors",
+   "A blue string tied to the stem of a grape bunch",
+   "Grapes hanging on a trellis being harvested"
+  ],
+  "ocr": [],
+  "asr": [
+   "chùm nho",
+   "giàn nho"
+  ],
+  "hyp": [
+   "Harvesting grapes at a vineyard in the Mekong delta"
+  ]
+ },
+ "query-p1-11-kis": {
+  "anchors": [
+   "Slow motion finish line of a bicycle race, camera low near the road surface",
+   "A cyclist in a yellow jersey crossing the finish line first",
+   "Cyclists in blue jerseys finishing a race"
+  ],
+  "ocr": [],
+  "asr": [
+   "đua xe đạp",
+   "về đích",
+   "vạch đích"
+  ],
+  "hyp": [
+   "Sprint finish of a road cycling stage race"
+  ]
+ },
+ "query-p1-12-kis": {
+  "anchors": [
+   "Motorbike taxi drivers waiting at a petrol filling station",
+   "Someone closing the fuel tank cap of a motorbike",
+   "A motorbike rider moving from left to right at a petrol station"
+  ],
+  "ocr": [
+   "mazut",
+   "dầu mazut"
+  ],
+  "asr": [
+   "xe ôm công nghệ",
+   "trạm xăng",
+   "giá dầu"
+  ],
+  "hyp": [
+   "A queue of motorbikes at a petrol pump",
+   "TV news report about fuel prices"
+  ]
+ },
+ "query-p1-13-kis": {
+  "anchors": [
+   "A person standing in the water shining a light",
+   "A man pulling a fishing net at dawn",
+   "A group of people filming a fisherman with video cameras"
+  ],
+  "ocr": [],
+  "asr": [
+   "kéo lưới",
+   "lưới cá",
+   "bình minh"
+  ],
+  "hyp": [
+   "A fisherman casting and hauling nets on a river at sunrise"
+  ]
+ },
+ "query-p1-14-kis": {
+  "anchors": [
+   "A chef placing stick-shaped ingredients onto a plate steaming inside a pot",
+   "Flower-shaped vegetable slices arranged with chopsticks on a plate",
+   "A chef spooning a soft ingredient from a glass bowl onto a plate"
+  ],
+  "ocr": [
+   "hấp"
+  ],
+  "asr": [
+   "hấp",
+   "tô thủy tinh"
+  ],
+  "hyp": [
+   "Steamed fish on a plate garnished with vegetable strips",
+   "A steamed dish decorated with carrot flowers"
+  ]
+ },
+ "query-p1-18-kis": {
+  "anchors": [
+   "Rice vermicelli noodles placed into an empty bowl",
+   "Ladling broth with chicken and vegetables into a noodle bowl",
+   "A noodle bowl beside a small dipping sauce bowl with two chili slices"
+  ],
+  "ocr": [],
+  "asr": [
+   "bún",
+   "thịt gà",
+   "nấm mèo",
+   "sả"
+  ],
+  "hyp": [
+   "Assembling a bowl of Vietnamese chicken vermicelli soup"
+  ]
+ },
+ "query-p1-19-kis": {
+  "anchors": [
+   "A lion dance puppet standing upright and spinning on top of a pole",
+   "A lion dance puppet leaping between poles",
+   "A lion dance puppet biting a pumpkin with a yellow flower"
+  ],
+  "ocr": [],
+  "asr": [
+   "con lân",
+   "múa lân",
+   "cột"
+  ],
+  "hyp": [
+   "Lion dance competition on poles, mai hoa thung"
+  ]
+ },
+ "query-p1-20-kis": {
+  "anchors": [
+   "Three people walking down a slope in the rain holding umbrellas",
+   "A person wearing a raincoat with a bear printed on the back",
+   "People walking on a dirt road toward a house beside a pond"
+  ],
+  "ocr": [],
+  "asr": [
+   "trời mưa",
+   "cái ao",
+   "con dốc"
+  ],
+  "hyp": [
+   "Villagers walking in the rain in a mountain village",
+   "A rural hamlet by a pond on a rainy day"
+  ]
+ },
+ "query-p1-21-kis": {
+  "anchors": [
+   "Peeled cooked shrimp arranged on a plate",
+   "A chef placing three loaves of bread on a table",
+   "Shrimp cut in half being grilled on a stove"
+  ],
+  "ocr": [
+   "bánh mì"
+  ],
+  "asr": [
+   "bánh mì",
+   "tôm",
+   "nướng"
+  ],
+  "hyp": [
+   "Chefs plating a dish in a professional kitchen with bread",
+   "Grilling shrimp in a restaurant kitchen"
+  ]
+ },
+ "query-p1-22-kis": {
+  "anchors": [
+   "A woman in a pink ao dai wearing glasses teaching at a board",
+   "An English grammar lesson about the verb remember"
+  ],
+  "ocr": [
+   "remember"
+  ],
+  "asr": [
+   "remember",
+   "động từ"
+  ],
+  "hyp": [
+   "An online English grammar lesson with a Vietnamese teacher"
+  ]
+ },
+ "query-p1-23-kis": {
+  "anchors": [
+   "A male teacher in a white shirt and dark tie against a dark blue patterned background",
+   "A lecture slide with a three-level diagram of boxes linked by downward arrows",
+   "A slide with an orange box, a dark blue box and a green box connected by teal arrows"
+  ],
+  "ocr": [],
+  "asr": [],
+  "hyp": [
+   "A diagram slide in an online exam revision lesson",
+   "A geography lecture slide with a flow chart"
+  ]
+ },
+ "query-p1-24-kis": {
+  "anchors": [
+   "Handicraft products woven from water hyacinth: handbags, a flower pot and a tea set",
+   "A camera panning across woven handbags and a woven tea set",
+   "A woman picking up a teacup and holding it gently while listening"
+  ],
+  "ocr": [],
+  "asr": [
+   "lục bình",
+   "đan lát",
+   "thủ công"
+  ],
+  "hyp": [
+   "Women weaving handicrafts in a rural workshop"
+  ]
+ },
+ "query-p1-25-kis": {
+  "anchors": [
+   "Two students in white shirts and red neckerchiefs hosting on a school stage",
+   "A school stage with a red drum kit and a piano behind",
+   "Students holding microphones presenting at a school event"
+  ],
+  "ocr": [],
+  "asr": [
+   "khăn quàng đỏ",
+   "sân khấu",
+   "học sinh"
+  ],
+  "hyp": [
+   "A school opening ceremony with students on stage",
+   "A school music performance with drums"
+  ]
+ }
+}

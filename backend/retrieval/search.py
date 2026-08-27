@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from bisect import bisect_right
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
@@ -242,6 +243,53 @@ def _shot_map() -> dict[str, str]:
     return m
 
 
+@lru_cache(maxsize=1)
+def _shot_ranges() -> dict[str, tuple[list[int], list[int], list[str]]]:
+    """video_id → (start_frame đã sắp xếp, end_frame, shot_id) để tra theo FRAME.
+
+    Vì sao cần thêm cách tra này bên cạnh `_shot_map()`: map kia tra theo tên
+    keyframe, mà tên chỉ khớp với hai cách đặt tên của CLIP. Encoder mới đặt tên
+    khác ("L26_V102#f0002432") nên tra tên trả None cho MỌI dòng, và bước gom
+    shot lặng lẽ loại sạch kết quả — search trả rỗng mà không báo lỗi gì.
+
+    Một shot vốn LÀ một khoảng frame, nên tra theo frame đúng với mọi cách đặt
+    tên và không phụ thuộc encoder nào.
+    """
+    path = Path(__file__).resolve().parents[2] / "data/derived/shots.parquet"
+    if not path.exists():
+        return {}
+    try:
+        import pandas as pd
+
+        df = pd.read_parquet(path, columns=["video_id", "start_frame", "end_frame", "shot_id"])
+    except Exception as e:
+        print(f"  [cảnh báo] không đọc được shots.parquet, bỏ tra shot theo frame: {e}")
+        return {}
+
+    out: dict[str, tuple[list[int], list[int], list[str]]] = {}
+    for video_id, g in df.sort_values("start_frame").groupby("video_id", sort=False):
+        out[str(video_id)] = (
+            g["start_frame"].astype(int).tolist(),
+            g["end_frame"].astype(int).tolist(),
+            g["shot_id"].astype(str).tolist(),
+        )
+    return out
+
+
+def _shot_of_frame(video_id: str, frame_idx: int | None) -> str | None:
+    """Shot chứa frame này, hoặc None nếu frame nằm ngoài mọi shot."""
+    if frame_idx is None:
+        return None
+    ranges = _shot_ranges().get(video_id)
+    if not ranges:
+        return None
+    starts, ends, ids = ranges
+    i = bisect_right(starts, int(frame_idx)) - 1
+    if i < 0:
+        return None
+    return ids[i] if int(frame_idx) <= ends[i] else None
+
+
 def _nominate_from_asr(segments: list[dict]) -> list[dict]:
     """Đoạn ASR khớp nhất → keyframe nằm trong khoảng thời gian đó (1 query Milvus).
 
@@ -430,7 +478,10 @@ def _search_core(
             "video_id": info["video_id"],
             "frame_idx": info.get("frame_idx"),
             "timestamp_ms": info.get("timestamp_ms"),
-            "shot_id": shots.get(kf),
+            # Tra theo tên keyframe trước (giữ nguyên hành vi cũ), không có thì
+            # tra theo khoảng frame — encoder mới đặt tên khác nên tra tên trả
+            # None cho mọi dòng và bước gom shot sẽ loại sạch kết quả.
+            "shot_id": shots.get(kf) or _shot_of_frame(info["video_id"], info.get("frame_idx")),
             # KHÔNG làm tròn score đem đi sắp xếp: làm tròn tạo ra các cặp bằng
             # nhau giả, thứ tự giữa chúng thành tuỳ ý — mà R@1 vs R@5 chênh 0.20 điểm.
             "score": sum(contrib_tho.values()),

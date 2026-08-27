@@ -141,7 +141,7 @@ def _shot_agg_head(qid, plan, query_vi, s, shot_of, pool=400, topn=3) -> list[tu
 def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
               pool: int = 120, per_video: int = 12,
               base: list[tuple[str, int]] | None = None,
-              shot_of=None) -> list[tuple[str, int]]:
+              shot_of=None, head_mode: str = "base") -> list[tuple[str, int]]:
     anchors = plan["anchors"]
     all_anchors = anchors + plan.get("hyp", [])
 
@@ -157,7 +157,11 @@ def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
     # Allocator cấp 2 frame cho shot mạnh nhất (SLOT_BUDGET) nên xác suất trúng
     # ở hạng đầu cao hơn hẳn lấy thẳng output search — đo thật: dùng allocator
     # làm đầu bảng cho Final 0.4894, lấy thẳng search chỉ 0.3035.
-    if shot_of is not None:
+    # ĐO THẬT trên bộ đề đợt 1, cùng mọi điều kiện khác:
+    #     head_mode=base     Final 0.5788 · hạng-1 7/17 · top-50 13/17
+    #     head_mode=shotagg  Final 0.4024 · hạng-1 2/17 · top-50 12/17
+    # Nên mặc định là `base`. Nhánh `shotagg` giữ lại để đo tiếp, KHÔNG dùng khi thi.
+    if head_mode == "shotagg" and shot_of is not None:
         head = _shot_agg_head(qid, plan, query_vi, s, shot_of)
         if base:                      # ghép đuôi allocator vào sau shot-agg
             head += [k for k in base if k not in head]
@@ -227,7 +231,7 @@ def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
     # Lý do: chèn 2 dòng lên đầu đẩy đáp án đúng từ hạng 1 xuống hạng 3-4 ở MỌI
     # câu vốn đã đúng. Đầu bảng đúng 7/17 lần, nên nguồn khác phải chính xác
     # hơn 41% mới đáng thay chỗ — không nguồn nào đạt.
-    rows = _interleave([head, rare, *video_streams, spill], seed=seed)
+    rows = _interleave([head, rare, *video_streams, spill], seed=head[:KEEP])
     for k in head:                      # còn thiếu thì lấy nốt bảng đầu
         if len(rows) >= TOTAL:
             break
@@ -243,6 +247,8 @@ def main() -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--base", type=Path, default=None,
                     help="thư mục submission của run.py dùng làm đầu bảng (rất nên có)")
+    ap.add_argument("--head", default="base", choices=("base", "shotagg"),
+                    help="cách dựng đầu bảng; `base` đo được tốt hơn hẳn (0.5788 vs 0.4024)")
     args = ap.parse_args()
 
     plans = json.loads(args.plans.read_text(encoding="utf-8"))
@@ -265,7 +271,7 @@ def main() -> int:
         if args.base and (args.base / f"{qid}.csv").exists():
             base = [(r[0], int(r[1])) for r in csv.reader((args.base / f"{qid}.csv").open())]
         rows = build_one(qid, plans[qid], qvi[qid], es, kf2frame, fps, nframes,
-                         base=base, shot_of=shot_of)
+                         base=base, shot_of=shot_of, head_mode=args.head)
         # Đủ 100 dòng là bắt buộc: không có hình phạt cho câu sai, bỏ trống ô
         # 51-100 là vứt điểm miễn phí (CLAUDE.md mục 6 luật 1).
         assert len(rows) == TOTAL, f"{qid}: {len(rows)} dòng, phải đúng {TOTAL}"

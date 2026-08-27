@@ -637,10 +637,23 @@ hơn đường chính, nhưng nó **không có gì để sập**.
 ```bash
 cd ~/Desktop/AI-Challenge---AIC2026---475
 docker compose up -d              # Milvus + Elasticsearch
-python scripts/selfcheck.py       # phải in "OK" hết
+
+# ⭐ NẠP KHOÁ LLM — thiếu dòng này là mất trắng 4 câu QA
+set -a; source .env; set +a
+export LLM_BACKEND=api
+
+python scripts/selfcheck.py
 ```
 
-Nếu `selfcheck` báo đỏ thì **dừng lại xử lý**, đừng chạy tiếp. Xem mục 8.
+`selfcheck` phải in `ĐẠT` ở ba dòng: **Test suite**, **Preflight**, **LLM backend**.
+Hai dòng `Ground truth` báo `THIẾU` là **bình thường** — chúng nói về dev set nội bộ,
+không liên quan tới buổi thi.
+
+Nếu `LLM backend` báo `THIẾU` thì bạn quên `source .env` — quay lại làm lại. Đây là
+lỗi dễ mắc nhất và đắt nhất trong cả quy trình.
+
+Nếu **Test suite** hoặc **Preflight** báo đỏ thì **dừng lại xử lý**, đừng chạy tiếp.
+Xem mục 8.
 
 ### 7.1 Bốn bước lúc thi
 
@@ -770,7 +783,7 @@ Kết quả: `submissions/exam_final.zip`, bên trong có thư mục top-level `
 |---|---|---|
 | `search()` trả về rỗng, không lỗi | collection chưa `load()` trong Milvus | `Collection(name).load()` |
 | Milvus restart liên tục | RAM Docker không đủ cho 2 collection | Docker Desktop → Resources → RAM ≥ 11 GB |
-| `run.py` dừng ngay, nói "LLM_BACKEND chưa set" | Batch có câu QA/TRAKE | Đặt `LLM_BACKEND`, hoặc `--only` chỉ các câu KIS |
+| `exam.py run` in "BỎ QUA n câu cần LLM" | Quên nạp khoá | `set -a; source .env; set +a` rồi `export LLM_BACKEND=api`, chạy lại `exam.py run` — KIS đã xong sẽ không phải làm lại |
 | Kết quả rác toàn tập | Anchor tiếng Anh rỗng | Kiểm `exam_plan.json`, mọi câu KIS phải có ≥1 anchor |
 | ES trả 0 hit cho mọi probe | ES chết âm thầm | `curl localhost:9200/_cat/indices` — phải thấy đủ 4 index |
 | Cosine ~0 khi kiểm chứng | Sai model encode | **Dừng ngay.** Không chạy tiếp. Kiểm `VECTOR_BACKEND`. |
@@ -831,7 +844,9 @@ ba: cảnh phổ thông, không có tín hiệu hiếm để bấu víu.
 ### Trước buổi thi tối nay
 1. **Chạy thử `exam.py run` một lần với đề cũ** để chắc bản sửa `seed` chạy thông
    trên máy sẽ dùng lúc thi. Đừng để lần chạy đầu tiên là lúc 19:30.
-2. **Đặt `LLM_BACKEND`** trong terminal thi, nếu không thì 4 câu QA mất trắng.
+2. **Nạp khoá LLM** trong đúng terminal sẽ chạy thi — `set -a; source .env; set +a`
+   rồi `export LLM_BACKEND=api`. Đã kiểm: sau hai dòng đó `selfcheck` chuyển sang
+   `ĐẠT`. Thiếu thì 4 câu QA mất trắng (~0.10–0.16 tổng điểm).
 3. `docker compose up -d` và `python scripts/selfcheck.py` **trước 19:00**, không
    phải lúc 19:29.
 

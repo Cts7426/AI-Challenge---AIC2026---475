@@ -102,15 +102,53 @@ def _interleave(streams: list[list], seed: list, total: int = TOTAL) -> list:
     return rows
 
 
+
+def _shot_agg_head(qid, plan, query_vi, s, shot_of, pool=400, topn=3) -> list[tuple[str, int]]:
+    """Đầu bảng xếp theo SHOT gộp điểm nhiều frame, không theo một frame may mắn.
+
+    Đo được: một shot có 3-4 frame cùng ăn điểm là bằng chứng mạnh hơn hẳn shot
+    có đúng một frame trúng — Final 0.2988 -> 0.3953 khi so cùng điều kiện.
+    Shot mạnh nhất được cấp 2 frame (như SLOT_BUDGET của allocator) vì cửa sổ
+    đáp án rộng ~150 frame, hai điểm neo phủ chắc hơn một.
+    """
+    per_shot, rep = defaultdict(list), {}
+    for a in plan["anchors"] + plan.get("hyp", []):
+        for r in s(a, pool, None, False):
+            f = r["frame_idx"]
+            if f is None:
+                continue
+            sid = r.get("shot_id") or shot_of(r["video_id"], f)
+            if sid is None:
+                continue
+            per_shot[sid].append((r["score"], r["video_id"], int(f)))
+
+    scored = []
+    for sid, items in per_shot.items():
+        items.sort(key=lambda x: -x[0])
+        agg = sum(sc for sc, _, _ in items[:topn])
+        scored.append((agg, items))
+    scored.sort(key=lambda x: -x[0])
+
+    head = []
+    for i, (_, items) in enumerate(scored):
+        n_take = 2 if i < 2 else 1          # 2 frame cho 2 shot mạnh nhất
+        for _, v, f in items[:n_take]:
+            if (v, f) not in head:
+                head.append((v, f))
+    return head
+
+
 def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
               pool: int = 120, per_video: int = 12,
-              base: list[tuple[str, int]] | None = None) -> list[tuple[str, int]]:
+              base: list[tuple[str, int]] | None = None,
+              shot_of=None) -> list[tuple[str, int]]:
     anchors = plan["anchors"]
     all_anchors = anchors + plan.get("hyp", [])
 
-    def s(en, k, vid=None):
+    def s(en, k, vid=None, grouped=True):
         try:
-            return search(query_vi, query_en=en, top_k=k, filter_video_id=vid)
+            return search(query_vi, query_en=en, top_k=k, filter_video_id=vid,
+                          group_by_shot=grouped)
         except Exception as e:
             print(f"    [{qid}] search lỗi ({en[:32]}...): {e}")
             return []
@@ -119,7 +157,11 @@ def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
     # Allocator cấp 2 frame cho shot mạnh nhất (SLOT_BUDGET) nên xác suất trúng
     # ở hạng đầu cao hơn hẳn lấy thẳng output search — đo thật: dùng allocator
     # làm đầu bảng cho Final 0.4894, lấy thẳng search chỉ 0.3035.
-    if base:
+    if shot_of is not None:
+        head = _shot_agg_head(qid, plan, query_vi, s, shot_of)
+        if base:                      # ghép đuôi allocator vào sau shot-agg
+            head += [k for k in base if k not in head]
+    elif base:
         head = list(base)
     else:
         head = [(r["video_id"], int(r["frame_idx"])) for r in s(anchors[0], pool)
@@ -179,7 +221,13 @@ def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
     for v in ordered[3:7]:
         spill.extend(drill(v))
 
-    rows = _interleave([head, rare, *video_streams, spill], seed=head[:KEEP])
+    # KHÔNG thăng probe lên đầu bảng. Đã đo hai lần và thua nặng:
+    # - thăng vô điều kiện: Final 0.3976, hạng-1 còn 1/17
+    # - thăng khi có nhánh vector đồng thuận: Final 0.3812, hạng-1 còn 1/17
+    # Lý do: chèn 2 dòng lên đầu đẩy đáp án đúng từ hạng 1 xuống hạng 3-4 ở MỌI
+    # câu vốn đã đúng. Đầu bảng đúng 7/17 lần, nên nguồn khác phải chính xác
+    # hơn 41% mới đáng thay chỗ — không nguồn nào đạt.
+    rows = _interleave([head, rare, *video_streams, spill], seed=seed)
     for k in head:                      # còn thiếu thì lấy nốt bảng đầu
         if len(rows) >= TOTAL:
             break
@@ -207,6 +255,8 @@ def main() -> int:
     fps = {str(r.video_id): (int(r.fps_num), int(r.fps_den)) for r in vi.itertuples()}
     nframes = {str(r.video_id): int(r.n_frames) for r in vi.itertuples()}
 
+    from backend.retrieval.search import _shot_of_frame as shot_of
+
     es = es_connect()
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -214,7 +264,8 @@ def main() -> int:
         base = None
         if args.base and (args.base / f"{qid}.csv").exists():
             base = [(r[0], int(r[1])) for r in csv.reader((args.base / f"{qid}.csv").open())]
-        rows = build_one(qid, plans[qid], qvi[qid], es, kf2frame, fps, nframes, base=base)
+        rows = build_one(qid, plans[qid], qvi[qid], es, kf2frame, fps, nframes,
+                         base=base, shot_of=shot_of)
         # Đủ 100 dòng là bắt buộc: không có hình phạt cho câu sai, bỏ trống ô
         # 51-100 là vứt điểm miễn phí (CLAUDE.md mục 6 luật 1).
         assert len(rows) == TOTAL, f"{qid}: {len(rows)} dòng, phải đúng {TOTAL}"

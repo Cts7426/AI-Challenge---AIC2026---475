@@ -62,7 +62,6 @@ ANCHOR_SCHEMA = {
         "anchors": {
             "type": "array",
             "items": {"type": "string"},
-            "maxItems": MAX_ANCHORS,
         }
     },
     "required": ["anchors"],

@@ -150,6 +150,41 @@ def test_plan_ba_anchor_va_moi_ban_dich_khong_qua_60_token(monkeypatch):
     assert all(anchor.clip_tokens <= 60 for anchor in plan.anchors)
 
 
+def test_schema_khong_max_items_nhung_bon_anchor_van_fail_closed(monkeypatch):
+    """Bắt lỗi bỏ giới hạn Python khi khử keyword schema Anthropic không hỗ trợ."""
+    module = _module()
+    query_vi = (
+        "Người bước vào cửa hàng rồi nhìn bảng giá, sau đó nói chuyện với nhân viên "
+        "ở quầy thanh toán, cuối cùng rời cửa hàng"
+    )
+    anchors = [
+        "Người bước vào cửa hàng",
+        "Người nhìn bảng giá",
+        "Người nói chuyện với nhân viên ở quầy thanh toán",
+        "Người rời cửa hàng",
+    ]
+    schemas: list[dict] = []
+
+    def fake_llm(*args, **kwargs):
+        schemas.append(kwargs["json_schema"])
+        return json.dumps({"anchors": anchors})
+
+    monkeypatch.setattr(module, "llm", fake_llm)
+    monkeypatch.setattr(
+        module,
+        "translate",
+        lambda text: (_ for _ in ()).throw(AssertionError("plan invalid không được dịch")),
+    )
+
+    plan = module.plan_query(query_vi, "caller translation")
+
+    assert "maxItems" not in schemas[0]["properties"]["anchors"]
+    assert module._validated_anchors({"anchors": anchors}, query_vi) is None
+    assert plan.strategy == "single"
+    assert plan.query_en == "caller translation"
+    assert plan.fallback_reason == "invalid_anchors"
+
+
 @pytest.mark.parametrize(
     "invented_anchor",
     [

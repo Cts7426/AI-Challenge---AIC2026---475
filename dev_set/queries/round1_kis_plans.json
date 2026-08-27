@@ -13,7 +13,8 @@
   "hyp": [
    "Morning group calisthenics in a schoolyard",
    "A trainer leading a group workout outdoors"
-  ]
+  ],
+  "query_en": "A group of more than five people standing in a row doing morning exercise, bending down with both hands touching their toes. One person wears glasses, three wear red hats."
  },
  "query-p1-2-kis": {
   "anchors": [
@@ -33,7 +34,8 @@
   "hyp": [
    "A hydroelectric dam releasing water",
    "Floodgates of a reservoir opened"
-  ]
+  ],
+  "query_en": "Aerial drone view of a large concrete dam with water reservoir, seen from above."
  },
  "query-p1-4-kis": {
   "anchors": [
@@ -53,7 +55,8 @@
   "hyp": [
    "Lion cubs lying on a platform at a zoo",
    "Zookeepers weighing animals on a scale"
-  ]
+  ],
+  "query_en": "Lions resting and climbing on wooden platforms in a zoo enclosure, with a London Zoo information sign in front. Two keepers in green shirts weighing an animal."
  },
  "query-p1-5-kis": {
   "anchors": [
@@ -68,7 +71,8 @@
   ],
   "hyp": [
    "Stir-frying squid with vegetables in a home kitchen"
-  ]
+  ],
+  "query_en": "Green peas being added into squid stir-frying in a wok"
  },
  "query-p1-6-kis": {
   "anchors": [
@@ -84,7 +88,8 @@
   "hyp": [
    "A large diamond held in a pair of hands",
    "An open-pit diamond mine from the air"
-  ]
+  ],
+  "query_en": "A man in a dark blue suit holding a large rough diamond up to his face"
  },
  "query-p1-7-kis": {
   "anchors": [
@@ -101,7 +106,8 @@
   "hyp": [
    "Blanching vegetables in boiling water for a platter",
    "A vegetarian steamed vegetable platter"
-  ]
+  ],
+  "query_en": "Star-shaped carrot slices boiling in water in a metal mesh basket"
  },
  "query-p1-8-kis": {
   "anchors": [
@@ -119,7 +125,8 @@
   "hyp": [
    "Steamed fish on a plate garnished with vegetable strips",
    "A steamed dish decorated with carrot flowers"
-  ]
+  ],
+  "query_en": "A chef using chopsticks to arrange stick-shaped ingredients and flower-shaped slices on a plate inside a steamer."
  },
  "query-p1-10-kis": {
   "anchors": [
@@ -134,7 +141,8 @@
   ],
   "hyp": [
    "Harvesting grapes at a vineyard in the Mekong delta"
-  ]
+  ],
+  "query_en": "A hand cutting a bunch of grapes from the vine with black scissors. A blue string is tied to the stem of the grape bunch."
  },
  "query-p1-11-kis": {
   "anchors": [
@@ -150,7 +158,8 @@
   ],
   "hyp": [
    "Sprint finish of a road cycling stage race"
-  ]
+  ],
+  "query_en": "Slow motion at the finish line of a bicycle race, camera low near the road surface. First rider in yellow jersey black shorts, second in blue jersey black shorts, third in blue jersey red shorts."
  },
  "query-p1-12-kis": {
   "anchors": [
@@ -170,7 +179,8 @@
   "hyp": [
    "A queue of motorbikes at a petrol pump",
    "TV news report about fuel prices"
-  ]
+  ],
+  "query_en": "Motorbike taxi drivers waiting at a petrol filling station, oil price ticker"
  },
  "query-p1-13-kis": {
   "anchors": [
@@ -186,7 +196,8 @@
   ],
   "hyp": [
    "A fisherman casting and hauling nets on a river at sunrise"
-  ]
+  ],
+  "query_en": "A person standing in the water shining a light, then pulling a fishing net at dawn, then a group of people approaching with video cameras to film him."
  },
  "query-p1-14-kis": {
   "anchors": [
@@ -204,7 +215,8 @@
   "hyp": [
    "Steamed fish on a plate garnished with vegetable strips",
    "A steamed dish decorated with carrot flowers"
-  ]
+  ],
+  "query_en": "A chef placing stick-shaped ingredients and flower-shaped slices onto a plate steaming in a pot, arranging them alternately with chopsticks, then spooning a soft ingredient from a glass bowl into the center."
  },
  "query-p1-18-kis": {
   "anchors": [
@@ -221,7 +233,8 @@
   ],
   "hyp": [
    "Assembling a bowl of Vietnamese chicken vermicelli soup"
-  ]
+  ],
+  "query_en": "Ladling broth with chicken into a bowl of rice vermicelli noodles"
  },
  "query-p1-19-kis": {
   "anchors": [
@@ -237,7 +250,8 @@
   ],
   "hyp": [
    "Lion dance competition on poles, mai hoa thung"
-  ]
+  ],
+  "query_en": "A lion dance puppet operated by two people standing upright and spinning on top of a pole, then leaping to nearby poles and biting a pumpkin with a yellow flower."
  },
  "query-p1-20-kis": {
   "anchors": [
@@ -254,7 +268,8 @@
   "hyp": [
    "Villagers walking in the rain in a mountain village",
    "A rural hamlet by a pond on a rainy day"
-  ]
+  ],
+  "query_en": "People walking down a slope in the rain holding umbrellas, one wearing a raincoat."
  },
  "query-p1-21-kis": {
   "anchors": [
@@ -273,7 +288,8 @@
   "hyp": [
    "Chefs plating a dish in a professional kitchen with bread",
    "Grilling shrimp in a restaurant kitchen"
-  ]
+  ],
+  "query_en": "Peeled cooked shrimp on a plate with three loaves of bread behind"
  },
  "query-p1-22-kis": {
   "anchors": [
@@ -289,7 +305,8 @@
   ],
   "hyp": [
    "An online English grammar lesson with a Vietnamese teacher"
-  ]
+  ],
+  "query_en": "A woman in a pink ao dai wearing glasses teaching the English verb remember at a blackboard"
  },
  "query-p1-23-kis": {
   "anchors": [
@@ -302,7 +319,8 @@
   "hyp": [
    "A diagram slide in an online exam revision lesson",
    "A geography lecture slide with a flow chart"
-  ]
+  ],
+  "query_en": "A male teacher in white shirt and dark tie in front of a dark blue background, lecture slide with a diagram of coloured boxes and arrows."
  },
  "query-p1-24-kis": {
   "anchors": [
@@ -318,7 +336,8 @@
   ],
   "hyp": [
    "Women weaving handicrafts in a rural workshop"
-  ]
+  ],
+  "query_en": "Handicraft products woven from water hyacinth: handbags, a flower pot and a tea set, panned from left to right. Then a woman on the left picking up a teacup and holding it gently."
  },
  "query-p1-25-kis": {
   "anchors": [
@@ -335,6 +354,7 @@
   "hyp": [
    "A school opening ceremony with students on stage",
    "A school music performance with drums"
-  ]
+  ],
+  "query_en": "Two school students in white shirts and red neckerchiefs speaking on a stage with a piano behind."
  }
 }

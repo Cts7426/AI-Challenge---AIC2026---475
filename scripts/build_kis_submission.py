@@ -240,6 +240,19 @@ def build_one(qid: str, plan: dict, query_vi: str, es, kf2frame, fps, nframes,
     return rows[:TOTAL]
 
 
+def _load_query_vi(path: Path) -> dict[str, str]:
+    """Đọc câu hỏi tiếng Việt từ CẢ HAI dạng file đang tồn tại trong repo:
+    manifest `.json` (`{"queries": [...]}`) và file đề `.jsonl` một dòng một câu.
+    `exam.py` truyền dạng thứ hai — trước đây script chỉ hiểu dạng thứ nhất nên
+    `exam.py run` chết ở bước này với `JSONDecodeError: Extra data`."""
+    text = path.read_text(encoding="utf-8")
+    try:
+        rows = json.loads(text)["queries"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        rows = [json.loads(l) for l in text.splitlines() if l.strip()]
+    return {q["query_id"]: q["query_vi"] for q in rows}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plans", type=Path, default=REPO / "dev_set/queries/round1_kis_plans.json")
@@ -252,8 +265,7 @@ def main() -> int:
     args = ap.parse_args()
 
     plans = json.loads(args.plans.read_text(encoding="utf-8"))
-    qvi = {q["query_id"]: q["query_vi"]
-           for q in json.loads(args.manifest.read_text(encoding="utf-8"))["queries"]}
+    qvi = _load_query_vi(args.manifest)
 
     fm = pd.read_parquet(REPO / "data/derived/frame_map.parquet")
     kf2frame = dict(zip(fm.kf_id, fm.frame_idx_corrected.astype(int)))

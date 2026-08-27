@@ -58,6 +58,10 @@ def cmd_prepare(args) -> int:
             continue
         plan[q["query_id"]] = {
             "_de_bai": " ".join(q["query_vi"].split()),   # để Claude đọc, không dùng khi chạy
+            # BẢN DỊCH ĐẦY ĐỦ cả câu đề, trung thành, dưới 77 token CLIP. Đây là
+            # trường quan trọng nhất: đo được dùng bản dịch đầy đủ làm đầu bảng cho
+            # Final 0.5459, còn dùng anchor ngắn đầu tiên chỉ 0.2894.
+            "query_en": "",
             "anchors": [],   # 2-3 câu tiếng Anh NGẮN, trung thành với đề, mỗi câu tả 1 khoảnh khắc
             "hyp": [],       # giả thuyết cụ thể hoá phần đề nói chung chung (sai chỉ tốn slot)
             "ocr": [],       # chữ có khả năng HIỆN TRÊN MÀN HÌNH: tên riêng, số, từ nước ngoài
@@ -65,11 +69,30 @@ def cmd_prepare(args) -> int:
         }
     PLAN.write_text(json.dumps(plan, ensure_ascii=False, indent=1), encoding="utf-8")
 
+    # XOÁ xác nhận của đề CŨ. Nếu để lại, `finalize` sẽ nhét đáp án đợt trước vào
+    # bài nộp đợt này — sai hoàn toàn mà KHÔNG báo lỗi, đúng lớp lỗi im lặng đã
+    # làm hỏng đợt 1. Thà mất công điền lại còn hơn nộp nhầm.
+    if CONFIRM.exists():
+        CONFIRM.write_text(json.dumps({
+            "_huong_dan": "Claude điền: {query_id: {video_id, frame, note}}. "
+                          "Câu không điền thì giữ nguyên thứ tự tự động.",
+        }, ensure_ascii=False, indent=1), encoding="utf-8")
+        print("  đã xoá exam_confirm.json của đề cũ")
+
     n = {t: sum(1 for q in rows if q["task_type"] == t) for t in ("KIS", "QA", "TRAKE")}
     print(f"\n{len(rows)} câu: KIS {n['KIS']} · QA {n['QA']} · TRAKE {n['TRAKE']}")
     print(f"  đề     -> {QUERIES}")
     print(f"  plan   -> {PLAN}   ← Claude điền anchors/hyp/ocr/asr rồi chạy bước 2")
     return 0
+
+
+def _llm_ready() -> bool:
+    """QA/TRAKE cần LLM. `run.py` CHỦ ĐỘNG DỪNG nếu lô có câu cần LLM mà
+    LLM_BACKEND chưa đặt tường minh — hành vi đúng (không tự tiêu tiền của ai),
+    nhưng nó làm chết luôn cả 20 câu KIS vốn không cần LLM. Nên KIS phải được
+    tách ra chạy riêng, đừng để nó chết lây."""
+    import os
+    return bool(os.environ.get("LLM_BACKEND"))
 
 
 def cmd_run(args) -> int:
@@ -89,14 +112,44 @@ def cmd_run(args) -> int:
     rows = _load_queries()
     enriched = []
     for q in rows:
-        if q["query_id"] in plan and plan[q["query_id"]]["anchors"]:
-            q = {**q, "query_en": plan[q["query_id"]]["anchors"][0]}
+        pl = plan.get(q["query_id"])
+        if pl:
+            # ƯU TIÊN bản dịch đầy đủ; chỉ lùi về anchor đầu khi Claude chưa viết.
+            # Chênh lệch giữa hai lựa chọn này là 0.5459 so với 0.2894 — lớn hơn
+            # mọi cải tiến thuật toán đã thử.
+            qen = (pl.get("query_en") or "").strip() or (pl["anchors"][0] if pl.get("anchors") else None)
+            if qen:
+                q = {**q, "query_en": qen}
         enriched.append(q)
+    thieu = [k for k, v in plan.items() if not (v.get("query_en") or "").strip()]
+    if thieu:
+        print(f"  ⚠ {len(thieu)} câu chưa có bản dịch đầy đủ `query_en`, đang dùng tạm "
+              f"anchor đầu (kém hơn nhiều): {', '.join(thieu[:6])}")
+
+    # KIS chạy riêng, LUÔN chạy. QA/TRAKE chỉ chạy khi có LLM.
+    kis = [q for q in enriched if q["task_type"] == "KIS"]
+    rest = [q for q in enriched if q["task_type"] != "KIS"]
+
     tmp = REPO / "dev_set/queries/exam_queries_en.jsonl"
-    tmp.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in enriched) + "\n",
+    tmp.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in kis) + "\n",
                    encoding="utf-8")
     subprocess.run([PY, str(REPO / "run.py"), "--queries", str(tmp),
                     "--out", str(base_dir)], check=True, cwd=REPO)
+
+    if rest:
+        if _llm_ready():
+            tmp2 = REPO / "dev_set/queries/exam_queries_llm.jsonl"
+            tmp2.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rest) + "\n",
+                            encoding="utf-8")
+            r = subprocess.run([PY, str(REPO / "run.py"), "--queries", str(tmp2),
+                                "--out", str(base_dir)], cwd=REPO)
+            if r.returncode:
+                print(f"\n  ⚠ {len(rest)} câu QA/TRAKE chạy lỗi — KIS vẫn xong, xử lý riêng sau")
+        else:
+            ids = ", ".join(q["query_id"] for q in rest)
+            print(f"\n  ⚠ BỎ QUA {len(rest)} câu cần LLM: {ids}")
+            print("     LLM_BACKEND chưa đặt. Đặt rồi chạy lại `exam.py run` để làm nốt.")
+            print("     KIS không bị ảnh hưởng, vẫn chạy đủ.\n")
 
     # Bước 2: đắp đuôi bằng probe + giả thuyết + đào sâu video
     plan_only = {k: {kk: vv for kk, vv in v.items() if not kk.startswith("_")}
@@ -119,8 +172,9 @@ def cmd_run(args) -> int:
 
 def cmd_review(args) -> int:
     """Trang ảnh top ứng viên để Claude soi bằng mắt."""
-    subprocess.run([PY, str(REPO / "scripts/make_kis_answer_sheet.py"),
-                    "--out", str(REPO / "scratch/exam_review.html")], check=True, cwd=REPO)
+    # KHÔNG dùng make_kis_answer_sheet.py: nó gắn cứng vào manifest và findings
+    # của Batch 1, với đề mới nó hiện lại đáp án cũ mà không báo lỗi.
+    subprocess.run([PY, str(REPO / "scripts/make_exam_review.py")], check=True, cwd=REPO)
     if not CONFIRM.exists():
         CONFIRM.write_text(json.dumps({
             "_huong_dan": "Claude điền: {query_id: {video_id, frame, note}}. "

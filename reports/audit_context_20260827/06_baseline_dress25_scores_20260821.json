@@ -1,0 +1,345 @@
+{
+  "run_id": "20260821_0021",
+  "commit": "0c4bf04",
+  "split": "dress25",
+  "per_query": [
+    {
+      "query_id": "DRESS_KIS_01",
+      "task_type": "KIS",
+      "r_at_1": 1.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 1.0,
+      "failure_class": "SUCCESS",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_02",
+      "task_type": "KIS",
+      "r_at_1": 1.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 1.0,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 3,
+        "objects": 320,
+        "ocr": 5,
+        "metadata": 476,
+        "asr": 409
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_03",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 1.0,
+      "final": 0.2,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 30,
+        "metadata": 23
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_04",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_05",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "ocr": 1,
+        "metadata": 1
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_06",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_07",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_08",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 1,
+        "metadata": 53
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_09",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.4,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 16,
+        "metadata": 28
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_10",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 5,
+        "metadata": 1
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_11",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_12",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 1.0,
+      "final": 0.2,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 19
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_13",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_14",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_15",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "ocr": 1,
+        "metadata": 6
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_16",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_KIS_17",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 1,
+        "metadata": 1,
+        "asr": 5
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_18",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 5,
+        "metadata": 23
+      }
+    },
+    {
+      "query_id": "DRESS_KIS_19",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.4,
+      "failure_class": "SUCCESS",
+      "ranks": {
+        "vector": 20,
+        "metadata": 10
+      }
+    },
+    {
+      "query_id": "DRESS_QA_01",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.6,
+      "failure_class": "F_QA_REASONING_FAILED",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_QA_02",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_QA_REASONING_FAILED",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_QA_03",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_QA_REASONING_FAILED",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_QA_04",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_QA_REASONING_FAILED",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_QA_05",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "failure_class": "F_QA_RETRIEVAL_FAILED",
+      "ranks": {}
+    },
+    {
+      "query_id": "DRESS_TRAKE_01",
+      "task_type": "TRAKE",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.3333333333333333,
+      "r_at_50": 0.3333333333333333,
+      "r_at_100": 0.3333333333333333,
+      "final": 0.2,
+      "failure_class": "F_UNKNOWN",
+      "ranks": {
+        "trake_video_rank": 7
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "manifest_id": "batch1_holdout13",
+  "created_at": "2026-08-24",
+  "purpose": "Regression set Batch 1; không phải ground truth đã xác minh và không được dùng promotion.",
+  "selection": {
+    "kis_count": 10,
+    "qa_count": 3,
+    "video_disjointness": {
+      "result": "13 video_id khác nhau trong dev_set/ground_truth/holdout_gt.jsonl hiện có",
+      "provenance": "legacy holdout GT, chưa human-verified",
+      "verification_status": "unknown"
+    }
+  },
+  "entries": [
+    {"query_id": "KIS_001", "task_type": "KIS", "query_sha256": "85f00db12aedbe4fabb69bfe21af3a03376cd15a888a159b40b2151df7645a17", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_002", "task_type": "KIS", "query_sha256": "da9b99df725ee5d26d529badcaf9b10c4f36d237f3da365f6d74494aadaa5899", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_003", "task_type": "KIS", "query_sha256": "ae15fe93efbd125344f71c181a1c041900ce6bddac0fd1a63837c18987e5a909", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_004", "task_type": "KIS", "query_sha256": "4c68796a389c793abe053cd8d502b90ea5d82a3244c9591fd0eceb284299c05b", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_005", "task_type": "KIS", "query_sha256": "68d57a59b72630310b62af07c52749f45c6e170656ab8c694e95b6b1b433f0a6", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_006", "task_type": "KIS", "query_sha256": "c0f9bfb527047115e1c58de8ac742db045e06d8fe6e55aada471ed257586d381", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_007", "task_type": "KIS", "query_sha256": "f85fee639bbe3f3cb313c9038acf1086bcf45f3e8c1404ed73cce74c9a624af5", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_008", "task_type": "KIS", "query_sha256": "fa08e2ccadffae82e45fa2769093e0959df8e787029bb1a3545fb2d839aafe61", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_009", "task_type": "KIS", "query_sha256": "23af2c195f2b892ec609e9999c847e78108b6794b4fba2c87757fa5b39a746f9", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "KIS_010", "task_type": "KIS", "query_sha256": "7cd25665e0cf1b57ee81564e1f4b4dca5519dd25cf4cefb2af312e393381dd20", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_kis.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "QA_011", "task_type": "QA", "query_sha256": "366e5a960a09400fd6d37562e46e00fa1f8a746a5434d8b2ebab3e26851b4728", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_qa.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "QA_012", "task_type": "QA", "query_sha256": "5779409e1d944774bdef9c9e182a0e7051cd09d61cb7f970c179c1d299d5b48b", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_qa.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null},
+    {"query_id": "QA_013", "task_type": "QA", "query_sha256": "49ff1f378f76bad2fcd0240a9d8c7c1f1a206827cc1c38a5e4bed30490d73dc2", "verification_status": "unknown", "provenance": "dev_set/queries/holdout_qa.jsonl + legacy holdout_gt.jsonl", "verified_by": null, "verified_at": null}
+  ]
+}

@@ -1,0 +1,865 @@
+{
+  "run_id": "20260827_154710_27d970c1",
+  "commit": "b419f6e",
+  "split": "dress25",
+  "evaluation_manifest_id": null,
+  "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+  "query_runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+  "evaluation_artifact_fingerprint": "27d970c1a5df9a0855ee13fd96493aff14619ba3e7e275f4974e6c72e940d0aa",
+  "scorer_contract": "btc-final-score-v1",
+  "scorer_policy": "semantic",
+  "scorer_source_sha256": "12846d61f4bdd19b5a26313d0a505488dbf38437e010db792fc952f3b19b2c8f",
+  "promotion_ready": false,
+  "verified_query_ids": [],
+  "query_set_sha256": "a5f151dc2523a4b9bf79335cba8386894a56fdd97682ae1606bbb0d493e6fa46",
+  "ground_truth_by_query_sha256": {
+    "DRESS_KIS_01": "9f4e4ef189be3b4aba46720187ab286014ed33b2820215a0e05d774515febe85",
+    "DRESS_KIS_02": "a9e7b76014683b447ae9bf8d21c8bbcf753f03554f12df639a55ae700debd8e2",
+    "DRESS_KIS_03": "e2e8a95428832256f9cfb7f93b003967ef94a787bc32fbdbd39ac03b3c02a13e",
+    "DRESS_KIS_04": "5f2c1685e35462fe25b5f03c7708ce5aeb98cae717dcac285d7c183440f15097",
+    "DRESS_KIS_05": "eaf648564193cbcb7aaa473b23d06c24a1914680b2aeb9fdec92b188ae2c3228",
+    "DRESS_KIS_06": "ff7d3dfdf687eb09d1d23b81b6fc064908b49a29ed06ce4ca2cdcf7800a6587a",
+    "DRESS_KIS_07": "84902ea033695ef1b049e4f2e5a7f8d7780495479901570e369694bb686e0d66",
+    "DRESS_KIS_08": "a87812dc016e7afe39c9491817a983d031c7c9561eaf8e9da6427abdfeb487dd",
+    "DRESS_KIS_09": "b7851b3278727eb05d0110cd23a4d05ef533e148bf59c2ae068f77d486a1459d",
+    "DRESS_KIS_10": "90a83106f09b0b758a67549231a70dfb28d686d29ea444e5b67c8c1279fabb7e",
+    "DRESS_KIS_11": "489ba5e95b08c277979ef0ecd15d1427426fcbceb0d98881dbef68769ee35772",
+    "DRESS_KIS_12": "609c9d1c666ebacb62ae6fc9dac33101f2ee18e7e59502589f505fccf8f520f9",
+    "DRESS_KIS_13": "b82a0e71f4072630155bf9f5d122f45c62e1182e3666fb743c924a0721feb866",
+    "DRESS_KIS_14": "6b6b61035510891d2dfd1ec695c15a9e02b871278cb5b2d78e0e7c28e6b010ca",
+    "DRESS_KIS_15": "f83dcb071d50ec3ead731e8899eba5d3b91e1a537ffab08084eddcb1b0ac8858",
+    "DRESS_KIS_16": "96d73b89f8d51d11f028dc098fbcb85bec43d5a63b34adaf5e573fc44d3f05a9",
+    "DRESS_KIS_17": "c9b662fdf3e856c7f92bc7c1229763f1579c0b38e3b0b736089c0f246dd3e78c",
+    "DRESS_KIS_18": "fdf7359363206cf3f83633f20988994aedc2579ae383a80d0583c434824eb881",
+    "DRESS_KIS_19": "92af6d5f7c8d51e91ab95a28737fe006ef432c8b3312919da5b1b98ee0e64dd4",
+    "DRESS_QA_01": "4cb6ed21295d1372d875a05fc0a253d73616c7bf240f3afcd0e0dc7418b1f2b4",
+    "DRESS_QA_02": "50f1b1070acf97554422e36ef7dc8cbe9d511c187e9f89b4a9802a8cfe080879",
+    "DRESS_QA_03": "1210e2cafb622594c2397faa3707c9ee2c908439ea5840e4873d727d33ddbcb0",
+    "DRESS_QA_04": "c13f91fd03b194fce42bde2bf6830b82e818ec8cb64e568cb980b282c7c06ac6",
+    "DRESS_QA_05": "0228e0d28e70c16f94b54db037ca062d1f9e821cb25bf0963bcca8854ad9523b",
+    "DRESS_TRAKE_01": "f00af35efb801933784a3a6505893fbc588ba58925dca129ae87c56a0c445469"
+  },
+  "ground_truth_set_sha256": "029ccb1775b88db4da44397dc4d8eea6b5fce90ab613b9b913b788e3fc23911e",
+  "per_query": [
+    {
+      "query_id": "DRESS_KIS_01",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 17,
+        "metadata": 470,
+        "asr": 1
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_02",
+      "task_type": "KIS",
+      "r_at_1": 1.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 1.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 1.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 1.0
+        },
+        "exact": {
+          "r_at_1": 1.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 1.0
+        }
+      },
+      "status": "success",
+      "failure_class": null,
+      "ranks": {
+        "vector": 2,
+        "objects": 320,
+        "ocr": 5,
+        "asr": 409
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_03",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_04",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_05",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "ocr": 1,
+        "metadata": 1
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_06",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_07",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_08",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 1,
+        "metadata": 43
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_09",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.4,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.4
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.4
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 16,
+        "metadata": 28
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_10",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 5,
+        "metadata": 1
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_11",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_12",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 1.0,
+      "final": 0.2,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 1.0,
+          "final": 0.2
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 1.0,
+          "final": 0.2
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 14
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_13",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_14",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_15",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "ocr": 1,
+        "metadata": 6
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_16",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_17",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 1,
+        "metadata": 1,
+        "asr": 5
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_18",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.8,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.8
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 5,
+        "metadata": 18
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_KIS_19",
+      "task_type": "KIS",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 0.4,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.4
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 0.4
+        }
+      },
+      "status": "success",
+      "failure_class": "wrong_frame",
+      "ranks": {
+        "vector": 20,
+        "metadata": 10
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_QA_01",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_QA_02",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_QA_03",
+      "task_type": "QA",
+      "r_at_1": 1.0,
+      "r_at_5": 1.0,
+      "r_at_20": 1.0,
+      "r_at_50": 1.0,
+      "r_at_100": 1.0,
+      "final": 1.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 1.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 1.0
+        },
+        "exact": {
+          "r_at_1": 1.0,
+          "r_at_5": 1.0,
+          "r_at_20": 1.0,
+          "r_at_50": 1.0,
+          "r_at_100": 1.0,
+          "final": 1.0
+        }
+      },
+      "status": "success",
+      "failure_class": null,
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_QA_04",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "status": "failed",
+      "failure_class": "missing_evidence",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_QA_05",
+      "task_type": "QA",
+      "r_at_1": 0.0,
+      "r_at_5": 0.0,
+      "r_at_20": 0.0,
+      "r_at_50": 0.0,
+      "r_at_100": 0.0,
+      "final": 0.0,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        },
+        "exact": {
+          "r_at_1": 0.0,
+          "r_at_5": 0.0,
+          "r_at_20": 0.0,
+          "r_at_50": 0.0,
+          "r_at_100": 0.0,
+          "final": 0.0
+        }
+      },
+      "status": "success",
+      "failure_class": "retrieval_miss",
+      "ranks": {},
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    },
+    {
+      "query_id": "DRESS_TRAKE_01",
+      "task_type": "TRAKE",
+      "r_at_1": 0.3333333333333333,
+      "r_at_5": 0.3333333333333333,
+      "r_at_20": 0.3333333333333333,
+      "r_at_50": 0.6666666666666666,
+      "r_at_100": 0.6666666666666666,
+      "final": 0.4666666666666666,
+      "score_by_qa_policy": {
+        "semantic": {
+          "r_at_1": 0.3333333333333333,
+          "r_at_5": 0.3333333333333333,
+          "r_at_20": 0.3333333333333333,
+          "r_at_50": 0.6666666666666666,
+          "r_at_100": 0.6666666666666666,
+          "final": 0.4666666666666666
+        },
+        "exact": {
+          "r_at_1": 0.3333333333333333,
+          "r_at_5": 0.3333333333333333,
+          "r_at_20": 0.3333333333333333,
+          "r_at_50": 0.6666666666666666,
+          "r_at_100": 0.6666666666666666,
+          "final": 0.4666666666666666
+        }
+      },
+      "status": "success",
+      "failure_class": "trake_order",
+      "ranks": {
+        "trake_video_rank": 1
+      },
+      "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db"
+    }
+  ]
+}

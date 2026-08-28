@@ -74,6 +74,7 @@ def test_kis_multi_anchor_ghi_plan_outer_trace_va_khong_search_trung(monkeypatch
     runner = _runner()
     multi = importlib.import_module("backend.retrieval.multi_anchor")
     slot = importlib.import_module("backend.slot")
+    monkeypatch.setattr(multi, "ENABLED", True)
     query = {
         "query_id": "q-kis-multi",
         "task_type": "KIS",
@@ -131,6 +132,72 @@ def test_kis_multi_anchor_ghi_plan_outer_trace_va_khong_search_trung(monkeypatch
         "anchor_2": 1 / 8,
     })
     json.dumps(result.to_trace_dict(), ensure_ascii=False, allow_nan=False)
+
+
+def test_kis_tat_multi_anchor_giu_duong_single_va_query_en(monkeypatch):
+    """Bắt lỗi cờ Round 2 vẫn gọi planner/multi thay vì search single nguyên gốc."""
+    runner = _runner()
+    multi = importlib.import_module("backend.retrieval.multi_anchor")
+    slot = importlib.import_module("backend.slot")
+    search_module = importlib.import_module("backend.retrieval.search")
+    query = {
+        "query_id": "q-kis-disabled",
+        "task_type": "KIS",
+        "query_vi": (
+            "Người bước vào cửa hàng rồi nhìn bảng giá, sau đó quay sang nói chuyện "
+            "với nhân viên đang đứng cạnh quầy thanh toán phía trước"
+        ),
+        "query_en": "person entering a shop, checking a price board and speaking to staff",
+    }
+    planner_calls = 0
+    multi_search_calls = 0
+    search_calls: list[tuple[tuple, dict]] = []
+
+    def fake_llm(*args, **kwargs):
+        nonlocal planner_calls
+        planner_calls += 1
+        return json.dumps({
+            "anchors": ["Người bước vào cửa hàng", "Người nhìn bảng giá"]
+        })
+
+    def fake_search_multi(*args, **kwargs):
+        nonlocal multi_search_calls
+        multi_search_calls += 1
+        return [_search_row()]
+
+    def fake_search(*args, **kwargs):
+        search_calls.append((args, kwargs))
+        return [_search_row()]
+
+    monkeypatch.setattr(multi, "llm", fake_llm)
+    monkeypatch.setattr(multi, "translate", lambda text: f"EN {text}")
+    monkeypatch.setattr(multi, "count_clip_tokens", lambda text: 10)
+    monkeypatch.setattr(multi, "search_multi", fake_search_multi)
+    monkeypatch.setattr(search_module, "search", fake_search)
+    monkeypatch.setattr(
+        slot,
+        "allocate",
+        lambda hits, task, **kwargs: [
+            Answer("L01_V001", (frame_id,), keyframe_id="L01_V001_001")
+            for frame_id in range(100)
+        ],
+    )
+
+    result = runner.solve_query(query, total=100, runtime_fingerprint="fp-disabled")
+
+    assert result.query_plan["strategy"] == "single"
+    assert result.query_plan["fallback_reason"] is None
+    assert result.query_plan["query_en"] == query["query_en"]
+    assert planner_calls == 0
+    assert multi_search_calls == 0
+    assert search_calls == [
+        ((query["query_vi"],), {
+            "query_en": query["query_en"],
+            "top_k": 100,
+            "group_by_shot": True,
+        })
+    ]
+    assert len(result.answers) == 100
 
 
 def test_trace_json_normalize_numpy_container_path_datetime_va_non_finite():

@@ -12,6 +12,12 @@ def _module():
     return importlib.import_module("backend.retrieval.multi_anchor")
 
 
+@pytest.fixture(autouse=True)
+def _bat_multi_anchor_de_kiem_thuat_toan(monkeypatch):
+    """Giữ test thuật toán độc lập với cờ vận hành Round 2."""
+    monkeypatch.setattr(_module(), "ENABLED", True)
+
+
 def _row(keyframe_id: str = "kf-1", *, shot_id: str = "shot-1") -> dict:
     return {
         "keyframe_id": keyframe_id,

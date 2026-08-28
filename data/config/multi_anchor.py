@@ -1,6 +1,6 @@
 """Knob vận hành cho KIS multi-anchor, tách khỏi caller để replay được."""
 
-ENABLED = True
+ENABLED = False
 MAX_ANCHORS = 3
 MAX_CLIP_TOKENS = 60
 RRF_K = 7

@@ -40,7 +40,7 @@ from data.config.siglip2_model import (  # noqa: E402
 )
 
 VIDEO_INFO = REPO / "data/derived/video_info.parquet"
-BATCH = 400
+BATCH = 1000
 
 
 def _timestamp_map() -> dict[str, tuple[int, int]]:

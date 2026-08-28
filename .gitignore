@@ -84,3 +84,10 @@ data/derived/shots_parts_backup/
 data/derived/real_metadata_temp.json
 .tmp_*
 
+# File làm việc của quy trình thi — `exam.py prepare` sinh lại mỗi buổi.
+# KHÔNG commit: `exam_confirm.json` của đề cũ mà lọt vào repo thì `finalize`
+# có thể nhét đáp án đợt trước vào bài nộp đợt này. Bản dịch/anchor đáng giữ
+# thì chép sang `dev_set/queries/round1_kis_plans.json` (đã được theo dõi).
+dev_set/queries/exam_*.json
+dev_set/queries/exam_*.jsonl
+dev_set/results/run_*/

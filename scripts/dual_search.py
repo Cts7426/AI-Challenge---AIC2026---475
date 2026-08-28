@@ -100,6 +100,20 @@ def build_clip_cache() -> None:
 _clip = _sig = None
 
 
+def free_clip() -> None:
+    """Trả lại 0,36 GB. Gọi ngay sau khi đã lấy xong bảng xếp hạng của CLIP."""
+    global _clip
+    _clip = None
+    gc.collect()
+
+
+def free_sig() -> None:
+    """Trả lại 2,4 GB."""
+    global _sig
+    _sig = None
+    gc.collect()
+
+
 def _load_clip():
     global _clip
     if _clip is None:
@@ -160,12 +174,17 @@ def dual_candidates(texts: list[str], top: int = 24, per_video: int = 3,
         return []
     depth = max(top, 40)
     streams = []
+    # Chạy XONG hẳn một encoder rồi mới nạp encoder kia, và giải phóng ở giữa.
+    # Giữ đồng thời hai mảng float32 (CLIP 0,36 GB + SigLIP2 2,4 GB) cùng với
+    # Milvus và Elasticsearch đang chạy thì tiến trình bị hệ điều hành giết ngang
+    # — không có traceback, chỉ im lặng thoát. Đã dính đúng một lần.
     if use_clip:
         from backend.retrieval.text_query import encode_text as clip_enc
         pack = _load_clip()
         for t in texts:
             streams.append(_shot_list(pack, np.asarray(clip_enc(t), dtype=np.float32),
                                       depth, per_video))
+        free_clip()
     if use_sig:
         from scripts.siglip2_direct import encode as sig_enc
         pack = _load_sig()
@@ -181,6 +200,49 @@ def dual_candidates(texts: list[str], top: int = 24, per_video: int = 3,
             if i[j] < len(s) and len(rows) < top:
                 rows.append(s[i[j]]); seen.add(s[i[j]]); i[j] += 1
     return rows
+
+
+def dual_candidates_batch(jobs: dict[str, list[str]], top: int = 24,
+                          per_video: int = 3) -> dict[str, list[tuple[str, int]]]:
+    """Như `dual_candidates` nhưng cho NHIỀU việc một lượt.
+
+    Vì sao cần: gọi lẻ từng việc thì mỗi lần lại nạp rồi giải phóng cache
+    (CLIP 0,36 GB + SigLIP2 2,4 GB) — 20 câu x 5 làn là 100 lần nạp lại. Ở đây
+    nạp CLIP MỘT lần cho mọi việc, giải phóng, rồi nạp SigLIP2 một lần, cuối
+    cùng mới xen kẽ. Vẫn không bao giờ giữ hai mảng cùng lúc.
+    """
+    depth = max(top, 40)
+    per_enc: dict[str, list[list]] = {k: [] for k in jobs}
+
+    from backend.retrieval.text_query import encode_text as clip_enc
+    pack = _load_clip()
+    for k, texts in jobs.items():
+        for t in texts:
+            if t and t.strip():
+                per_enc[k].append(_shot_list(pack, np.asarray(clip_enc(t), dtype=np.float32),
+                                             depth, per_video))
+    free_clip()
+
+    from scripts.siglip2_direct import encode as sig_enc
+    pack = _load_sig()
+    for k, texts in jobs.items():
+        for t in texts:
+            if t and t.strip():
+                per_enc[k].append(_shot_list(pack, sig_enc([t])[0].astype(np.float32),
+                                             depth, per_video))
+    free_sig()
+
+    out = {}
+    for k, streams in per_enc.items():
+        rows, seen, i = [], set(), [0] * len(streams)
+        while len(rows) < top and any(i[j] < len(st) for j, st in enumerate(streams)):
+            for j, st in enumerate(streams):
+                while i[j] < len(st) and st[i[j]] in seen:
+                    i[j] += 1
+                if i[j] < len(st) and len(rows) < top:
+                    rows.append(st[i[j]]); seen.add(st[i[j]]); i[j] += 1
+        out[k] = rows
+    return out
 
 
 def main() -> int:

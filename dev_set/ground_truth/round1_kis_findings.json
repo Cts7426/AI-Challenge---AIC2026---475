@@ -74,13 +74,6 @@
    "note": "đập THỦY ĐIỆN HÒA BÌNH xả nước",
    "query_en_claude": "Aerial drone view of a large concrete dam with water reservoir, seen from above."
   },
-  "query-p1-21-kis": {
-   "video_id": "L26_V289",
-   "frame": 2048,
-   "how": "ASR+CLIP",
-   "note": "tôm + nướng bánh mì",
-   "query_en_claude": "Peeled cooked shrimp on a plate with three loaves of bread behind"
-  },
   "query-p1-22-kis": {
    "video_id": "L25_V041",
    "frame": 16619,
@@ -111,10 +104,9 @@
   },
   "query-p1-6-kis": {
    "video_id": "L22_V023",
-   "frame": 18791,
-   "how": "ASR+CLIP",
-   "note": "khối kim cương thô lớn nhất thế giới",
-   "query_en_claude": "A man in a dark blue suit holding a large rough diamond up to his face"
+   "frame": 18186,
+   "note": "SỬA 28/08: trước đây trỏ 18791 — đúng video nhưng SAI SHOT (đó là cận cảnh viên kim cương trên tay, không phải khoảnh khắc đề tả). Khoảnh khắc đúng ở shot s0183 (18150-18240): người đàn ông vest xanh đậm, sơ mi trắng, cà vạt, ngồi ghế lớn, cầm viên đá quý thô bằng HAI TAY đưa lên gần mặt; bên phải là phụ nữ mặc đồ công sở đen, khăn trùm đầu hồng tím, đang cười. Chú thích: 'BOTSWANA PHÁT HIỆN VIÊN KIM CƯƠNG 2.492 CARAT'.",
+   "provenance": "Claude (soi ảnh trực tiếp qua contact sheet), được Công Lý uỷ quyền"
   },
   "query-p1-7-kis": {
    "video_id": "L26_V041",
@@ -141,5 +133,13 @@
   "query-p1-20-kis",
   "query-p1-23-kis",
   "query-p1-25-kis"
- ]
+ ],
+ "rejected": {
+  "query-p1-21-kis": {
+   "video_id_sai": "L26_V289",
+   "frame_sai": 2048,
+   "ly_do": "L26_V289 là bài 'bánh mì nướng tỏi' — soi toàn bộ 29 mốc trong video KHÔNG có con tôm nào. Đề đòi tôm lột vỏ nấu chín trên dĩa, đầu bếp đặt 3 ổ bánh mì phía sau, rồi tôm cắt đôi nướng trên bếp. Sai hẳn video.",
+   "bo_ngay": "2026-08-28"
+  }
+ }
 }

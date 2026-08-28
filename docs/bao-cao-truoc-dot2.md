@@ -18,11 +18,11 @@
 | Đợt 1 sai ở đâu? | Một lỗi **im lặng** ở khâu dịch VI→EN: pipeline nộp bài mà nhánh vector gần như không có tín hiệu. Điểm nộp thật 0.0306. |
 | Sửa xong chưa? | Rồi. Cùng bộ đề đó, đường ống tự động hiện cho **Final 0.5788** (tăng ~19 lần). |
 | Hệ thống tự chạy có đủ đi thi không? | **Chưa.** Tự động chỉ đúng ở hạng 1 khoảng **41%** số câu. Muốn cao hơn phải có người (hoặc Claude) **nhìn ảnh** xác nhận. |
-| Đã đổi model chưa? | Đã nạp xong SigLIP2 SO400M (521.526 vector, 873/873 video) song song CLIP. Kết quả đo ở mục 4. |
+| Đã đổi model chưa? | Đã nạp xong SigLIP2 SO400M song song CLIP. **Không thay CLIP** (đo được thua ở thứ tự nộp) nhưng **hợp nhất cả hai** cho làn soi ảnh — độ phủ 9/18 → 12/18. Mục 1c. |
 | Milvus ổn chưa? | Ổn. Hai collection cùng sống, RAM Docker 11,67 GB, restart 0. |
 | Quy trình thi chạy được chưa? | **Sáng nay thì chưa** — chạy thử đúng cách sẽ làm lúc thi thì nó chết ba lần liên tiếp, cộng một lỗi thứ tư ở bước cuối. Đã sửa cả bốn; giờ chạy thông từ file đề tới file ZIP, cho **0.5694** — bằng cấu hình tốt nhất từng đo. Xem mục 1b. |
-| Còn gì hỏng? | 3 câu KIS chưa tìm ra đáp án; 4 câu QA chưa chạy được vì `LLM_BACKEND` chưa đặt (đáng ~0.10–0.16 tổng điểm). |
-| Tổng điểm cả 25 câu? | Tự động, không LLM: **≈ 0.39**. Có Claude soi ảnh + có LLM: **≈ 0.75–0.85** (ngoại suy, mục 3.6). |
+| Còn gì hỏng? | 3 câu KIS chưa tìm ra đáp án (`p1-20/21/23`); 4 câu QA chưa chạy được vì `LLM_BACKEND` chưa đặt (đáng ~0.10–0.16 tổng điểm). |
+| Tổng điểm cả 25 câu? | Tự động, không LLM: **≈ 0.41**. Có Claude soi ảnh + có LLM: **≈ 0.75–0.85** (ngoại suy, mục 3.6). |
 | Việc đáng làm nhất trước 19:30? | Đặt `LLM_BACKEND`, và diễn tập trọn bốn bước bằng đề cũ. |
 
 ---
@@ -162,6 +162,105 @@ exam_auto     Final 0.5694 · hạng 1: 6/17 · có điểm 14/17 · top-50 13/1
 bằng với cấu hình tốt nhất từng đo được (0.5788). Nghĩa là **thứ sẽ chạy tối nay giờ
 đúng bằng thứ tốt nhất đã đo**, chứ không phải một nhánh code chưa ai chạy.
 
+
+---
+
+## 1c. Kiểm lại SigLIP2, và hai đáp án SAI trong chính bộ nghiệm thu
+
+### 1c.1 SigLIP2 có bị lỗi không? — Không.
+
+Nghi ngờ hợp lý: một model mạnh hơn 2,8 lần mà điểm thấp hơn thì phải nghi khâu
+encode hỏng im lặng. Bốn phép kiểm, cả bốn đều sạch:
+
+| Kiểm | Kết quả | Kết luận |
+|---|---|---|
+| Tokenizer | `HFTokenizer`, context 64, id kiểu Gemma | đúng cho SigLIP2 |
+| Preprocess | `Resize(256,256)` + `Normalize(0.5, 0.5)` | đúng cho SigLIP2 |
+| Bất biến #2 | mã hoá lại keyframe → cosine với vector đã lưu **0,978–0,997**; norm trung bình **0,999991** | vector lưu đúng |
+| Thang cosine ảnh–chữ | nén quanh 0, có giá trị âm | **bình thường** với SigLIP (loss sigmoid), không phải lỗi |
+
+### 1c.2 Nhưng phép SO SÁNH của tôi thì sai
+
+CLIP phẳng có 177.321 vector (mật độ keyframe BTC), SigLIP2 có 549.022 — **dày gấp
+3,1 lần**. Xếp hạng theo vector thô thì model dày hơn bị phạt oan: nó có nhiều đối
+thủ gần-trùng hơn ở mọi truy vấn. Đo lại, **gộp về shot trước khi xếp hạng** để hai
+bên cùng một thước:
+
+| câu | CLIP | SigLIP2 | | câu | CLIP | SigLIP2 |
+|---|---|---|---|---|---|---|
+| p1-11 | **1** | 5 | | p1-12 | 1078 | **46** |
+| p1-13 | **1** | 133 | | p1-22 | 334 | **2** |
+| p1-19 | **1** | 1165 | | p1-5 | 175 | **9** |
+| p1-24 | **18** | 196 | | p1-7 | 18 | **1** |
+| p1-2 | **991** | 2541 | | p1-8 | 6705 | **1725** |
+
+```
+CLIP     Final 0.4600 · hạng-1 4/18 · top-20 12/18
+SigLIP2  Final 0.3911 · hạng-1 2/18 · top-20 10/18
+```
+
+**CLIP thắng 8 câu, SigLIP2 thắng 7.** Không phải một hơn một kém — chúng mù ở
+những chỗ khác nhau. Kết luận cũ ("CLIP thắng, bỏ SigLIP2") là **đúng cho thứ tự
+nộp nhưng sai cho toàn cục**.
+
+### 1c.3 Hợp nhất hai encoder — chỗ SigLIP2 thực sự đáng tiền
+
+`scripts/dual_search.py` xen kẽ hai bảng xếp hạng ở **mức shot** (xen kẽ chứ không
+cộng điểm: hai không gian vector khác thang nhau — CLIP cosine 0,2–0,3, SigLIP2 nén
+quanh 0, cộng thẳng là một bên nuốt hết).
+
+Đo trên bảng ứng viên đưa cho **mắt người**:
+
+| Nguồn ứng viên | Có đáp án trong lưới |
+|---|---|
+| chỉ CLIP | 9/18 |
+| chỉ SigLIP2 | 9/18 |
+| **hai cái xen kẽ** | **12/18** |
+
+Cũng đo được hai điều ngược trực giác:
+- **Đừng trộn anchor chung tấm với bản dịch đầy đủ** — không tăng độ phủ mà đẩy đáp
+  án xuống sâu hơn (p1-22 từ ô 4 xuống ô 10). Mỗi anchor một tấm riêng.
+- **Đừng chặn số frame theo VIDEO, hãy chặn theo SHOT.** Một shot dài chứa hàng chục
+  frame gần như giống hệt nhau, chúng ăn hết hạn ngạch của video trước khi tới lượt
+  shot chứa đáp án. Đo ở p1-2: shot đúng dài 73 frame, đứng hạng 14 khi quét thô,
+  nhưng **biến mất** khỏi bảng khi chỉ chặn theo video.
+
+Bằng chính làn này tôi tìm ra `p1-25` (`L30_V003:6560`) — câu trước đó không nguồn
+nào chạm tới.
+
+### 1c.4 Hai đáp án SAI trong bộ nghiệm thu — tìm ra khi soi lại toàn bộ
+
+Yêu cầu "không được sai câu nào" buộc phải soi lại cả 18 đáp án đã chốt, không chỉ
+tìm thêm câu mới. Hai câu sai:
+
+| Câu | Sai thế nào | Xử lý |
+|---|---|---|
+| `p1-6` | **Đúng video, sai shot.** Trỏ `L22_V023:18791` — cận cảnh viên kim cương trên tay. Đề tả người đàn ông vest xanh đậm cầm đá quý bằng **hai tay** đưa lên gần mặt, phụ nữ khăn trùm **hồng tím** đứng cạnh cười. | Sửa thành `18186` (shot `s0183`, 18150–18240), có chú thích *"BOTSWANA PHÁT HIỆN VIÊN KIM CƯƠNG 2.492 CARAT"* |
+| `p1-21` | **Sai hẳn video.** `L26_V289` là bài *"bánh mì nướng tỏi"* — soi hết 29 mốc trong video, **không có con tôm nào**. Đề đòi tôm lột vỏ nấu chín trên dĩa, đầu bếp đặt 3 ổ bánh mì phía sau, tôm cắt đôi nướng trên bếp. | **Loại**, ghi vào mục `rejected` kèm lý do. Săn lại chưa ra. |
+
+**Hệ quả:** mọi con số trong báo cáo bản đầu (0.5788…) được chấm trên bộ đáp án có
+hai mục sai. Đo lại trên bộ đã sửa (17 câu):
+
+| Cấu hình | Final cũ (GT sai) | **Final mới (GT đã sửa)** | hạng 1 | top-50 |
+|---|---|---|---|---|
+| Đường ống đầy đủ (CLIP) | 0.5788 | **0.6188** | 8/17 | 14/17 |
+| **Quy trình thi 4 bước** | 0.5694 | **0.6094** | 7/17 | 14/17 |
+| Đường ống với SigLIP2 | 0.3388 | 0.3976 | 3/17 | 12/17 |
+
+Điểm **tăng** sau khi sửa, vì hai mục sai trước đây là hai mục không đường ống nào
+có thể trúng — chúng kéo điểm xuống một cách vô lý.
+
+**Bài học đắt nhất của cả ngày:** bộ nghiệm thu do chính mình dựng cũng phải được
+nghiệm thu. Một đáp án sai trong đó không chỉ làm điểm hiển thị sai — nó khiến mọi
+quyết định kỹ thuật dựa trên điểm đó bị lệch theo.
+
+### 1c.5 Còn ba câu chưa có đáp án
+
+`p1-20` (ba người xuống dốc trong mưa, áo mưa in hình gấu), `p1-21` (tôm + 3 ổ bánh
+mì), `p1-23` (slide sơ đồ 3 tầng cam/xanh dương/xanh lá). Đã săn bằng cả hai encoder
+với nhiều cách mô tả, chưa ra. Với `p1-23` đã khoanh đúng **họ video** (THANH NIÊN,
+Thầy Trần Ngọc Anh, sơ mi trắng cà vạt tối, nền xanh đậm, slide viền hồng tím, thanh
+tiêu đề xanh có hoạ tiết địa cầu) nhưng chưa tìm ra đúng slide.
 
 ---
 
@@ -516,12 +615,21 @@ python scripts/siglip2_direct.py --text "aerial view of a large dam" --top 20
 
 ### 4.5 Chốt lại
 
-> **Đi thi bằng CLIP.** SigLIP2 giữ nguyên trong hệ thống, bật được bằng một biến
-> môi trường, và dùng làm công cụ cứu hộ từng câu — nhưng **không** làm nhánh chính.
+> **Thứ tự nộp: CLIP.** SigLIP2 thua ở đây, đã đo nhiều lần.
+> **Làn soi ảnh: CẢ HAI.** SigLIP2 thắng 7/18 câu mà CLIP mù, và hợp nhất nâng độ
+> phủ của bảng ứng viên từ 9/18 lên 12/18.
 
-Điều này **không** có nghĩa công sức nạp SigLIP2 là lãng phí: nó đã trả lời dứt điểm
-một câu hỏi đắt tiền ("model mạnh hơn có cứu được không?" — không), và nó để lại một
-đường tìm kiếm không phụ thuộc Docker (mục 6.3).
+Hai việc này khác nhau nên có hai câu trả lời khác nhau, và đó là điểm dễ kết luận
+nhầm nhất trong cả dự án — bản đầu của báo cáo này đã kết luận nhầm.
+
+- **Thứ tự nộp** cần *chính xác ở hạng đầu*. Chỉ có 100 ô, thêm một dòng là bỏ một
+  dòng, nên một nguồn kém hơn ở hạng 1 luôn lỗ khi chen vào.
+- **Làn soi ảnh** cần *độ phủ*. Không có ô nào bị mất khi thêm một tấm lưới nữa; chi
+  phí duy nhất là vài giây nhìn. Ở đây hai con mắt luôn hơn một.
+
+Công nạp SigLIP2 không lãng phí: nó phủ đúng những chỗ CLIP mù, nó tìm ra `p1-25` mà
+không nguồn nào khác chạm tới, và nó để lại một đường tìm kiếm không phụ thuộc Docker
+(mục 6.3).
 
 ---
 

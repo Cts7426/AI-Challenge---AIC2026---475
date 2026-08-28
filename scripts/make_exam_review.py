@@ -120,23 +120,26 @@ def main() -> int:
     if not args.no_siglip2 and not args.no_sheets and PLAN.exists():
         try:
             from scripts.contact_sheet import build
-            from scripts.dual_search import dual_candidates
+            from scripts.dual_search import dual_candidates_batch
 
             plans = json.loads(PLAN.read_text(encoding="utf-8"))
+            main_jobs, anchor_jobs = {}, {}
             for q in queries:
                 pl = plans.get(q["query_id"])
                 if q["task_type"] != "KIS" or not pl:
                     continue
                 qen = (pl.get("query_en") or "").strip()
-                lanes = []
                 if qen:
-                    lanes.append(("dual", [qen], DUAL_TOP))
+                    main_jobs[f"{q['query_id']}.dual"] = [qen]
                 for i, a in enumerate(list(pl.get("anchors", [])) + list(pl.get("hyp", [])), 1):
-                    lanes.append((f"m{i}", [a], ANCHOR_TOP))
-                for name, texts, top in lanes:
-                    rows = dual_candidates(texts, top)
+                    anchor_jobs[f"{q['query_id']}.m{i}"] = [a]
+            # hai lượt vì hai cỡ lưới khác nhau; mỗi lượt vẫn chỉ nạp cache một lần
+            for jobs, top in ((main_jobs, DUAL_TOP), (anchor_jobs, ANCHOR_TOP)):
+                if not jobs:
+                    continue
+                for key, rows in dual_candidates_batch(jobs, top).items():
                     if rows:
-                        build(rows, args.sheets / f"{q['query_id']}.{name}.jpg")
+                        build(rows, args.sheets / f"{key}.jpg")
                         n_dual += 1
         except Exception as e:   # mắt thứ hai hỏng KHÔNG được kéo sập bước review
             print(f"  ⚠ làn hợp nhất hai encoder lỗi, bỏ qua: {e}")

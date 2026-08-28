@@ -42,6 +42,35 @@ QA_SENTINEL_PREFIX_CONTINUATIONS = frozenset({
     "is", "was", "to", "in", "from", "about", "available", "provided",
 })
 
+# Câu từ chối có vô hạn biến thể nên không thể chỉ dựa vào danh sách sentinel.
+# Matcher production chỉ xét answer BẮT ĐẦU bằng phủ định rồi nhắc tới khả năng
+# xác định/bằng chứng. Hai surface thị giác bên dưới là dữ liệu đã quan sát thật;
+# giữ exact để không loại nhầm đáp án phủ định hợp lệ như "Không có người trong ảnh".
+QA_REFUSAL_PREFIXES = frozenset({
+    "không", "chưa", "chẳng",
+    "no", "not", "cannot", "unable", "insufficient",
+})
+
+QA_REFUSAL_SUBJECT_PREFIXES = frozenset({"tôi", "mình", "i", "we"})
+
+QA_REFUSAL_EVIDENCE_PHRASES = frozenset({
+    "xác định", "bằng chứng", "căn cứ", "đọc được", "nhận diện",
+    "determine", "evidence", "identify", "legible", "discern",
+})
+
+QA_REFUSAL_EXACT_ANSWERS = frozenset({
+    "không có cân hiển thị trong hình ảnh",
+    "không thấy cân hoặc số trên cân trong hình",
+})
+
+QA_REFUSAL_SHORT_ANSWERS = frozenset({
+    "không biết", "không rõ", "chưa rõ",
+    "not sure", "unclear", "don't know", "do not know",
+    "i don't know", "i do not know",
+})
+
+QA_REFUSAL_MIN_WORDS = 2
+
 
 def qa_hypothesis_cache_dir() -> Path:
     """Đường cache có thể đổi bằng env cho test/job; caller không tự ghép path."""
@@ -61,4 +90,10 @@ def qa_hypothesis_config_snapshot() -> dict[str, object]:
         "alternatives_per_hypothesis": QA_HYPOTHESIS_ALTERNATIVES_PER_HYPOTHESIS,
         "sentinel_answers": sorted(QA_SENTINEL_ANSWERS),
         "sentinel_prefix_continuations": sorted(QA_SENTINEL_PREFIX_CONTINUATIONS),
+        "refusal_prefixes": sorted(QA_REFUSAL_PREFIXES),
+        "refusal_subject_prefixes": sorted(QA_REFUSAL_SUBJECT_PREFIXES),
+        "refusal_evidence_phrases": sorted(QA_REFUSAL_EVIDENCE_PHRASES),
+        "refusal_exact_answers": sorted(QA_REFUSAL_EXACT_ANSWERS),
+        "refusal_short_answers": sorted(QA_REFUSAL_SHORT_ANSWERS),
+        "refusal_min_words": QA_REFUSAL_MIN_WORDS,
     }

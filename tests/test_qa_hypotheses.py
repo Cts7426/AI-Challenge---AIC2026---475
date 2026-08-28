@@ -165,6 +165,64 @@ def test_main_tu_tin_cao_van_thu_het_video_expansion_budget(monkeypatch):
     ]
 
 
+def test_pipeline_bo_refusal_ngan_va_chon_answer_hop_le_phia_sau(monkeypatch):
+    """Refusal ở shot đầu không được che mất answer có evidence ở shot sau."""
+    from backend.tasks import qa
+
+    monkeypatch.setattr(
+        qa, "parse_question",
+        lambda query: qa.QuestionParts("sự kiện", "câu hỏi", "visual_attribute"),
+    )
+    monkeypatch.setattr(qa, "search", lambda *a, **kw: [
+        {"shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10"},
+        {"shot_id": "L21_V002#s2", "score": .8, "keyframe_id": "L21_V002#k20"},
+    ])
+    monkeypatch.setattr(qa, "_expand_within_video", lambda *a, **kw: [])
+    monkeypatch.setattr(
+        qa, "load_frame_map",
+        lambda: {"L21_V001#k10": 10, "L21_V002#k20": 20},
+    )
+    qa._reverse_frame_map.cache_clear()
+
+    def fake_try(hit, *args, **kwargs):
+        attempt = qa._qa_attempt_ctx.get()
+        assert attempt is not None
+        attempt["evidence_hash"] = ("a" if hit.shot_id.endswith("s1") else "b") * 64
+        return ("Không rõ", 10, .99) if hit.shot_id.endswith("s1") else ("đỏ", 20, .8)
+
+    monkeypatch.setattr(qa, "_try_shot", fake_try)
+    try:
+        _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
+    finally:
+        qa._reverse_frame_map.cache_clear()
+
+    assert answer == "đỏ"
+    assert [item["shot_id"] for item in trace["hypotheses"]] == ["L21_V002#s2"]
+
+
+def test_pipeline_toan_refusal_ngan_thi_fail_missing_evidence(monkeypatch):
+    """Không có answer thật thì pipeline phải fail-closed, không sinh sentinel."""
+    from backend.tasks import qa
+
+    monkeypatch.setattr(
+        qa, "parse_question",
+        lambda query: qa.QuestionParts("sự kiện", "câu hỏi", "visual_attribute"),
+    )
+    monkeypatch.setattr(qa, "search", lambda *a, **kw: [
+        {"shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10"},
+    ])
+    monkeypatch.setattr(qa, "_expand_within_video", lambda *a, **kw: [])
+    monkeypatch.setattr(qa, "load_frame_map", lambda: {"L21_V001#k10": 10})
+    monkeypatch.setattr(
+        qa,
+        "_try_shot",
+        lambda *a, **kw: _fake_inference_with_hash(qa, ("Không rõ", 10, .99)),
+    )
+
+    with pytest.raises(qa.QANoValidHypothesisError, match="không suy luận được"):
+        qa.qa_pipeline("câu hỏi", return_trace=True)
+
+
 def test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel():
     from backend.tasks.qa import QAHypothesis
 
@@ -236,9 +294,59 @@ def test_sentinel_prefix_surface_bi_loai(answer):
 @pytest.mark.parametrize(
     "answer",
     [
+        "Không đủ căn cứ xác định",
+        "Không thể xác định từ bằng chứng",
+        "Không có cân hiển thị trong hình ảnh",
+        "Không thấy cân hoặc số trên cân trong hình",
+        "Không đủ bằng chứng",
+        "Cannot determine from the evidence",
+        "Cannot determine",
+        "Không biết",
+        "Không rõ",
+        "Tôi không thể xác định từ bằng chứng",
+        "I cannot determine from the evidence",
+        "Tôi không biết",
+        "Tôi không rõ",
+        "Mình chưa rõ",
+        "We don't know",
+    ],
+)
+def test_refusal_surface_tu_run_that_bi_loai(answer):
+    """Biến thể từ chối không được lọt qua chỉ vì khác sentinel một vài từ."""
+    from backend.tasks.qa import is_valid_qa_answer
+
+    assert is_valid_qa_answer(answer) is False
+
+
+def test_refusal_surface_khong_duoc_tao_qa_hypothesis():
+    """Surface đã lọt vào CSV phải bị chặn ngay tại biên hypothesis."""
+    from backend.tasks.qa import QAHypothesis
+
+    with pytest.raises(ValueError, match="answer rỗng/sentinel"):
+        QAHypothesis(
+            answer_text="Không đủ căn cứ xác định",
+            video_id="L21_V001",
+            shot_id="L21_V001#s0001",
+            keyframe_id="L21_V001#k0001",
+            evidence_frame_idx=10,
+            confidence=0.9,
+            evidence_hash="a" * 64,
+            provenance="main:llm:legacy",
+            evidence_type="visual",
+            answer_mode="visual_attribute",
+        )
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
         'Biển báo ghi "Không có thông tin trong bằng chứng"',
         "No Information Technology",
         "Không có thông tin liên lạc",
+        "Không",
+        "0",
+        "Không thấy mưa",
+        "Không có người trong ảnh",
     ],
 )
 def test_sentinel_policy_khong_loai_answer_lien_quan_nhung_hop_le(answer):

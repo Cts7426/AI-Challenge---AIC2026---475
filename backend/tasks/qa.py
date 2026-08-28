@@ -1909,7 +1909,14 @@ def _qa_pipeline_impl(
                 answer_text=answer,
                 evidence_frame_idx=int(frame),
                 confidence=0.0,
-                evidence_hash=_evidence_hash_for_attempt({}, hit=hit),
+                # KHÔNG dùng _evidence_hash_for_attempt: hàm đó fail-closed vì
+                # mọi answer THẬT phải truy về bằng chứng. Chỗ trống thì đúng là
+                # không có bằng chứng — nên cấp digest xác định riêng, tiền tố
+                # "placeholder" để soi trace là biết ngay dòng này chưa có người
+                # trả lời, không lẫn với answer do VLM sinh.
+                evidence_hash="placeholder-" + hashlib.sha256(
+                    f"{hit.shot_id}|{frame}".encode()
+                ).hexdigest()[:16],
                 provenance=f"placeholder:no_answer:{_current_qa_mode()}",
                 answer_mode=answer_mode,
                 evidence_type=evidence_type,

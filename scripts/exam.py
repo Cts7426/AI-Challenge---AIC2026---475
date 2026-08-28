@@ -54,7 +54,12 @@ def cmd_prepare(args) -> int:
 
     plan = {}
     for q in rows:
-        if q["task_type"] != "KIS":
+        # Q&A CŨNG cần anchor. Đo 28/08 trên query-p1-3-qa (đáp án L21_V023):
+        # nhét cả câu hỏi vào nhánh vector -> hạng 151, bỏ câu hỏi giữ mô tả dài
+        # -> 192, còn caption ngắn "a fish lying on a weighing scale" -> HẠNG 3.
+        # Trước đây chỉ KIS có mục plan nên Q&A không bao giờ có caption tốt và
+        # video đúng không lọt nổi vào 100 ứng viên. TRAKE thì để nguyên.
+        if q["task_type"] not in ("KIS", "QA"):
             continue
         plan[q["query_id"]] = {
             "_de_bai": " ".join(q["query_vi"].split()),   # để Claude đọc, không dùng khi chạy
@@ -120,6 +125,10 @@ def cmd_run(args) -> int:
             qen = (pl.get("query_en") or "").strip() or (pl["anchors"][0] if pl.get("anchors") else None)
             if qen:
                 q = {**q, "query_en": qen}
+            # Q&A dùng anchor để tìm ỨNG VIÊN (mỗi anchor tìm riêng, xen kẽ theo
+            # hạng). KIS đã có đường riêng qua build_kis_submission nên không cần.
+            if q["task_type"] == "QA" and pl.get("anchors"):
+                q = {**q, "anchors": list(pl["anchors"])}
         enriched.append(q)
     thieu = [k for k, v in plan.items() if not (v.get("query_en") or "").strip()]
     if thieu:
@@ -152,8 +161,11 @@ def cmd_run(args) -> int:
             print("     KIS không bị ảnh hưởng, vẫn chạy đủ.\n")
 
     # Bước 2: đắp đuôi bằng probe + giả thuyết + đào sâu video
+    # CHỈ câu KIS. build_kis_submission dựng bài nộp KIS; đưa mục Q&A vào là nó
+    # ghi đè file Q&A do run.py sinh (đã có answer) bằng bảng KIS không answer.
+    kis_ids = {q["query_id"] for q in rows if q["task_type"] == "KIS"}
     plan_only = {k: {kk: vv for kk, vv in v.items() if not kk.startswith("_")}
-                 for k, v in plan.items()}
+                 for k, v in plan.items() if k in kis_ids}
     plan_tmp = REPO / "dev_set/queries/exam_plan_clean.json"
     plan_tmp.write_text(json.dumps(plan_only, ensure_ascii=False), encoding="utf-8")
     subprocess.run([PY, str(REPO / "scripts/build_kis_submission.py"),

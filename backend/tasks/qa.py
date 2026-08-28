@@ -49,7 +49,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
+from bisect import bisect_left
 import threading
 import unicodedata
 from contextlib import contextmanager
@@ -77,8 +79,16 @@ from data.config.qa_hypotheses import (
     QA_HYPOTHESIS_CACHE_SCHEMA_VERSION,
     QA_INFERENCE_PROMPT_VERSION,
     QA_PLANNER_PROMPT_VERSION,
+    QA_ANSWER_MODE_RULES,
+    QA_REFUSAL_EVIDENCE_WORDS,
+    QA_REFUSAL_MIN_WORDS,
+    QA_GAP_FILL_SHOTS_PER_VIDEO,
+    QA_GAP_FILL_VIDEOS,
+    QA_PLACEHOLDER_VIDEOS,
+    QA_REFUSAL_NEGATIONS,
     QA_SENTINEL_ANSWERS,
     QA_SENTINEL_PREFIX_CONTINUATIONS,
+    QA_WINNER_RANK_PENALTY,
     qa_hypothesis_cache_dir,
     qa_hypothesis_config_snapshot,
 )
@@ -199,7 +209,7 @@ class QAHypothesis:
     def __post_init__(self) -> None:
         if not self.evidence_hash.strip():
             raise ValueError("QAHypothesis phải có evidence_hash")
-        if not is_valid_qa_answer(self.answer_text):
+        if not is_valid_qa_answer(self.answer_text, self.answer_mode):
             raise ValueError("QAHypothesis không được chứa answer rỗng/sentinel")
         if self.answer_mode not in ANSWER_MODES:
             raise ValueError(f"answer_mode không hợp lệ: {self.answer_mode!r}")
@@ -441,8 +451,76 @@ def _normalize_answer(answer_text: str) -> str:
     return normalized
 
 
-def is_valid_qa_answer(answer_text: str | None) -> bool:
-    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV."""
+def _dap_an_cho_trong(answer_mode: str | None) -> str:
+    """Đáp án chỗ trống, đủ hợp lệ để nộp nhưng nhìn là biết phải điền tay.
+
+    Phải qua được chính `is_valid_qa_answer` (câu đếm đòi chữ số) nếu không
+    `build_qa_hypothesis` sẽ trả None và ta lại rơi vào cảnh không nộp gì.
+
+    Không dùng "?" — `_normalize_answer` bỏ dấu câu nên nó thành chuỗi rỗng và
+    bị chính bộ lọc loại. "TODO" sống qua chuẩn hoá và đập vào mắt lúc soi.
+    """
+    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
+    return "0" if rule and rule.get("digit") else "TODO"
+
+
+def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
+    """Confidence trừ phạt theo ĐỘ SÂU của shot trong bảng retrieval.
+
+    Vì sao cần: Q&A có hai cửa tử độc lập — sai video là 0 tuyệt đối dù answer
+    đúng. Đo 28/08: winner của p1-3 là shot hạng 104, p1-15 là hạng 105, chọn
+    thuần theo confidence tự khai. Mà confidence lại bị ĐẢO NGƯỢC: câu từ chối
+    "không thấy cân" được 0.60 (khẳng định không thấy gì là quan sát dễ) trong
+    khi đọc số mờ thật thì model chỉ dám 0.30. Kết quả là câu từ chối ở đáy
+    bảng luôn thắng câu trả lời thật ở đầu bảng.
+
+    Phạt log10 để đầu bảng gần như không bị đụng: hạng 1 -> 0 · hạng 10 -> -0,15
+    · hạng 100 -> -0,30. Shot sâu vẫn thắng được, nhưng phải hơn hẳn.
+    """
+    return confidence - QA_WINNER_RANK_PENALTY * math.log10(1 + max(0, rank_index))
+
+
+def _la_cau_tu_choi(normalized: str) -> bool:
+    """Dò HÌNH DẠNG câu từ chối: phủ định + từ nói về việc thiếu bằng chứng.
+
+    Vì sao không liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô hạn.
+    Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
+
+    Chỉ dò khi >= QA_REFUSAL_MIN_WORDS từ — "Không" (câu có/không) và "0"
+    (câu đếm) là đáp án THẬT, không được loại.
+    """
+    tokens = normalized.split()
+    if len(tokens) < QA_REFUSAL_MIN_WORDS:
+        return False
+    if not any(t in QA_REFUSAL_NEGATIONS for t in tokens):
+        return False
+    # Từ bằng chứng có thể gồm hai tiếng ("xác định") nên dò trên cả chuỗi.
+    return any(w in normalized for w in QA_REFUSAL_EVIDENCE_WORDS)
+
+
+def _dung_kieu_dap_an(normalized: str, answer_mode: str | None) -> bool:
+    """Đáp án phải đúng DẠNG câu hỏi đòi (câu đếm phải có chữ số, v.v.).
+
+    Đo 28/08: p1-17 hỏi tên con đèo, hạng 1 là "Chồn Hương" còn "Đèo Bạch Mã"
+    nằm hạng 2 — hai bên hoà confidence 0.62 mà không có gì phá hoà theo kiểu.
+    """
+    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
+    if not rule:
+        return True
+    if rule.get("digit") and not any(c.isdigit() for c in normalized):
+        return False
+    max_words = rule.get("max_words")
+    if isinstance(max_words, int) and len(normalized.split()) > max_words:
+        return False
+    return True
+
+
+def is_valid_qa_answer(answer_text: str | None, answer_mode: str | None = None) -> bool:
+    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV.
+
+    `answer_mode` không bắt buộc để mọi caller cũ gọi được như trước; truyền vào
+    thì thêm cổng kiểm kiểu.
+    """
     if answer_text is None:
         return False
     normalized = _normalize_answer(answer_text)
@@ -457,7 +535,9 @@ def is_valid_qa_answer(answer_text: str | None) -> bool:
         first_token = _normalize_answer(first_token)
         if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
             return False
-    return True
+    if _la_cau_tu_choi(normalized):
+        return False
+    return _dung_kieu_dap_an(normalized, answer_mode)
 
 
 def build_qa_hypothesis(
@@ -472,7 +552,7 @@ def build_qa_hypothesis(
     evidence_type: str,
 ) -> QAHypothesis | None:
     """Pin answer vào keyframe/frame_map thật; sentinel không được tạo object."""
-    if not is_valid_qa_answer(answer_text):
+    if not is_valid_qa_answer(answer_text, answer_mode):
         return None
     if not evidence_hash.strip():
         raise QANoValidHypothesisError("Q&A hypothesis thiếu evidence_hash")
@@ -1530,11 +1610,156 @@ def _ung_vien_nhanh_text(
     return them
 
 
+def _shot_bu_vung_trong(candidates: list[ShotHit]) -> list[ShotHit]:
+    """Shot KHÔNG có keyframe, nằm quanh shot đã được đề cử, trong vài video đầu.
+
+    Vì sao cần: keyframe BTC thưa và thưa KHÔNG ĐỀU. Đo 28/08 trên
+    query-p1-3-qa (đáp án thật L21_V023 frame 26050) — keyframe gần nhất của
+    video đó là 25495 và 26906, tức một khoảng 1411 frame (~47 giây) KHÔNG có
+    vector nào. Shot chứa đáp án `L21_V023#s0250` [25996, 26059] có tồn tại
+    trong shots.parquet nhưng không có ảnh nào để encode, nên tìm kiếm vector
+    KHÔNG THỂ đề cử nó — không phải xếp hạng thấp mà là không tồn tại để xếp.
+
+    CLAUDE.md §7: frame nộp KHÔNG cần là keyframe đã index, chỉ cần là số
+    nguyên trong video. Nên ta tự phát ra shot cho vùng trống; allocator sẽ
+    cấp frame thật trong khoảng shot (`best_keyframe_id=None` là hợp lệ, xem
+    ShotHit và allocator._frame_of_keyframe).
+
+    Xếp theo KHOẢNG CÁCH tới shot đã đề cử gần nhất: vùng trống ngay cạnh chỗ
+    máy đã thấy giống là vùng đáng phủ nhất.
+    """
+    if not candidates:
+        return []
+    import pandas as pd
+
+    da_co = {h.shot_id for h in candidates}
+    # Thứ tự video theo lần xuất hiện đầu tiên = theo hạng retrieval.
+    video_uu_tien: list[str] = []
+    for h in candidates:
+        v = h.shot_id.split("#", 1)[0]
+        if v not in video_uu_tien:
+            video_uu_tien.append(v)
+
+    try:
+        sh = pd.read_parquet(
+            Path(__file__).resolve().parents[2] / "data/derived/shots.parquet"
+        )
+    except Exception as e:
+        print(f"  [cảnh báo] không đọc được shots.parquet, bỏ bù vùng trống: {e}")
+        return []
+
+    fmap = load_frame_map()
+    # Điểm cao nhất mà MỖI video đạt được, để shot bù bám sát video mẹ.
+    diem_video: dict[str, float] = {}
+    for h in candidates:
+        v = h.shot_id.split("#", 1)[0]
+        diem_video[v] = max(diem_video.get(v, 0.0), h.score)
+    out: list[ShotHit] = []
+    for vid in video_uu_tien[:QA_GAP_FILL_VIDEOS]:
+        g = sh[sh.video_id == vid]
+        if g.empty:
+            continue
+        # shot_bounds ném KeyError cho shot_id không có trong shots.parquet
+        # (test double, hoặc tầng search dùng bản shot khác). Bù vùng trống là
+        # tính năng PHỤ — không được phép làm chết cả câu Q&A vì chuyện đó.
+        neo = []
+        for hid in da_co:
+            if not hid.startswith(vid + "#"):
+                continue
+            try:
+                _v, s0, e0 = shot_bounds(hid)
+            except Exception:
+                continue
+            neo.append((s0 + e0) // 2)
+        if not neo:
+            continue
+        # Frame của MỌI keyframe thuộc video này, để biết shot nào thực sự trống.
+        frame_co_anh = sorted(
+            f for k, f in fmap.items()
+            if f is not None and str(k).startswith(vid)
+        )
+        ung_vien = []
+        for shot_id, s, e in zip(g.shot_id.astype(str), g.start_frame.astype(int),
+                                 g.end_frame.astype(int)):
+            if shot_id in da_co:
+                continue
+            # Bỏ shot ĐÃ có keyframe: vector đã có cơ hội xếp hạng nó rồi. Chen
+            # thêm ở đây chỉ đẩy shot vùng trống — thứ duy nhất vector không với
+            # tới — ra khỏi 100 slot.
+            j = bisect_left(frame_co_anh, s)
+            if j < len(frame_co_anh) and frame_co_anh[j] <= e:
+                continue
+            giua = (s + e) // 2
+            ung_vien.append((min(abs(giua - n) for n in neo), shot_id, s, e))
+        ung_vien.sort()
+        # Điểm bám ngay DƯỚI video mẹ, không dìm xuống đáy bảng. Nếu dìm thì
+        # 100 ứng viên thật đã ăn hết slot và shot vùng trống — thứ duy nhất
+        # với tới được đáp án — không bao giờ được nộp.
+        goc = diem_video.get(vid, 0.0)
+        for k, (_d, shot_id, _s, _e) in enumerate(ung_vien[:QA_GAP_FILL_SHOTS_PER_VIDEO]):
+            out.append(ShotHit(shot_id, goc * (0.98 - 0.001 * k), None))
+            da_co.add(shot_id)
+    return out
+
+
+def _ung_vien_da_anchor(anchors: list[str], top_k: int) -> list[dict]:
+    """Mỗi anchor tìm RIÊNG rồi XEN KẼ theo thứ hạng — không gộp thành một câu.
+
+    Vì sao: đo 28/08 trên query-p1-3-qa (đáp án thật L21_V023), cùng một video,
+    cùng encoder CLIP, chỉ đổi chữ đưa vào nhánh vector:
+
+        cả câu hỏi (QA đang làm)              -> hạng 151
+        bỏ câu hỏi, giữ mô tả dài             -> hạng 192
+        caption ngắn "a fish lying on a
+        weighing scale"                       -> hạng 3
+
+    Nên thủ phạm không phải model mà là VĂN PHONG và ĐỘ DÀI của chữ đưa vào.
+    CLIP học trên chú thích ảnh, không học trên câu hỏi hay đoạn kể chuỗi.
+
+    Và KHÔNG gộp anchor bằng RRF: đề Q&A hay kể hai khoảnh khắc mà chỉ một
+    khoảnh khắc tìm được (ở câu trên, "a person holding a large fish by its
+    tail" không có trong 300 kết quả đầu). Cộng dồn là dìm anchor tìm được
+    xuống — đúng bài học đã đo ở KIS (R@1 tụt 6/17 xuống 1/17). Xen kẽ chỉ
+    dùng THỨ HẠNG nên anchor vô dụng chỉ tốn slot chứ không phá anchor tốt.
+
+    `anchors` đã là TIẾNG ANH (Claude điền ở bước 1b) nên truyền thẳng vào
+    `query_en`, không tốn lượt dịch nào.
+    """
+    bang = []
+    for a in anchors:
+        a = (a or "").strip()
+        if not a:
+            continue
+        try:
+            bang.append(search(a, query_en=a, top_k=top_k, group_by_shot=True))
+        except Exception as e:  # một anchor hỏng không được kéo sập cả câu
+            print(f"  [cảnh báo] anchor Q&A lỗi, bỏ qua ({a!r}): {e}")
+    if not bang:
+        return []
+
+    out: list[dict] = []
+    da_co: set[str] = set()
+    for vong in range(max(len(b) for b in bang)):
+        for b in bang:
+            if vong >= len(b):
+                continue
+            r = b[vong]
+            sid = r.get("shot_id")
+            if sid is None or sid in da_co:
+                continue
+            da_co.add(sid)
+            out.append(r)
+            if len(out) >= top_k:
+                return out
+    return out
+
+
 def _qa_pipeline_impl(
     query_vi: str,
     top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
     query_en: str | None = None,
     return_trace: bool = False,
+    anchors: list[str] | None = None,
 ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
     """query VI → ứng viên, đáp án và tùy chọn provenance Q&A.
 
@@ -1593,7 +1818,11 @@ def _qa_pipeline_impl(
     # `event_vi` mới — thêm đúng một lượt gọi llm(), không đáng kể so với
     # hàng chục lượt `ask_llm()` suy luận QA đã tốn ngay sau đó.
     event_query_en = query_en if parts.event_vi == query_vi else None
-    hits = search(parts.event_vi, query_en=event_query_en, top_k=top_k_shots, group_by_shot=True)
+    if anchors:
+        hits = _ung_vien_da_anchor(anchors, top_k_shots)
+    else:
+        hits = search(parts.event_vi, query_en=event_query_en,
+                      top_k=top_k_shots, group_by_shot=True)
     if not hits:
         raise RuntimeError(f"search() không trả shot nào cho sự kiện: '{parts.event_vi}'")
 
@@ -1658,6 +1887,13 @@ def _qa_pipeline_impl(
     co_roi = {h.shot_id for h in candidate_shots}
     candidate_shots += [h for h in ung_vien_text if h.shot_id not in co_roi]
 
+    # PHỦ VÙNG KHÔNG CÓ KEYFRAME. Đặt SAU khi `thu_de_suy_luan` đã chốt nên
+    # không shot nào ở đây tốn một lượt LLM — chúng chỉ để CẤP SLOT.
+    try:
+        candidate_shots += _shot_bu_vung_trong(candidate_shots)
+    except Exception as e:  # tính năng phụ, không được kéo sập câu hỏi
+        print(f"  [cảnh báo] bù shot vùng trống lỗi, bỏ qua: {e}")
+
     best: tuple[int, ShotHit, str, int | None, float] | None = None  # (i, hit, answer, frame, confidence)
     tried_shot_ids: set[str] = set()
     text_shot_ids = {h.shot_id for h in ung_vien_text}
@@ -1690,7 +1926,7 @@ def _qa_pipeline_impl(
         if ket_qua is None:
             continue
         answer, frame, confidence = ket_qua
-        if not is_valid_qa_answer(answer):
+        if not is_valid_qa_answer(answer, answer_mode):
             print(f"  [cảnh báo] shot {hit.shot_id}: loại sentinel answer {answer!r}")
             continue
         if frame is None:
@@ -1724,11 +1960,15 @@ def _qa_pipeline_impl(
                 hypotheses.append(hypothesis)
                 hypothesis_keys.add(hypothesis_key)
         print(f"  ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
+        # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh
+        # text mang `score` của bảng text nên khác object với bản nằm trong
+        # bể chính — `.index()` sẽ ném ValueError đúng lúc vừa có câu trả lời.
+        i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
+        # Vòng chính KHÔNG phạt theo hạng: shot do nhánh text đề cử được nối vào
+        # cuối `candidate_shots` nên chỉ số của nó lớn, nhưng đó là ứng viên
+        # được CHỌN CÓ CHỦ ĐÍCH chứ không phải kết quả mò sâu — phạt nó là cắt
+        # đúng đường ứng viên text.
         if best is None or confidence > best[4]:
-            # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh
-            # text mang `score` của bảng text nên khác object với bản nằm trong
-            # bể chính — `.index()` sẽ ném ValueError đúng lúc vừa có câu trả lời.
-            i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
             best = (i, hit, answer, frame, confidence)
 
     # ⚠️ THÊM 21/08 — vòng chính (kể cả ứng viên nhánh text) chưa đủ tin cậy: có
@@ -1778,7 +2018,7 @@ def _qa_pipeline_impl(
                 if ket_qua is None:
                     continue
                 answer, frame, confidence = ket_qua
-                if not is_valid_qa_answer(answer) or frame is None:
+                if not is_valid_qa_answer(answer, answer_mode) or frame is None:
                     print(f"  [cảnh báo] shot {hit.shot_id}: answer sentinel/thiếu frame bị loại")
                     continue
                 evidence_hash = _evidence_hash_for_attempt(
@@ -1805,10 +2045,67 @@ def _qa_pipeline_impl(
                         hypotheses.append(hypothesis)
                         hypothesis_keys.add(hypothesis_key)
                 print(f"  [mở rộng {vid}] ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
-                if best is None or confidence > best[4]:
+                # Chỉ shot ĐÀO THÊM mới chịu phạt độ sâu, và phạt một chiều:
+                # nó phải vượt confidence thô của đương kim sau khi trả phí độ
+                # sâu. Đây đúng là chỗ sinh ra hai winner hạng 104/105 hôm 28/08.
+                if best is None or _diem_co_phat_hang(confidence, i) > best[4]:
                     best = (i, hit, answer, frame, confidence)
             if budget_exhausted:
                 break
+
+    if (best is None or not hypotheses) and candidate_shots and not budget_exhausted:
+        # THÀ ĐOÁN CÒN HƠN BỎ TRỐNG. Không có hình phạt cho câu sai, mà bỏ trống
+        # thì `finalize` chặn cả gói ZIP (đo 28/08: p1-15 và p1-3 làm hỏng toàn
+        # bộ submission). Q&A có hai cửa tử độc lập nên answer sai vẫn là 0 —
+        # nhưng video+frame đúng thì người thao tác sửa answer bằng tay được,
+        # còn không nộp gì thì không sửa được. Đáp án chỗ trống này CỐ Ý vô
+        # nghĩa để người soi thấy ngay là phải điền, không tưởng là máy trả lời.
+        fmap = load_frame_map()
+        answer = _dap_an_cho_trong(answer_mode)
+        # MỖI VIDEO MỘT DÒNG ĐẦU, theo đúng thứ tự retrieval. Không gom về một
+        # shot: người soi cần biết ĐÀO VIDEO NÀO TRƯỚC, mà bảng QA vốn xếp theo
+        # độ tự tin của đáp án — khi không có đáp án nào thì thứ tự đó vô nghĩa
+        # và thứ hạng retrieval là tín hiệu duy nhất còn lại.
+        da_co_video: set[str] = set()
+        for hit in candidate_shots:
+            if len(da_co_video) >= QA_PLACEHOLDER_VIDEOS:
+                break
+            vid = hit.shot_id.split("#", 1)[0]
+            if vid in da_co_video:
+                continue
+            frame = fmap.get(hit.best_keyframe_id)
+            if frame is None:
+                continue
+            hypothesis = build_qa_hypothesis(
+                hit,
+                answer_text=answer,
+                evidence_frame_idx=int(frame),
+                confidence=0.0,
+                # KHÔNG dùng _evidence_hash_for_attempt: hàm đó fail-closed vì
+                # mọi answer THẬT phải truy về bằng chứng. Chỗ trống thì đúng là
+                # không có bằng chứng — nên cấp digest xác định riêng, tiền tố
+                # "placeholder" để soi trace là biết ngay dòng này chưa có người
+                # trả lời, không lẫn với answer do VLM sinh.
+                evidence_hash="placeholder-" + hashlib.sha256(
+                    f"{hit.shot_id}|{frame}".encode()
+                ).hexdigest()[:16],
+                provenance=f"placeholder:no_answer:{_current_qa_mode()}",
+                answer_mode=answer_mode,
+                evidence_type=evidence_type,
+            )
+            if hypothesis is not None:
+                hypotheses.append(hypothesis)
+                da_co_video.add(vid)
+                if best is None:
+                    # Dòng hạng 1 = shot retrieval tốt nhất, không phải shot may
+                    # mắn nào đó — người soi bắt đầu đào từ đây.
+                    i = next(j for j, h in enumerate(candidate_shots)
+                             if h.shot_id == hit.shot_id)
+                    best = (i, hit, answer, int(frame), 0.0)
+        if hypotheses:
+            print(f"  [CHỖ TRỐNG] không shot nào trả lời được — nộp {len(hypotheses)} video "
+                  f"đầu bảng retrieval ({', '.join(sorted(da_co_video))}) với answer={answer!r}. "
+                  "NGƯỜI PHẢI SOI ẢNH VÀ ĐIỀN TAY.")
 
     if best is None or not hypotheses:
         suffix = (
@@ -1870,6 +2167,7 @@ def qa_pipeline(
     query_en: str | None = None,
     return_trace: bool = False,
     runtime_fingerprint: str | None = None,
+    anchors: list[str] | None = None,
 ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
     """Đóng băng mode và tạo generation budget riêng cho từng query Q&A."""
     mode = qa_inference_mode()
@@ -1886,7 +2184,7 @@ def qa_pipeline(
             QAGenerationBudget(limit=QA_TWO_STAGE_MAX_GENERATIONS)
         )
     try:
-        return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace)
+        return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace, anchors)
     finally:
         if budget_token is not None:
             _generation_budget_ctx.reset(budget_token)

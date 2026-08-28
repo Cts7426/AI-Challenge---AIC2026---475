@@ -1607,11 +1607,64 @@ def _ung_vien_nhanh_text(
     return them
 
 
+def _ung_vien_da_anchor(anchors: list[str], top_k: int) -> list[dict]:
+    """Mỗi anchor tìm RIÊNG rồi XEN KẼ theo thứ hạng — không gộp thành một câu.
+
+    Vì sao: đo 28/08 trên query-p1-3-qa (đáp án thật L21_V023), cùng một video,
+    cùng encoder CLIP, chỉ đổi chữ đưa vào nhánh vector:
+
+        cả câu hỏi (QA đang làm)              -> hạng 151
+        bỏ câu hỏi, giữ mô tả dài             -> hạng 192
+        caption ngắn "a fish lying on a
+        weighing scale"                       -> hạng 3
+
+    Nên thủ phạm không phải model mà là VĂN PHONG và ĐỘ DÀI của chữ đưa vào.
+    CLIP học trên chú thích ảnh, không học trên câu hỏi hay đoạn kể chuỗi.
+
+    Và KHÔNG gộp anchor bằng RRF: đề Q&A hay kể hai khoảnh khắc mà chỉ một
+    khoảnh khắc tìm được (ở câu trên, "a person holding a large fish by its
+    tail" không có trong 300 kết quả đầu). Cộng dồn là dìm anchor tìm được
+    xuống — đúng bài học đã đo ở KIS (R@1 tụt 6/17 xuống 1/17). Xen kẽ chỉ
+    dùng THỨ HẠNG nên anchor vô dụng chỉ tốn slot chứ không phá anchor tốt.
+
+    `anchors` đã là TIẾNG ANH (Claude điền ở bước 1b) nên truyền thẳng vào
+    `query_en`, không tốn lượt dịch nào.
+    """
+    bang = []
+    for a in anchors:
+        a = (a or "").strip()
+        if not a:
+            continue
+        try:
+            bang.append(search(a, query_en=a, top_k=top_k, group_by_shot=True))
+        except Exception as e:  # một anchor hỏng không được kéo sập cả câu
+            print(f"  [cảnh báo] anchor Q&A lỗi, bỏ qua ({a!r}): {e}")
+    if not bang:
+        return []
+
+    out: list[dict] = []
+    da_co: set[str] = set()
+    for vong in range(max(len(b) for b in bang)):
+        for b in bang:
+            if vong >= len(b):
+                continue
+            r = b[vong]
+            sid = r.get("shot_id")
+            if sid is None or sid in da_co:
+                continue
+            da_co.add(sid)
+            out.append(r)
+            if len(out) >= top_k:
+                return out
+    return out
+
+
 def _qa_pipeline_impl(
     query_vi: str,
     top_k_shots: int = TOP_K_SHOTS_FOR_SLOTS,
     query_en: str | None = None,
     return_trace: bool = False,
+    anchors: list[str] | None = None,
 ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
     """query VI → ứng viên, đáp án và tùy chọn provenance Q&A.
 
@@ -1670,7 +1723,11 @@ def _qa_pipeline_impl(
     # `event_vi` mới — thêm đúng một lượt gọi llm(), không đáng kể so với
     # hàng chục lượt `ask_llm()` suy luận QA đã tốn ngay sau đó.
     event_query_en = query_en if parts.event_vi == query_vi else None
-    hits = search(parts.event_vi, query_en=event_query_en, top_k=top_k_shots, group_by_shot=True)
+    if anchors:
+        hits = _ung_vien_da_anchor(anchors, top_k_shots)
+    else:
+        hits = search(parts.event_vi, query_en=event_query_en,
+                      top_k=top_k_shots, group_by_shot=True)
     if not hits:
         raise RuntimeError(f"search() không trả shot nào cho sự kiện: '{parts.event_vi}'")
 
@@ -2008,6 +2065,7 @@ def qa_pipeline(
     query_en: str | None = None,
     return_trace: bool = False,
     runtime_fingerprint: str | None = None,
+    anchors: list[str] | None = None,
 ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
     """Đóng băng mode và tạo generation budget riêng cho từng query Q&A."""
     mode = qa_inference_mode()
@@ -2024,7 +2082,7 @@ def qa_pipeline(
             QAGenerationBudget(limit=QA_TWO_STAGE_MAX_GENERATIONS)
         )
     try:
-        return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace)
+        return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace, anchors)
     finally:
         if budget_token is not None:
             _generation_budget_ctx.reset(budget_token)

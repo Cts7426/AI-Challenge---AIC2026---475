@@ -398,6 +398,10 @@ def solve_query(
                 query_en=_query_value(query, "query_en"),
                 return_trace=True,
                 runtime_fingerprint=fingerprint,
+                # Anchor Q&A do Claude điền ở bước 1b (exam_plan.json) — caption
+                # tiếng Anh ngắn tả CẢNH, bỏ phần hỏi. Không có thì pipeline vẫn
+                # chạy như cũ bằng `event_vi`.
+                anchors=_query_value(query, "anchors") or None,
             )
             timings["qa_seconds"] = round(time.perf_counter() - stage_started, 6)
             if not str(answer_text or "").strip():

@@ -91,3 +91,6 @@ data/derived/real_metadata_temp.json
 dev_set/queries/exam_*.json
 dev_set/queries/exam_*.jsonl
 dev_set/results/run_*/
+
+# Bộ đề thi — giữ ở máy để diễn tập, không đẩy lên repo.
+SOTUYEN*-bo-de-thi/

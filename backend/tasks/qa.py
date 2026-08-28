@@ -51,6 +51,7 @@ import hashlib
 import json
 import math
 import os
+from bisect import bisect_left
 import threading
 import unicodedata
 from contextlib import contextmanager
@@ -81,6 +82,8 @@ from data.config.qa_hypotheses import (
     QA_ANSWER_MODE_RULES,
     QA_REFUSAL_EVIDENCE_WORDS,
     QA_REFUSAL_MIN_WORDS,
+    QA_GAP_FILL_SHOTS_PER_VIDEO,
+    QA_GAP_FILL_VIDEOS,
     QA_PLACEHOLDER_VIDEOS,
     QA_REFUSAL_NEGATIONS,
     QA_SENTINEL_ANSWERS,
@@ -1607,6 +1610,98 @@ def _ung_vien_nhanh_text(
     return them
 
 
+def _shot_bu_vung_trong(candidates: list[ShotHit]) -> list[ShotHit]:
+    """Shot KHÔNG có keyframe, nằm quanh shot đã được đề cử, trong vài video đầu.
+
+    Vì sao cần: keyframe BTC thưa và thưa KHÔNG ĐỀU. Đo 28/08 trên
+    query-p1-3-qa (đáp án thật L21_V023 frame 26050) — keyframe gần nhất của
+    video đó là 25495 và 26906, tức một khoảng 1411 frame (~47 giây) KHÔNG có
+    vector nào. Shot chứa đáp án `L21_V023#s0250` [25996, 26059] có tồn tại
+    trong shots.parquet nhưng không có ảnh nào để encode, nên tìm kiếm vector
+    KHÔNG THỂ đề cử nó — không phải xếp hạng thấp mà là không tồn tại để xếp.
+
+    CLAUDE.md §7: frame nộp KHÔNG cần là keyframe đã index, chỉ cần là số
+    nguyên trong video. Nên ta tự phát ra shot cho vùng trống; allocator sẽ
+    cấp frame thật trong khoảng shot (`best_keyframe_id=None` là hợp lệ, xem
+    ShotHit và allocator._frame_of_keyframe).
+
+    Xếp theo KHOẢNG CÁCH tới shot đã đề cử gần nhất: vùng trống ngay cạnh chỗ
+    máy đã thấy giống là vùng đáng phủ nhất.
+    """
+    if not candidates:
+        return []
+    import pandas as pd
+
+    da_co = {h.shot_id for h in candidates}
+    # Thứ tự video theo lần xuất hiện đầu tiên = theo hạng retrieval.
+    video_uu_tien: list[str] = []
+    for h in candidates:
+        v = h.shot_id.split("#", 1)[0]
+        if v not in video_uu_tien:
+            video_uu_tien.append(v)
+
+    try:
+        sh = pd.read_parquet(
+            Path(__file__).resolve().parents[2] / "data/derived/shots.parquet"
+        )
+    except Exception as e:
+        print(f"  [cảnh báo] không đọc được shots.parquet, bỏ bù vùng trống: {e}")
+        return []
+
+    fmap = load_frame_map()
+    # Điểm cao nhất mà MỖI video đạt được, để shot bù bám sát video mẹ.
+    diem_video: dict[str, float] = {}
+    for h in candidates:
+        v = h.shot_id.split("#", 1)[0]
+        diem_video[v] = max(diem_video.get(v, 0.0), h.score)
+    out: list[ShotHit] = []
+    for vid in video_uu_tien[:QA_GAP_FILL_VIDEOS]:
+        g = sh[sh.video_id == vid]
+        if g.empty:
+            continue
+        # shot_bounds ném KeyError cho shot_id không có trong shots.parquet
+        # (test double, hoặc tầng search dùng bản shot khác). Bù vùng trống là
+        # tính năng PHỤ — không được phép làm chết cả câu Q&A vì chuyện đó.
+        neo = []
+        for hid in da_co:
+            if not hid.startswith(vid + "#"):
+                continue
+            try:
+                _v, s0, e0 = shot_bounds(hid)
+            except Exception:
+                continue
+            neo.append((s0 + e0) // 2)
+        if not neo:
+            continue
+        # Frame của MỌI keyframe thuộc video này, để biết shot nào thực sự trống.
+        frame_co_anh = sorted(
+            f for k, f in fmap.items()
+            if f is not None and str(k).startswith(vid)
+        )
+        ung_vien = []
+        for shot_id, s, e in zip(g.shot_id.astype(str), g.start_frame.astype(int),
+                                 g.end_frame.astype(int)):
+            if shot_id in da_co:
+                continue
+            # Bỏ shot ĐÃ có keyframe: vector đã có cơ hội xếp hạng nó rồi. Chen
+            # thêm ở đây chỉ đẩy shot vùng trống — thứ duy nhất vector không với
+            # tới — ra khỏi 100 slot.
+            j = bisect_left(frame_co_anh, s)
+            if j < len(frame_co_anh) and frame_co_anh[j] <= e:
+                continue
+            giua = (s + e) // 2
+            ung_vien.append((min(abs(giua - n) for n in neo), shot_id, s, e))
+        ung_vien.sort()
+        # Điểm bám ngay DƯỚI video mẹ, không dìm xuống đáy bảng. Nếu dìm thì
+        # 100 ứng viên thật đã ăn hết slot và shot vùng trống — thứ duy nhất
+        # với tới được đáp án — không bao giờ được nộp.
+        goc = diem_video.get(vid, 0.0)
+        for k, (_d, shot_id, _s, _e) in enumerate(ung_vien[:QA_GAP_FILL_SHOTS_PER_VIDEO]):
+            out.append(ShotHit(shot_id, goc * (0.98 - 0.001 * k), None))
+            da_co.add(shot_id)
+    return out
+
+
 def _ung_vien_da_anchor(anchors: list[str], top_k: int) -> list[dict]:
     """Mỗi anchor tìm RIÊNG rồi XEN KẼ theo thứ hạng — không gộp thành một câu.
 
@@ -1791,6 +1886,13 @@ def _qa_pipeline_impl(
 
     co_roi = {h.shot_id for h in candidate_shots}
     candidate_shots += [h for h in ung_vien_text if h.shot_id not in co_roi]
+
+    # PHỦ VÙNG KHÔNG CÓ KEYFRAME. Đặt SAU khi `thu_de_suy_luan` đã chốt nên
+    # không shot nào ở đây tốn một lượt LLM — chúng chỉ để CẤP SLOT.
+    try:
+        candidate_shots += _shot_bu_vung_trong(candidate_shots)
+    except Exception as e:  # tính năng phụ, không được kéo sập câu hỏi
+        print(f"  [cảnh báo] bù shot vùng trống lỗi, bỏ qua: {e}")
 
     best: tuple[int, ShotHit, str, int | None, float] | None = None  # (i, hit, answer, frame, confidence)
     tried_shot_ids: set[str] = set()

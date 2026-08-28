@@ -99,6 +99,18 @@ QA_WINNER_RANK_PENALTY = 0.15
 # lướt trong ngân sách vài phút mà không bỏ sót video đúng.
 QA_PLACEHOLDER_VIDEOS = 10
 
+# ------------------------------------------------- bù shot KHÔNG có keyframe
+# Keyframe BTC thưa và thưa KHÔNG ĐỀU. Đo 28/08 (query-p1-3-qa, đáp án thật
+# L21_V023 frame 26050): keyframe gần nhất là 25495 và 26906 — một khoảng 1411
+# frame (~47 giây) không có vector nào, và shot chứa đáp án nằm gọn trong đó.
+# Tìm kiếm vector không thể với tới vùng này, nên phải tự phát shot cho nó.
+# 3 video × 30 shot = tối đa 90 slot, vẫn còn chỗ cho ứng viên thật.
+# Phủ RỘNG hơn chứ đừng sâu: đo được video đúng của p1-3 đứng hạng 9, nếu chỉ
+# bù cho 3 video đầu thì nó không được bù. Điểm shot bù bám ngay dưới video mẹ
+# nên phủ rộng không làm loãng đầu bảng.
+QA_GAP_FILL_VIDEOS = 12
+QA_GAP_FILL_SHOTS_PER_VIDEO = 12
+
 
 def qa_hypothesis_cache_dir() -> Path:
     """Đường cache có thể đổi bằng env cho test/job; caller không tự ghép path."""

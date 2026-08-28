@@ -447,6 +447,19 @@ def _normalize_answer(answer_text: str) -> str:
     return normalized
 
 
+def _dap_an_cho_trong(answer_mode: str | None) -> str:
+    """Đáp án chỗ trống, đủ hợp lệ để nộp nhưng nhìn là biết phải điền tay.
+
+    Phải qua được chính `is_valid_qa_answer` (câu đếm đòi chữ số) nếu không
+    `build_qa_hypothesis` sẽ trả None và ta lại rơi vào cảnh không nộp gì.
+
+    Không dùng "?" — `_normalize_answer` bỏ dấu câu nên nó thành chuỗi rỗng và
+    bị chính bộ lọc loại. "TODO" sống qua chuẩn hoá và đập vào mắt lúc soi.
+    """
+    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
+    return "0" if rule and rule.get("digit") else "TODO"
+
+
 def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
     """Confidence trừ phạt theo ĐỘ SÂU của shot trong bảng retrieval.
 
@@ -1879,6 +1892,33 @@ def _qa_pipeline_impl(
                     best = (i, hit, answer, frame, confidence)
             if budget_exhausted:
                 break
+
+    if (best is None or not hypotheses) and candidate_shots and not budget_exhausted:
+        # THÀ ĐOÁN CÒN HƠN BỎ TRỐNG. Không có hình phạt cho câu sai, mà bỏ trống
+        # thì `finalize` chặn cả gói ZIP (đo 28/08: p1-15 và p1-3 làm hỏng toàn
+        # bộ submission). Q&A có hai cửa tử độc lập nên answer sai vẫn là 0 —
+        # nhưng video+frame đúng thì người thao tác sửa answer bằng tay được,
+        # còn không nộp gì thì không sửa được. Đáp án chỗ trống này CỐ Ý vô
+        # nghĩa để người soi thấy ngay là phải điền, không tưởng là máy trả lời.
+        hit = candidate_shots[0]
+        frame = load_frame_map().get(hit.best_keyframe_id)
+        if frame is not None:
+            answer = _dap_an_cho_trong(answer_mode)
+            hypothesis = build_qa_hypothesis(
+                hit,
+                answer_text=answer,
+                evidence_frame_idx=int(frame),
+                confidence=0.0,
+                evidence_hash=_evidence_hash_for_attempt({}, hit=hit),
+                provenance=f"placeholder:no_answer:{_current_qa_mode()}",
+                answer_mode=answer_mode,
+                evidence_type=evidence_type,
+            )
+            if hypothesis is not None:
+                hypotheses.append(hypothesis)
+                best = (0, hit, answer, int(frame), 0.0)
+                print(f"  [CHỖ TRỐNG] không shot nào trả lời được — nộp shot đầu bảng "
+                      f"({hit.shot_id}) với answer={answer!r}, NGƯỜI PHẢI ĐIỀN TAY")
 
     if best is None or not hypotheses:
         suffix = (

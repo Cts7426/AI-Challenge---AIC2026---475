@@ -27,7 +27,10 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 QUERIES = REPO / "dev_set/queries/exam_queries.jsonl"
+PLAN = REPO / "dev_set/queries/exam_plan.json"
 AUTO = REPO / "submissions/exam_auto"
+DUAL_TOP = 48      # tấm chính: bản dịch đầy đủ, hai encoder — đo được phủ 12/18 câu
+ANCHOR_TOP = 24    # mỗi anchor một tấm riêng, hẹp hơn
 
 
 def _dedup_by_shot(rows, shot_of, limit):
@@ -52,6 +55,8 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=REPO / "scratch/exam_review.html")
     ap.add_argument("--sheets", type=Path, default=REPO / "scratch/exam_sheets")
     ap.add_argument("--no-sheets", action="store_true")
+    ap.add_argument("--no-siglip2", action="store_true",
+                    help="bỏ luồng mắt thứ hai (nhanh hơn ~1 phút, nhưng mất phủ)")
     args = ap.parse_args()
 
     from backend.retrieval.search import _shot_of_frame as shot_of
@@ -100,11 +105,50 @@ def main() -> int:
             except SystemExit:
                 pass
 
+    # --- CON MẮT THỨ HAI: HỢP NHẤT CLIP + SigLIP2 ở mức shot ---
+    # Đo công bằng (cùng câu truy vấn, cùng quét phẳng, xếp hạng theo shot) cho
+    # thấy hai encoder KHÔNG phải một hơn một kém — CLIP thắng 8 câu, SigLIP2
+    # thắng 7. Hợp lại thì bảng ứng viên phủ nhiều hơn hẳn mỗi bên:
+    #     chỉ CLIP     9/18 câu có đáp án trong lưới
+    #     chỉ SigLIP2  9/18
+    #     HAI CÁI     12/18            <- lý do bước này tồn tại
+    #
+    # Chia LÀN chứ không trộn hết vào một tấm: đo được thêm anchor vào cùng tấm
+    # với query_en KHÔNG tăng độ phủ (11-12/18) mà lại đẩy đáp án xuống sâu hơn
+    # (p1-22 từ ô 4 xuống ô 10). Nên query_en giữ tấm riêng, mỗi anchor một tấm.
+    n_dual = 0
+    if not args.no_siglip2 and not args.no_sheets and PLAN.exists():
+        try:
+            from scripts.contact_sheet import build
+            from scripts.dual_search import dual_candidates
+
+            plans = json.loads(PLAN.read_text(encoding="utf-8"))
+            for q in queries:
+                pl = plans.get(q["query_id"])
+                if q["task_type"] != "KIS" or not pl:
+                    continue
+                qen = (pl.get("query_en") or "").strip()
+                lanes = []
+                if qen:
+                    lanes.append(("dual", [qen], DUAL_TOP))
+                for i, a in enumerate(list(pl.get("anchors", [])) + list(pl.get("hyp", [])), 1):
+                    lanes.append((f"m{i}", [a], ANCHOR_TOP))
+                for name, texts, top in lanes:
+                    rows = dual_candidates(texts, top)
+                    if rows:
+                        build(rows, args.sheets / f"{q['query_id']}.{name}.jpg")
+                        n_dual += 1
+        except Exception as e:   # mắt thứ hai hỏng KHÔNG được kéo sập bước review
+            print(f"  ⚠ làn hợp nhất hai encoder lỗi, bỏ qua: {e}")
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(parts), encoding="utf-8")
     print(f"\ntrang  -> {args.out}")
     if n_sheet:
-        print(f"lưới   -> {args.sheets}  ({n_sheet} tấm, mỗi câu một tấm)")
+        print(f"lưới CLIP    -> {args.sheets}/<query_id>.jpg      ({n_sheet} tấm)")
+    if n_dual:
+        print(f"lưới HAI MẮT -> {args.sheets}/<query_id>.dual.jpg (bản dịch đầy đủ) "
+              f"và .m1/.m2/... (từng anchor) · {n_dual} tấm")
     return 0
 
 

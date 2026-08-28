@@ -83,7 +83,7 @@ def allocate_qa_portfolio(
             f"total={total} nhỏ hơn {len(ranked)} canonical hypotheses; "
             "từ chối âm thầm bỏ evidence"
         )
-    if any(not is_valid_qa_answer(item.answer_text) for item in ranked):
+    if any(not is_valid_qa_answer(item.answer_text, item.answer_mode) for item in ranked):
         raise RuntimeError("Q&A portfolio nhận sentinel answer")
 
     fmap = load_frame_map()

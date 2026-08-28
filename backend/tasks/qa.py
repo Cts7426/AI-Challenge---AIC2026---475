@@ -49,6 +49,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import threading
 import unicodedata
@@ -77,8 +78,13 @@ from data.config.qa_hypotheses import (
     QA_HYPOTHESIS_CACHE_SCHEMA_VERSION,
     QA_INFERENCE_PROMPT_VERSION,
     QA_PLANNER_PROMPT_VERSION,
+    QA_ANSWER_MODE_RULES,
+    QA_REFUSAL_EVIDENCE_WORDS,
+    QA_REFUSAL_MIN_WORDS,
+    QA_REFUSAL_NEGATIONS,
     QA_SENTINEL_ANSWERS,
     QA_SENTINEL_PREFIX_CONTINUATIONS,
+    QA_WINNER_RANK_PENALTY,
     qa_hypothesis_cache_dir,
     qa_hypothesis_config_snapshot,
 )
@@ -199,7 +205,7 @@ class QAHypothesis:
     def __post_init__(self) -> None:
         if not self.evidence_hash.strip():
             raise ValueError("QAHypothesis phải có evidence_hash")
-        if not is_valid_qa_answer(self.answer_text):
+        if not is_valid_qa_answer(self.answer_text, self.answer_mode):
             raise ValueError("QAHypothesis không được chứa answer rỗng/sentinel")
         if self.answer_mode not in ANSWER_MODES:
             raise ValueError(f"answer_mode không hợp lệ: {self.answer_mode!r}")
@@ -441,8 +447,63 @@ def _normalize_answer(answer_text: str) -> str:
     return normalized
 
 
-def is_valid_qa_answer(answer_text: str | None) -> bool:
-    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV."""
+def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
+    """Confidence trừ phạt theo ĐỘ SÂU của shot trong bảng retrieval.
+
+    Vì sao cần: Q&A có hai cửa tử độc lập — sai video là 0 tuyệt đối dù answer
+    đúng. Đo 28/08: winner của p1-3 là shot hạng 104, p1-15 là hạng 105, chọn
+    thuần theo confidence tự khai. Mà confidence lại bị ĐẢO NGƯỢC: câu từ chối
+    "không thấy cân" được 0.60 (khẳng định không thấy gì là quan sát dễ) trong
+    khi đọc số mờ thật thì model chỉ dám 0.30. Kết quả là câu từ chối ở đáy
+    bảng luôn thắng câu trả lời thật ở đầu bảng.
+
+    Phạt log10 để đầu bảng gần như không bị đụng: hạng 1 -> 0 · hạng 10 -> -0,15
+    · hạng 100 -> -0,30. Shot sâu vẫn thắng được, nhưng phải hơn hẳn.
+    """
+    return confidence - QA_WINNER_RANK_PENALTY * math.log10(1 + max(0, rank_index))
+
+
+def _la_cau_tu_choi(normalized: str) -> bool:
+    """Dò HÌNH DẠNG câu từ chối: phủ định + từ nói về việc thiếu bằng chứng.
+
+    Vì sao không liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô hạn.
+    Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
+
+    Chỉ dò khi >= QA_REFUSAL_MIN_WORDS từ — "Không" (câu có/không) và "0"
+    (câu đếm) là đáp án THẬT, không được loại.
+    """
+    tokens = normalized.split()
+    if len(tokens) < QA_REFUSAL_MIN_WORDS:
+        return False
+    if not any(t in QA_REFUSAL_NEGATIONS for t in tokens):
+        return False
+    # Từ bằng chứng có thể gồm hai tiếng ("xác định") nên dò trên cả chuỗi.
+    return any(w in normalized for w in QA_REFUSAL_EVIDENCE_WORDS)
+
+
+def _dung_kieu_dap_an(normalized: str, answer_mode: str | None) -> bool:
+    """Đáp án phải đúng DẠNG câu hỏi đòi (câu đếm phải có chữ số, v.v.).
+
+    Đo 28/08: p1-17 hỏi tên con đèo, hạng 1 là "Chồn Hương" còn "Đèo Bạch Mã"
+    nằm hạng 2 — hai bên hoà confidence 0.62 mà không có gì phá hoà theo kiểu.
+    """
+    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
+    if not rule:
+        return True
+    if rule.get("digit") and not any(c.isdigit() for c in normalized):
+        return False
+    max_words = rule.get("max_words")
+    if isinstance(max_words, int) and len(normalized.split()) > max_words:
+        return False
+    return True
+
+
+def is_valid_qa_answer(answer_text: str | None, answer_mode: str | None = None) -> bool:
+    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV.
+
+    `answer_mode` không bắt buộc để mọi caller cũ gọi được như trước; truyền vào
+    thì thêm cổng kiểm kiểu.
+    """
     if answer_text is None:
         return False
     normalized = _normalize_answer(answer_text)
@@ -457,7 +518,9 @@ def is_valid_qa_answer(answer_text: str | None) -> bool:
         first_token = _normalize_answer(first_token)
         if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
             return False
-    return True
+    if _la_cau_tu_choi(normalized):
+        return False
+    return _dung_kieu_dap_an(normalized, answer_mode)
 
 
 def build_qa_hypothesis(
@@ -472,7 +535,7 @@ def build_qa_hypothesis(
     evidence_type: str,
 ) -> QAHypothesis | None:
     """Pin answer vào keyframe/frame_map thật; sentinel không được tạo object."""
-    if not is_valid_qa_answer(answer_text):
+    if not is_valid_qa_answer(answer_text, answer_mode):
         return None
     if not evidence_hash.strip():
         raise QANoValidHypothesisError("Q&A hypothesis thiếu evidence_hash")
@@ -1690,7 +1753,7 @@ def _qa_pipeline_impl(
         if ket_qua is None:
             continue
         answer, frame, confidence = ket_qua
-        if not is_valid_qa_answer(answer):
+        if not is_valid_qa_answer(answer, answer_mode):
             print(f"  [cảnh báo] shot {hit.shot_id}: loại sentinel answer {answer!r}")
             continue
         if frame is None:
@@ -1724,11 +1787,15 @@ def _qa_pipeline_impl(
                 hypotheses.append(hypothesis)
                 hypothesis_keys.add(hypothesis_key)
         print(f"  ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
+        # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh
+        # text mang `score` của bảng text nên khác object với bản nằm trong
+        # bể chính — `.index()` sẽ ném ValueError đúng lúc vừa có câu trả lời.
+        i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
+        # Vòng chính KHÔNG phạt theo hạng: shot do nhánh text đề cử được nối vào
+        # cuối `candidate_shots` nên chỉ số của nó lớn, nhưng đó là ứng viên
+        # được CHỌN CÓ CHỦ ĐÍCH chứ không phải kết quả mò sâu — phạt nó là cắt
+        # đúng đường ứng viên text.
         if best is None or confidence > best[4]:
-            # Tra theo shot_id, KHÔNG dùng list.index(hit): shot đề cử bởi nhánh
-            # text mang `score` của bảng text nên khác object với bản nằm trong
-            # bể chính — `.index()` sẽ ném ValueError đúng lúc vừa có câu trả lời.
-            i = next(j for j, h in enumerate(candidate_shots) if h.shot_id == hit.shot_id)
             best = (i, hit, answer, frame, confidence)
 
     # ⚠️ THÊM 21/08 — vòng chính (kể cả ứng viên nhánh text) chưa đủ tin cậy: có
@@ -1778,7 +1845,7 @@ def _qa_pipeline_impl(
                 if ket_qua is None:
                     continue
                 answer, frame, confidence = ket_qua
-                if not is_valid_qa_answer(answer) or frame is None:
+                if not is_valid_qa_answer(answer, answer_mode) or frame is None:
                     print(f"  [cảnh báo] shot {hit.shot_id}: answer sentinel/thiếu frame bị loại")
                     continue
                 evidence_hash = _evidence_hash_for_attempt(
@@ -1805,7 +1872,10 @@ def _qa_pipeline_impl(
                         hypotheses.append(hypothesis)
                         hypothesis_keys.add(hypothesis_key)
                 print(f"  [mở rộng {vid}] ({hit.shot_id}): answer={answer!r} confidence={confidence:.2f}")
-                if best is None or confidence > best[4]:
+                # Chỉ shot ĐÀO THÊM mới chịu phạt độ sâu, và phạt một chiều:
+                # nó phải vượt confidence thô của đương kim sau khi trả phí độ
+                # sâu. Đây đúng là chỗ sinh ra hai winner hạng 104/105 hôm 28/08.
+                if best is None or _diem_co_phat_hang(confidence, i) > best[4]:
                     best = (i, hit, answer, frame, confidence)
             if budget_exhausted:
                 break

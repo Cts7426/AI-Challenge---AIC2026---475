@@ -81,6 +81,7 @@ from data.config.qa_hypotheses import (
     QA_ANSWER_MODE_RULES,
     QA_REFUSAL_EVIDENCE_WORDS,
     QA_REFUSAL_MIN_WORDS,
+    QA_PLACEHOLDER_VIDEOS,
     QA_REFUSAL_NEGATIONS,
     QA_SENTINEL_ANSWERS,
     QA_SENTINEL_PREFIX_CONTINUATIONS,
@@ -1900,10 +1901,22 @@ def _qa_pipeline_impl(
         # nhưng video+frame đúng thì người thao tác sửa answer bằng tay được,
         # còn không nộp gì thì không sửa được. Đáp án chỗ trống này CỐ Ý vô
         # nghĩa để người soi thấy ngay là phải điền, không tưởng là máy trả lời.
-        hit = candidate_shots[0]
-        frame = load_frame_map().get(hit.best_keyframe_id)
-        if frame is not None:
-            answer = _dap_an_cho_trong(answer_mode)
+        fmap = load_frame_map()
+        answer = _dap_an_cho_trong(answer_mode)
+        # MỖI VIDEO MỘT DÒNG ĐẦU, theo đúng thứ tự retrieval. Không gom về một
+        # shot: người soi cần biết ĐÀO VIDEO NÀO TRƯỚC, mà bảng QA vốn xếp theo
+        # độ tự tin của đáp án — khi không có đáp án nào thì thứ tự đó vô nghĩa
+        # và thứ hạng retrieval là tín hiệu duy nhất còn lại.
+        da_co_video: set[str] = set()
+        for hit in candidate_shots:
+            if len(da_co_video) >= QA_PLACEHOLDER_VIDEOS:
+                break
+            vid = hit.shot_id.split("#", 1)[0]
+            if vid in da_co_video:
+                continue
+            frame = fmap.get(hit.best_keyframe_id)
+            if frame is None:
+                continue
             hypothesis = build_qa_hypothesis(
                 hit,
                 answer_text=answer,
@@ -1923,9 +1936,17 @@ def _qa_pipeline_impl(
             )
             if hypothesis is not None:
                 hypotheses.append(hypothesis)
-                best = (0, hit, answer, int(frame), 0.0)
-                print(f"  [CHỖ TRỐNG] không shot nào trả lời được — nộp shot đầu bảng "
-                      f"({hit.shot_id}) với answer={answer!r}, NGƯỜI PHẢI ĐIỀN TAY")
+                da_co_video.add(vid)
+                if best is None:
+                    # Dòng hạng 1 = shot retrieval tốt nhất, không phải shot may
+                    # mắn nào đó — người soi bắt đầu đào từ đây.
+                    i = next(j for j, h in enumerate(candidate_shots)
+                             if h.shot_id == hit.shot_id)
+                    best = (i, hit, answer, int(frame), 0.0)
+        if hypotheses:
+            print(f"  [CHỖ TRỐNG] không shot nào trả lời được — nộp {len(hypotheses)} video "
+                  f"đầu bảng retrieval ({', '.join(sorted(da_co_video))}) với answer={answer!r}. "
+                  "NGƯỜI PHẢI SOI ẢNH VÀ ĐIỀN TAY.")
 
     if best is None or not hypotheses:
         suffix = (

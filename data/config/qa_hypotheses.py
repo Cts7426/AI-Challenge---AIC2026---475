@@ -93,6 +93,12 @@ QA_ANSWER_MODE_RULES: dict[str, dict[str, object]] = {
 # Phạt theo log10 hạng: hạng 1 -> 0, hạng 10 -> -0.15, hạng 100 -> -0.30.
 QA_WINNER_RANK_PENALTY = 0.15
 
+# Khi KHÔNG shot nào trả lời được: nộp bấy nhiêu VIDEO đầu bảng retrieval, mỗi
+# video một dòng, xếp đúng thứ tự retrieval. Đáp án lúc đó vô nghĩa nên tín hiệu
+# duy nhất còn giá trị là "đào video nào trước" — 10 video vừa đủ để người soi
+# lướt trong ngân sách vài phút mà không bỏ sót video đúng.
+QA_PLACEHOLDER_VIDEOS = 10
+
 
 def qa_hypothesis_cache_dir() -> Path:
     """Đường cache có thể đổi bằng env cho test/job; caller không tự ghép path."""

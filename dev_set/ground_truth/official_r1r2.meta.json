@@ -1,0 +1,31 @@
+{
+  "built_by": "dev_set/tools/build_official_gt.py",
+  "n_records": 55,
+  "confidence_counts": {
+    "MEDIUM": 14,
+    "CORROBORATED": 8,
+    "LIKELY_ASSISTANT": 2,
+    "VERIFIED_ASSISTANT": 1,
+    "HIGH": 30
+  },
+  "sources": [
+    {
+      "zip": "Thanh Nghệ_round1 (1).zip",
+      "sha256": "36f18d7ec153ad5cde917914e7b45acdadfb4fdc3aa3308fefa77243184a1aca",
+      "n_queries": 25,
+      "scored": 8.6,
+      "total": 13.0,
+      "label": "Đợt 1 · 21/08/2026"
+    },
+    {
+      "zip": "submission_THANH_ NGHỆ.zip",
+      "sha256": "30753d4e28c1c50aa20f175794e56ac8a9011e767b7fd152a255d3dbfb3e3384",
+      "n_queries": 30,
+      "scored": 13.6,
+      "total": 15.0,
+      "label": "Đợt 2 · 28/08/2026"
+    }
+  ],
+  "window_policy": "Cửa sổ [s,e] của BTC chưa công bố. File chỉ lưu frame_exact (frame người thao tác chốt). Evaluator phải tự áp ±tolerance và báo cáo điểm ở nhiều mức dung sai.",
+  "warning": "confidence là TIÊN NGHIỆM từ điểm tổng, KHÔNG phải xác minh từng câu. Chỉ nâng lên VERIFIED sau khi người thật kiểm bằng mắt và điền verified_by/verified_how."
+}

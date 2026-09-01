@@ -561,3 +561,35 @@ def test_release_recompute_runtime_scorer_va_policy_phai_khop_audit(tmp_path):
             promotion_audit=_promotion_audit(),
         )
     assert called == []
+
+
+# ------------------- sentinel trong trace CŨ không được qua release preflight (H1)
+#
+# Trace JSONL có thể là của lần chạy trước khi tầng Q&A biết chặn câu từ chối
+# (observed: RUN 3 ngày 27/08, fix landed 28/08). Release assessment phải tự kiểm
+# lại answer chứ không tin trace là đã sạch.
+
+SENTINEL_QUAN_SAT = "Không đủ căn cứ xác định"
+
+
+def test_sentinel_trong_trace_chan_release_batch():
+    """Đúng chuỗi của RUN 3 nằm trong trace thì batch KHÔNG được eligible."""
+    traces = _traces()
+    traces[1]["qa_hypotheses"][0]["answer_text"] = SENTINEL_QUAN_SAT
+    traces[1]["answers"][0]["answer_text"] = SENTINEL_QUAN_SAT
+
+    result = assess_release_batch(
+        queries=_queries(), traces=traces, validator_issues=[],
+        trace_path=Path("trace.jsonl"), cache_manifest=_cache_manifest(),
+    )
+    assert result.eligible is False
+    assert "qa_evidence_invalid" in {reason["code"] for reason in result.reasons}
+
+
+def test_answer_that_van_qua_duoc_release_batch():
+    """Luật mới không được chặn nhầm batch hợp lệ."""
+    result = assess_release_batch(
+        queries=_queries(), traces=_traces(), validator_issues=[],
+        trace_path=Path("trace.jsonl"), cache_manifest=_cache_manifest(),
+    )
+    assert "qa_evidence_invalid" not in {reason["code"] for reason in result.reasons}

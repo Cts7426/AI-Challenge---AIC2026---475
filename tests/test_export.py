@@ -432,3 +432,99 @@ def test_answer_co_dau_phay_khong_lam_lech_cot(qa):
     dong = doc_csv(raw)
     assert dong[0][2] == answer and len(dong[0]) == 3
     assert '"5, anh ấy nói ""có thể hơn"""' in raw
+
+
+# ------------------------------- luật answer từ chối / sentinel (H1, review 28/08)
+#
+# Observed thật: RUN 3 ghi "Không đủ căn cứ xác định" vào
+# `dev_set/results/run_20260827_154710_27d970c1/DRESS_QA_01.csv` dòng 3 và 6.
+# Chuỗi đó KHÔNG rỗng, 24 ký tự, không có khoảng trắng thừa → lọt sạch mọi luật
+# answer khác và vào ZIP hợp lệ. Câu đó chắc chắn 0 điểm mà không có gì báo.
+
+SENTINEL_QUAN_SAT = "Không đủ căn cứ xác định"
+
+
+def test_answer_tu_choi_quan_sat_that_bi_bat(qa):
+    """Đúng chuỗi đã lọt vào CSV của RUN 3 phải bị validator chặn."""
+    from backend.export import validate_submission
+
+    loi = validate_submission(replace_answer(qa, 0, answer_text=SENTINEL_QUAN_SAT))
+    assert "answer_refusal" in rules_of(loi)
+    assert loi[0].position == 1, "phải chỉ đúng hạng nào sai"
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        SENTINEL_QUAN_SAT,
+        "Không đủ căn cứ",
+        "Không có thông tin",
+        "Không thể xác định từ bằng chứng",
+        "Insufficient evidence to determine this",
+        "Không biết",
+        "Cannot determine",
+    ],
+)
+def test_cac_bien_the_tu_choi_deu_bi_bat_o_tang_nop(qa, answer):
+    """Tầng nộp dùng chung predicate với tầng Q&A nên phủ cả biến thể."""
+    from backend.export import validate_submission
+
+    loi = validate_submission(replace_answer(qa, 0, answer_text=answer))
+    assert "answer_refusal" in rules_of(loi), f"bỏ lọt {answer!r}"
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Không",
+        "0",
+        "Không có người trong ảnh",
+        "Không thấy mưa",
+        "Không có thông tin liên lạc",
+        "No Information Technology",
+    ],
+)
+def test_dap_an_phu_dinh_hop_le_khong_bi_bat_nham(qa, answer):
+    """Luật mới không được giết đáp án phủ định có nội dung thật."""
+    from backend.export import validate_submission
+
+    assert validate_submission(replace_answer(qa, 0, answer_text=answer)) == []
+
+
+def test_zip_KHONG_duoc_tao_khi_answer_la_sentinel(qa, tmp_path):
+    """Chốt chặn cuối: có sentinel thì gãy to, KHÔNG sinh ra zip nộp được.
+
+    Đây mới là điều H1 thực sự quan tâm — không phải "có báo lỗi" mà là
+    "không tồn tại file nộp được chứa nó".
+    """
+    ban_loi = replace_answer(qa, 0, answer_text=SENTINEL_QUAN_SAT)
+
+    with pytest.raises(ValueError, match="KHÔNG ghi file"):
+        write_submission_zip([ban_loi], tmp_path)
+
+    assert list(tmp_path.glob("*.zip")) == [], "không được để lại zip nộp được"
+    assert not (tmp_path / "submission" / "qa_001.csv").exists(),         "không được để lại CSV dở dang"
+
+
+def test_write_submissions_cung_chan_sentinel(qa, tmp_path):
+    """Ghi file rời cũng là đường ra đĩa — không được hở."""
+    ban_loi = replace_answer(qa, 0, answer_text=SENTINEL_QUAN_SAT)
+
+    with pytest.raises(ValueError, match="KHÔNG ghi file"):
+        write_submissions([ban_loi], tmp_path)
+    assert list(tmp_path.glob("*.csv")) == []
+
+
+def test_zip_van_chay_binh_thuong_khi_answer_that(qa, tmp_path):
+    """Luật mới không được chặn đường nộp hợp lệ."""
+    zip_path, loi = write_submission_zip([qa], tmp_path)
+    assert loi == []
+    assert zip_path.exists()
+
+
+def test_tang_nop_va_tang_qa_dung_CHUNG_mot_predicate():
+    """Hai bản sao danh sách sentinel lệch nhau còn tệ hơn không kiểm."""
+    from backend.export import exporter
+    from data.config.qa_hypotheses import is_valid_qa_answer
+
+    assert exporter.is_valid_qa_answer is is_valid_qa_answer

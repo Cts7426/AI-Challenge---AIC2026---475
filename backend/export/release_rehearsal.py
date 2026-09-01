@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from backend.export.exporter import Issue, QuerySubmission, write_submission_zip
+from data.config.qa_hypotheses import is_valid_qa_answer
 from backend.export.qa_variants import apply_qa_submission_policy
 from backend.tasks.runner import runtime_fingerprint, runtime_manifest
 from data.config.submit_format import Answer
@@ -190,6 +191,12 @@ def _valid_hypothesis(hypothesis: Mapping[str, Any]) -> bool:
         return False
     frame_idx = hypothesis.get("evidence_frame_idx")
     if isinstance(frame_idx, bool) or not isinstance(frame_idx, int) or frame_idx < 0:
+        return False
+    # Hypothesis đọc từ trace JSONL — trace có thể là của lần chạy CŨ, sinh ra
+    # trước khi tầng Q&A biết chặn câu từ chối. Luật "string không rỗng" ở trên
+    # cho `"Không đủ căn cứ xác định"` đi lọt (H1, review 28/08), nên release
+    # assessment phải tự kiểm lại chứ không tin trace là đã sạch.
+    if not is_valid_qa_answer(hypothesis["answer_text"]):
         return False
     return True
 

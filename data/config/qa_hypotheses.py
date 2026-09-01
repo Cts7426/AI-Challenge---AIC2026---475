@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import unicodedata
 from pathlib import Path
 
 
@@ -70,6 +71,55 @@ QA_REFUSAL_SHORT_ANSWERS = frozenset({
 })
 
 QA_REFUSAL_MIN_WORDS = 2
+
+
+def _normalize_answer(answer_text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", str(answer_text))
+    normalized = " ".join(normalized.casefold().split())
+    while normalized and unicodedata.category(normalized[0]).startswith("P"):
+        normalized = normalized[1:].lstrip()
+    while normalized and unicodedata.category(normalized[-1]).startswith("P"):
+        normalized = normalized[:-1].rstrip()
+    return normalized
+
+
+def _la_cau_tu_choi(normalized: str) -> bool:
+    """Nhận diện câu từ chối mà không loại nhầm đáp án phủ định có nội dung.
+
+    Input là answer đã normalize; output True chỉ cho surface đo thật hoặc câu
+    bắt đầu bằng phủ định rồi nói về khả năng xác định/bằng chứng. Invariant:
+    cụm evidence nằm trong câu trích dẫn không đủ để làm answer bị loại.
+    """
+    if normalized in QA_REFUSAL_EXACT_ANSWERS or normalized in QA_REFUSAL_SHORT_ANSWERS:
+        return True
+    tokens = normalized.split()
+    if tokens and tokens[0] in QA_REFUSAL_SUBJECT_PREFIXES:
+        tokens = tokens[1:]
+    candidate = " ".join(tokens)
+    if candidate in QA_REFUSAL_SHORT_ANSWERS:
+        return True
+    if len(tokens) < QA_REFUSAL_MIN_WORDS or tokens[0] not in QA_REFUSAL_PREFIXES:
+        return False
+    return any(phrase in candidate for phrase in QA_REFUSAL_EVIDENCE_PHRASES)
+
+
+def is_valid_qa_answer(answer_text: str | None) -> bool:
+    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV."""
+    if answer_text is None:
+        return False
+    normalized = _normalize_answer(answer_text)
+    if not normalized or normalized in QA_SENTINEL_ANSWERS:
+        return False
+    for prefix in QA_SENTINEL_ANSWERS:
+        marker = prefix + " "
+        if not normalized.startswith(marker):
+            continue
+        suffix = normalized[len(marker):]
+        first_token = suffix.split(" ", 1)[0]
+        first_token = _normalize_answer(first_token)
+        if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
+            return False
+    return not _la_cau_tu_choi(normalized)
 
 
 def qa_hypothesis_cache_dir() -> Path:

@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+from data.config.qa_hypotheses import is_valid_qa_answer
 from data.config.submit_format import (
     ANSWER_MAX_CHARS,
     ANSWERS_PER_QUERY,
@@ -299,6 +300,26 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
             out.append(Issue(
                 "answer_empty",
                 "Q&A bắt buộc có answer — answer sai/rỗng thì frame đúng cũng 0 điểm", q, i,
+            ))
+        # Chốt chặn cuối cho câu từ chối ("Không đủ căn cứ xác định", ...).
+        #
+        # Tầng Q&A đã chặn ở `is_valid_qa_answer()` và constructor `QAHypothesis`,
+        # nên tới đây lẽ ra không còn sentinel nào. Kiểm lại vẫn cần vì đây là
+        # đúng loại lỗi im lặng: sentinel là chuỗi KHÔNG rỗng, dưới 100 ký tự,
+        # không có khoảng trắng thừa → lọt sạch mọi luật answer khác, đủ 100 dòng,
+        # vào ZIP hợp lệ, và câu đó chắc chắn 0 điểm mà không có gì báo.
+        # Đây chính là H1 của review 28/08 (observed: RUN 3 `DRESS_QA_01.csv:3,6`).
+        #
+        # Dùng CHUNG predicate với tầng Q&A qua `data/config/qa_hypotheses.py`
+        # (module thuần) — không chép lại danh sách sentinel ở đây, vì hai bản sao
+        # lệch nhau còn tệ hơn không kiểm.
+        elif task == "QA" and not is_valid_qa_answer(a.answer_text):
+            out.append(Issue(
+                "answer_refusal",
+                f"answer là câu từ chối/sentinel, không phải đáp án: {a.answer_text!r}. "
+                "Câu này chắc chắn 0 điểm — chạy lại ở tầng Q&A, tầng nộp không "
+                "đoán hộ đáp án.",
+                q, i,
             ))
         # BTC: "Độ dài tối đa: 100 ký tự". Dài hơn thì BTC cắt hoặc loại, mà mình
         # thì không biết — đúng loại lỗi im lặng. Đếm KÝ TỰ (len của str Python),

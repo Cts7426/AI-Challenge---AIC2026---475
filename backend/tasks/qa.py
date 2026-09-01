@@ -85,6 +85,9 @@ from data.config.qa_hypotheses import (
     QA_REFUSAL_SUBJECT_PREFIXES,
     QA_SENTINEL_ANSWERS,
     QA_SENTINEL_PREFIX_CONTINUATIONS,
+    _la_cau_tu_choi,
+    _normalize_answer,
+    is_valid_qa_answer,
     qa_hypothesis_cache_dir,
     qa_hypothesis_config_snapshot,
 )
@@ -437,53 +440,10 @@ def _route_for_answer_mode(answer_mode: str) -> tuple[str, bool]:
         raise ValueError(f"answer_mode không hợp lệ: {answer_mode!r}") from None
 
 
-def _normalize_answer(answer_text: str) -> str:
-    normalized = unicodedata.normalize("NFKC", str(answer_text))
-    normalized = " ".join(normalized.casefold().split())
-    while normalized and unicodedata.category(normalized[0]).startswith("P"):
-        normalized = normalized[1:].lstrip()
-    while normalized and unicodedata.category(normalized[-1]).startswith("P"):
-        normalized = normalized[:-1].rstrip()
-    return normalized
-
-
-def _la_cau_tu_choi(normalized: str) -> bool:
-    """Nhận diện câu từ chối mà không loại nhầm đáp án phủ định có nội dung.
-
-    Input là answer đã normalize; output True chỉ cho surface đo thật hoặc câu
-    bắt đầu bằng phủ định rồi nói về khả năng xác định/bằng chứng. Invariant:
-    cụm evidence nằm trong câu trích dẫn không đủ để làm answer bị loại.
-    """
-    if normalized in QA_REFUSAL_EXACT_ANSWERS or normalized in QA_REFUSAL_SHORT_ANSWERS:
-        return True
-    tokens = normalized.split()
-    if tokens and tokens[0] in QA_REFUSAL_SUBJECT_PREFIXES:
-        tokens = tokens[1:]
-    candidate = " ".join(tokens)
-    if candidate in QA_REFUSAL_SHORT_ANSWERS:
-        return True
-    if len(tokens) < QA_REFUSAL_MIN_WORDS or tokens[0] not in QA_REFUSAL_PREFIXES:
-        return False
-    return any(phrase in candidate for phrase in QA_REFUSAL_EVIDENCE_PHRASES)
-
-
-def is_valid_qa_answer(answer_text: str | None) -> bool:
-    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV."""
-    if answer_text is None:
-        return False
-    normalized = _normalize_answer(answer_text)
-    if not normalized or normalized in QA_SENTINEL_ANSWERS:
-        return False
-    for prefix in QA_SENTINEL_ANSWERS:
-        marker = prefix + " "
-        if not normalized.startswith(marker):
-            continue
-        suffix = normalized[len(marker):]
-        first_token = suffix.split(" ", 1)[0]
-        first_token = _normalize_answer(first_token)
-        if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
-            return False
-    return not _la_cau_tu_choi(normalized)
+# `_normalize_answer` / `_la_cau_tu_choi` / `is_valid_qa_answer` đã chuyển sang
+# `data/config/qa_hypotheses.py` (module thuần, không import Milvus/LLM/search).
+# Lý do: tầng export/preflight phải gọi được cùng MỘT predicate mà không kéo theo
+# cả pipeline retrieval. Re-export ở đây để call site cũ giữ nguyên import.
 
 
 def build_qa_hypothesis(

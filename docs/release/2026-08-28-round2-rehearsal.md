@@ -422,7 +422,8 @@ Không có.
 
 ## VERDICT
 
-`NOT READY FOR ROUND 2 — Q&A sentinel release blocker remains`
+`NOT READY FOR ROUND 2 — Q&A sentinel release blocker remains`  
+> ⚠️ **Đã bị thay thế 01/09/2026 — xem [Addendum H1](#addendum-01092026--h1-resolved) ở cuối file.** Sentinel blocker đã đóng ở `fe7faca`.
 
 Đây **không** phải `PROMOTION ELIGIBLE`. Không có khẳng định nào về hiệu năng
 không thiên lệch: không có verified ground truth sạch và promotion gate thật
@@ -482,3 +483,80 @@ của candidate thật.
 
 Không khởi động dịch vụ. Không gọi provider. Không sinh checkpoint/CSV/ZIP.
 Không sửa product code, production config hoặc test.
+
+
+---
+
+## Addendum 01/09/2026 — H1 RESOLVED
+
+> Toàn bộ phần trên là bản ghi rehearsal ngày 28/08/2026 trên HEAD `d3eb66d`,
+> **giữ nguyên** làm lịch sử. Mục này ghi trạng thái xác minh lại trên HEAD
+> `4372069` (branch `codex/qa-last-3h`), ngày 01/09/2026.
+
+Bản rehearsal 28/08 ghi *"không có repair commit nào tồn tại"* và
+*"`grep` chuỗi `Không đủ căn cứ xác định` trong `tests/` → không có kết quả"*.
+**Cả hai điều đó nay đã khác:**
+
+| Yêu cầu Phase 0 | Kết quả 28/08 | Kết quả 01/09 trên `4372069` |
+|---|---|---|
+| Surface `Không đủ căn cứ xác định` không thể thành answer/hypothesis/portfolio item hợp lệ | ❌ THẤT BẠI | ✅ **ĐẠT** |
+| Regression test dùng đúng surface quan sát | ❌ không tồn tại | ✅ `tests/test_qa_hypotheses.py:297`, `:327` |
+| Câu toàn refusal → `missing_evidence` (resume tự retry) | ❌ | ✅ `tests/test_qa_hypotheses.py:203`, `:699-730` |
+
+Repair commit: `fe7faca` (28/08/2026) — *fix(qa): reject evidence-refusal answers*.
+Chặn ở cả hai chốt: `is_valid_qa_answer()` (`backend/tasks/qa.py:470`) và
+constructor `QAHypothesis` (`backend/tasks/qa.py:208`).
+
+```bash
+python -m pytest tests/test_qa_hypotheses.py tests/test_run.py tests/test_task_runner.py -q
+```
+
+→ **118 passed** (01/09/2026).
+
+### Verdict cập nhật
+
+`Q&A SENTINEL BLOCKER CLEARED`
+
+Vẫn **không** phải `PROMOTION ELIGIBLE`: các bảo lưu khác của bản rehearsal
+(chưa có verified ground truth sạch, promotion gate thật chưa chạy độc lập,
+chưa xác minh service-level) **giữ nguyên** — addendum này chỉ gỡ đúng blocker
+sentinel, không khẳng định gì thêm về hiệu năng.
+
+Chi tiết đầy đủ: `docs/reviews/2026-08-28-round2-precontest-review.md`,
+mục *Addendum 01/09/2026*.
+
+
+---
+
+## Addendum 2 — 01/09/2026: artifact dùng cho rehearsal/freeze
+
+Bản rehearsal 28/08 dựa trên `run_20260827_154710_27d970c1/`. **Artifact đó không
+còn được dùng** cho rehearsal/freeze: nó chứa 2 dòng sentinel
+(`DRESS_QA_01.csv:3`, `:6`) và nay bị chính export gate mới **từ chối**
+(`answer_refusal` ×2). Giữ lại nguyên trạng chỉ để làm bằng chứng lịch sử của H1.
+
+**Artifact thay thế:** `dev_set/results/run_20260901_182905_bb0188df/`
+(commit `4372069`, `--split dress25`, chạy lại toàn bộ trên HEAD hiện tại).
+
+| | RUN 3 cũ (27/08) | RUN mới (01/09) |
+|---|---|---|
+| Dòng sentinel/từ chối trong 400 answer rows | **2** | **0** |
+| Export gate | REJECTED | accepted |
+| QA final avg | 0.200 | 0.200 |
+| Overall final avg | 0.363 | 0.363 |
+
+Điểm không đổi vì hai dòng sentinel vốn đã bị chấm 0 — sửa H1 không làm đẹp số,
+chỉ ngăn một bài nộp trông hợp lệ mà chắc chắn 0 điểm.
+
+Ngoài ra, tầng release preflight (`_valid_hypothesis`) trước đây chấp nhận mọi
+`answer_text` là string không rỗng, nên một **trace cũ** vẫn qua được assessment;
+nay đã kiểm bằng cùng predicate với tầng Q&A.
+
+### Điều addendum này KHÔNG nói
+
+`promotion_ready = false` ở **cả hai** run, và lần chạy này không dùng
+`--promotion`. Mọi bảo lưu của bản rehearsal về promotion (chưa có verified
+ground truth sạch, promotion gate chưa chạy độc lập, chưa xác minh service-level)
+**giữ nguyên**. Promotion gate là việc riêng — không gộp vào kết luận H1.
+
+Chi tiết: `docs/reviews/2026-08-28-round2-precontest-review.md`, *Addendum 2*.

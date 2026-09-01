@@ -225,7 +225,186 @@ Không có finding CRITICAL.
 
 ## Verdict
 
-`NOT READY — P0/P1 BLOCKER REMAINS`
+`NOT READY — P0/P1 BLOCKER REMAINS`  
+> ⚠️ **Đã bị thay thế 01/09/2026 — xem [Addendum H1](#addendum-01092026--h1-resolved) ở cuối file.**
+> H1 đã được sửa ở `fe7faca`; verdict cập nhật: `READY — H1 RESOLVED` (M1 vẫn mở, không chặn).
 
 Lý do duy nhất làm verdict bị block là H1 trên actual Q&A release path. MEDIUM
 M1 có safe operator mitigation và không tự nó chặn contest rehearsal.
+
+
+---
+
+## Addendum 01/09/2026 — H1 RESOLVED
+
+> Phần trên là bản ghi tại thời điểm 28/08/2026 và **giữ nguyên** làm lịch sử.
+> Mục này ghi trạng thái đã xác minh lại trên HEAD `4372069`
+> (branch `codex/qa-last-3h`), ngày 01/09/2026.
+
+### Fix đã landed
+
+Commit `fe7faca` (28/08/2026) — *fix(qa): reject evidence-refusal answers*:
+`backend/tasks/qa.py` (+28), `data/config/qa_hypotheses.py` (+35),
+`tests/test_qa_hypotheses.py` (+108).
+
+RUN 3 CSV trong evidence của H1 chạy ngày **27/08**, tức **trước** fix một ngày.
+Đó là lý do artifact cũ vẫn chứa sentinel — không phải vì code hiện tại còn lọt.
+
+### Cơ chế chặn
+
+H1 yêu cầu chặn ở **cả hai chỗ**; cả hai đều đã chặn:
+
+| Chốt chặn | Vị trí | Trạng thái |
+|---|---|---|
+| `is_valid_qa_answer()` | `backend/tasks/qa.py:470` | ✅ trả `False` |
+| `QAHypothesis.__post_init__` | `backend/tasks/qa.py:208` | ✅ raise `ValueError` |
+
+Không dựa vào việc thêm surface vào danh sách sentinel (danh sách đó không bao
+giờ đủ). Matcher `_la_cau_tu_choi()` bắt **cấu trúc** câu từ chối: answer bắt đầu
+bằng token phủ định (`QA_REFUSAL_PREFIXES`) *và* có nhắc tới khả năng
+xác định/bằng chứng (`QA_REFUSAL_EVIDENCE_PHRASES`, ở đây khớp `căn cứ` và
+`xác định`), với `QA_REFUSAL_MIN_WORDS` chặn dưới.
+
+Điều này giữ được đáp án phủ định **hợp lệ** — `"Không có người trong ảnh"`,
+`"Không thấy mưa"`, `"Không"` — vì chúng không chứa cụm evidence.
+
+### Bằng chứng đã chạy (01/09/2026)
+
+```
+is_valid_qa_answer("Không đủ căn cứ xác định")  -> False
+is_valid_qa_answer("Nguyễn Minh Châu")          -> True
+```
+
+Test dùng **đúng chuỗi đã quan sát** trong RUN 3:
+
+- `tests/test_qa_hypotheses.py:297` — chặn tại validator
+- `tests/test_qa_hypotheses.py:327` — chặn tại constructor `QAHypothesis`
+
+```bash
+python -m pytest tests/test_qa_hypotheses.py tests/test_run.py tests/test_task_runner.py -q
+```
+
+→ **118 passed**.
+
+### Hệ quả với `--only` / resume
+
+Mối lo trong H1 (*"vì không thành `missing_evidence`, runbook `--only`/resume
+không tự retry"*) đã hết: answer bị loại → không còn valid hypothesis →
+pipeline fail-closed với `failure_class = "missing_evidence"`
+(`tests/test_qa_hypotheses.py:203`, `:699-730`), nên resume **tự chạy lại** câu đó.
+
+### Còn mở (không chặn verdict)
+
+1. ~~Export/preflight chưa kiểm sentinel semantics.~~ **ĐÃ ĐÓNG 01/09** — xem
+   *Addendum 2* bên dưới.
+2. ~~Artifact cũ vẫn bẩn.~~ **ĐÃ CHẠY LẠI 01/09** — xem *Addendum 2* bên dưới.
+   Artifact cũ `run_20260827_154710_27d970c1/` vẫn giữ nguyên làm bằng chứng
+   lịch sử của H1; **không dùng nó cho rehearsal/freeze nữa**.
+3. **M1** (hợp đồng vận hành phân tán) — nguyên trạng, có mitigation an toàn.
+
+### Verdict cập nhật
+
+`READY — H1 RESOLVED`
+
+Lý do duy nhất chặn verdict 28/08 là H1 trên actual Q&A release path. H1 đã đóng
+bằng code + regression test dùng đúng surface quan sát. M1 vẫn ở mức MEDIUM và
+tự nó không chặn rehearsal.
+
+
+---
+
+## Addendum 2 — 01/09/2026: defense-in-depth + artifact sạch
+
+### 1. Sentinel validation đã có ở tầng export và preflight
+
+H1 chỉ yêu cầu hai chốt chặn thượng nguồn, nhưng sentinel là chuỗi **không rỗng,
+dưới 100 ký tự, không có khoảng trắng thừa** → lọt sạch mọi luật answer khác của
+tầng nộp. Nay bịt thêm hai chỗ:
+
+| Tầng | Vị trí | Luật |
+|---|---|---|
+| Export validator | `backend/export/exporter.py` | Issue `answer_refusal` |
+| Release preflight | `backend/export/release_rehearsal.py:183` `_valid_hypothesis` | reason `qa_evidence_invalid` |
+
+Chỗ thứ hai mới là lỗ thật sự: `_valid_hypothesis` trước đây chỉ đòi
+`answer_text` là **string không rỗng**, mà nó đọc **trace JSONL** — trace có thể
+là của lần chạy CŨ, sinh ra trước fix `fe7faca`. Nghĩa là một trace 27/08 vẫn
+qua được release assessment.
+
+### 2. Một predicate duy nhất, không có bản sao
+
+`is_valid_qa_answer()` / `_normalize_answer()` / `_la_cau_tu_choi()` đã chuyển từ
+`backend/tasks/qa.py` sang `data/config/qa_hypotheses.py` (module thuần, không
+import Milvus/LLM/search — tầng export không được kéo cả pipeline retrieval vào).
+`backend/tasks/qa.py` re-export nên **không call site nào phải đổi**.
+
+Hai bản sao danh sách sentinel lệch nhau còn tệ hơn không kiểm, nên có test bám
+thẳng vào identity:
+
+```python
+assert exporter.is_valid_qa_answer is is_valid_qa_answer
+```
+
+### 3. Test chứng minh ZIP không được sinh ra
+
+Test khẳng định tính chất mạnh (không tồn tại file nộp được), không chỉ "có báo lỗi":
+
+```python
+with pytest.raises(ValueError, match="KHÔNG ghi file"):
+    write_submission_zip([ban_loi], tmp_path)
+assert list(tmp_path.glob("*.zip")) == []
+```
+
+Đã kiểm test **không rỗng nghĩa**: tạm vô hiệu luật (`elif False:`) → **10 test
+fail**; khôi phục → xanh lại. Kèm regression guard cho đáp án phủ định hợp lệ
+(`"Không có người trong ảnh"`, `"Không"`, `"0"`).
+
+**Full suite: 803 passed, 2 skipped.**
+
+### 4. Chạy lại RUN 3 trên HEAD hiện tại
+
+```bash
+python -m dev_set.tools.run_evaluation --split dress25
+```
+
+Artifact mới: `dev_set/results/run_20260901_182905_bb0188df/` (commit `4372069`).
+
+| | RUN 3 cũ (27/08) | RUN mới (01/09) |
+|---|---|---|
+| commit | `b419f6e` | `4372069` |
+| QA answer rows | 400 | 400 |
+| **Dòng sentinel/từ chối** | **2** (`DRESS_QA_01.csv:3`, `:6`) | **0** |
+| Export gate | **REJECTED** (`answer_refusal` ×2) | accepted |
+| QA final avg | 0.200 | 0.200 |
+| Overall final avg | 0.363 | 0.363 |
+
+Quét bằng đúng predicate production trên cả hai artifact: bản cũ lòi ra **đúng
+hai dòng review đã ghi**, bản mới sạch. Cho luôn hai artifact qua export gate mới:
+bản cũ bị chặn đúng vị trí 3 và 6, bản mới đi qua.
+
+**Điểm không đổi** (0.363 / 0.200) vì hai dòng sentinel vốn đã bị chấm 0 —
+`DRESS_QA_01` là `retrieval_miss` ở cả hai lần chạy. Sửa H1 **không** làm đẹp số;
+nó chỉ ngăn một bài nộp trông hợp lệ mà chắc chắn 0 điểm.
+
+### 5. `DRESS_QA_04` fail — KHÔNG phải hồi quy
+
+`DRESS_QA_04` fail `missing_evidence` ở lần chạy mới, và **cũng fail y hệt ở RUN 3
+cũ**. Đây là lỗi có sẵn, không do thay đổi 01/09. Fail-closed hoạt động đúng:
+không có CSV `DRESS_QA_04.csv` nào được sinh ra, và vì là `missing_evidence` nên
+`--only`/resume sẽ tự chạy lại.
+
+### 6. Cảnh báo khi so hai run
+
+Sửa `data/config/qa_hypotheses.py` làm đổi `config_sha256` → đổi
+`runtime_fingerprint` (`f9b98636…` → `95e17525…`). Đây là **đúng**: hành vi có
+thay đổi thật. Hệ quả: cache hypothesis cũ bị vô hiệu (run mới tính lại từ đầu,
+không tái dùng câu trả lời 27/08), và **so khớp fingerprint giữa hai run sẽ lệch
+theo thiết kế**, không phải do hỏng.
+
+### 7. Phạm vi — promotion gate KHÔNG nằm trong đây
+
+`promotion_ready` vẫn là `false` ở **cả hai** run, và lần chạy này **không** dùng
+cờ `--promotion`. Addendum này chỉ khẳng định đúng một điều: **H1 đã đóng và
+artifact dùng cho rehearsal/freeze đã sạch sentinel.** Nó không khẳng định gì về
+promotion eligibility, chất lượng ground truth, hay hiệu năng — promotion gate là
+việc riêng, xử lý tách bạch.

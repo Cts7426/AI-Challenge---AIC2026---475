@@ -46,6 +46,7 @@ import hashlib
 import json
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -502,6 +503,7 @@ def llm(
     effort: str = DEFAULT_EFFORT,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     use_cache: bool = True,
+    validate: Callable[[str], str | None] | None = None,
 ) -> str | list[str]:
     """Gọi LLM/VLM. Trả str khi n=1, list[str] khi n>1.
 
@@ -543,14 +545,33 @@ def llm(
     if use_cache:
         cached = _cache_get(key)
         if cached is not None:
-            _usage["cache_hits"] += 1
-            return cached[0] if n == 1 else cached
+            # Kiểm CẢ bản trong cache, không chỉ bản mới sinh. Cache khoá theo
+            # hash(prompt+model) nên một đáp án hỏng ghi hôm trước sẽ được trả về
+            # mãi mãi, kể cả sau khi đã vá đúng nguyên nhân ở tầng provider —
+            # đúng chuyện đã xảy ra với các bản dịch cụt ngày 26/08 do lỗi
+            # "thinking token ăn hết max_output_tokens" của Gemini.
+            ly_do = validate(cached[0]) if validate is not None else None
+            if ly_do is None:
+                _usage["cache_hits"] += 1
+                return cached[0] if n == 1 else cached
+            print(f"[llm] bỏ qua cache hỏng ({ly_do}) — gọi lại thật")
 
     ket_qua: list[str] = []
     for _ in range(n):
         text = _mot_lan(prompt, images, json_schema, backend, model, effort, max_tokens, temperature)
         ket_qua.append(text)
         _usage["calls"] += 1
+
+    if validate is not None:
+        for text in ket_qua:
+            ly_do = validate(text)
+            if ly_do is not None:
+                # Ném TRƯỚC _cache_put: đáp án hỏng không được phép vào cache,
+                # nếu không thì lần chạy sau lại nhận đúng nó mà không gọi API.
+                raise RuntimeError(
+                    f"Đáp án {model} không qua được phép kiểm của chỗ gọi: {ly_do}\n"
+                    f"--- nhận được ---\n{text[:200]}"
+                )
 
     if use_cache:
         _cache_put(key, ket_qua, {"model": model, "at": time.strftime("%Y-%m-%d %H:%M:%S")})

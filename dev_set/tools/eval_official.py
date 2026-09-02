@@ -211,9 +211,17 @@ def run(args) -> int:
     # Import muộn: chỉ chạm DB/model khi đã qua hết bộ lọc và cổng holdout.
     from backend.indexing.es_client import connect as es_connect
     from backend.indexing.milvus_client import connect as milvus_connect
+    from backend.retrieval import search as search_mod
     from backend.retrieval.search import search
     from backend.slot.allocator import ShotHit, allocate
     from dev_set.tools.run_evaluation import _to_shot_hits
+
+    # Ghi đè độ sâu pool cho lượt đo. Gán vào module chứ không truyền tham số:
+    # `_search_core()` đọc hằng số này như biến toàn cục, nên đây là điểm duy
+    # nhất đổi được mà không phải sửa chữ ký hàm production giữa lúc đo.
+    if args.candidate_multiplier is not None:
+        search_mod.CANDIDATE_MULTIPLIER = args.candidate_multiplier
+    candidate_multiplier = search_mod.CANDIDATE_MULTIPLIER
 
     es_connect()
     milvus_connect()
@@ -225,7 +233,9 @@ def run(args) -> int:
           f"độ tin ≥ {args.min_confidence}")
     # In cấu hình arm ngay đầu output: đọc lại log mà không biết arm nào đã chạy
     # thì hai bảng số trông giống hệt nhau.
-    print(f"VECTOR_BACKEND={vector_backend} · query_en={query_en_source}\n")
+    print(f"VECTOR_BACKEND={vector_backend} · query_en={query_en_source} · "
+          f"candidate_multiplier={candidate_multiplier} "
+          f"(pool={args.total * candidate_multiplier}/nhánh)\n")
     hdr = f"{'query_id':24s} {'task':6s} {'hạng vid':>9s} {'Final_vid':>10s} " + \
           " ".join(f"{'±'+str(t):>7s}" for t in tols)
     print(hdr)
@@ -335,6 +345,7 @@ def run(args) -> int:
                     # quả bake-off không phân biệt được nhau ngoài tên file.
                     "vector_backend": vector_backend,
                     "query_en_source": query_en_source,
+                    "candidate_multiplier": candidate_multiplier,
                     "tolerances": tols,
                     "aggregate": agg,
                     "per_query": per_query,
@@ -367,6 +378,10 @@ def main() -> int:
     ap.add_argument("--query-en-vi", action="store_true",
                     help="nhánh vector nhận thẳng tiếng Việt (bỏ bước dịch). "
                          "Loại trừ với --query-en")
+    ap.add_argument("--candidate-multiplier", type=int, default=None, metavar="N",
+                    help="ghi đè CANDIDATE_MULTIPLIER cho lượt đo này (mỗi nhánh "
+                         "lấy top_k*N ứng viên đưa vào RRF). Không truyền thì "
+                         "dùng giá trị trong data/config/search_weights.py")
     ap.add_argument("--tolerances", default=",".join(map(str, DEFAULT_TOLERANCES)))
     ap.add_argument("--total", type=int, default=100)
     ap.add_argument("--out", type=Path, default=None)

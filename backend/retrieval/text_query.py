@@ -17,6 +17,7 @@
 #        hoặc query đã là tiếng Anh)
 
 import argparse
+import re
 
 import numpy as np
 
@@ -49,11 +50,52 @@ def _get_model():
     return _model, _tokenizer
 
 
+# ───────────── Kiểm bản dịch (chống rác đi thẳng vào CLIP) ─────────────
+# Một bản dịch hỏng KHÔNG rỗng và KHÔNG ném lỗi: nó là tiếng Anh đúng ngữ pháp,
+# đúng chủ đề, chỉ là cụt hoặc lặp lại đề bài. CLIP nhận mọi chuỗi, không bao giờ
+# báo "câu này vô nghĩa" — nên nếu không kiểm ở đây thì mất điểm im lặng.
+# Ví dụ thật (Gemini 26/08, lỗi thinking token ăn hết ngân sách, đã vá ở adapter):
+#     đề 65 từ về sư tử sở thú London → 'Lions and zook'
+#     đề 108 từ về người cầm đá quý   → 'Man in dark blue'
+_RO_PROMPT = re.compile(
+    r"(input text|translate this|vietnamese\s*:|english phrase|deconstruct|\*\*)",
+    re.IGNORECASE,
+)
+DICH_TOI_THIEU_TU = 4
+# Tỉ lệ số từ bản dịch / số từ đề. Đo trên 14 bản dịch thật trong cache 02/09:
+# nhóm hỏng nằm ở 0,028–0,046; nhóm tốt bắt đầu từ 0,081. Đặt 0,06 ở giữa và
+# nghiêng về phía BỎ SÓT — chặn nhầm bản tốt thì mất một lượt gọi API, còn bản
+# hỏng lọt thì chỉ mất đúng thứ vốn đang mất.
+DICH_TI_LE_TOI_THIEU = 0.06
+
+
+def ly_do_ban_dich_hong(ban_dich: str, query_vi: str) -> str | None:
+    """Trả lý do nếu bản dịch trông hỏng, `None` nếu chấp nhận được."""
+    s = (ban_dich or "").strip().strip('"')
+    if not s:
+        return "rỗng"
+    m = _RO_PROMPT.search(s)
+    if m:
+        return f"rò prompt ({m.group(0)!r})"
+    if s.endswith(":"):
+        return "kết thúc bằng dấu hai chấm — câu bị cắt giữa chừng"
+    n, n_de = len(s.split()), len(query_vi.split())
+    if n < DICH_TOI_THIEU_TU:
+        return f"quá ngắn ({n} từ) so với đề {n_de} từ"
+    if n_de and n / n_de < DICH_TI_LE_TOI_THIEU:
+        return f"cụt: {n} từ / đề {n_de} từ = {n / n_de:.3f} < {DICH_TI_LE_TOI_THIEU}"
+    return None
+
+
 def translate_to_english(query_vi: str) -> str:
     """Dịch mô tả khoảnh khắc sang câu tiếng Anh ngắn, hợp khẩu vị CLIP.
 
     Prompt ép trả về CHỈ câu dịch — không lời dẫn, không giải thích —
     vì output đưa thẳng vào tokenizer, thừa chữ nào nhiễu chữ đó.
+
+    Bản dịch hỏng được coi là LỖI (ném RuntimeError từ adapter) chứ không phải
+    kết quả: nó không vào cache, và `_search_core()` bắt được rồi rơi về tiếng
+    Việt kèm cảnh báo — thấy được, thay vì âm thầm nhét rác vào CLIP.
     """
     prompt = (
         "Translate this Vietnamese description of a video moment into ONE short "
@@ -61,7 +103,11 @@ def translate_to_english(query_vi: str) -> str:
         "Reply with ONLY the English phrase, nothing else.\n\n"
         f"Vietnamese: {query_vi}"
     )
-    return llm(prompt, max_tokens=128).strip().strip('"')
+    return llm(
+        prompt,
+        max_tokens=128,
+        validate=lambda t: ly_do_ban_dich_hong(t, query_vi),
+    ).strip().strip('"')
 
 
 def encode_text(text_en: str) -> np.ndarray:

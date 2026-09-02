@@ -190,11 +190,20 @@ def test_kis_tat_multi_anchor_giu_duong_single_va_query_en(monkeypatch):
     assert result.query_plan["query_en"] == query["query_en"]
     assert planner_calls == 0
     assert multi_search_calls == 0
+    # Ý định của phép kiểm này: multi-anchor tắt → ĐÚNG MỘT lần gọi search, và
+    # bản dịch EN mà chỗ gọi đưa vào phải được giữ nguyên (không tự dịch lại).
+    from data.config.search_weights import KIS_CANDIDATE_MULTIPLIER
+
     assert search_calls == [
         ((query["query_vi"],), {
             "query_en": query["query_en"],
             "top_k": 100,
             "group_by_shot": True,
+            # R3.K3 — làn KIS chạy hai nhánh vector và pool sâu riêng. Ghim ở
+            # đây để lần sau ai bỏ hai tham số này thì test đỏ: bỏ đi là điểm
+            # tụt mà không có gì báo (đo 02/09: Final mức video 0,67 → 0,83).
+            "branches": {"vector_siglip2": True},
+            "candidate_multiplier": KIS_CANDIDATE_MULTIPLIER,
         })
     ]
     assert len(result.answers) == 100

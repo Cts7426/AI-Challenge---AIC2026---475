@@ -55,7 +55,31 @@ from data.config.submit_format import ANSWERS_PER_QUERY
 # giữ 2 slot cho hạng 1 làm hàng rào phòng khi cửa sổ [s,e] hoá ra hẹp hơn cả
 # w=11. Phủ tới hạng 97 — đủ cứu cả K18 (hạng 91) lẫn K01 (hạng 95).
 # Quyết định này thuộc quyền Công Lý (chủ bảng) — tự chốt, không cần báo ai.
-SLOT_BUDGET: list[tuple[int, int]] = [(1, 2), (2, 2), (94, 1)]
+# ===== SỬA 02/09 (R3.K5) — cân lại về phía SÂU vì ranking đã khá lên =====
+# Bảng phủ rộng ở trên chọn ngày 20/08 với lý do ghi rõ: shot đúng hay rơi vào
+# hạng 80–95, nên phủ rộng thắng đào sâu. Lý do đó HẾT ĐÚNG sau R3.K3: hai nhánh
+# vector + pool 1500 đưa R@100 mức video lên 1,00 và R@1 lên 0,55 — không còn
+# câu nào cần vớt ở hạng 91 nữa, nên slot dành cho cái đuôi là slot lãng phí.
+#
+# Đo 02/09 · 20 câu KIS p1 · cấu hình K3 (dual vector, pool 1500, RRF_K=7) ·
+# `scripts/sweep_k5_slot.sh` · artefact `dev_set/results/run_20260902_k5_slot/`:
+#
+#   bảng                    Final video   f±5    f±15   f±40
+#   1x2,2x2,94x1 (cũ)          0,8400     0,18   0,18   0,30
+#   100x1 (phủ trọn)           0,8400     0,18   0,18   0,30
+#   1x8,4x4,10x2,56x1          0,8300     0,25   0,26   0,30
+#   1x4,4x3,12x2,60x1  ← chọn  0,8300     0,22   0,26   0,33
+#   1x12,4x6,8x4,32x1          0,8300     0,19   0,27   0,29
+#
+# Chọn `1x4,4x3,12x2,60x1` vì nó là bảng DUY NHẤT cải thiện ở CẢ BA dung sai so
+# với bảng cũ (+0,04 / +0,08 / +0,03). Độ rộng cửa sổ [s,e] của BTC vẫn chưa
+# công bố, nên bảng chỉ thắng ở một dung sai là bảng đang cược vào một giả định
+# chưa ai kiểm — `1x12,...` tụt ở ±40 nên loại dù ±15 cao nhất.
+#
+# Giá phải trả: Final mức VIDEO 0,8400 → 0,8300 (một video rớt khỏi 100 dòng).
+# Chấp nhận, vì BTC chấm `frame_id ∈ [s,e]` — đúng video mà sai frame vẫn 0 điểm,
+# nên cột frame mới là điểm thật, cột video chỉ là trần trên.
+SLOT_BUDGET: list[tuple[int, int]] = [(1, 4), (4, 3), (12, 2), (60, 1)]
 
 # Thụt vào mỗi đầu shot khi rải frame, theo tỉ lệ độ dài shot. Frame sát biên hay
 # dính chuyển cảnh (mờ, lẫn hai cảnh). Frame ĐẦU TIÊN của shot không chịu luật này —

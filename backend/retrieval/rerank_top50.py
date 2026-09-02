@@ -22,8 +22,6 @@
 
 from __future__ import annotations
 
-from statistics import mean, pstdev
-
 from data.config.rerank import (
     ENABLED,
     TOP_N,
@@ -131,6 +129,18 @@ def rerank(
         )
         r2 = dict(r)
         r2["rrf_rank"] = i + 1
+        # GHI ĐÈ `score`, không chỉ thêm khoá mới. Lý do: `allocate()` TỰ SẮP LẠI
+        # đầu vào theo `score` giảm dần (xem docstring của nó), nên nếu chỉ đổi
+        # thứ tự danh sách mà không đổi `score` thì thứ tự mới bị vứt ngay bước
+        # sau — tầng rerank chạy, tốn thời gian, và không đổi một dòng nộp nào.
+        # Đã đo đúng chuyện này: bật/tắt rerank cho ra số liệu GIỐNG HỆT.
+        #
+        # Điểm RRF gốc giữ lại ở `rrf_score` (bất biến 7: phải truy được tầng
+        # này đã đẩy dòng nào lên/xuống). Hai thang điểm khác nhau — `score` sau
+        # rerank nằm quãng [0, 1+ΣW], RRF gốc quanh 0,01–0,3 — nên đừng so số
+        # tuyệt đối giữa hai lượt chạy bật và tắt.
+        r2["rrf_score"] = r.get("score", 0.0)
+        r2["score"] = diem
         r2["rerank"] = {
             "score": round(diem, 6),
             "rrf_norm": round(rrf[i], 4),
@@ -141,9 +151,19 @@ def rerank(
         }
         moi.append(r2)
 
+    # Nâng toàn bộ nhóm đã rerank lên TRÊN phần đuôi. Không có bước này thì một
+    # dòng top-50 bị chấm 0,0 sẽ tụt xuống dưới dòng thứ 51 vẫn mang điểm RRF
+    # gốc (~0,05) — tầng rerank vô tình đá một ứng viên tốt ra khỏi vùng nộp
+    # chỉ vì hai nhóm đang ở hai thang điểm khác nhau. Đúng loại lỗi im lặng:
+    # không crash, chỉ mất điểm.
+    if duoi:
+        nen = max(r.get("score", 0.0) for r in duoi) + 1.0
+        for r in moi:
+            r["score"] += nen
+
     # `sorted` ổn định: hai dòng cùng điểm giữ nguyên thứ tự RRF cũ — không tạo
     # ra xáo trộn ngẫu nhiên ở chỗ tầng này không có ý kiến gì.
-    moi.sort(key=lambda r: r["rerank"]["score"], reverse=True)
+    moi.sort(key=lambda r: r["score"], reverse=True)
     return moi + list(duoi)
 
 

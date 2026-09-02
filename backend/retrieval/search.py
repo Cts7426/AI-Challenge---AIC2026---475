@@ -231,6 +231,58 @@ def _branch_asr(query_vi: str, limit: int, filter_video_id: str | None = None) -
     ]
 
 
+def _branch_text_vi(query_vi: str, limit: int,
+                    filter_video_id: str | None = None) -> list[dict]:
+    """Vector NGỮ NGHĨA tiếng Việt trên đoạn ASR (R3.X4) → cùng dạng `_branch_asr`.
+
+    Trả `[{video_id, start_ms, end_ms}]` để dùng lại y nguyên bộ máy quy-hạng
+    theo thời gian của nhánh ASR — nhánh này khác nhánh ASR ở CÁCH khớp (nghĩa
+    thay vì từ khoá), không khác ở đơn vị.
+
+    Chưa có collection thì NÉM LỖI chứ không trả rỗng: `_an_toan()` sẽ bắt, in
+    cảnh báo, và search vẫn chạy bằng các nhánh còn lại. Trả rỗng lặng lẽ thì
+    người vận hành tưởng nhánh đang chạy mà chỉ là không tìm được gì.
+    """
+    from data.config.text_vi_vector import COLLECTION, EMBEDDING_DIM
+
+    client = milvus_connect()
+    if COLLECTION not in client.list_collections():
+        raise RuntimeError(
+            f"Nhánh text_vi được bật nhưng collection {COLLECTION!r} chưa tồn tại. "
+            "Cần R3.X2 (encode đoạn ASR sang vector tiếng Việt) chạy xong trước. "
+            "Tắt nhánh: data/config/text_vi_vector.ENABLED = False"
+        )
+
+    from backend.retrieval.text_vi_query import encode_text_vi
+
+    vec = encode_text_vi(query_vi)
+    if len(vec) != EMBEDDING_DIM:
+        raise RuntimeError(
+            f"Vector truy vấn {len(vec)} chiều nhưng config khai {EMBEDDING_DIM}. "
+            "Model và index lệch nhau — dừng còn hơn trả top-k trông bình thường "
+            "mà thuộc không gian khác."
+        )
+    kwargs: dict = {}
+    if filter_video_id is not None:
+        kwargs["filter"] = f'video_id == "{filter_video_id}"'
+    hits = client.search(
+        COLLECTION,
+        data=[vec.tolist()],
+        limit=limit,
+        output_fields=["video_id", "start_ms", "end_ms"],
+        search_params={"params": {"ef": max(128, limit)}},
+        **kwargs,
+    )
+    return [
+        {
+            "video_id": h["entity"]["video_id"],
+            "start_ms": h["entity"]["start_ms"],
+            "end_ms": h["entity"]["end_ms"],
+        }
+        for h in hits[0]
+    ]
+
+
 # --------------------------------------------------------------- dữ liệu bổ trợ
 
 @lru_cache(maxsize=1)
@@ -443,6 +495,9 @@ def _search_core(
             ),
             "ocr": pool_thread.submit(_an_toan, "ocr", _branch_ocr, query_vi, pool, filter_video_id),
             "asr": pool_thread.submit(_an_toan, "asr", _branch_asr, query_vi, pool, filter_video_id),
+            "text_vi": pool_thread.submit(
+                _an_toan, "text_vi", _branch_text_vi, query_vi, pool, filter_video_id
+            ),
         }
     kq = {ten: fut.result() for ten, fut in f.items()}
 
@@ -457,9 +512,14 @@ def _search_core(
                 "frame_idx": r.get("frame_idx"),
                 "timestamp_ms": r.get("timestamp_ms"),
             })
-    if kq["asr"]:
+    # `text_vi` cũng được quyền đề cử, cùng lý do như `asr`: query thuần lời nói
+    # ("bình luận viên hô...") có thể không có tín hiệu hình ảnh nào. Gộp hai
+    # danh sách rồi đề cử MỘT lần — hai lần gọi là hai query Milvus cho cùng một
+    # việc, mà đây là đường chạy online.
+    doan_de_cu = list(kq["asr"]) + list(kq["text_vi"])
+    if doan_de_cu:
         try:
-            for r in _nominate_from_asr(kq["asr"]):
+            for r in _nominate_from_asr(doan_de_cu):
                 candidates.setdefault(r["keyframe_id"], {
                     "video_id": r["video_id"],
                     "frame_idx": r.get("frame_idx"),
@@ -491,11 +551,16 @@ def _search_core(
         for ten in ("vector", "vector_siglip2")
     }
 
-    def hang_asr(video_id: str, ts: int | None) -> int | None:
-        """Hạng ASR của một keyframe = hạng đoạn nói TỐT NHẤT chứa nó (±pad)."""
+    def hang_theo_doan(doan: list[dict], video_id: str, ts: int | None) -> int | None:
+        """Hạng của keyframe = hạng đoạn nói TỐT NHẤT chứa nó (±pad).
+
+        Dùng chung cho `asr` (khớp từ khoá) và `text_vi` (khớp ngữ nghĩa) — hai
+        nhánh khác CÁCH khớp nhưng cùng đơn vị "đoạn thời gian", nên cùng cách
+        quy về hạng keyframe.
+        """
         if ts is None:
             return None
-        for i, s in enumerate(kq["asr"], 1):  # đã xếp hạng → gặp đầu tiên là tốt nhất
+        for i, s in enumerate(doan, 1):  # đã xếp hạng → gặp đầu tiên là tốt nhất
             if (s["video_id"] == video_id
                     and s["start_ms"] - ASR_TIME_PAD_MS <= ts <= s["end_ms"] + ASR_TIME_PAD_MS):
                 return i
@@ -513,9 +578,10 @@ def _search_core(
                 ranks[ten] = hang_kf[ten][kf]
         if info["video_id"] in hang_video:
             ranks["metadata"] = hang_video[info["video_id"]]
-        r_asr = hang_asr(info["video_id"], info.get("timestamp_ms"))
-        if r_asr is not None:
-            ranks["asr"] = r_asr
+        for ten_doan in ("asr", "text_vi"):
+            r = hang_theo_doan(kq[ten_doan], info["video_id"], info.get("timestamp_ms"))
+            if r is not None:
+                ranks[ten_doan] = r
 
         # Cộng giá trị THÔ (đã nhân trọng số) rồi mới làm tròn
         contrib_tho = {ten: BRANCH_WEIGHTS.get(ten, 1.0) * (1.0 / (RRF_K + h)) for ten, h in ranks.items()}
@@ -573,6 +639,7 @@ def search(
     group_by_shot: bool | None = None,
     filter_video_id: str | None = None,
     candidate_multiplier: int | None = None,
+    rerank_top50: bool | None = None,
 ) -> list[dict]:
     """Search hợp nhất bằng RRF. Trả top-K, mỗi phần tử kèm thứ hạng từng nhánh.
 
@@ -589,7 +656,14 @@ def search(
     ket_qua, shots = _search_core(
         query_vi, query_en, top_k, branches, filter_video_id, candidate_multiplier
     )
-    return _finalize(ket_qua, shots, top_k, group_by_shot)
+    kq = _finalize(ket_qua, shots, top_k, group_by_shot)
+
+    # Rerank chạy SAU khi gom shot và cắt top_k — nó xếp lại đúng những dòng sẽ
+    # được nộp, không phải cả pool. Mặc định đọc config (đang TẮT, chờ cổng
+    # R3.K4), nên Q&A/TRAKE không đổi hành vi một chút nào.
+    from backend.retrieval.rerank_top50 import rerank as _rerank_top50
+
+    return _rerank_top50(kq, enabled=rerank_top50)
 
 
 # ------------------------------------------------------------------------- CLI

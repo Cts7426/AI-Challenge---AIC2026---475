@@ -9,7 +9,22 @@
 # `--part p1 --min-confidence MEDIUM` phải ≥ 0,25. Không đạt thì để nguyên tắt —
 # rerank sai còn TỆ HƠN không có, vì nó đẩy đáp án đúng xuống dưới.
 
-ENABLED = False
+# ===== BẬT 02/09 sau khi đo (R3.K4) =====
+# `scripts/gate_k4_rerank.sh` · 20 câu KIS p1 · cấu hình K3 · artefact
+# `dev_set/results/run_20260902_k4_rerank/`:
+#
+#              R@1    Final video   f±5    f±15   f±40   độ trễ
+#   tắt       0,550     0,8300      0,22   0,26   0,33   0,79 s
+#   bật       0,550     0,8300      0,22   0,27   0,37   0,79 s
+#
+# ⚠️ ĐỌC ĐÚNG: cổng BUILD_TASKS ghi "R@1 mức video ≥ 0,25". Đạt (0,550), nhưng
+# con số đó GIỐNG HỆT khi tắt — nó là công của R3.K3 (hai nhánh vector + pool
+# sâu), không phải của tầng này. Cổng như đang viết KHÔNG phân biệt được có
+# rerank hay không.
+# Bằng chứng thật để bật nằm ở mức frame: cải thiện ở ±15 và ±40, không tụt ở
+# dung sai nào, độ trễ không đổi. Mức lợi KHIÊM TỐN — nếu buổi thi có bất kỳ
+# dấu hiệu lạ nào thì đây là thứ nên tắt đầu tiên (đổi một dòng, không sửa code).
+ENABLED = True
 
 # Chỉ xếp lại N dòng đầu. Dòng 51+ giữ nguyên thứ tự RRF.
 # Vì sao 50 chứ không phải 100: dưới hạng 50 điểm chỉ còn 0,20, xáo trộn ở đó

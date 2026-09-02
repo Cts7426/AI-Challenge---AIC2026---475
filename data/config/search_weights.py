@@ -47,6 +47,10 @@ BRANCHES = {
     # MẶC ĐỊNH TẮT: Q&A và TRAKE cũng gọi search(), bật ngầm là đổi hành vi của
     # hai làn không phải của mình. Làn KIS bật riêng qua tham số `branches`.
     "vector_siglip2": False,
+    # Nhánh NGỮ NGHĨA tiếng Việt trên đoạn ASR (R3.X4). Đã đấu nối, chờ R3.X2
+    # (Công Lý) encode xong collection. Bật khi chưa có dữ liệu → báo lỗi rõ,
+    # không im lặng trả rỗng. Xem data/config/text_vi_vector.py.
+    "text_vi": False,
 }
 
 # Trọng số RRF cho từng nhánh (Weighted RRF).
@@ -60,6 +64,10 @@ BRANCH_WEIGHTS = {
                              # bên là bỏ đúng phần bù đó. Quét lại ở R3.K3.
     "objects": 0.7,
     "ocr": 0.6,
+    # Ngang `asr` vì cùng đơn vị (đoạn thời gian) và cùng nguồn (lời thoại), chỉ
+    # khác cách khớp: `asr` khớp TỪ, `text_vi` khớp NGHĨA. Chưa có số đo — quét
+    # lại ngay khi R3.X2 xong, đừng để nguyên vì "trông hợp lý".
+    "text_vi": 0.6,
     "asr": 0.6,
     "metadata": 0.4,
 }

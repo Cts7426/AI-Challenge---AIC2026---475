@@ -467,11 +467,19 @@ def solve_query(
             # gọi search và giữ bản dịch EN caller đã cung cấp.
             from backend.retrieval.search import search
 
+            # R3.K3 — làn KIS chạy HAI nhánh vector và pool sâu riêng. Truyền
+            # tường minh tại đây chứ không đổi mặc định của search(): Q&A và
+            # TRAKE cũng gọi search(), đổi mặc định là đội chi phí hai làn khác
+            # mà không ai yêu cầu (Q&A đang 196–476 s/câu).
+            from data.config.search_weights import KIS_CANDIDATE_MULTIPLIER
+
             rows = search(
                 query_vi,
                 query_en=query_en,
                 top_k=total,
                 group_by_shot=True,
+                branches={"vector_siglip2": True},
+                candidate_multiplier=KIS_CANDIDATE_MULTIPLIER,
             )
         else:
             rows = search_multi(kis_plan, top_k=total)

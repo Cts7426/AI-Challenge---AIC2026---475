@@ -273,6 +273,7 @@ def run(args) -> int:
                 top_k=100,
                 group_by_shot=True,
                 branches=branches,
+                rerank_top50=args.rerank or None,
             )
         except Exception as e:
             print(f"{g['query_id']:24s} LỖI: {type(e).__name__}: {e}")
@@ -373,6 +374,7 @@ def run(args) -> int:
                     "rrf_k": rrf_k,
                     "dual_vector": bool(args.dual_vector),
                     "slot_budget": slot_budget,
+                    "rerank_top50": bool(args.rerank),
                     "tolerances": tols,
                     "aggregate": agg,
                     "per_query": per_query,
@@ -405,6 +407,9 @@ def main() -> int:
     ap.add_argument("--query-en-vi", action="store_true",
                     help="nhánh vector nhận thẳng tiếng Việt (bỏ bước dịch). "
                          "Loại trừ với --query-en")
+    ap.add_argument("--rerank", action="store_true",
+                    help="bật tầng rerank top-50 (R3.K4). Mặc định tắt, "
+                         "đúng như config production.")
     ap.add_argument("--slot-budget", default=None, metavar="BANG",
                     help="ghi đè SLOT_BUDGET, dạng '1x8,4x4,10x2,56x1' "
                          "(số shot × số slot mỗi shot). R3.K5.")

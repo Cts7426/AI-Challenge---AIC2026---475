@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -133,6 +134,51 @@ def load_gt(part: str, task: str, min_conf: str) -> list[dict]:
     return out
 
 
+def apply_query_en(gts: list[dict], en_file: Path | None, use_vi: bool) -> str:
+    """Quyết định `query_en` cho từng câu và trả tên nguồn để ghi vào artefact.
+
+    Ba nguồn, loại trừ nhau:
+      `file` — bản dịch ĐÓNG BĂNG (dev_set/tools/freeze_query_en.py). Dùng cho
+               bake-off: mọi nhánh nhận đúng một chuỗi EN nên encoder là biến duy nhất.
+      `vi`   — nhánh vector nhận thẳng tiếng Việt. Đo được "bỏ bước dịch thì sao"
+               với encoder đa ngữ, và cũng là chế độ suy giảm khi không có LLM.
+      `auto` — để `search()` tự dịch qua llm() (hành vi cũ). ⚠️ Bản dịch thành
+               biến trôi giữa các lần chạy, và lỗi LLM bị nuốt rồi rơi về tiếng
+               Việt IM LẶNG — không dùng cho phép so encoder.
+
+    Sửa `gts` tại chỗ. Trả tên nguồn để `--out` ghi lại được arm nào đã chạy.
+    """
+    if en_file is not None and use_vi:
+        raise SystemExit("--query-en và --query-en-vi loại trừ nhau, chọn một.")
+
+    if use_vi:
+        for g in gts:
+            g["query_en"] = g["query_text"]
+        return "vi"
+
+    if en_file is not None:
+        if not en_file.is_file():
+            raise SystemExit(
+                f"KHÔNG THẤY {en_file}\n"
+                "Dựng trước bằng: python -m dev_set.tools.freeze_query_en --part p1"
+            )
+        data = json.loads(en_file.read_text(encoding="utf-8"))
+        meta = data.get("_meta", {})
+        thieu = [g["query_id"] for g in gts if not data.get(g["query_id"])]
+        if thieu:
+            # Thiếu câu nào là câu đó lặng lẽ rơi về tiếng Việt — đúng thứ bản
+            # đóng băng sinh ra để loại bỏ. Dừng thay vì đo một tập lai.
+            raise SystemExit(
+                f"File dịch thiếu {len(thieu)}/{len(gts)} câu (ví dụ: {thieu[:3]}). "
+                "Chạy lại freeze_query_en.py cho đủ trước khi đo."
+            )
+        for g in gts:
+            g["query_en"] = data[g["query_id"]]
+        return f"file:{en_file.name}(model={meta.get('llm_model', '?')})"
+
+    return "auto"
+
+
 def note_holdout_run(n: int, part: str) -> None:
     stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %z")
     line = (
@@ -151,6 +197,9 @@ def run(args) -> int:
     if not gts:
         print("Không có câu nào khớp bộ lọc.")
         return 1
+
+    query_en_source = apply_query_en(gts, args.query_en, args.query_en_vi)
+    vector_backend = os.environ.get("VECTOR_BACKEND", "clip").strip().lower()
 
     if args.part in ("p2", "all") and not args.i_am_spending_a_holdout_run:
         raise SystemExit(
@@ -173,7 +222,10 @@ def run(args) -> int:
     per_query: list[dict] = []
 
     print(f"\n{len(gts)} câu · part={args.part} · task={args.task} · "
-          f"độ tin ≥ {args.min_confidence}\n")
+          f"độ tin ≥ {args.min_confidence}")
+    # In cấu hình arm ngay đầu output: đọc lại log mà không biết arm nào đã chạy
+    # thì hai bảng số trông giống hệt nhau.
+    print(f"VECTOR_BACKEND={vector_backend} · query_en={query_en_source}\n")
     hdr = f"{'query_id':24s} {'task':6s} {'hạng vid':>9s} {'Final_vid':>10s} " + \
           " ".join(f"{'±'+str(t):>7s}" for t in tols)
     print(hdr)
@@ -279,6 +331,10 @@ def run(args) -> int:
                     "part": args.part,
                     "task": args.task,
                     "min_confidence": args.min_confidence,
+                    # Hai trường này ĐỊNH DANH ARM. Thiếu chúng thì ba file kết
+                    # quả bake-off không phân biệt được nhau ngoài tên file.
+                    "vector_backend": vector_backend,
+                    "query_en_source": query_en_source,
                     "tolerances": tols,
                     "aggregate": agg,
                     "per_query": per_query,
@@ -305,6 +361,12 @@ def main() -> int:
     ap.add_argument("--task", choices=["KIS", "QA", "TRAKE", "all"], default="all")
     ap.add_argument("--min-confidence", choices=CONFIDENCE_ORDER, default="HIGH",
                     help="mặc định HIGH — bỏ MEDIUM/DISPUTED khỏi phép đo")
+    ap.add_argument("--query-en", type=Path, default=None, metavar="FILE",
+                    help="file bản dịch ĐÓNG BĂNG (dev_set.tools.freeze_query_en). "
+                         "Dùng cho bake-off encoder: mọi nhánh nhận cùng một chuỗi EN")
+    ap.add_argument("--query-en-vi", action="store_true",
+                    help="nhánh vector nhận thẳng tiếng Việt (bỏ bước dịch). "
+                         "Loại trừ với --query-en")
     ap.add_argument("--tolerances", default=",".join(map(str, DEFAULT_TOLERANCES)))
     ap.add_argument("--total", type=int, default=100)
     ap.add_argument("--out", type=Path, default=None)

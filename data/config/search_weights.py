@@ -38,11 +38,15 @@ RRF_K = 7
 # Bật/tắt từng nhánh. Tắt = nhánh đó không chạy và không đóng góp hạng nào.
 # Dùng để đo đóng góp thật của mỗi nhánh (tắt đi, xem điểm rớt bao nhiêu).
 BRANCHES = {
-    "vector": True,     # CLIP trên Milvus — nhánh lõi
+    "vector": True,     # encoder do VECTOR_BACKEND chọn — nhánh lõi
     "metadata": True,   # BM25 title/description/keywords (mức VIDEO)
     "objects": True,    # nhãn OpenImages (mức KEYFRAME)
     "ocr": True,        # chữ trên hình (mức KEYFRAME)
     "asr": True,        # lời thoại tiếng Việt (mức ĐOẠN THỜI GIAN)
+    # Nhánh vector THỨ HAI (R3.K3) — luôn là encoder CÒN LẠI so với `vector`.
+    # MẶC ĐỊNH TẮT: Q&A và TRAKE cũng gọi search(), bật ngầm là đổi hành vi của
+    # hai làn không phải của mình. Làn KIS bật riêng qua tham số `branches`.
+    "vector_siglip2": False,
 }
 
 # Trọng số RRF cho từng nhánh (Weighted RRF).
@@ -50,6 +54,10 @@ BRANCHES = {
 # trong khi Vector (CLIP) mới là giá trị cốt lõi. Cần áp trọng số để Vector không bị chìm.
 BRANCH_WEIGHTS = {
     "vector": 1.0,
+    "vector_siglip2": 1.0,   # ngang `vector`: đo 02/09 cho thấy hai encoder BÙ
+                             # nhau chứ không thay nhau (câu 13 CLIP hạng 72 /
+                             # SigLIP2 hạng 1; câu 11 ngược lại). Hạ trọng số một
+                             # bên là bỏ đúng phần bù đó. Quét lại ở R3.K3.
     "objects": 0.7,
     "ocr": 0.6,
     "asr": 0.6,
@@ -60,6 +68,21 @@ BRANCH_WEIGHTS = {
 # Mỗi nhánh lấy top_k * hệ số này làm ứng viên. Rộng hơn top_k để keyframe mạnh
 # ở nhánh phụ vẫn lọt vào bảng hợp nhất; rộng quá thì tốn thời gian vô ích.
 CANDIDATE_MULTIPLIER = 5
+
+# Độ sâu pool RIÊNG cho làn KIS (R3.K3). Vì sao tách khỏi hằng số trên: pool sâu
+# hơn có lợi rõ cho KIS nhưng Q&A đã tốn 196–476 s/câu, nhân pool lên 3 là đội
+# chi phí một làn không phải của mình. `search()` chỉ dùng giá trị này khi chỗ
+# gọi truyền `candidate_multiplier` tường minh.
+#
+# Đo 02/09 · 20 câu KIS p1 · bản dịch EN đóng băng · top_k=100 giữ nguyên:
+#     pool   CLIP Final   SigLIP2 Final   độ trễ median
+#      500      0,6700        0,7100         0,17 / 0,33 s
+#     1500      0,6800        0,7700         0,47 / 0,82 s
+#     3000      0,6800        0,8000*        1,55 s      ← * đo bằng đường raw
+#     6000      0,6800        0,8000*        4,73 s
+# Chọn 1500: gần hết phần lợi, còn xa ngân sách 30 s. Sâu hơn thì đi ngang mà
+# độ trễ tăng gấp bội — câu p1-23 nhảy từ "không tìm thấy" lên hạng 1 ở mốc này.
+KIS_CANDIDATE_MULTIPLIER = 15
 
 # Gom kết quả về SHOT, mỗi shot giữ 1 keyframe điểm cao nhất.
 # Vì sao: 3–4 keyframe liền nhau trong cùng một shot là cùng một cảnh — chiếm

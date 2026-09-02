@@ -30,10 +30,15 @@ from data.config.debug_ui import (  # noqa: E402
     KEYFRAMES_DIR,
     LABELER,
 )
+from data.config.search_weights import BRANCHES as SEARCH_BRANCHES  # noqa: E402
 
 st.set_page_config(page_title="AIC 2026 · UI debug", layout="wide")
 
-BRANCHES = ("vector", "metadata", "objects", "ocr", "asr")
+# Lấy THẲNG từ config thay vì chép tay: `search()` gộp `{**BRANCHES, **branches}`
+# nên một khoá gõ sai không báo lỗi, nó chỉ nằm im — người dùng bỏ tick một nhánh,
+# kết quả không đổi, rồi kết luận sai rằng nhánh đó vô dụng. Chép tay là hẹn giờ
+# cho đúng lỗi im lặng đó mỗi lần ai thêm nhánh mới (R3.K3 thêm `vector_siglip2`).
+BRANCHES = tuple(SEARCH_BRANCHES)
 LABEL_ICON = {"correct": "🟢", "wrong": "🔴", "unsure": "🟡"}
 
 # Gói mà chế độ live bắt buộc phải có → tên để cài bằng pip.

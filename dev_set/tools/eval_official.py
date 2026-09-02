@@ -222,6 +222,29 @@ def run(args) -> int:
     if args.candidate_multiplier is not None:
         search_mod.CANDIDATE_MULTIPLIER = args.candidate_multiplier
     candidate_multiplier = search_mod.CANDIDATE_MULTIPLIER
+    if args.rrf_k is not None:
+        search_mod.RRF_K = args.rrf_k
+    rrf_k = search_mod.RRF_K
+    branches = {"vector_siglip2": True} if args.dual_vector else None
+
+    # Bảng chia slot: truyền THẲNG vào allocate() qua tham số `table` sẵn có,
+    # không vá module — allocate() đã nhận bảng làm đối số nên không cần mẹo.
+    from data.config.slot_budget import SLOT_BUDGET
+    slot_budget = SLOT_BUDGET
+    if args.slot_budget:
+        try:
+            slot_budget = [
+                (int(a), int(b))
+                for a, b in (o.split("x") for o in args.slot_budget.split(","))
+            ]
+        except ValueError:
+            raise SystemExit(f"--slot-budget sai định dạng: {args.slot_budget!r}. "
+                             "Đúng dạng: 1x8,4x4,10x2,56x1")
+        tong = sum(a * b for a, b in slot_budget)
+        if tong != args.total:
+            raise SystemExit(
+                f"--slot-budget cộng ra {tong} slot, cần đúng {args.total}. "
+                "Bảng thiếu slot là bỏ trống dòng nộp — vứt điểm miễn phí.")
 
     es_connect()
     milvus_connect()
@@ -249,6 +272,7 @@ def run(args) -> int:
                 query_en=g.get("query_en"),
                 top_k=100,
                 group_by_shot=True,
+                branches=branches,
             )
         except Exception as e:
             print(f"{g['query_id']:24s} LỖI: {type(e).__name__}: {e}")
@@ -256,7 +280,7 @@ def run(args) -> int:
             continue
         latency = time.perf_counter() - t0
 
-        rows = allocate(_to_shot_hits(res), total=args.total)
+        rows = allocate(_to_shot_hits(res), total=args.total, table=slot_budget)
         rows = [
             {"video_id": r.video_id, "frame_idx": r.frame_ids[0]}
             for r in rows if r.frame_ids
@@ -346,6 +370,9 @@ def run(args) -> int:
                     "vector_backend": vector_backend,
                     "query_en_source": query_en_source,
                     "candidate_multiplier": candidate_multiplier,
+                    "rrf_k": rrf_k,
+                    "dual_vector": bool(args.dual_vector),
+                    "slot_budget": slot_budget,
                     "tolerances": tols,
                     "aggregate": agg,
                     "per_query": per_query,
@@ -378,6 +405,14 @@ def main() -> int:
     ap.add_argument("--query-en-vi", action="store_true",
                     help="nhánh vector nhận thẳng tiếng Việt (bỏ bước dịch). "
                          "Loại trừ với --query-en")
+    ap.add_argument("--slot-budget", default=None, metavar="BANG",
+                    help="ghi đè SLOT_BUDGET, dạng '1x8,4x4,10x2,56x1' "
+                         "(số shot × số slot mỗi shot). R3.K5.")
+    ap.add_argument("--dual-vector", action="store_true",
+                    help="bật nhánh vector THỨ HAI (encoder còn lại) — R3.K3. "
+                         "Mặc định tắt, đúng như production.")
+    ap.add_argument("--rrf-k", type=int, default=None, metavar="K",
+                    help="ghi đè RRF_K cho lượt đo này (quét R3.K3)")
     ap.add_argument("--candidate-multiplier", type=int, default=None, metavar="N",
                     help="ghi đè CANDIDATE_MULTIPLIER cho lượt đo này (mỗi nhánh "
                          "lấy top_k*N ứng viên đưa vào RRF). Không truyền thì "

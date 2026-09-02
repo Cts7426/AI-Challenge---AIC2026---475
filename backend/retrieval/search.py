@@ -79,17 +79,23 @@ CLIP_KF_MAP = REPO_ROOT / "data" / "derived" / "clip_kf_map.parquet"
 # Quy ước chung: mỗi hàm trả list ĐÃ XẾP HẠNG (phần tử 0 = hạng 1).
 # Không hàm nào trả điểm thô ra ngoài — điểm chỉ dùng để sắp xếp bên trong nhánh.
 
-def _branch_vector(query_en: str, limit: int, filter_video_id: str | None = None) -> list[dict]:
+def _branch_vector(query_en: str, limit: int, filter_video_id: str | None = None,
+                   backend: str | None = None) -> list[dict]:
     """Milvus → [{keyframe_id, video_id, frame_idx, timestamp_ms}] theo hạng.
 
-    Encoder do `VECTOR_BACKEND` chọn: 'clip' (mặc định, giữ nguyên hành vi cũ)
-    hoặc 'siglip2'. Encoder và collection LUÔN đi theo cặp — dùng text encoder
-    này với index kia thì Milvus vẫn trả top-k điểm 0.2–0.3 trông bình thường
-    mà sai toàn bộ, nên hai thứ được chọn cùng một chỗ, không tách rời được.
+    `backend=None` (mặc định): encoder do `VECTOR_BACKEND` chọn — giữ nguyên
+    hành vi cũ cho mọi chỗ gọi hiện có. Truyền 'clip'/'siglip2' để ép một encoder
+    cụ thể, cần cho nhánh vector thứ hai (R3.K3) vì hai nhánh phải chạy CÙNG LÚC
+    trong một lượt search nên không thể cùng đọc một biến môi trường.
+
+    Encoder và collection LUÔN đi theo cặp — dùng text encoder này với index kia
+    thì Milvus vẫn trả top-k điểm 0.2–0.3 trông bình thường mà sai toàn bộ, nên
+    hai thứ được chọn cùng một chỗ, không tách rời được.
     """
     from data.config.siglip2_model import SIGLIP2_COLLECTION, use_siglip2
 
-    if use_siglip2():
+    dung_siglip2 = use_siglip2() if backend is None else (backend == "siglip2")
+    if dung_siglip2:
         from backend.indexing.load_siglip2 import assert_siglip2_index_meta
         from backend.retrieval.siglip2_query import encode_text
         collection = SIGLIP2_COLLECTION
@@ -130,6 +136,12 @@ def _branch_vector(query_en: str, limit: int, filter_video_id: str | None = None
             "video_id": h["entity"]["video_id"],
             "frame_idx": h["entity"].get("frame_idx"),
             "timestamp_ms": h["entity"].get("timestamp_ms"),
+            # Giữ COSINE THẬT (R3.K4). RRF cố tình vứt điểm đi và chỉ dùng thứ
+            # hạng — đúng cho việc hợp nhất các thang điểm khác nhau. Nhưng tầng
+            # rerank cần biết "hạng 1 này hơn hạng 2 nhiều hay chỉ nhỉnh một tí",
+            # thông tin mà thứ hạng không mang. Chỉ mang ra ngoài, KHÔNG dùng để
+            # sắp xếp ở đây và KHÔNG so với ngưỡng cứng (bất biến 5).
+            "cos": h.get("distance"),
         }
         for h in hits[0]
     ]
@@ -354,12 +366,20 @@ def _rrf(rank: int) -> float:
     return 1.0 / (RRF_K + rank)
 
 
+# Các nhánh xếp hạng ở mức KEYFRAME (khác metadata mức video và asr mức thời
+# gian). Gom thành một hằng số vì ba chỗ dưới đây phải dùng ĐÚNG cùng một danh
+# sách: đề cử ứng viên, dựng bảng hạng, và cộng RRF. Thêm nhánh mà quên một chỗ
+# thì nhánh đó vẫn chạy, vẫn tốn thời gian, nhưng KHÔNG góp phiếu — lỗi im lặng.
+NHANH_MUC_KEYFRAME = ("vector", "vector_siglip2", "objects", "ocr")
+
+
 def _search_core(
     query_vi: str,
     query_en: str | None = None,
     top_k: int = 10,
     branches: dict[str, bool] | None = None,
     filter_video_id: str | None = None,
+    candidate_multiplier: int | None = None,
 ) -> tuple[list[dict], dict]:
     """Phần tính RRF thô: CHƯA gom shot, CHƯA cắt top_k, KHÔNG rerank.
 
@@ -386,7 +406,15 @@ def _search_core(
             query_en = query_vi
 
     bat = {**BRANCHES, **(branches or {})}
-    pool = top_k * CANDIDATE_MULTIPLIER
+    pool = top_k * (candidate_multiplier or CANDIDATE_MULTIPLIER)
+
+    # Nhánh vector thứ hai luôn là encoder CÒN LẠI. Không hardcode 'siglip2':
+    # người vận hành đổi VECTOR_BACKEND=siglip2 thì nhánh phụ phải thành 'clip',
+    # nếu không hai nhánh cùng chạy một encoder và ta trả tiền hai lần cho đúng
+    # một tín hiệu — mà không có gì báo lỗi.
+    from data.config.siglip2_model import use_siglip2
+    encoder_chinh = "siglip2" if use_siglip2() else "clip"
+    encoder_phu = "clip" if encoder_chinh == "siglip2" else "siglip2"
 
     def _an_toan(ten: str, fn, *args) -> list[dict]:
         """Một nhánh chết KHÔNG được kéo sập search — thi thì không có thời gian debug."""
@@ -399,10 +427,15 @@ def _search_core(
             return []
 
     # Các nhánh độc lập → bắn cùng lúc, đợi cái chậm nhất thay vì cộng dồn
-    with ThreadPoolExecutor(max_workers=5) as pool_thread:
+    with ThreadPoolExecutor(max_workers=6) as pool_thread:
         f = {
             "vector": pool_thread.submit(
-                _an_toan, "vector", _branch_vector, query_en, pool, filter_video_id
+                _an_toan, "vector", _branch_vector, query_en, pool, filter_video_id,
+                encoder_chinh
+            ),
+            "vector_siglip2": pool_thread.submit(
+                _an_toan, "vector_siglip2", _branch_vector, query_en, pool,
+                filter_video_id, encoder_phu
             ),
             "metadata": pool_thread.submit(_an_toan, "metadata", _branch_metadata, query_vi, pool),
             "objects": pool_thread.submit(
@@ -417,7 +450,7 @@ def _search_core(
     # metadata (mức video) KHÔNG tự đề cử: 1 video có cả nghìn keyframe, không
     # biết cái nào. ASR thì ĐƯỢC, vì nó trỏ được vào một khoảng thời gian hẹp.
     candidates: dict[str, dict] = {}
-    for ten in ("vector", "objects", "ocr"):
+    for ten in NHANH_MUC_KEYFRAME:
         for r in kq[ten]:
             candidates.setdefault(r["keyframe_id"], {
                 "video_id": r["video_id"],
@@ -446,9 +479,17 @@ def _search_core(
     # --- quy mọi nhánh về hạng theo keyframe
     hang_kf = {
         ten: {r["keyframe_id"]: i for i, r in enumerate(kq[ten], 1)}
-        for ten in ("vector", "objects", "ocr")
+        for ten in NHANH_MUC_KEYFRAME
     }
     hang_video = {r["video_id"]: i for i, r in enumerate(kq["metadata"], 1)}
+
+    # Cosine thật của từng nhánh vector (R3.K4). Tách khỏi `ranks` vì đây là
+    # ĐIỂM chứ không phải hạng — trộn chung vào một dict là mời gọi chỗ khác
+    # cộng nhầm hai đại lượng khác thang.
+    cos_kf = {
+        ten: {r["keyframe_id"]: r["cos"] for r in kq[ten] if r.get("cos") is not None}
+        for ten in ("vector", "vector_siglip2")
+    }
 
     def hang_asr(video_id: str, ts: int | None) -> int | None:
         """Hạng ASR của một keyframe = hạng đoạn nói TỐT NHẤT chứa nó (±pad)."""
@@ -467,7 +508,7 @@ def _search_core(
     from data.config.search_weights import BRANCH_WEIGHTS
     for kf, info in candidates.items():
         ranks: dict[str, int] = {}
-        for ten in ("vector", "objects", "ocr"):
+        for ten in NHANH_MUC_KEYFRAME:
             if kf in hang_kf[ten]:
                 ranks[ten] = hang_kf[ten][kf]
         if info["video_id"] in hang_video:
@@ -493,6 +534,10 @@ def _search_core(
             "score": sum(contrib_tho.values()),
             "ranks": ranks,        # ← bắt buộc: phân tích lỗi dựa vào đây
             "contrib": contrib,
+            # Cosine thật của từng nhánh vector — nguyên liệu cho rerank (R3.K4).
+            # Thiếu nhánh nào thì khuyết key đó, KHÔNG điền 0: 0 là một giá trị
+            # cosine hợp lệ, còn "không có mặt trong pool" là chuyện khác hẳn.
+            "cos": {ten: c[kf] for ten, c in cos_kf.items() if kf in c},
         })
 
     ket_qua.sort(key=lambda r: r["score"], reverse=True)
@@ -527,6 +572,7 @@ def search(
     branches: dict[str, bool] | None = None,
     group_by_shot: bool | None = None,
     filter_video_id: str | None = None,
+    candidate_multiplier: int | None = None,
 ) -> list[dict]:
     """Search hợp nhất bằng RRF. Trả top-K, mỗi phần tử kèm thứ hạng từng nhánh.
 
@@ -540,7 +586,9 @@ def search(
     KHÔNG có tham số rerank: đây là hàm production duy nhất `solve_query()`
     gọi, VLM không được phép nằm trong đường chạy này (xem `_search_core`).
     """
-    ket_qua, shots = _search_core(query_vi, query_en, top_k, branches, filter_video_id)
+    ket_qua, shots = _search_core(
+        query_vi, query_en, top_k, branches, filter_video_id, candidate_multiplier
+    )
     return _finalize(ket_qua, shots, top_k, group_by_shot)
 
 

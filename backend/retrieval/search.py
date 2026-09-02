@@ -90,13 +90,19 @@ def _branch_vector(query_en: str, limit: int, filter_video_id: str | None = None
     from data.config.siglip2_model import SIGLIP2_COLLECTION, use_siglip2
 
     if use_siglip2():
+        from backend.indexing.load_siglip2 import assert_siglip2_index_meta
         from backend.retrieval.siglip2_query import encode_text
         collection = SIGLIP2_COLLECTION
+        # ⚠️ SỬA (R3.K2b) — bản cũ ghi "index SigLIP2 đã assert dim lúc
+        # encode_text" rồi bỏ qua hẳn phép kiểm meta. Assert dim KHÔNG ĐỦ: hai
+        # model khác nhau cùng 1152 chiều (hoặc cùng model khác `pretrained`)
+        # lọt qua trơn tru, Milvus vẫn trả top-k với cosine trông bình thường,
+        # và không gì báo rằng index thuộc không gian khác. Giờ kiểm đủ
+        # model/pretrained/dim/metric/collection như nhánh CLIP vẫn làm.
+        assert_siglip2_index_meta(strict=False)
     else:
         from backend.retrieval.text_query import encode_text
         collection = COLLECTION_NAME
-        # Chỉ kiểm meta của index CLIP; index SigLIP2 có meta riêng do
-        # load_siglip2.py ghi và đã assert dim lúc encode_text.
         assert_index_meta(strict=False)
 
     client = milvus_connect()

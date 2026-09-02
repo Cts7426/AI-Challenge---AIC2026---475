@@ -150,6 +150,47 @@ def check_optional_libs() -> tuple[bool | None, str]:
     return True, f"đủ {len(optional)} thư viện tuỳ chọn"
 
 
+def check_vector_backend() -> tuple[bool | None, str]:
+    """In encoder đang chạy + số vector của collection nó thật sự dùng.
+
+    ⚠️ Vì sao đáng một dòng riêng (R3.K2c, đóng finding M1 của review 28/08):
+    preflight in `LLM_BACKEND`/model/QA mode nhưng KHÔNG in cổng vector. Đổi
+    encoder là đổi cả không gian vector — thứ hỏng im lặng nhất trong hệ này —
+    mà người vận hành tối 04/09 lại không có cách nào NHÌN THẤY mình đang chạy
+    encoder nào ngoài việc tin vào trí nhớ.
+
+    Không tự chọn hộ, không đổi gì: chỉ đọc `VECTOR_BACKEND` và đếm hàng trong
+    đúng collection tương ứng — cùng nguyên tắc với `check_qa_runtime()`.
+    """
+    from data.config.siglip2_model import SIGLIP2_COLLECTION, use_siglip2
+    from backend.indexing.milvus_client import COLLECTION_NAME
+
+    backend = os.environ.get("VECTOR_BACKEND", "clip").strip().lower()
+    if backend not in ("clip", "siglip2"):
+        return False, (
+            f"VECTOR_BACKEND={backend!r} không hợp lệ (chỉ 'clip' hoặc 'siglip2'). "
+            "search() sẽ im lặng chạy nhánh CLIP mặc định."
+        )
+    collection = SIGLIP2_COLLECTION if use_siglip2() else COLLECTION_NAME
+
+    try:
+        from backend.indexing.milvus_client import connect
+
+        client = connect()
+        if not client.has_collection(collection):
+            return False, (
+                f"VECTOR_BACKEND={backend} nhưng collection {collection!r} KHÔNG TỒN TẠI — "
+                "nhánh vector sẽ chết và search chỉ còn 4 nhánh text."
+            )
+        n = int(client.get_collection_stats(collection)["row_count"])
+    except Exception as e:
+        return None, f"VECTOR_BACKEND={backend} · collection={collection} · không đếm được ({e})"
+
+    if n == 0:
+        return False, f"VECTOR_BACKEND={backend} · collection {collection} RỖNG"
+    return True, f"VECTOR_BACKEND={backend} · collection={collection} · {n:,} vector"
+
+
 def check_qa_runtime() -> tuple[bool | None, str]:
     """Chỉ báo backend/model người vận hành đã chọn; không tự đổi hay gọi API.
 
@@ -464,7 +505,23 @@ def check_clip_meta() -> tuple[bool | None, str]:
     khi chưa nạp features, còn preflight thì ngược lại — chưa nạp là chưa sẵn
     sàng nộp. Lệch model là lỗi im lặng đắt nhất trong cả dự án: Milvus vẫn trả
     top-k, cosine vẫn 0.2–0.3, mọi thứ trông bình thường và sai toàn bộ.
+
+    ⚠️ SỬA (R3.K2c) — bản cũ LUÔN kiểm meta CLIP, kể cả khi chạy
+    `VECTOR_BACKEND=siglip2`. Người vận hành thấy dòng "ĐẠT · ViT-B-32 · 512
+    chiều" và yên tâm, trong khi nhánh vector thật sự đang chạy là SigLIP2 và
+    meta của nó chưa hề được kiểm. Preflight nói dối về đúng thứ nó sinh ra để
+    canh là hỏng tệ hơn không có preflight. Giờ kiểm meta của encoder ĐANG chạy.
     """
+    from data.config.siglip2_model import use_siglip2
+
+    if use_siglip2():
+        from backend.indexing.load_siglip2 import assert_siglip2_index_meta
+
+        meta = assert_siglip2_index_meta(strict=True)
+        return True, (f"{meta.get('model_name')} / {meta.get('pretrained')} "
+                      f"· {meta.get('embedding_dim')} chiều · metric {meta.get('metric')} "
+                      f"· nạp {meta.get('built_at')}")
+
     from backend.indexing.load_clip import assert_index_meta
 
     meta = assert_index_meta(strict=True)
@@ -481,10 +538,16 @@ def check_vector_norm() -> tuple[bool | None, str]:
     có hệ thống, và cũng không có dấu hiệu gì.
     """
     from backend.indexing.load_clip import verify_norms
-    from backend.indexing.milvus_client import connect
+    from backend.indexing.milvus_client import COLLECTION_NAME, connect
+    from data.config.siglip2_model import SIGLIP2_COLLECTION, use_siglip2
 
-    ok = verify_norms(connect(), n=20)
-    return bool(ok), "20 vector mẫu có |v| ≈ 1" if ok else "có vector chưa chuẩn hoá L2"
+    # Cùng lý do với check_clip_meta: kiểm collection ĐANG chạy, không phải
+    # collection mặc định. Báo "|v| ≈ 1" cho một index không ai dùng là màu xanh
+    # rỗng nghĩa — đúng thứ ba-trạng-thái ở đầu file sinh ra để chống.
+    collection = SIGLIP2_COLLECTION if use_siglip2() else COLLECTION_NAME
+    ok = verify_norms(connect(), n=20, collection=collection)
+    return bool(ok), (f"20 vector mẫu trong {collection} có |v| ≈ 1" if ok
+                      else f"{collection} có vector chưa chuẩn hoá L2")
 
 
 # ============================================================ E. ĐƯỜNG NỘP
@@ -677,6 +740,7 @@ CHECKLIST: list[Check] = [
     Check("C. Dữ liệu", "video_info", check_video_info),
     Check("C. Dữ liệu", "ảnh Q&A/UI", check_frame_assets),
 
+    Check("D. Vector", "encoder đang chạy", check_vector_backend, needs_infra=True),
     Check("D. Vector", "index cùng không gian", check_clip_meta, needs_infra=True),
     Check("D. Vector", "vector đã chuẩn hoá L2", check_vector_norm, needs_infra=True),
 

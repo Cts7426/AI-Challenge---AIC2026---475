@@ -368,10 +368,17 @@ def assert_index_meta(strict: bool = True) -> dict | None:
     return meta
 
 
-def verify_norms(client: MilvusClient, n: int = 20) -> bool:
-    """Kiểm chứng CHẠY ĐƯỢC: lấy mẫu vector từ Milvus, |v| phải ≈ 1 (bất biến 1)."""
+def verify_norms(client: MilvusClient, n: int = 20, collection: str | None = None) -> bool:
+    """Kiểm chứng CHẠY ĐƯỢC: lấy mẫu vector từ Milvus, |v| phải ≈ 1 (bất biến 1).
+
+    `collection=None` giữ nguyên hành vi cũ (collection CLIP) nên mọi chỗ gọi cũ
+    không đổi. Truyền tên collection khác khi cần kiểm index của encoder khác —
+    phép kiểm norm không phụ thuộc model, chỉ phụ thuộc chỗ vector nằm, nên
+    không đáng có bản thứ hai của cùng một hàm.
+    """
     rows = client.query(
-        COLLECTION_NAME, filter="", limit=n, output_fields=["keyframe_id", "embedding"]
+        collection or COLLECTION_NAME, filter="", limit=n,
+        output_fields=["keyframe_id", "embedding"],
     )
     if not rows:
         print("Collection rỗng — chưa có gì để kiểm.")

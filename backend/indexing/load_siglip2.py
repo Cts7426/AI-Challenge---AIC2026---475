@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -40,7 +42,69 @@ from data.config.siglip2_model import (  # noqa: E402
 )
 
 VIDEO_INFO = REPO / "data/derived/video_info.parquet"
+META_PATH = REPO / "data/derived/siglip2_index.meta.json"
 BATCH = 1000
+
+
+def assert_siglip2_index_meta(strict: bool = True) -> dict | None:
+    """So `siglip2_index.meta.json` với config hiện tại. Lệch → RuntimeError.
+
+    ⚠️ Vì sao BẮT BUỘC có hàm này (R3.K2b): `search._branch_vector()` gọi
+    `assert_index_meta(strict=False)` CHỈ cho nhánh CLIP; nhánh SigLIP2 trước
+    đây không có assert nào. Đó là lỗ hổng đúng loại lỗi im lặng mà `AGENTS.md`
+    bất biến 8 sinh ra để chặn: đổi `SIGLIP2_MODEL_NAME` trong config mà quên
+    encode lại thì Milvus VẪN trả top-k với cosine trông bình thường, và không
+    có gì báo rằng index thuộc một không gian vector khác.
+
+    Thà mất nguồn vector còn hơn tin số sai — nên gãy to thay vì cảnh báo.
+
+    strict=False: chưa có meta (chưa nạp SigLIP2 bao giờ) thì chỉ trả None, để
+    máy chưa dựng index vẫn chạy được nhánh CLIP bình thường.
+    """
+    if not META_PATH.exists():
+        if strict:
+            raise RuntimeError(
+                f"Chưa có {META_PATH.name} — index SigLIP2 chưa được nạp. "
+                "Chạy: python -m backend.indexing.load_siglip2"
+            )
+        return None
+
+    meta = json.loads(META_PATH.read_text(encoding="utf-8"))
+    lech = [
+        f"{khoa}: index={meta.get(khoa)!r} vs config={dang_dung!r}"
+        for khoa, dang_dung in (
+            ("model_name", SIGLIP2_MODEL_NAME),
+            ("pretrained", SIGLIP2_PRETRAINED),
+            ("embedding_dim", SIGLIP2_EMBEDDING_DIM),
+            ("metric", SIGLIP2_METRIC),
+            ("collection", SIGLIP2_COLLECTION),
+        )
+        if meta.get(khoa) != dang_dung
+    ]
+    if lech:
+        raise RuntimeError(
+            "INDEX SigLIP2 VÀ CONFIG KHÔNG CÙNG KHÔNG GIAN VECTOR — kết quả search "
+            "sẽ SAI mà không báo lỗi.\n  " + "\n  ".join(lech)
+            + "\nNạp lại: python -m backend.indexing.load_siglip2 --recreate\n"
+            f"(index nạp lúc {meta.get('built_at')}, commit {meta.get('git_commit')})"
+        )
+    return meta
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def _git_commit() -> str:
+    """Commit đang dựng index. 'unknown' khi chạy ngoài git — không làm sập job
+    nạp chỉ vì thiếu một trường provenance."""
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=REPO, text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return "unknown"
 
 
 def _timestamp_map() -> dict[str, tuple[int, int]]:
@@ -146,6 +210,11 @@ def main() -> int:
         "collection": SIGLIP2_COLLECTION, "normalized": "l2",
         "n_videos": len(files) - skipped, "n_vectors": int(stats["row_count"]),
         "emb_dir": str(emb_dir),
+        # Provenance (AGENTS.md bất biến 8): không có hai trường này thì lúc
+        # assert phát hiện lệch, thông báo lỗi không nói được index dựng khi nào
+        # và từ commit nào — mà đó đúng là hai thứ cần để truy nguyên.
+        "built_at": _now_iso(),
+        "git_commit": _git_commit(),
     }
     (REPO / "data/derived/siglip2_index.meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")

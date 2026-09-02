@@ -51,16 +51,30 @@ KEYFRAMES_DIR = RAW_KEYFRAMES_DIR
 async def lifespan(app: FastAPI):
     # Trả giá khởi động lúc rảnh, không bắt người thao tác gánh giữa lúc thi:
     # nạp CLIP ~16s và bảng shot ~1s đều là chi phí MỘT LẦN.
+    # ⚠️ Phải preload ĐÚNG encoder mà VECTOR_BACKEND chọn. Bản cũ luôn nạp CLIP:
+    # chạy VECTOR_BACKEND=siglip2 thì vừa tốn ~16s nạp model không dùng tới, vừa
+    # để SigLIP2 (SO400M, đo được ~25s trên CPU) nạp LƯỜI ở query đầu tiên —
+    # tức người thao tác gánh đúng chi phí mà comment này nói là phải tránh.
+    from data.config.siglip2_model import use_siglip2
+
+    ten_encoder = "SigLIP2" if use_siglip2() else "CLIP"
     try:
-        from backend.retrieval.text_query import _get_model
+        if use_siglip2():
+            from backend.retrieval.siglip2_query import _get_model
+        else:
+            from backend.retrieval.text_query import _get_model
         _get_model()
-        print("Đã preload model CLIP — search đầu tiên sẽ không bị chậm.")
+        print(f"Đã preload model {ten_encoder} — search đầu tiên sẽ không bị chậm.")
     except Exception as e:
         # Thiếu torch/open_clip thì /health và các nguồn ES vẫn phải sống
-        print(f"[cảnh báo] Không preload được CLIP (search vector sẽ lỗi): {e}")
+        print(f"[cảnh báo] Không preload được {ten_encoder} (search vector sẽ lỗi): {e}")
     try:
-        from backend.retrieval.search import _shot_map
-        print(f"Đã preload bảng shot: {len(_shot_map())} keyframe.")
+        # Nạp cả hai bảng shot: tra theo TÊN keyframe chỉ khớp cách đặt tên của
+        # CLIP, còn keyframe SigLIP2 ("L26_V102#f0002432") phải tra theo KHOẢNG
+        # FRAME. Preload nhầm bảng thì query đầu vẫn phải đọc parquet.
+        from backend.retrieval.search import _shot_map, _shot_ranges
+        print(f"Đã preload bảng shot: {len(_shot_map())} keyframe, "
+              f"{len(_shot_ranges())} video theo khoảng frame.")
     except Exception as e:
         print(f"[cảnh báo] Không preload được bảng shot: {e}")
         

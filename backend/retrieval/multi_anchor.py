@@ -62,7 +62,13 @@ ANCHOR_SCHEMA = {
         "anchors": {
             "type": "array",
             "items": {"type": "string"},
-            "maxItems": MAX_ANCHORS,
+            # ⚠️ KHÔNG thêm lại "maxItems": Anthropic structured outputs từ chối
+            # keyword này bằng HTTP 400, mà `plan_query()` nuốt lỗi provider rồi
+            # âm thầm rơi về single-anchor — đo thật 27/08: 19/19 query KIS chạy
+            # đường fallback với `fallback_reason=planner_error` trong khi mọi
+            # dấu hiệu bên ngoài đều bình thường. Trần số anchor vẫn được giữ
+            # bằng guard Python trong `_validated_anchors()` (MAX_ANCHORS=3),
+            # nên bỏ keyword ở đây không nới lỏng ràng buộc nào.
         }
     },
     "required": ["anchors"],

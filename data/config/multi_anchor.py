@@ -1,6 +1,14 @@
 """Knob vận hành cho KIS multi-anchor, tách khỏi caller để replay được."""
 
-ENABLED = True
+# ⚠️ TẮT cho Đợt 2 và Đợt 3 — quyết định dựa trên phép đo, không phải phỏng đoán.
+# Sau khi sửa lỗi `maxItems`, multi-anchor CHẠY ĐÚNG (19/19 query, 0 planner_error)
+# nhưng LÀM TỆ ĐI chất lượng KIS trên dress25:
+#     single-anchor  Final 0.4000 · R@5 0.4211
+#     multi-anchor   Final 0.3263 · R@5 0.2632
+# Chi tiết: docs/evaluation/2026-08-28-multi-anchor-live-measurement.md.
+# Bật lại chỉ khi có phép đo mới chứng minh ngược lại — đừng lật hằng này để
+# "thử xem sao" ngay trước đợt thi.
+ENABLED = False
 MAX_ANCHORS = 3
 MAX_CLIP_TOKENS = 60
 RRF_K = 7

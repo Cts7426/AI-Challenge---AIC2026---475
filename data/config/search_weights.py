@@ -58,10 +58,31 @@ BRANCHES = {
 # trong khi Vector (CLIP) mới là giá trị cốt lõi. Cần áp trọng số để Vector không bị chìm.
 BRANCH_WEIGHTS = {
     "vector": 1.0,
-    "vector_siglip2": 1.0,   # ngang `vector`: đo 02/09 cho thấy hai encoder BÙ
-                             # nhau chứ không thay nhau (câu 13 CLIP hạng 72 /
-                             # SigLIP2 hạng 1; câu 11 ngược lại). Hạ trọng số một
-                             # bên là bỏ đúng phần bù đó. Quét lại ở R3.K3.
+    # ĐÃ QUÉT (R3.K3 bước 2, 02/09) — `scripts/sweep_k3_weights.sh`, artefact
+    # `dev_set/results/run_20260902_k3_weights/`. RRF_K cố định ở 7, chỉ đổi
+    # trọng số nhánh phụ (RRF chỉ quan tâm TỈ LỆ nên quét một chiều là đủ):
+    #
+    #   trọng số   R@1     Final video   f±5   f±15   f±40
+    #     0,4     0,250      0,7600      0,22  0,23   0,35
+    #     0,6     0,300      0,7800      0,22  0,26   0,36
+    #     0,8     0,500      0,8200      0,19  0,23   0,34
+    #     1,0     0,550      0,8300      0,22  0,27   0,37   ← chọn
+    #     1,2     0,550      0,8400      0,22  0,26   0,34
+    #     1,5     0,600      0,8600      0,22  0,26   0,34
+    #
+    # Kết quả CHẮC CHẮN: dưới 1,0 là tệ rõ ràng (0,4 → Final 0,76). Nhánh thứ hai
+    # phải được đứng ngang nhánh chính, không phải nhánh phụ trợ.
+    #
+    # Trên 1,0 thì KHÔNG kết luận được, và đó là lý do giữ 1,0:
+    #   · So từng câu giữa 1,0 và 1,5: 6 câu lên hạng, 5 câu tụt, 9 câu không đổi
+    #     — tung đồng xu trên bộ 20 câu, không phải xu hướng. Phần Final nhích lên
+    #     đến từ vài câu nhảy xa ở ĐUÔI (câu 19 "không thấy" → 61; câu 22: 39 → 17)
+    #     trong khi mất ở chỗ đắt nhất (câu 11: 2 → 5; câu 21: 1 → 3; câu 25: 1 → 2).
+    #   · Mức frame — thứ THẬT SỰ tính điểm — đạt đỉnh ở đúng 1,0 và đi ngang/tụt
+    #     khi tăng tiếp.
+    #   · Chỉnh tới chữ số thứ hai trên 20 câu tune, đúng ngày đóng băng, là học
+    #     thuộc bộ tune chứ không phải cải thiện hệ thống.
+    "vector_siglip2": 1.0,
     "objects": 0.7,
     "ocr": 0.6,
     # Ngang `asr` vì cùng đơn vị (đoạn thời gian) và cùng nguồn (lời thoại), chỉ

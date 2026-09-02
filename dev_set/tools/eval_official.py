@@ -227,6 +227,26 @@ def run(args) -> int:
     rrf_k = search_mod.RRF_K
     branches = {"vector_siglip2": True} if args.dual_vector else None
 
+    # Trọng số nhánh: sửa TRÊN MODULE config. `_search_core()` import
+    # BRANCH_WEIGHTS ở trong thân hàm (mỗi lần gọi một lần) nên nó đọc lại giá
+    # trị mới; vá ở đây là điểm duy nhất đổi được mà không sửa file config giữa
+    # lúc đang đo.
+    import data.config.search_weights as sw_mod
+    if args.branch_weights:
+        try:
+            for o in args.branch_weights.split(","):
+                ten, gt = o.split("=")
+                ten = ten.strip()
+                if ten not in sw_mod.BRANCHES:
+                    raise SystemExit(
+                        f"--branch-weights: không có nhánh {ten!r}. "
+                        f"Có: {sorted(sw_mod.BRANCHES)}")
+                sw_mod.BRANCH_WEIGHTS[ten] = float(gt)
+        except ValueError:
+            raise SystemExit(f"--branch-weights sai định dạng: "
+                             f"{args.branch_weights!r}. Đúng dạng: ten=so,ten=so")
+    branch_weights = dict(sw_mod.BRANCH_WEIGHTS)
+
     # Bảng chia slot: truyền THẲNG vào allocate() qua tham số `table` sẵn có,
     # không vá module — allocate() đã nhận bảng làm đối số nên không cần mẹo.
     from data.config.slot_budget import SLOT_BUDGET
@@ -375,6 +395,7 @@ def run(args) -> int:
                     "dual_vector": bool(args.dual_vector),
                     "slot_budget": slot_budget,
                     "rerank_top50": bool(args.rerank),
+                    "branch_weights": branch_weights,
                     "tolerances": tols,
                     "aggregate": agg,
                     "per_query": per_query,
@@ -407,6 +428,10 @@ def main() -> int:
     ap.add_argument("--query-en-vi", action="store_true",
                     help="nhánh vector nhận thẳng tiếng Việt (bỏ bước dịch). "
                          "Loại trừ với --query-en")
+    ap.add_argument("--branch-weights", default=None, metavar="A=x,B=y",
+                    help="ghi đè trọng số RRF của một số nhánh, vd "
+                         "'vector_siglip2=0.6'. Nhánh không nhắc tới giữ nguyên "
+                         "giá trị trong config. R3.K3.")
     ap.add_argument("--rerank", action="store_true",
                     help="bật tầng rerank top-50 (R3.K4). Mặc định tắt, "
                          "đúng như config production.")

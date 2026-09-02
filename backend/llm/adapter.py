@@ -88,6 +88,14 @@ PRICING = {
 DEFAULT_EFFORT = "low"
 DEFAULT_MAX_TOKENS = 2048
 
+# Token "thinking" của Gemini 3.x nằm TRONG `max_output_tokens`, khác hẳn Claude
+# nơi `max_tokens` chỉ đếm đáp án. Đo thật (02/09, gemini-3.6-flash) trên đúng
+# prompt dịch của `text_query.translate_to_english()`: thinking tốn 119 rồi 330
+# token cho cùng một câu hỏi — biến thiên lớn, không đoán được bằng hệ số nhân.
+# Nên cộng thẳng một khoản dư rộng rãi; token thinking không dùng hết thì không
+# bị tính tiền, còn thiếu một token là đáp án cụt và sai IM LẶNG.
+GEMINI_THINKING_HEADROOM = 2048
+
 _api_client = None
 _gemini_client_singleton = None
 _usage = {"calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "usd": 0.0}
@@ -345,7 +353,17 @@ def _call_gemini(prompt: str, images, json_schema, model: str, max_tokens: int,
     from google.genai.errors import ClientError, ServerError
 
     client = _gemini_client()
-    cfg: dict = {"max_output_tokens": max_tokens}
+    # ⚠️ SỬA 02/09 — `max_output_tokens` của Gemini 3.x TÍNH CẢ token "thinking",
+    # còn `max_tokens` mà chỗ gọi truyền vào mang nghĩa "độ dài ĐÁP ÁN" (đúng
+    # ngữ nghĩa ở backend api). Không bù thì thinking ăn sạch ngân sách và trả
+    # về đáp án cụt. Đo thật trên `translate_to_english()` (max_tokens=128):
+    #     128 → thinking 119, còn 5 cho đáp án → 'concise, descriptive text'
+    #     512 → thinking 330, còn 11 cho đáp án → 'man wearing a conical hat...'
+    # Bản cụt KHÔNG rỗng nên mọi kiểm tra phía dưới đều qua, rồi nó đi thẳng vào
+    # CLIP làm truy vấn — nhánh vector sập mà không một dòng log nào. Adapter là
+    # nơi phải nuốt khác biệt này để chỗ gọi giữ nguyên một ngữ nghĩa cho mọi
+    # backend (đó là toàn bộ lý do file này tồn tại).
+    cfg: dict = {"max_output_tokens": max_tokens + GEMINI_THINKING_HEADROOM}
     if temperature is not None:
         cfg["temperature"] = temperature
     if json_schema is not None:
@@ -410,12 +428,26 @@ def _call_gemini(prompt: str, images, json_schema, model: str, max_tokens: int,
         getattr(u, "cached_content_token_count", 0) or 0,
     )
 
+    finish = resp.candidates[0].finish_reason if resp.candidates else "UNKNOWN"
+
     if not resp.text:
         # Bộ lọc an toàn có thể chặn output mà HTTP vẫn 200 — đọc finish_reason
         # để báo rõ vì sao thay vì để chỗ gọi nhận chuỗi rỗng khó hiểu.
-        finish = resp.candidates[0].finish_reason if resp.candidates else "UNKNOWN"
         raise RuntimeError(
             f"Gemini không trả nội dung (finish_reason={finish}). Đổi cách diễn đạt prompt."
+        )
+
+    # ⚠️ Đáp án BỊ CẮT CỤT nguy hiểm hơn đáp án rỗng: nó không rỗng nên qua được
+    # mọi phép kiểm phía sau, rồi đi thẳng vào CLIP/JSON parser như thể hợp lệ.
+    # Đo thật 02/09: max_tokens=128 cho ra 'concise, descriptive text' thay vì
+    # bản dịch — dùng làm truy vấn ảnh thì nhánh vector sập mà không có dấu hiệu.
+    # Gemini CÓ báo qua finish_reason, bản trước chỉ đọc nó khi text rỗng.
+    if str(finish).endswith("MAX_TOKENS"):
+        raise RuntimeError(
+            f"Gemini cắt cụt đáp án (finish_reason={finish}): đã xin "
+            f"{max_tokens} token đáp án + {GEMINI_THINKING_HEADROOM} token dư cho "
+            f"thinking mà vẫn không đủ. Tăng max_tokens ở chỗ gọi, hoặc nới "
+            f"GEMINI_THINKING_HEADROOM.\n--- phần nhận được ---\n{resp.text[:200]}"
         )
     return resp.text.strip()
 

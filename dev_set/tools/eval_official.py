@@ -225,7 +225,8 @@ def run(args) -> int:
     if args.rrf_k is not None:
         search_mod.RRF_K = args.rrf_k
     rrf_k = search_mod.RRF_K
-    branches = {"vector_siglip2": True} if args.dual_vector else None
+    branches = ({"vector_siglip2": True, "ocr_probe": True}
+                if args.dual_vector else {"ocr_probe": True})
 
     # Trọng số nhánh: sửa TRÊN MODULE config. `_search_core()` import
     # BRANCH_WEIGHTS ở trong thân hàm (mỗi lần gọi một lần) nên nó đọc lại giá
@@ -294,6 +295,7 @@ def run(args) -> int:
                 group_by_shot=True,
                 branches=branches,
                 rerank_top50=args.rerank or None,
+                video_prior_alpha=args.video_prior,
             )
         except Exception as e:
             print(f"{g['query_id']:24s} LỖI: {type(e).__name__}: {e}")
@@ -395,6 +397,7 @@ def run(args) -> int:
                     "dual_vector": bool(args.dual_vector),
                     "slot_budget": slot_budget,
                     "rerank_top50": bool(args.rerank),
+                    "video_prior_alpha": args.video_prior,
                     "branch_weights": branch_weights,
                     "tolerances": tols,
                     "aggregate": agg,
@@ -432,6 +435,9 @@ def main() -> int:
                     help="ghi đè trọng số RRF của một số nhánh, vd "
                          "'vector_siglip2=0.6'. Nhánh không nhắc tới giữ nguyên "
                          "giá trị trong config. R3.K3.")
+    ap.add_argument("--video-prior", type=float, default=None, metavar="A",
+                    help="trọng số tiên nghiệm mức video (0..1). Bỏ trống = đọc "
+                         "data/config/video_prior.py. 0 = tắt hẳn.")
     ap.add_argument("--rerank", action="store_true",
                     help="bật tầng rerank top-50 (R3.K4). Mặc định tắt, "
                          "đúng như config production.")

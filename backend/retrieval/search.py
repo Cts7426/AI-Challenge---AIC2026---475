@@ -48,6 +48,8 @@
 from __future__ import annotations
 
 import argparse
+import math
+import re
 import time
 from bisect import bisect_right
 from concurrent.futures import ThreadPoolExecutor
@@ -422,7 +424,7 @@ def _rrf(rank: int) -> float:
 # gian). Gom thành một hằng số vì ba chỗ dưới đây phải dùng ĐÚNG cùng một danh
 # sách: đề cử ứng viên, dựng bảng hạng, và cộng RRF. Thêm nhánh mà quên một chỗ
 # thì nhánh đó vẫn chạy, vẫn tốn thời gian, nhưng KHÔNG góp phiếu — lỗi im lặng.
-NHANH_MUC_KEYFRAME = ("vector", "vector_siglip2", "objects", "ocr")
+NHANH_MUC_KEYFRAME = ("vector", "vector_siglip2", "objects", "ocr", "ocr_probe")
 
 
 def _search_core(
@@ -432,6 +434,7 @@ def _search_core(
     branches: dict[str, bool] | None = None,
     filter_video_id: str | None = None,
     candidate_multiplier: int | None = None,
+    video_prior_alpha: float | None = None,
 ) -> tuple[list[dict], dict]:
     """Phần tính RRF thô: CHƯA gom shot, CHƯA cắt top_k, KHÔNG rerank.
 
@@ -479,7 +482,7 @@ def _search_core(
             return []
 
     # Các nhánh độc lập → bắn cùng lúc, đợi cái chậm nhất thay vì cộng dồn
-    with ThreadPoolExecutor(max_workers=6) as pool_thread:
+    with ThreadPoolExecutor(max_workers=7) as pool_thread:
         f = {
             "vector": pool_thread.submit(
                 _an_toan, "vector", _branch_vector, query_en, pool, filter_video_id,
@@ -494,6 +497,9 @@ def _search_core(
                 _an_toan, "objects", _branch_objects, query_en, pool, filter_video_id
             ),
             "ocr": pool_thread.submit(_an_toan, "ocr", _branch_ocr, query_vi, pool, filter_video_id),
+            "ocr_probe": pool_thread.submit(
+                _an_toan, "ocr_probe", _branch_ocr_probe, query_vi, query_en, pool,
+            ),
             "asr": pool_thread.submit(_an_toan, "asr", _branch_asr, query_vi, pool, filter_video_id),
             "text_vi": pool_thread.submit(
                 _an_toan, "text_vi", _branch_text_vi, query_vi, pool, filter_video_id
@@ -571,6 +577,67 @@ def _search_core(
     shots = _shot_map()
     ket_qua = []
     from data.config.search_weights import BRANCH_WEIGHTS
+
+    # --- tiên nghiệm mức video (video_prior). Xem data/config/video_prior.py.
+    # Cộng dồn bằng chứng của MỌI nhánh theo video, chặn ở VOTE_CAP dòng đầu mỗi
+    # nhánh để video dài không thắng bằng số lượng. alpha=0 -> không đổi gì.
+    from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON, VOTE_CAP
+    # Kiểm giá trị của CALLER trước, rồi mới áp cổng ENABLED: caller truyền 1.5
+    # là một bug của caller dù tính năng đang bật hay tắt. Kiểm sau cổng thì bug
+    # đó bị nuốt lặng và chỉ lộ ra vào ngày ai đó bật tính năng lên.
+    if video_prior_alpha is not None and not 0.0 <= float(video_prior_alpha) <= 1.0:
+        raise ValueError(
+            f"video_prior_alpha phải trong [0,1], nhận {video_prior_alpha}"
+        )
+    alpha = VP_ALPHA if video_prior_alpha is None else float(video_prior_alpha)
+    if not VP_ON:
+        alpha = 0.0
+    video_vote: dict[str, float] = {}
+    if alpha > 0.0:
+        # Hai tín hiệu mức video, đo hai thứ KHÁC NHAU:
+        #   dong  — cộng dồn mọi dòng: thưởng video có NHIỀU bằng chứng
+        #   dau   — chỉ lần xuất hiện ĐẦU TIÊN: thưởng video được một nhánh xếp
+        #           hạng CAO, kể cả khi nó chỉ có vài keyframe trong pool
+        # Video đúng của p1-19 đứng hạng 7 (siglip2) và 8 (clip) ở mức video
+        # nhưng ít keyframe, nên tín hiệu "dong" một mình dìm nó xuống hạng 25.
+        vote_dong: dict[str, float] = {}
+        vote_dau: dict[str, float] = {}
+        for ten, rows in kq.items():
+            w = BRANCH_WEIGHTS.get(ten, 1.0)
+            thay: dict[str, int] = {}
+            for i, r in enumerate(rows[:VOTE_CAP], 1):
+                vid = r.get("video_id")
+                if not vid:
+                    continue
+                vote_dong[vid] = vote_dong.get(vid, 0.0) + w / (RRF_K + i)
+                if vid not in thay:
+                    thay[vid] = len(thay) + 1
+                    vote_dau[vid] = vote_dau.get(vid, 0.0) + w / (RRF_K + thay[vid])
+
+        def _chuan(d: dict[str, float]) -> dict[str, float]:
+            m = max(d.values(), default=0.0) or 1.0
+            return {k: v / m for k, v in d.items()}
+
+        from data.config.video_prior import BEST_MIX
+        vote_dong = _chuan(vote_dong)
+        vote_dau = _chuan(vote_dau)
+        for vid in set(vote_dong) | set(vote_dau):
+            video_vote[vid] = (vote_dong.get(vid, 0.0)
+                               + BEST_MIX * vote_dau.get(vid, 0.0))
+        # Chuẩn hoá HAI tín hiệu RIÊNG rồi mới trộn.
+        #
+        # ⚠️ Đã thử cộng thẳng probe vào phiếu nhánh và ĐO ĐƯỢC LÀ VÔ TÁC DỤNG:
+        # phiếu nhánh cộng dồn tới 100 dòng × 6 nhánh nên tổng cỡ vài đơn vị,
+        # còn probe chỉ đóng góp ~0,2 — tín hiệu mạnh nhất bị số đông nuốt mất
+        # (p1-22 đứng nguyên hạng 34). Hai đại lượng khác thang thì phải chuẩn
+        # hoá trước, đúng như đã làm giữa rrf và vote.
+        from data.config.token_probe import PROBE_MIX
+        video_vote = _chuan(video_vote)
+        probe = _probe_video_votes(query_vi, query_en)
+        if probe:
+            max_probe = max(probe.values()) or 1.0
+            for vid, diem in probe.items():
+                video_vote[vid] = video_vote.get(vid, 0.0) + PROBE_MIX * (diem / max_probe)
     for kf, info in candidates.items():
         ranks: dict[str, int] = {}
         for ten in NHANH_MUC_KEYFRAME:
@@ -606,13 +673,188 @@ def _search_core(
             "cos": {ten: c[kf] for ten, c in cos_kf.items() if kf in c},
         })
 
+    # Phiếu bầu chỉ ĐÍNH KÈM, KHÔNG cộng vào score.
+    #
+    # ⚠️ Đã thử cộng thẳng `score = (1-α)·rrf + α·vote` và ĐO ĐƯỢC LÀ HỎNG:
+    # mọi keyframe của video được bầu cao đều nhận cùng một khoản cộng, nên một
+    # video ngập hết đầu bảng và video đúng bị đẩy RA KHỎI 100 dòng (p1-19: hạng
+    # 85 -> mất hẳn, top-50 rơi 0,95 -> 0,70 ở α=0,6). Tiên nghiệm mức video là
+    # tín hiệu để CHỌN VIDEO, không phải để chấm điểm từng khung hình.
+    # Nó được dùng ở `_video_diverse_order()` sau khi đã gom shot.
+    for r in ket_qua:
+        r["video_vote"] = round(video_vote.get(r["video_id"], 0.0), 6)
+
     ket_qua.sort(key=lambda r: r["score"], reverse=True)
 
     return ket_qua, shots
 
 
+_PROBE_TACH = re.compile(r"[0-9A-Za-zÀ-ỹ]+")
+
+
+def _ung_vien_probe(query_vi: str, query_en: str | None) -> list[str]:
+    """Rút token ứng viên để probe, KHÔNG dùng từ điển và KHÔNG gọi LLM.
+
+    Ưu tiên cụm trong ngoặc (đề hay đặt tên riêng/chữ trên màn hình trong nháy),
+    rồi tới token đủ dài. Giữ nguyên thứ tự xuất hiện để kết quả tái lập được;
+    lọc độ hiếm là việc của `_probe_video_votes`, không phải của hàm này.
+    """
+    from data.config.token_probe import MIN_TOKEN_LEN
+
+    ra: list[str] = []
+    for nguon in (query_vi, query_en or ""):
+        for cum in re.findall(r"['\"“”‘’]([^'\"“”‘’]{2,40})['\"“”‘’]", nguon):
+            cum = cum.strip()
+            if cum and cum not in ra:
+                ra.append(cum)
+        for tok in _PROBE_TACH.findall(nguon):
+            if len(tok) >= MIN_TOKEN_LEN and tok.lower() not in [x.lower() for x in ra]:
+                ra.append(tok)
+    return ra
+
+
+def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[dict]:
+    """Nhánh OCR theo TỪNG TOKEN HIẾM, mức keyframe. Xem data/config/token_probe.py.
+
+    Khác `_branch_ocr` ở chỗ nó KHÔNG ném cả câu vào BM25. Đo được trên p1:
+    ném cả câu thì video đúng của p1-22 đứng hạng 52 và p1-12 hạng 57; ném riêng
+    token hiếm ('remember', 'mazut') thì hạng 2 và hạng 1.
+
+    Trả về mức KEYFRAME (không phải mức video) để tín hiệu này vừa chọn đúng
+    video vừa trỏ đúng khung hình — OCR hit vốn đã gắn sẵn `keyframe_id`, dùng
+    thẳng nó thì không phải nhờ CLIP tìm lại frame bên trong video.
+
+    Token nào khớp quá nhiều dòng thì bị loại: nó là từ thường, không phân biệt
+    được gì. Ngưỡng tự đo, không cần từ điển tiếng Việt.
+    """
+    from data.config.token_probe import ENABLED, MAX_HITS, MAX_PROBES
+
+    if not ENABLED:
+        return []
+    diem: dict[str, float] = {}
+    thong_tin: dict[str, dict] = {}
+    for tok in _ung_vien_probe(query_vi, query_en)[:MAX_PROBES]:
+        try:
+            rows = _branch_ocr(tok, MAX_HITS + 1)
+        except Exception:
+            continue
+        if not rows or len(rows) > MAX_HITS:
+            continue
+        # Token càng hiếm càng đáng tin -> nhân thêm 1/log(số dòng khớp).
+        hiem = 1.0 / (1.0 + math.log(len(rows) + 1.0))
+        for i, r in enumerate(rows, 1):
+            kf = r["keyframe_id"]
+            diem[kf] = diem.get(kf, 0.0) + hiem / (RRF_K + i)
+            thong_tin.setdefault(kf, r)
+    xep = sorted(diem, key=lambda k: -diem[k])[:limit]
+    return [thong_tin[k] for k in xep]
+
+
+def _probe_video_votes(query_vi: str, query_en: str | None) -> dict[str, float]:
+    """Phiếu bầu MỨC VIDEO từ các token hiếm. Xem data/config/token_probe.py.
+
+    Một token được tính là bằng chứng khi nó khớp ÍT dòng OCR — độ hiếm tự đo,
+    không cần biết token đó là tiếng gì. Trả {video_id: điểm}; lỗi ES thì trả
+    rỗng chứ không ném, vì đây là tín hiệu BỔ SUNG, không được kéo sập search.
+    """
+    from data.config.token_probe import (
+        ENABLED, MAX_HITS, MAX_PROBES, PROBE_WEIGHT,
+    )
+
+    if not ENABLED:
+        return {}
+    votes: dict[str, float] = {}
+    for tok in _ung_vien_probe(query_vi, query_en)[:MAX_PROBES]:
+        try:
+            rows = _branch_ocr(tok, MAX_HITS + 1)
+        except Exception:
+            continue
+        # Khớp quá nhiều = từ thường, không phân biệt được gì. Khớp 0 = không có.
+        if not rows or len(rows) > MAX_HITS:
+            continue
+        seen: dict[str, int] = {}
+        for r in rows:
+            seen.setdefault(r["video_id"], len(seen) + 1)
+        for vid, hang in seen.items():
+            votes[vid] = votes.get(vid, 0.0) + PROBE_WEIGHT / (RRF_K + hang)
+    return votes
+
+
+def _video_diverse_order(
+    rows: list[dict], alpha: float, ghi_diem: bool = False, giu_dau: int = 0,
+) -> list[dict]:
+    """Xếp lại danh sách shot theo VÒNG TRÒN QUA VIDEO thay vì thuần theo điểm.
+
+    Vì sao: BTC chấm `video_id` trước đã — sai video thì frame đúng cũng 0 điểm.
+    Mà bảng thuần theo điểm để một video chiếm nhiều dòng liên tiếp, nên video
+    đúng đứng hạng 7 ở tầng nhánh có thể rơi xuống dòng 85 (đo được: p1-19).
+    Đúng luật "thứ tự nộp XEN KẼ theo shot, không gom" của CLAUDE.md mục 6.
+
+    Cách xếp:
+      1. Điểm mỗi video = (1-α)·rrf_tốt_nhất_chuẩn_hoá + α·phiếu_bầu_chuẩn_hoá
+      2. Xếp video theo điểm đó
+      3. Vòng 1: mỗi video góp shot tốt nhất, theo thứ tự trên
+         Vòng 2: mỗi video góp shot tốt thứ hai... cho tới hết
+
+    Nhờ vậy video hạng r xuất hiện ở đúng dòng r, không phụ thuộc video đó có
+    bao nhiêu shot mạnh. alpha=0 vẫn xen kẽ nhưng xếp video thuần theo rrf.
+
+    Invariant: KHÔNG thêm/bớt/sửa phần tử nào, chỉ đổi thứ tự. len(ra) == len(vào).
+    """
+    if not rows:
+        return rows
+
+    # GIỮ NGUYÊN `giu_dau` dòng đầu. Post-mortem đợt 1 mục 2.2a: đẩy một câu từ
+    # hạng 1 xuống hạng 5 mất 0,20 điểm — đúng bằng lợi ích cứu một câu chết lên
+    # top-20. Thiết kế duy nhất không bao giờ lỗ là giữ y nguyên đầu bảng và chỉ
+    # dùng phần ĐUÔI để phủ thêm video. Đo được: xáo cả bảng thì top-10 tụt
+    # 0,90 -> 0,75 dù top-50 vẫn 1,00.
+    dau = rows[:giu_dau]
+    con_lai = rows[giu_dau:]
+    if not con_lai:
+        return rows
+
+    theo_video: dict[str, list[dict]] = {}
+    for r in con_lai:
+        theo_video.setdefault(r["video_id"], []).append(r)
+    da_co_o_dau = {r["video_id"] for r in dau}
+
+    max_rrf = max((r["score"] for r in con_lai), default=0.0) or 1.0
+    diem_video = {
+        vid: (1.0 - alpha) * (max(x["score"] for x in ds) / max_rrf)
+             + alpha * ds[0].get("video_vote", 0.0)
+        for vid, ds in theo_video.items()
+    }
+    # Video CHƯA xuất hiện ở đầu bảng đi trước: mục tiêu của phần đuôi là PHỦ
+    # thêm video, không phải đào sâu video đã có mặt.
+    thu_tu = sorted(theo_video, key=lambda v: (v in da_co_o_dau, -diem_video[v]))
+
+    ra: list[dict] = list(dau)
+    vong = 0
+    while len(ra) < len(rows):
+        them = False
+        for vid in thu_tu:
+            ds = theo_video[vid]
+            if vong < len(ds):
+                ra.append(ds[vong]); them = True
+        if not them:
+            break
+        vong += 1
+
+    # ⚠️ BẮT BUỘC khi đây là lần xếp CUỐI: `allocate()` và `rerank` đều TỰ SẮP
+    # LẠI đầu vào theo `score` giảm dần, nên đổi thứ tự list mà không đổi `score`
+    # thì thứ tự mới bị vứt ở bước sau và bật/tắt cho ra kết quả GIỐNG HỆT —
+    # đúng lỗi im lặng đã xảy ra một lần với tầng rerank (báo cáo K1–K5 §5).
+    if ghi_diem:
+        for i, r in enumerate(ra):
+            r["score_truoc_xen_ke"] = r["score"]
+            r["score"] = float(len(ra) - i)
+    return ra
+
+
 def _finalize(
     ket_qua: list[dict], shots: dict, top_k: int, group_by_shot: bool | None,
+    video_prior_alpha: float | None = None,
 ) -> list[dict]:
     """Gom về shot (mỗi shot giữ 1 keyframe điểm cao nhất) rồi cắt top_k."""
     gom_shot = GROUP_BY_SHOT if group_by_shot is None else group_by_shot
@@ -628,6 +870,12 @@ def _finalize(
             da_co.add(s)
             gon.append(r)
         ket_qua = gon
+    # Xen kẽ theo video TRƯỚC khi cắt top_k — cắt trước rồi xếp lại thì những
+    # video bị cắt mất không bao giờ quay lại được.
+    from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON
+    if VP_ON and video_prior_alpha != 0.0:
+        a = VP_ALPHA if video_prior_alpha is None else float(video_prior_alpha)
+        ket_qua = _video_diverse_order(ket_qua, a)
     return ket_qua[:top_k]
 
 
@@ -640,6 +888,7 @@ def search(
     filter_video_id: str | None = None,
     candidate_multiplier: int | None = None,
     rerank_top50: bool | None = None,
+    video_prior_alpha: float | None = None,
 ) -> list[dict]:
     """Search hợp nhất bằng RRF. Trả top-K, mỗi phần tử kèm thứ hạng từng nhánh.
 
@@ -654,16 +903,29 @@ def search(
     gọi, VLM không được phép nằm trong đường chạy này (xem `_search_core`).
     """
     ket_qua, shots = _search_core(
-        query_vi, query_en, top_k, branches, filter_video_id, candidate_multiplier
+        query_vi, query_en, top_k, branches, filter_video_id, candidate_multiplier,
+        video_prior_alpha,
     )
-    kq = _finalize(ket_qua, shots, top_k, group_by_shot)
+    kq = _finalize(ket_qua, shots, top_k, group_by_shot, video_prior_alpha)
 
     # Rerank chạy SAU khi gom shot và cắt top_k — nó xếp lại đúng những dòng sẽ
     # được nộp, không phải cả pool. Mặc định đọc config (đang TẮT, chờ cổng
     # R3.K4), nên Q&A/TRAKE không đổi hành vi một chút nào.
     from backend.retrieval.rerank_top50 import rerank as _rerank_top50
 
-    return _rerank_top50(kq, enabled=rerank_top50)
+    kq = _rerank_top50(kq, enabled=rerank_top50)
+
+    # Xếp xen kẽ theo video LẦN CUỐI, sau rerank: rerank chọn KHUNG HÌNH tốt
+    # trong mỗi shot (việc của nó), còn thứ tự nộp phải bảo đảm mỗi video được
+    # thử một lần trước khi thử video nào hai lần — sai video là 0 điểm tuyệt
+    # đối, nên phủ video luôn đi trước đào sâu.
+    from data.config.video_prior import ALPHA as _A, ENABLED as _ON
+    if _ON and video_prior_alpha != 0.0:
+        a = _A if video_prior_alpha is None else float(video_prior_alpha)
+        if a > 0.0:
+            from data.config.video_prior import GIU_DAU
+            kq = _video_diverse_order(kq, a, ghi_diem=True, giu_dau=GIU_DAU)
+    return kq
 
 
 # ------------------------------------------------------------------------- CLI

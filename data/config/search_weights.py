@@ -47,6 +47,10 @@ BRANCHES = {
     # MẶC ĐỊNH TẮT: Q&A và TRAKE cũng gọi search(), bật ngầm là đổi hành vi của
     # hai làn không phải của mình. Làn KIS bật riêng qua tham số `branches`.
     "vector_siglip2": False,
+    # Nhánh OCR theo TỪNG TOKEN HIẾM (mức KEYFRAME). MẶC ĐỊNH TẮT cùng lý do
+    # với vector_siglip2: nó thêm vài truy vấn ES cho MỌI caller, mà hiệu ứng
+    # của nó lên Q&A/TRAKE chưa được đo. Làn KIS bật riêng qua `branches`.
+    "ocr_probe": False,
     # Nhánh NGỮ NGHĨA tiếng Việt trên đoạn ASR (R3.X4). Đã đấu nối, chờ R3.X2
     # (Công Lý) encode xong collection. Bật khi chưa có dữ liệu → báo lỗi rõ,
     # không im lặng trả rỗng. Xem data/config/text_vi_vector.py.
@@ -85,6 +89,9 @@ BRANCH_WEIGHTS = {
     "vector_siglip2": 1.0,
     "objects": 0.7,
     "ocr": 0.6,
+    # Nhánh token hiếm: bằng chứng chữ khớp chính xác, đáng tin hơn khớp cả
+    # câu, nhưng OCR vẫn đọc sai chữ nên không đặt cao hơn nhánh vector.
+    "ocr_probe": 1.0,
     # Ngang `asr` vì cùng đơn vị (đoạn thời gian) và cùng nguồn (lời thoại), chỉ
     # khác cách khớp: `asr` khớp TỪ, `text_vi` khớp NGHĨA. Chưa có số đo — quét
     # lại ngay khi R3.X2 xong, đừng để nguyên vì "trông hợp lý".

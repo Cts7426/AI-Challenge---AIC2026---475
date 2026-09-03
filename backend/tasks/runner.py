@@ -478,7 +478,7 @@ def solve_query(
                 query_en=query_en,
                 top_k=total,
                 group_by_shot=True,
-                branches={"vector_siglip2": True},
+                branches={"vector_siglip2": True, "ocr_probe": True},
                 candidate_multiplier=KIS_CANDIDATE_MULTIPLIER,
             )
         else:

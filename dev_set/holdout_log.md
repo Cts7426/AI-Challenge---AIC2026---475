@@ -56,3 +56,26 @@
   tầng với lỗi thật, nên số đếm chính thức đã lên 3/5 — cân nhắc kỹ trước
   khi dùng nốt 2 lượt còn lại).
 - **Còn lại (đếm chính thức, dù lần này không đáng tin):** 2/5 lượt.
+
+- 2026-09-03 22:38 +0700 · `eval_official.py --part p2` · 19 câu · chiến dịch Đợt 3 (hạn mức 2 lượt)
+
+  - **Cấu hình đo:** làn KIS production sau khi gộp nhánh Thạch — dual vector
+    (CLIP + SigLIP2), pool 1500, `RRF_K=7`, rerank top-50 BẬT, `SLOT_BUDGET=[(50,2)]`,
+    `video_prior` TẮT, `ocr_probe` BẬT. Bản dịch đóng băng bằng `llm()`
+    (`claude-opus-5`, `official_r1r2.en.json`) — KHÔNG phải bản dịch tay.
+  - **Kết quả (19 câu KIS p2):** Final mức video **0,6421** · R@1 0,2105 ·
+    R@5 0,5263 · R@100 0,8421 · tìm ra video 16/19 · frame ±5/±15/±40 =
+    0,0316 / 0,0947 / 0,1895 · độ trễ trung vị 1,674s.
+    Artefact: `dev_set/results/run_20260903_merge_p2_holdout.json`.
+  - **So với p1 (đã tune, cùng cấu hình, cùng nguồn dịch):** Final 0,8000 →
+    0,6421 · R@1 0,55 → 0,21 · ±40 0,33 → 0,19.
+  - **Đã loại trừ một cách giải thích:** thiên vị "frame_exact trùng keyframe
+    BTC" (báo cáo 02/09 §1.2) KHÔNG giải thích được khoảng cách — p1 trùng
+    8/20 (40%), p2 trùng 7/19 (37%), gần như nhau.
+  - **Chưa loại trừ được:** đây là overfit lên 20 câu p1, hay p2 vốn khó hơn.
+    Phân xử được bằng một lượt A/B cấu hình CŨ (một nhánh vector, pool 500,
+    bảng slot cũ) trên chính p2 — CHƯA CHẠY, cần lượt holdout cuối.
+  - **Đọc con số này cho đúng:** đây là pipeline TỰ ĐỘNG THUẦN, chưa qua bước
+    Claude soi ảnh. Đợt 2 thật đội đạt 13,6/15 (`official_r1r2.meta.json`) là
+    điểm SAU khi soi. Nên 0,6421 là SÀN, không phải dự báo điểm thi.
+  - **Còn lại:** 1/5 lượt.

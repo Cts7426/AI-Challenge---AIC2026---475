@@ -305,6 +305,44 @@ chưa có.
   - Shot không có OCR, không có ASR trong ±3s, không có metadata thì **không gọi
     LLM**. Đây là chỗ phần lớn trong ~87 lời gọi/câu đang bị đốt.
   - **Xong khi:** số lời gọi mỗi câu xuống ≤ 25.
+  - **Bằng chứng 01/09:** cài `_shot_has_no_evidence()` trong `backend/tasks/qa.py`
+    (`_try_shot` trả None trước khi gọi `ask_llm()` nếu shot không OCR/ASR/metadata
+    **và** không ảnh — bắt buộc tính cả ảnh, không thì chặn nhầm mọi câu "visual").
+    3 test mới + 120/120 test Q&A cũ pass.
+    ⚠️ **Cổng này KHÔNG đạt "Xong khi" một mình — đã xác nhận bằng run thật:**
+    136/140 shot đã có OCR không rỗng (phần lớn là nhiễu watermark "htv
+    online"/"online" hoặc OCR bắt nhầm slide cạnh shot, không phải bằng chứng
+    thật). Replay run 01/09: chặn **0/280** lệnh gọi. Đo lại trên run cold-cache
+    MỚI `dev_set/results/run_r3q3_check` (02/09): chặn **0/89 shot**. Thủ phạm
+    ~84-108 gọi/câu là **số shot thử** (17-19 shot/câu ở mode `legacy`) × 3-6
+    gọi/shot — đúng phạm vi **R3.Q3**, không phải rỗng-bằng-chứng. Giữ cổng
+    (đúng bất biến "không đoán khi không có bằng chứng", rẻ, an toàn) nhưng
+    **đóng góp đo được của riêng nó = 0** trên dữ liệu hiện có.
+  - **🔑 CƠ CHẾ khiến cổng vô hiệu — đừng "sửa" sai hướng:** `metadata_text`
+    khác rỗng ở **140/140 shot**. Nó là title+description **cấp video**, giống
+    hệt nhau cho mọi shot trong cùng video → không bao giờ phân biệt được shot,
+    nhưng luôn làm điều kiện "có bằng chứng" thành đúng. Cộng với OCR watermark,
+    mọi shot đều "có bằng chứng" trên giấy tờ.
+  - **Đã thử và LOẠI (đo 02/09):** siết theo route — route `asr` bắt buộc có
+    `asr_texts` mới gọi LLM → chỉ đưa 53,4 **→ 47,4** gọi/câu (vẫn xa 25) **và
+    chặn mất shot thắng của QA_01**. Không đáng đổi.
+  - **Kết luận số học:** với `legacy` n=3 và ~9-10 shot/câu, sàn cứng đã là
+    ~27-30 gọi/câu. **Không luật siết bằng chứng nào đạt ≤25 khi còn giữ n=3.**
+    Đòn bẩy duy nhất còn lại là `two_stage` (screen n=1, confirm n=2 chỉ khi đủ
+    tin) — ước lượng từ confidence đã ghi: **≈25,4 gọi/câu**. Cần đo thật, xem
+    R3.Q3c.
+  - **📊 KẾT QUẢ 02/09 (R3.Q3c đã chạy):** `two_stage` cho **TB 25,2 gọi/câu**
+    (17/30/19/36/24), điểm không đổi. Ước lượng 25,4 khớp thực tế 25,2.
+    ⚠️ **"Xong khi ≤25" vẫn CHƯA đạt nếu đọc chặt:** TB 25,2 > 25, và tính
+    **từng câu** thì chỉ 3/5 đạt (QA_02=30, QA_04=36 vượt). Đạt hay không phụ
+    thuộc cách đọc "mỗi câu" — **cần Thạch chốt** trước khi tick.
+    Với `legacy` thì mục này **bất khả thi về mặt số học** (sàn ~27-30).
+  - **🔴 CHỐT 02/09: R3.Q2 "≤25 gọi/câu" KHÔNG ĐẠT ĐƯỢC, và ĐÓ LÀ LỰA CHỌN ĐÚNG.**
+    Đường duy nhất tới ≤25 là `two_stage` (đo trên `tune`: 22,8 gọi/câu — đạt),
+    nhưng nó nâng tỉ lệ câu fail từ 1/5 lên 3/5 (xem R3.Q3c). Mốc "≤25" là
+    **proxy đoán trước khi có số đo**; thứ tính điểm là câu trả lời đúng, không
+    phải số lời gọi. **Đề nghị đóng R3.Q2 ở trạng thái "đã cài cổng, không theo
+    đuổi mốc ≤25"** — chờ Thạch duyệt.
 
 - [ ] **R3.Q3 · P0 · [Thạch] Dừng sớm khi đã đủ tin**
   - `legacy` hiện không có ngân sách sinh và không dừng khi đã có câu trả lời mạnh.
@@ -312,6 +350,169 @@ chưa có.
     hành vi ngược lại** — sửa cả test.
   - **🔒 Cổng 02/09:** ≤ **60 s/câu**. Không đạt → tối 04/09 **để Q&A làm sau cùng**
     và chấp nhận bỏ nếu hết giờ (9 câu × 6 phút = 54 phút, không được ăn hết buổi thi).
+  - **Bằng chứng 01/09:** thêm `EARLY_STOP_CONFIDENCE=0.90` — sau khi vòng chính
+    (`thu_de_suy_luan`) đã thử **hết** (KHÔNG đổi — vẫn giữ nguyên fix QA_004
+    20/08 "thử hết rồi chọn cao nhất", KHÔNG dừng giữa vòng chính), nếu best
+    confidence ≥ ngưỡng thì bỏ qua PHA MỞ RỘNG VIDEO (~nửa số shot/câu).
+    ⚠️ **Cân nhắc an toàn:** ban đầu định dừng cả vòng chính khi gặp shot tự tin
+    đầu tiên — đã BỎ ý đó sau khi đọc lại comment `MAX_SHOTS_TRIED` (qa.py dòng
+    ~126): đúng pattern đã gây QA gần-như-hỏng-hoàn-toàn ở QA_004 (dừng sớm ở
+    shot #1 sai video, không bao giờ chạm bằng chứng đúng ở hạng 3). Chỉ áp
+    dụng cho pha mở rộng (phụ trợ, thêm sau 21/08), không đụng vòng chính.
+    Test cũ đổi tên → `test_main_tu_tin_cao_thi_bo_qua_mo_rong_video` (khoá hành
+    vi MỚI: confidence 0,99 → không gọi `_expand_within_video`), thêm
+    `test_main_chua_du_tin_thi_van_mo_rong_video` (đối trọng: confidence thấp
+    vẫn mở rộng như cũ). 122/122 test Q&A pass.
+  - **🔴 ĐO THẬT 02/09 — CỔNG ≤60 s/câu KHÔNG ĐẠT (0/5 câu).**
+    Artefact: `dev_set/results/run_r3q3_check`, chạy cold cache
+    (`LLM_NO_CACHE=1 QA_INFERENCE_MODE=legacy`, split `dress25`), đối chiếu
+    RUN 3 27/08 `run_20260827_154710_27d970c1` cũng cold cache.
+
+    | Câu | shot cũ→mới | gọi cũ→mới | giây cũ→mới | vs cổng 60s |
+    |---|---|---|---|---|
+    | QA_01 | 17→**8** | 96→**45** | 360,6→**161,5** | 2,7× |
+    | QA_02 | 18→**10** | 54→**30** | 210,6→**114,2** | 1,9× |
+    | QA_03 | 18→**9** | 105→**51** | 476,2→**240,9** | 4,0× |
+    | QA_04 | 18→18 | 108→108 | 404,2→**398,4** | 6,6× |
+    | QA_05 | 19→**9** | 57→**33** | 195,9→**128,8** | 2,1× |
+
+    Median **360,6 → 161,5 s (-55%)**; tổng 5 câu **27ph28 → 17ph24 (-37%)**;
+    trung bình gọi **84,0 → 53,4**. `early_stop=True` ở 4/5 câu (trace).
+    **Điểm Q&A KHÔNG đổi** (0/0/1,0/0/0 ở cả hai run) → bỏ pha mở rộng không
+    làm mất câu trả lời nào. Không có Q&A regression.
+
+    ⚠️ **Dự đoán trước đó của tôi (36,6 gọi/câu) SAI** — script replay mô phỏng
+    thiết kế "dừng ngay ở shot đầu tiên vượt ngưỡng", tức bản aggressive đã bị
+    **cố ý loại** vì rủi ro QA_004; code thật chạy hết vòng chính rồi mới bỏ
+    pha mở rộng. Số đúng là **53,4**. Đừng dùng lại con số 36,6 ở bất kỳ đâu.
+
+    ⚠️ **Worst case không được cải thiện:** QA_04 chưa bao giờ đủ tin nên không
+    early-stop, vẫn 18 shot / 108 gọi / 398 s **rồi vẫn fail `missing_evidence`**
+    (0 điểm). Đây là 1 câu ăn 6,6 phút để đổi lấy 0 điểm. Không có timeout cấp
+    query trong code (xem `docs/plans/2026-08-28-round2-qa-operational-decision.md`
+    §5) — đây là đòn bẩy còn lại lớn nhất cho thông lượng, xem R3.Q3b.
+
+  - **Hệ quả theo đúng điều khoản cổng:** tối 04/09 **để Q&A làm sau cùng**,
+    chấp nhận bỏ nếu hết giờ. Ngân sách 9 câu Q&A với số mới: trung bình
+    9 × 208,8 s ≈ **31 phút** (median-based ≈ 24 phút; nếu xui toàn worst case
+    ≈ 60 phút). Trước R3.Q3 con số này là ≈ 49 phút (trung bình) — tức đã lấy
+    lại khoảng **18 phút** trong buổi thi 180 phút, nhưng vẫn không phải mức
+    "9 phút" mà cổng ≤60s/câu nhắm tới.
+
+- [ ] **R3.Q3b · P0 · [Thạch] Timeout cấp query cho Q&A — ĐỀ XUẤT, CHƯA DUYỆT**
+  - Sinh ra từ số đo R3.Q3: early-stop chỉ giúp câu **tìm được** bằng chứng
+    mạnh. Câu không tìm được (QA_04) vẫn chạy hết 398 s rồi fail 0 điểm. Trong
+    buổi thi, 1 câu như vậy ăn 6,6 phút mà chắc chắn không đổi lấy điểm nào.
+  - Ý tưởng: chốt ngân sách giây/câu (vd 150 s); hết giờ thì trả hypothesis tốt
+    nhất đang có, không có thì fail `missing_evidence` **sớm** như hiện nay.
+  - **Đánh đổi phải cân trước khi làm:** câu chậm-nhưng-đúng sẽ bị cắt. Trên
+    `dress25` thì không mất gì (QA_04 vốn 0 điểm) — nhưng `dress25` chỉ 5 câu và
+    là diagnostic, **không đủ để kết luận**. Cần Linh/holdout xác nhận.
+  - ⚠️ R3.2 nói rõ đợt 3 "không thêm kiến trúc mới" và 03/09 là freeze — đây là
+    thay đổi hành vi thật, **không tự làm khi chưa có người duyệt**.
+
+- [ ] **R3.Q3c · P0 · [Thạch] Đo `two_stage` trên dress25 — sinh bằng chứng còn thiếu**
+  - `two_stage` đã implement + unit test, nhưng
+    `docs/plans/2026-08-28-round2-qa-operational-decision.md` §4 **cấm bật ở
+    release** vì lý do DUY NHẤT: *"Không tìm thấy live replay/promotion
+    artefact"*. Chạy một lượt dress25 cold cache là tạo ra đúng artefact đó.
+  - Giải quyết CÙNG LÚC hai thứ đang tắc, bằng code đã có sẵn (không phải kiến
+    trúc mới, hợp R3.2):
+    · **R3.Q2 "≤25 gọi/câu"** — ước lượng 53,4 → 25,4.
+    · **Worst case của R3.Q3** — `QA_TWO_STAGE_MAX_GENERATIONS=42` cho một
+      **trần cứng cấp query** mà `legacy` hoàn toàn không có (QA_04 ước lượng
+      36 gen, nằm dưới trần). Đây là cách chặn worst case **không cần** thêm
+      timeout mới của R3.Q3b.
+  - **Xong khi:** có `dev_set/results/run_two_stage_check` với gọi/câu, giây/câu
+    và **điểm Q&A so với `run_r3q3_check`**. Điểm tụt → giữ `legacy`, đóng hồ sơ.
+  - ⚠️ Đây mới chỉ là **đo**. Bật cho đợt 3 là quyết định của cổng 03/09 20:00.
+  - **✅ ĐÃ ĐO 02/09** — `dev_set/results/run_two_stage_check`, cold cache, cùng
+    model `claude-sonnet-5`/backend `api` với cả hai lượt đối chiếu (đã kiểm
+    `llm_provenance` của cả 3 snapshot — không bị nhiễu do đổi model).
+
+    | Câu | gọi legacy→2stage | giây legacy→2stage | điểm |
+    |---|---|---|---|
+    | QA_01 | 45→**17** | 161,5→**91,8** | 0,0 = 0,0 |
+    | QA_02 | 30→**30** | 114,2→**108,9** | 0,0 = 0,0 |
+    | QA_03 | 51→**19** | 240,9→**92,0** | **1,0 = 1,0** |
+    | QA_04 | 108→**36** | 398,4→**156,6** | 0,0 = 0,0 (vẫn `missing_evidence`) |
+    | QA_05 | 33→**24** | 128,8→**117,5** | 0,0 = 0,0 |
+
+    · **Gọi/câu TB 53,4 → 25,2** · **median giây 161,5 → 108,9 (-33%)** ·
+    tổng 5 câu 17ph24 → **9ph27** · **worst case 398,4 → 156,6 s (-61%)**
+    · **Điểm Q&A 0,200 = 0,200; overall 25 câu 0,36 = 0,36 — KHÔNG tụt.**
+    · Trần 42 generation **chưa lần nào chạm** (cao nhất 30) — vẫn là bound cứng.
+    · Số câu lỗi không đổi (1/25, vẫn đúng QA_04).
+
+    ⚠️ **"Không phát hiện tụt điểm" ≠ "không tụt điểm".** 4/5 câu Q&A của
+    `dress25` vốn đã 0 điểm — điểm 0 giữ nguyên 0 thì không nói lên gì. Tín
+    hiệu thật chỉ có **đúng 1 câu** (QA_03 giữ 1,0). Đây là bằng chứng
+    diagnostic, KHÔNG phải promotion (đúng như round-2 doc đã ràng).
+
+    ⚠️ **Cổng ≤60 s/câu VẪN KHÔNG ĐẠT:** nhanh nhất 91,8 s (1,53×), median
+    108,9 s (1,82×). two_stage thu hẹp khoảng cách chứ không đóng được.
+
+  - **🔴 ĐO LẦN 2 TRÊN `--split tune` 02/09 — KẾT LUẬN ĐẢO NGƯỢC: KHÔNG BẬT.**
+    `run_tune_legacy_check` vs `run_tune_two_stage_check`, cold cache, cùng
+    model `claude-sonnet-5`. `tune` có 5 câu Q&A **khác hẳn** `dress25`, và
+    quan trọng là legacy **thật sự giải được 4/5** (khác `dress25` nơi 4/5 vốn
+    đã 0 điểm) — nên đây mới là tập có khả năng phát hiện tụt điểm.
+
+    | Câu | legacy | two_stage |
+    |---|---|---|
+    | QA01 | fail · 0,0 | fail · 0,0 |
+    | QA02 | ok · 0,0 | ok · **1,0** ⬆ |
+    | QA03 | ok · **0,2** | **fail** · 0,0 ⬇ |
+    | QA04 | ok · **1,0** | **fail** · 0,0 ⬇ |
+    | QA05 | ok · 0,0 | ok · 0,0 |
+    | **TB điểm Q&A** | **0,24** | **0,20** |
+    | **Số câu FAIL** | **1/5** | **3/5** |
+    | TB gọi/câu | 72,6 | **22,8** |
+    | TB giây/câu | 313,1 | **104,1** |
+
+    · **Tốc độ: thắng chắc chắn** (3×, và 22,8 gọi/câu là **đạt** mốc ≤25 của
+      R3.Q2). Đây là tính chất cấu trúc (ít mẫu hơn), không phải nhiễu.
+    · **Điểm: KHÔNG chứng minh được thắng.** TB Q&A đi xuống 0,24 → 0,20.
+    · **Tỉ lệ fail: xấu đi rõ, 1/5 → 3/5.** Giải thích được bằng cơ chế:
+      two_stage sàng n=1 và phải đạt `QA_SCREEN_CONFIRM_MIN_CONFIDENCE=0.50`
+      mới đi tiếp; legacy lấy trung bình 3 mẫu nên tha thứ hơn. Một mẫu đơn lẻ
+      dưới ngưỡng là loại cả shot → dễ ra `missing_evidence` hơn.
+      **Câu fail = 0 điểm + KHÔNG có dòng CSV**, tệ hơn hẳn câu chậm.
+
+    ⚠️ **Sàn nhiễu đo được:** 3/25 câu KIS/TRAKE **đổi điểm** giữa hai lượt
+    (K07 0,0→0,6 · K12 0,8→1,0 · K18 0,0→0,2) dù chế độ Q&A không ảnh hưởng
+    KIS chút nào — nhiễu thuần từ cold cache (LLM sinh lại query expansion
+    khác). Với n=5 và biên độ ±1,0/câu, **chênh 0,24 vs 0,20 nằm trong nhiễu**;
+    không được đọc như "two_stage kém hơn 0,04". Thứ nằm NGOÀI nhiễu là tốc độ
+    và cơ chế gây fail.
+
+  - **✅ KẾT LUẬN R3.Q3c: GIỮ `legacy` cho Đợt 3.** Theo đúng luật cổng 03/09
+    ("bằng nhau hoặc thua → nộp bằng cấu hình cũ"), two_stage không chứng minh
+    được thắng về điểm, lại tăng tỉ lệ fail. Tốc độ không mua được điểm nếu
+    đổi lại là thêm câu 0 điểm. Hồ sơ two_stage **đóng**, không cần đốt holdout
+    `p2` cho nó nữa.
+
+- [ ] **R3.Q5 · P2 · [Thạch] Bug capture: `needs_images=True` + `frames=[]` làm sập bộ đo**
+  - Phát hiện 02/09 khi chạy `run_tune_two_stage_check`: chạy xong đủ 30/30 câu
+    rồi **crash ở bước cuối**, `scores.json` không được ghi:
+    `RuntimeError: capture dòng 125 yêu cầu ảnh nhưng không có frame`.
+  - Nguyên nhân: `_infer_legacy`/`_infer_two_stage` khi text yếu sẽ gọi
+    `collect_evidence(..., needs_images=True)`. `capture_evidence()` ghi record
+    với `needs_images=True` **ngay lập tức**, TRƯỚC khi biết `_evidence_frames()`
+    có tìm được ảnh trên đĩa không. Shot `L26_V133#s0095` không có file ảnh →
+    `frames=[]` → `load_evidence_capture()` từ chối đúng cặp đó. Đường suy luận
+    xử lý `frames=[]` rất đàng hoàng (`if ev_img.frames: ... else: restore`),
+    chỉ có record capture là ghi sai sự thật.
+  - **KHÔNG phải do R3.Q2/R3.Q3** (cổng chỉ chặn khi rỗng hoàn toàn; shot này có
+    ASR). Lỗi có sẵn, chỉ hiếm gặp: 1/101 record ở lượt này, 0/121 + 0/89 + 0/90
+    ở ba lượt còn lại.
+  - **KHÔNG ảnh hưởng đường chạy thi:** `run.py` không set `QA_EVIDENCE_LOG_PATH`
+    và không gọi `validate_evidence_capture` (đã kiểm bằng grep) → capture tắt,
+    lỗi không thể nổ lúc thi. Chỉ làm sập **bộ đo**.
+  - Thiệt hại thực tế: mất `scores.json`; `scores.jsonl` vẫn đủ để chấm lại tay.
+  - Sửa gọn: ghi `needs_images` theo **thực tế đạt được** (`bool(ev.frames)`),
+    hoặc thêm cờ `images_requested_but_unavailable`. ⚠️ Đụng schema capture +
+    hash → cân nhắc so với freeze 03/09; **không tự sửa khi chưa duyệt**.
 
 - [ ] **R3.Q4 · P1 · [Thạch] Định tuyến bằng chứng đúng `CLAUDE.md` 5.2**
   - tên/chức danh → OCR · lời nói → ASR · **đếm → detector, TUYỆT ĐỐI không hỏi
@@ -320,6 +521,154 @@ chưa có.
     Q&A của `dress25`. ⚠️ Tập mỏng và `dress25` chưa xác minh; chỉ đọc **chênh
     lệch trước/sau**, không đọc con số tuyệt đối. 9 câu Q&A của `p2` là holdout,
     để dành cho quyết định cuối 03/09.
+
+  - **🔧 ĐÃ CÀI 02/09 — bốn thay đổi, tất cả đều là lỗi IM LẶNG (không crash):**
+
+    1. **Prompt suy luận không hề biết route.** `_build_prompt()` đổ bằng chứng
+       theo thứ tự CỐ ĐỊNH `metadata → OCR → ASR`, ngang hàng nhau, không nói
+       nguồn nào đáng tin hơn. Tức quyết định định tuyến mà planner bỏ công làm
+       chưa từng tới được chỗ suy luận. Metadata (tiêu đề/mô tả **cấp video**,
+       giống hệt nhau cho MỌI shot cùng video nên không phân biệt được shot
+       đúng/sai) lại đứng ĐẦU prompt, còn OCR thì chính ghi chú R3.Q2 đã đo là
+       phần lớn nhiễu watermark. → Sắp lại theo route, gắn nhãn `NGUỒN CHÍNH`,
+       nguồn phụ **giữ nguyên** trong prompt với nhãn "tham khảo" (cắt hẳn sẽ
+       đổi lỗi nhẹ "route sai → mất ưu tiên" lấy lỗi nặng "route sai → mất bằng
+       chứng").
+    2. **Planner chọn route mà không được cho biết luật.** `_build_planner_prompt`
+       chỉ LIỆT KÊ 6 tên enum `answer_mode`, không định nghĩa cái nào nghĩa gì.
+       Trên đường chạy chính `route_question()` rule-based **không hề được gọi**
+       (nó chỉ là fallback khi planner lỗi), nên toàn bộ §5.2 đang phó thác cho
+       LLM đoán. → Viết thẳng luật vào prompt, kèm luật gỡ hoà "cụm chỉ NGUỒN
+       thắng cụm chỉ KIỂU câu trả lời".
+    3. **`count` VẪN hỏi VLM bằng ảnh.** §5.2 viết "đếm → detector, TUYỆT ĐỐI
+       không hỏi VLM" và điều đó chỉ đúng ở LƯỢT ĐẦU. Khi detector trượt
+       (`_object_count` trả `None` vì nhãn LLM sinh tự do không khớp 600 lớp
+       OpenImages — ca rất thường gặp), luồng rơi xuống `_infer_legacy` /
+       `_infer_two_stage`, và hễ confidence text < `LOW_CONFIDENCE` là gọi
+       `collect_evidence(needs_images=True)` → **VLM đếm bằng mắt**. Có test
+       chứng minh: bỏ chốt chặn ra thì 2 test đỏ ở CẢ `legacy` lẫn `two_stage`.
+       → `_co_the_leo_thang_anh()` chặn ảnh cho đúng route `count`; route đó vẫn
+       được hỏi LLM bằng bằng chứng **text** (cấm là cấm nhìn ảnh, không cấm suy
+       luận).
+    4. **Bảng `ROUTING_RULES` thiếu đúng những cụm của bộ tune.** Không luật asr
+       nào chứa "lời thoại"/"được nhắc đến"; không luật ocr nào chứa "con
+       số"/"biển báo". 4/9 câu tune vì thế rơi về `text_first`. Đồng thời `asr`
+       phải đứng **trước** `ocr` để "được nhắc đến … tên gì" không bị "tên " nuốt.
+
+    Bump `qa-planner-v2 → v3` và `qa-evidence-v2 → v3`: `prompt_version` nằm
+    trong `_qa_cache_identity`, không bump thì output v2 cũ được replay cho
+    prompt mới và mọi phép đo trước/sau thành vô nghĩa.
+
+  - **📊 KẾT QUẢ ĐO 02/09 — `dress25` (5/9 câu): ĐIỂM KHÔNG ĐỔI, CHI PHÍ TĂNG.**
+    Cold cache `LLM_NO_CACHE=1`, đối chiếu `run_r3q3_check` (cùng điều kiện):
+
+    | | TRƯỚC (`run_r3q3_check`) | SAU (`run_r3q4_check`) |
+    |---|---|---|
+    | Q&A final (TB 5 câu) | **0,20** | **0,20** |
+    | điểm từng câu | 0 / 0 / 1,0 / 0 / 0 | 0 / 0 / 1,0 / 0 / 0 |
+    | shot thử | 89 | 99 |
+    | lượt gọi | 267 | **297** (+11%) |
+    | giây (4 câu có đo) | 644,3 | **862,3** (+34%) |
+
+    `event_vi` và `question_vi` planner tách ra **giống hệt** trước/sau (đã so
+    từng câu) — prompt planner đổi mà không làm lệch phần đưa vào retrieval.
+
+  - **🔎 VÌ SAO KHÔNG LÊN: `dress25` KHÔNG ĐO ĐƯỢC thứ R3.Q4 sửa.**
+    4/5 câu trượt ở **cửa frame/video**, không phải cửa answer:
+    · `DRESS_QA_01` GT `L28_V003`, hệ trả `L25_V001` — sai hẳn video
+    · `DRESS_QA_02` GT `L26_V221`, hệ trả `L26_V327` — sai hẳn video
+    · `DRESS_QA_05` `retrieval_miss` · `DRESS_QA_04` `missing_evidence`
+    Định tuyến bằng chứng quyết định **đọc nguồn nào của shot đã chọn**; nó
+    không thể cứu câu mà retrieval đưa sai video ngay từ đầu. Đòn bẩy cho 4 câu
+    này nằm ở làn K/X (nhánh ngữ nghĩa tiếng Việt), không ở đây.
+    Một dấu hiệu tích cực nhỏ: `DRESS_QA_01` đổi `failure_class`
+    `retrieval_miss → qa_reasoning`, tức hệ đã tới được bước suy luận thay vì
+    trượt từ vòng ngoài — nhưng vẫn 0 điểm nên **không được đọc như cải thiện**.
+
+  - **📊 KẾT QUẢ ĐO `p1` (02/09, sau khi nạp credit) — 0/3 → 0/3, KHÔNG ĐỔI.**
+    Lượt TRƯỚC dựng bằng cách revert **riêng** R3.Q4, GIỮ NGUYÊN R3.Q2/Q3 (xác
+    minh: đúng 13 test R3.Q4 đỏ, 38 test còn lại xanh) — nên đây là delta của
+    riêng R3.Q4, không lẫn R3.Q2/Q3. Cả hai lượt `LLM_NO_CACHE=1`, không lỗi
+    credit.
+
+    | câu | TRƯỚC | SAU | GT |
+    |---|---|---|---|
+    | `query-p1-3-qa` | ✗ `SolveQueryError` (14 shot, không ra answer) | ✗ `SolveQueryError` (19 shot) | `600g` |
+    | `query-p1-15-qa` | ✗ "Không có dữ liệu về động đất…" | ✗ `7` | `12` |
+    | `query-p1-17-qa` | ✗ `Đèo Chuối` | ✗ `Đèo Chuối` | `đèo Tà Pứa` |
+    | **cửa answer** | **0/3** | **0/3** | |
+    | thời gian | 24,1 phút (482,5s/câu) | 20,9 phút (417,8s/câu) | |
+
+    · `query-p1-9-qa` **không đo được**: GT `answer_text` để trống — đúng một
+      trong ba phán quyết đang chờ chữ ký ở **R3.V1**. Mẫu số thật chỉ còn 3.
+
+  - **🔴 PHÁT HIỆN QUAN TRỌNG NHẤT: BỘ ĐO 3 CÂU KHÔNG PHÂN GIẢI ĐƯỢC THAY ĐỔI NÀY.**
+    `query-p1-3-qa` chạy **hai lần trên CÙNG một cây R3.Q4, cùng `LLM_NO_CACHE=1`**:
+    · lượt 1 → `600g` **✓ ĐÚNG**
+    · lượt 2 → `SolveQueryError`, thử 19 shot không ra answer nào
+    Không đổi một dòng code nào ở giữa. Nguyên nhân cấu trúc: `_vote_results`
+    đòi `votes ≥ 2/3` mới nhận, mà 3 lượt sinh của Claude là ngẫu nhiên — qua
+    14–19 shot, việc CÓ shot nào đạt đồng thuận 2/3 hay không là chuyện may rủi.
+    **Biên độ nhiễu run-to-run ≥ 1/3 câu = 0,33** — lớn hơn mọi hiệu ứng mà
+    R3.Q4 có thể tạo ra trên tập này.
+    ⚠️ Hệ quả cho **quyết định cuối 03/09**: 9 câu Q&A của `p2` (holdout) cũng
+    **không đủ** để phân xử A/B cho làn Q&A. Muốn kết luận thật thì phải chạy
+    **lặp lại nhiều lượt cùng cấu hình** rồi so trung bình, hoặc chấp nhận quyết
+    định theo BẤT BIẾN chứ không theo điểm. Đốt holdout `p2` cho một phép so
+    một-lượt là **vứt hạn mức**.
+
+  - **🔎 Thêm một chỉ dấu: shot thắng nằm ở hạng 102–106.**
+    `query-p1-15-qa` — shot sinh ra câu trả lời là **hạng 105 (TRƯỚC) / 102
+    (SAU)** trong 100 slot, rồi bị `_dua_len_dau` kéo lên hạng 1. Tức retrieval
+    xếp shot đúng ra NGOÀI top-100. Cùng câu chuyện với 4/5 câu `dress25` trượt
+    ở cửa video. **Nút thắt của làn Q&A là retrieval, không phải định tuyến bằng
+    chứng** — khớp với lý do làn X (nhánh ngữ nghĩa tiếng Việt) được ưu tiên.
+
+  - **⚖️ KẾT LUẬN R3.Q4: KHÔNG ĐẠT mốc ≥ 0,40. Giữ code vì BẤT BIẾN, không vì điểm.**
+    Tổng hợp 8 câu đo được (5 `dress25` + 3 `p1`): **0,20 → 0,20** và **0/3 →
+    0/3**. Theo đúng luật cổng 03/09 ("bằng nhau hoặc thua → nộp bằng cấu hình
+    cũ"), R3.Q4 **không** chứng minh được thắng về điểm.
+    Nhưng phần đáng giữ không phải phần đo bằng điểm:
+    · **Chốt chặn `count` → ảnh (mục 3) PHẢI giữ** — đó là vi phạm `CLAUDE.md`
+      §5.2 có thật, tái hiện được bằng test ở CẢ hai mode. Nó chỉ kích hoạt trên
+      route `count`, không đụng câu nào khác, nên chi phí bằng 0.
+    · **Bảng `ROUTING_RULES` (mục 4) giữ** — chỉ là đường fallback, chi phí 0.
+    · **Hai prompt v3 (mục 1–2) là phần CÓ THỂ bàn lại**: chúng là thứ duy nhất
+      làm tăng chi phí đo được trên `dress25` (+11% lượt gọi, +34% giây) mà
+      chưa mua được điểm nào. Nếu 03/09 cần cắt rủi ro, đây là chỗ rollback —
+      nhưng phải rollback CẢ `prompt_version` để không replay cache lẫn lộn.
+    **Cần Thạch quyết**, không tự rollback.
+
+  - **🔧 Công cụ mới: `dev_set/tools/eval_official_qa_answers.py`.**
+    Trước đó **không có cách nào** đọc kết quả Q&A trên `p1`:
+    `run_evaluation.py` chấm đủ hai cửa nhưng chỉ nạp được GT đúng schema
+    `GroundTruthQA` (bắt buộc `frame_start`/`frame_end` + ≥3 `answer_variants`),
+    mà `official_r1r2.jsonl` **không có cửa sổ `[s,e]`** (BTC chưa công bố) và
+    không có variants → nạp thẳng là `TypeError`; còn `eval_official.py` nạp
+    được bộ đề chính thức nhưng chỉ chạy `search()`, không gọi `qa_pipeline`.
+    Tool mới chấm **một cửa (answer)** — luôn là CẬN TRÊN của điểm thật, phải
+    đọc kèm `eval_official.py --task QA` cho cửa frame. Nó cũng log `route`
+    (`evidence_type`/`answer_mode`/`planner_fallback`) từng câu để đọc được
+    NGUYÊN NHÂN chứ không chỉ điểm.
+
+  - **⚠️ Quan sát để lại cho R3.Q4b (CHƯA sửa, cần duyệt):**
+    `_route_for_answer_mode` map `visual_read → ("visual", needs_images=True)`,
+    tức planner nói "visual_read" là ảnh được gửi NGAY, bỏ qua hẳn index OCR —
+    ngược chiến thuật text-first và ngược §5.2 ("số/tỉ số → OCR"). Không sửa
+    trong lượt này vì: (a) planner **không** trả `visual_read` cho câu nào trong
+    10 câu đã đo, nên sửa cũng không đo được; (b) đổi nó phải đồng thời sửa cổng
+    R3.Q2 (`_shot_has_no_evidence`), nếu không shot không-có-text sẽ bị bỏ qua
+    trước khi kịp leo thang sang ảnh — đúng dạng lỗi im lặng nặng hơn cái đang
+    sửa. Cần đo bằng câu thật trước khi động vào.
+
+  - **Chạy lại:**
+    ```
+    LLM_NO_CACHE=1 .venv/Scripts/python.exe -m dev_set.tools.run_evaluation \
+        --split dress25 --out dev_set/results/run_r3q4_check
+    LLM_NO_CACHE=1 .venv/Scripts/python.exe -m dev_set.tools.eval_official_qa_answers \
+        --part p1 --out dev_set/results/qa_answers_p1_after_r3q4.json
+    .venv/Scripts/python.exe -m pytest tests/test_qa.py tests/test_qa_hypotheses.py -q
+    ```
 
 ### Làn TRAKE · Thạch — 2/30 câu
 
@@ -359,6 +708,50 @@ chưa có.
     `maxItems` là lỗi tương thích provider chỉ lộ ra ở lần gọi thật.
   - **Bắt đầu SÁNG 31/08** — đường găng dài nhất của làn này; X2/X3/X4 đều đứng sau.
   - **Xong khi:** 13.415/13.415 đoạn có bản sạch, resume được.
+
+  - **📊 SMOKE THẬT 02/09 (key Gemini của team, gọi THẲNG SDK, timeout cứng):**
+    đây chính là "provider integration test gap" mà review 28/08 cảnh báo — và
+    nó có thật.
+
+    | model | kết quả | thời gian |
+    |---|---|---|
+    | `gemini-3.7-flash` | **0/3 OK** — 504 `DEADLINE_EXCEEDED` cả 3 lần | ~60s/lần rồi chết |
+    | `gemini-3.6-flash` | **2/3 OK** (1 lần 503 `UNAVAILABLE`) | **5,2s và 55,6s** |
+
+    · `gemini-3.7-flash` **KHÔNG dùng được** với cấu hình structured output của
+      Q&A (`response_schema` + `max_output_tokens=8192`). Không phải lỗi schema:
+      prompt ngắn KHÔNG schema cũng 503/504. Nó cũng **không có trong `PRICING`**
+      → `_ghi_nhan()` rơi về `(0.0, 0.0)`, báo chi phí **$0** một cách im lặng.
+    · `gemini-3.6-flash` (mặc định repo) chạy được nhưng **biến động 10×**
+      (5,2s → 55,6s) và có 503. Chấp nhận được cho job OFFLINE theo lô có
+      checkpoint/resume như X1; KHÔNG chấp nhận được cho đường chạy online.
+    · Khớp đúng ghi chú 14/08 ở đầu `adapter.py`: alias/model Gemini "hay 503
+      quá tải, có lần TREO".
+
+  - **⚠️ BA LỖI IM LẶNG nếu đổi `LLM_BACKEND=gemini` cho làn Q&A** (X1 là job
+    offline nên KHÔNG dính; ghi ở đây để không ai mở rộng nhầm phạm vi):
+
+    1. **`effort` biến mất.** `_call_gemini()` không nhận tham số `effort` —
+       nhánh gemini bỏ qua hoàn toàn. Fix 18/08 đặt `effort="high"` cho bước suy
+       luận Q&A (trước đó chạy ở `low`, "bước quan trọng nhất chạy ở effort thấp
+       nhất"). Đổi backend là **mất lại đúng cái đòn bẩy vừa sửa**, không cảnh báo.
+    2. **Self-consistency n=3 thành vô nghĩa.** `llm()` mặc định
+       `temperature=0`, và temperature **CÓ tác dụng ở gemini** (khác `api`, nơi
+       nó bị bỏ qua). 3 lượt sinh gần như trùng nhau → trong `_vote_results`,
+       `votes/len(results)` luôn = 1,0 → **hệ số phạt bất đồng thuận biến mất**,
+       mọi shot được confidence đầy. Mà confidence chính là thứ `_dua_len_dau`
+       dùng để xếp hạng VÀ là thứ `EARLY_STOP_CONFIDENCE=0,90` (R3.Q3) dựa vào.
+       Không crash — chỉ xếp hạng sai và dừng sớm sai.
+    3. **Mọi phép đo trước/sau bị phá.** `runtime_manifest()` đưa
+       `backend` + model vào `runtime_fingerprint`. Toàn bộ lượt "TRƯỚC" đang có
+       (`run_r3q3_check`, `run_tune_legacy_check`, RUN 3 27/08) đều là
+       `claude-sonnet-5`. Chạy lượt "SAU" trên Gemini = đo **đổi nhà cung cấp +
+       thay đổi code CÙNG LÚC**, không tách được biến nào ra biến nào.
+
+  - **✅ CHỐT: Gemini dùng cho X1/X3 (offline, theo lô) với `gemini-3.6-flash`.
+    KHÔNG dùng cho làn Q&A, KHÔNG dùng để đo R3.Q4, KHÔNG làm backend chính
+    Đợt 3.** Muốn đổi backend cho Q&A thì phải sửa trước ba mục trên rồi đo lại
+    TOÀN BỘ baseline — không đủ thời gian trước 04/09.
 
 - [ ] **R3.X2 · P1 · [Công Lý] Encode nhánh vector tiếng Việt — HAI nhánh**
   - `dangvantuan/vietnamese-embedding` (PhoBERT, 768 chiều, 512 token) —

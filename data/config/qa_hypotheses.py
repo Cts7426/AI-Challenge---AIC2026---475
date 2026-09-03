@@ -17,8 +17,16 @@ ANSWER_MODES = (
 )
 
 # Tăng version khi prompt/schema planner hoặc prompt suy luận đổi nghĩa.
-QA_PLANNER_PROMPT_VERSION = "qa-planner-v2"
-QA_INFERENCE_PROMPT_VERSION = "qa-evidence-v2"
+#
+# v3 (02/09, R3.Q4 — định tuyến bằng chứng theo CLAUDE.md §5.2):
+#   · planner: 6 giá trị `answer_mode` được ĐỊNH NGHĨA (trước chỉ liệt kê tên),
+#     kèm luật "cụm chỉ NGUỒN thắng cụm chỉ KIỂU câu trả lời".
+#   · suy luận: bằng chứng sắp theo route, nguồn chính có nhãn riêng (trước là
+#     thứ tự cố định metadata → OCR → ASR, ngang hàng).
+# Bắt buộc bump: prompt_version nằm trong `_qa_cache_identity`, không bump thì
+# output v2 cũ được replay cho prompt v3 và mọi phép đo trước/sau thành vô nghĩa.
+QA_PLANNER_PROMPT_VERSION = "qa-planner-v3"
+QA_INFERENCE_PROMPT_VERSION = "qa-evidence-v3"
 QA_HYPOTHESIS_CACHE_SCHEMA_VERSION = 1
 
 # Canonical của mọi hypothesis luôn đi trước; sau đó mỗi hypothesis chỉ chiếm

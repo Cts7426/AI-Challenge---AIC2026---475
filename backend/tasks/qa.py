@@ -35,6 +35,41 @@
 # "đúng" theo nghĩa unique object toàn shot. Chấp nhận ở v1, xem thêm
 # data/config/qa_routing.py.
 #
+# ===== Cổng bằng chứng trước khi gọi LLM (R3.Q2, BUILD_TASKS P0) =====
+# `_shot_has_no_evidence()`: shot không OCR, không ASR ±3s, không metadata,
+# không ảnh → `_try_shot` trả None ngay, không gọi ask_llm(). Đo lại bằng
+# replay `qa_evidence.jsonl` của run 01/09 (commit 4372069, 5 câu QA "dress25"):
+# 136/140 shot ĐÃ có OCR không rỗng — phần lớn là nhiễu watermark ("htv
+# online") hay OCR bắt nhầm slide cạnh shot, không phải bằng chứng thật —
+# nên cổng này đo được KHÔNG chặn lệnh gọi nào trên batch đó (0/280). Thủ phạm
+# chính của ~84-108 gọi/câu đo được là số SHOT thử (17-19 shot/câu ở mode
+# `legacy`) × 3-6 gọi/shot, tức đúng phạm vi của R3.Q3 (dừng sớm khi đã đủ
+# tin), không phải cổng rỗng-bằng-chứng này. Vẫn giữ cổng vì đúng bất biến
+# "không đoán khi không có bằng chứng" và rẻ/an toàn — chỉ đừng kỳ vọng một
+# mình nó kéo được xuống ≤25 gọi/câu.
+# ✅ Xác nhận lại 02/09 trên run cold cache MỚI (`run_r3q3_check`): 0/89 shot
+# bị cổng này chặn. Kết luận trên đúng, không phải giả định của replay.
+#
+# ===== Dừng sớm khi đã đủ tin (R3.Q3, BUILD_TASKS P0) =====
+# `EARLY_STOP_CONFIDENCE=0.90`: SAU KHI vòng chính (thu_de_suy_luan) đã thử
+# HẾT — không đổi thứ tự/số lượng thử, giữ nguyên fix QA_004 20/08 (xem
+# MAX_SHOTS_TRIED) — nếu best confidence đã ≥ ngưỡng thì bỏ qua PHA MỞ RỘNG
+# VIDEO. KHÔNG dừng vòng chính giữa chừng: đó chính xác là lỗi đã gây QA
+# gần-như-hỏng-hoàn-toàn trước đây, vì confidence LLM tự báo không phân biệt
+# được "đúng shot" với "sai shot có bằng chứng trông hợp lý".
+#
+# ĐO THẬT 02/09 (`dev_set/results/run_r3q3_check`, cold cache LLM_NO_CACHE=1,
+# đối chiếu RUN 3 27/08 cũng cold cache) — KHÔNG phải số suy ra:
+#   shot/câu   17,18,18,18,19  →  8,10,9,18,9
+#   gọi/câu    96,54,105,108,57 →  45,30,51,108,33   (TB 84,0 → 53,4)
+#   giây/câu   360,6/210,6/476,2/404,2/195,9 → 161,5/114,2/240,9/398,4/128,8
+#              (median 360,6 → 161,5 = -55%; tổng 27ph28 → 17ph24)
+# Điểm Q&A KHÔNG đổi (0/0/1,0/0/0 ở cả hai run) — bỏ pha mở rộng không làm
+# mất câu trả lời nào trên batch này.
+# ⚠️ Câu KHÔNG BAO GIỜ đủ tin (DRESS_QA_04, `missing_evidence`) không được lợi
+# gì: vẫn 18 shot / 108 gọi / 398s. Đây là worst case và là lý do cổng
+# ≤60s/câu KHÔNG ĐẠT (câu nhanh nhất vẫn 114s ≈ 1,9× ngưỡng).
+#
 # ===== Hai cửa tử độc lập (BUILD_TASKS C3.1 nhắc riêng) =====
 # frame sai = 0 điểm. answer sai = 0 điểm (docs/contest.md: 3 điều kiện Q&A phải
 # đúng CÙNG LÚC). evidence_frame_idx trả về LUÔN được kẹp về một frame_idx CÓ
@@ -110,6 +145,17 @@ QA_ASR_WINDOW_MS = 3000        # ±3s quanh keyframe đại diện shot — KHÁ
                                 # ASR "đề cử" keyframe ứng viên, việc khác hẳn)
 SELF_CONSISTENCY_N = 3
 LOW_CONFIDENCE = 0.5           # dưới ngưỡng này (thang [0,1] model tự báo) mới thử thêm ảnh
+# R3.Q3 (BUILD_TASKS P0) — "dừng sớm khi đã đủ tin". CHỈ dùng để bỏ qua PHA MỞ
+# RỘNG VIDEO (video expansion), KHÔNG dùng để dừng vòng lặp chính giữa chừng —
+# xem cảnh báo QA_004 ở MAX_SHOTS_TRIED ngay dưới: dừng ở shot ĐẦU TIÊN "đủ tự
+# tin" từng làm QA gần-như-hỏng-hoàn-toàn vì confidence LLM tự báo không phân
+# biệt được "đúng shot" với "sai shot nhưng bằng chứng trông hợp lý". Ngưỡng
+# 0.90 (cao hơn hẳn LOW_CONFIDENCE/QA_SCREEN_CONFIRM_MIN_CONFIDENCE=0.5, và chỉ
+# áp dụng SAU KHI vòng chính đã thử hết `thu_de_suy_luan` như cũ — không đổi
+# thứ tự thử). Đo thật 02/09 trên dress25 cold cache: TB 84,0 → 53,4 gọi/câu,
+# median 360,6s → 161,5s, điểm Q&A không đổi. Chi tiết + cảnh báo worst case ở
+# phần "Dừng sớm khi đã đủ tin" đầu file. KHÔNG đảm bảo ≤60s/câu.
+EARLY_STOP_CONFIDENCE = 0.90
 TOP_K_SHOTS = 5                # BUILD_TASKS C3.1: "top 5 shots" — chỉ để SUY LUẬN
 # ⚠️ SỬA 20/08 — trước là 3, LỆCH với TOP_K_SHOTS=5 (BUILD_TASKS ghi rõ "top 5
 # shots" nhưng code chỉ thử 3). Điều tra QA_004 (holdout đội bạn): shot đúng
@@ -347,6 +393,20 @@ PARSE_QUESTION_SCHEMA = {
 
 
 def _build_planner_prompt(query_vi: str) -> str:
+    """Prompt tách câu + CHỌN NGUỒN BẰNG CHỨNG (R3.Q4).
+
+    Bản `qa-planner-v2` chỉ liệt kê 6 giá trị enum của `answer_mode` mà KHÔNG
+    định nghĩa giá trị nào nghĩa là gì. Tức quyết định định tuyến mà
+    `CLAUDE.md` §5.2 quy định rất chặt ("tên/chức danh → OCR · lời nói → ASR ·
+    đếm → detector · số/tỉ số → OCR") được giao trọn cho LLM đoán, và trên
+    đường chạy CHÍNH `route_question()` rule-based không hề được gọi (nó chỉ là
+    fallback khi planner lỗi — xem `parse_question`). Đo trên 5 câu dress25
+    (`dev_set/results/run_r3q3_check`): planner trả `asr` cho cả 5, kể cả câu
+    hỏi tên món ăn hiện trên bảng hiệu.
+
+    Bản này viết thẳng luật §5.2 vào prompt và nói rõ luật ưu tiên khi câu hỏi
+    mang cả dấu hiệu NGUỒN lẫn dấu hiệu KIỂU câu trả lời.
+    """
     return (
         f"Prompt version: {QA_PLANNER_PROMPT_VERSION}\n"
         "Câu sau là một câu hỏi Q&A cho hệ tìm kiếm khoảnh khắc video. "
@@ -355,8 +415,23 @@ def _build_planner_prompt(query_vi: str) -> str:
         "tìm kiếm hình ảnh) — giữ nguyên chi tiết thị giác gốc, KHÔNG "
         "thêm chi tiết mới không có trong câu gốc\n"
         "- question_vi: CÂU HỎI cần trả lời sau khi đã tìm thấy khoảnh khắc đó\n"
-        "- answer_mode: đúng một trong visual_count, visual_read, ocr, asr, "
-        "metadata, visual_attribute\n"
+        "- answer_mode: NGUỒN BẰNG CHỨNG đáng tin nhất để trả lời question_vi, "
+        "đúng một trong sáu giá trị dưới đây. Chọn theo NGUỒN CHỨA câu trả lời, "
+        "KHÔNG theo kiểu của câu trả lời:\n"
+        "  - visual_count: đếm số vật thể/người nhìn thấy trong khung hình "
+        "(bộ phát hiện vật thể sẽ đếm, KHÔNG phải mô hình ngôn ngữ)\n"
+        "  - ocr: câu trả lời là CHỮ hoặc SỐ IN TRÊN HÌNH — tên riêng, chức "
+        "danh, biển số, biển báo, bảng hiệu, tỉ số, số áo, số trên màn hình/cân\n"
+        "  - asr: câu trả lời nằm trong LỜI NÓI — người trong video nói, kể, "
+        "giới thiệu, nhắc đến, phát biểu, bình luận\n"
+        "  - metadata: câu trả lời nằm ở tiêu đề/mô tả CẤP VIDEO, không ở "
+        "riêng khoảnh khắc nào\n"
+        "  - visual_attribute: thuộc tính thị giác thuần — màu sắc, hình dáng, "
+        "kiểu dáng\n"
+        "  - visual_read: CHỈ dùng khi phải nhìn ảnh mới trả lời được và không "
+        "rơi vào năm loại trên\n"
+        "Câu vừa hỏi \"tên gì\" vừa có \"theo lời thoại\" hoặc \"được nhắc đến\" "
+        "thì chọn asr: cụm chỉ NGUỒN thắng cụm chỉ KIỂU câu trả lời.\n"
         "Câu không tách rõ ràng được thì dùng nguyên câu gốc cho cả hai phần.\n\n"
         f"Câu hỏi: {query_vi}"
     )
@@ -995,7 +1070,28 @@ QA_RESULT_SCHEMA = {
 }
 
 
-def _build_prompt(question_vi: str, ev: Evidence) -> str:
+def _build_prompt(question_vi: str, ev: Evidence, evidence_type: str = "") -> str:
+    """Prompt suy luận, ĐÃ SẮP THEO ROUTE (R3.Q4).
+
+    Bản `qa-evidence-v2` đổ bằng chứng theo thứ tự CỐ ĐỊNH metadata → OCR → ASR,
+    ngang hàng nhau, không nói nguồn nào đáng tin hơn — tức quyết định định
+    tuyến mà planner/`route_question()` bỏ công làm KHÔNG hề tới được chỗ suy
+    luận. Metadata (tiêu đề/mô tả cấp VIDEO, yếu nhất, giống nhau cho MỌI shot
+    của cùng video nên không phân biệt được shot đúng/sai) lại đứng ĐẦU prompt;
+    còn OCR thì đo được phần lớn là nhiễu watermark (ghi chú R3.Q2 đầu file:
+    136/140 shot có OCR khác rỗng mà gần như không phải bằng chứng thật).
+    Câu "Theo lời thoại, giá tàu lá là bao nhiêu?" vì thế đọc metadata và
+    watermark trước cả lời thoại — đúng cửa tử "answer sai = 0".
+
+    `evidence_type=""` giữ NGUYÊN hành vi cũ cho chỗ gọi cũ/test.
+
+    Nguồn phụ KHÔNG bị cắt bỏ, chỉ tụt xuống dưới và gắn nhãn "tham khảo": route
+    sai (regex hoặc planner đoán nhầm) khi đó chỉ mất ƯU TIÊN chứ không mất
+    BẰNG CHỨNG — cắt hẳn nguồn phụ sẽ đổi một lỗi nhẹ lấy một lỗi im lặng nặng
+    hơn (bằng chứng có thật mà không bao giờ được nhìn thấy).
+    """
+    from data.config.qa_routing import EVIDENCE_SOURCE_LABELS, evidence_order
+
     parts = [
         f"Prompt version: {QA_INFERENCE_PROMPT_VERSION}",
         "Bạn đang suy luận để trả lời câu hỏi về MỘT khoảnh khắc trong video. "
@@ -1003,16 +1099,40 @@ def _build_prompt(question_vi: str, ev: Evidence) -> str:
         "không đủ căn cứ thì trả confidence THẤP thay vì bịa câu trả lời.",
         f"\nCâu hỏi: {question_vi}",
     ]
-    if ev.metadata_text:
-        parts.append(f"\nMetadata video: {ev.metadata_text}")
-    if ev.ocr_texts:
-        parts.append("\nChữ đọc được trên hình (OCR):\n- " + "\n- ".join(ev.ocr_texts))
-    if ev.asr_texts:
-        parts.append("\nLời thoại quanh khoảnh khắc (ASR, ±3s):\n- " + "\n- ".join(ev.asr_texts))
-    if ev.frames:
-        nhan = ", ".join(f"frame_idx={fi}" for fi, _ in ev.frames)
+
+    co_mat: dict[str, list[str]] = {
+        "ocr": list(ev.ocr_texts),
+        "asr": list(ev.asr_texts),
+        "metadata": [ev.metadata_text] if ev.metadata_text else [],
+    }
+    # Không có route (chỗ gọi cũ/test) → giữ đúng thứ tự v2 để không đổi hành vi.
+    thu_tu = evidence_order(evidence_type) if evidence_type else ("metadata", "ocr", "asr")
+    # Nguồn chính = nguồn ưu tiên cao nhất mà THỰC SỰ có nội dung. Route "ocr"
+    # trên shot không có OCR thì không được dán nhãn "NGUỒN CHÍNH: OCR" rồi để
+    # prompt trống — như vậy chỉ dạy model bịa.
+    nguon_chinh = next((n for n in thu_tu if co_mat[n]), None) if evidence_type else None
+
+    if nguon_chinh is not None:
         parts.append(
-            f"\nĐính kèm {len(ev.frames)} ảnh khung hình, ĐÚNG THỨ TỰ tương ứng với: {nhan}. "
+            f"\nNGUỒN CHÍNH cho câu hỏi này: {EVIDENCE_SOURCE_LABELS[nguon_chinh]}. "
+            "Ưu tiên trả lời từ nguồn đó. Các nguồn còn lại chỉ để tham khảo/đối "
+            "chiếu — KHÔNG dùng nguồn phụ để lật ngược câu trả lời đã ghi rõ "
+            "trong nguồn chính."
+        )
+
+    for nguon in thu_tu:
+        noi_dung = co_mat[nguon]
+        if not noi_dung:
+            continue
+        nhan = EVIDENCE_SOURCE_LABELS[nguon]
+        if evidence_type and nguon != nguon_chinh:
+            nhan += " — tham khảo"
+        parts.append(f"\n{nhan}:\n- " + "\n- ".join(noi_dung))
+
+    if ev.frames:
+        nhan_frame = ", ".join(f"frame_idx={fi}" for fi, _ in ev.frames)
+        parts.append(
+            f"\nĐính kèm {len(ev.frames)} ảnh khung hình, ĐÚNG THỨ TỰ tương ứng với: {nhan_frame}. "
             "evidence_frame_idx PHẢI là một trong các số này."
         )
     parts.append(
@@ -1157,12 +1277,20 @@ def ask_llm(
     max_tokens: int = QA_LEGACY_MAX_TOKENS,
     usage_tag: str = "qa.legacy",
     runtime_fingerprint: str | None = None,
+    evidence_type: str = "",
 ) -> list[QAResult]:
     """Gọi llm() `n` lần, trả list QAResult đã
     kẹp evidence_frame_idx về tập frame CÓ THẬT (không tin thẳng số VLM tự bịa —
-    xem "hai cửa tử độc lập" ở đầu file)."""
+    xem "hai cửa tử độc lập" ở đầu file).
+
+    `evidence_type` (R3.Q4) chỉ đổi THỨ TỰ/nhãn nguồn trong prompt. Không cần
+    thêm vào `_qa_cache_identity`: `ev.evidence_hash` đã bao gồm `evidence_type`
+    (`_stable_evidence_payload`), và `_try_shot` dựng hash bằng ĐÚNG giá trị
+    route mà nó truyền xuống đây — hai route khác nhau không thể trúng chung
+    một cache key.
+    """
     images = [str(p) for _, p in ev.frames] or None
-    prompt = _build_prompt(question_vi, ev)
+    prompt = _build_prompt(question_vi, ev, evidence_type)
     budget = _generation_budget_ctx.get()
     if (
         budget is not None
@@ -1278,19 +1406,44 @@ def _restore_attempt_evidence(snapshot: dict[str, object]) -> None:
             attempt.pop(key, None)
 
 
+def _co_the_leo_thang_anh(evidence_type: str) -> bool:
+    """R3.Q4 — route này có được gửi ẢNH cho VLM khi bằng chứng text yếu không?
+
+    `CLAUDE.md` §5.2 viết "đếm → detector, TUYỆT ĐỐI không hỏi VLM". Trước bản
+    này câu đó chỉ đúng ở LƯỢT ĐẦU: `route_question()` trả `needs_images=False`
+    cho route "count" nên `_try_shot` không gửi ảnh ngay — nhưng khi detector
+    trượt (`_object_count` trả None vì nhãn LLM sinh tự do không khớp 600 lớp
+    OpenImages, ca rất thường gặp) thì luồng rơi xuống đây, và hễ confidence
+    text < LOW_CONFIDENCE là gọi `collect_evidence(..., needs_images=True)` rồi
+    đưa ảnh cho VLM ĐẾM BẰNG MẮT. Không exception, không cảnh báo, và VLM đếm
+    sai thường kèm confidence cao — đúng dạng lỗi im lặng.
+
+    Cấm ở đây là cấm ĐƯA ẢNH, không phải cấm suy luận: route "count" vẫn được
+    hỏi LLM bằng bằng chứng TEXT (OCR/ASR có thể ghi thẳng con số, vd bảng điểm
+    hay lời bình luận "có 5 người").
+    """
+    from data.config.qa_routing import allows_image_escalation
+    if allows_image_escalation(evidence_type):
+        return True
+    print(f"  [định tuyến] route {evidence_type!r}: KHÔNG leo thang sang ảnh "
+          f"(CLAUDE.md §5.2 — đếm phải do detector, không hỏi VLM)")
+    return False
+
+
 def _infer_legacy(question_vi: str, hit: ShotHit, ev: Evidence,
                   evidence_type: str) -> tuple[str, int | None, float] | None:
     """Đường rollback n=3 cũ, giữ nguyên hành vi để so A/B và cứu release."""
-    results = ask_llm(question_vi, ev)
+    results = ask_llm(question_vi, ev, evidence_type=evidence_type)
     if not results:
         return None
     avg_conf = sum(r.confidence for r in results) / len(results)
-    if avg_conf < LOW_CONFIDENCE and not ev.frames:
+    if avg_conf < LOW_CONFIDENCE and not ev.frames and _co_the_leo_thang_anh(evidence_type):
         text_evidence = _attempt_evidence_snapshot()
         ev_img = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
         if ev_img.frames:
             with_images = ask_llm(
                 question_vi, ev_img, usage_tag="qa.legacy.image",
+                evidence_type=evidence_type,
             )
             if with_images:
                 results = with_images
@@ -1314,11 +1467,13 @@ def _infer_two_stage(question_vi: str, hit: ShotHit, ev: Evidence,
     screen = ask_llm(
         question_vi, ev, n=1, effort=QA_SCREEN_EFFORT,
         max_tokens=QA_SCREEN_MAX_TOKENS, usage_tag=f"qa.screen.{stage}",
+        evidence_type=evidence_type,
     )
     if len(screen) != 1:
         return None
 
-    if screen[0].confidence < LOW_CONFIDENCE and not ev.frames:
+    if (screen[0].confidence < LOW_CONFIDENCE and not ev.frames
+            and _co_the_leo_thang_anh(evidence_type)):
         text_evidence = _attempt_evidence_snapshot()
         ev_img = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
         if ev_img.frames:
@@ -1328,6 +1483,7 @@ def _infer_two_stage(question_vi: str, hit: ShotHit, ev: Evidence,
             screen = ask_llm(
                 question_vi, ev, n=1, effort=QA_SCREEN_EFFORT,
                 max_tokens=QA_SCREEN_MAX_TOKENS, usage_tag="qa.screen.image",
+                evidence_type=evidence_type,
             )
             if len(screen) != 1:
                 _restore_attempt_evidence(text_evidence)
@@ -1342,10 +1498,25 @@ def _infer_two_stage(question_vi: str, hit: ShotHit, ev: Evidence,
         question_vi, ev, n=QA_CONFIRM_ADDITIONAL_N,
         effort=QA_CONFIRM_EFFORT, max_tokens=QA_CONFIRM_MAX_TOKENS,
         usage_tag=f"qa.confirm.{stage}",
+        evidence_type=evidence_type,
     )
     if len(confirm) != QA_CONFIRM_ADDITIONAL_N:
         return None
     return _vote_results(screen + confirm)
+
+
+def _shot_has_no_evidence(ev: Evidence) -> bool:
+    """R3.Q2 — không OCR, không ASR ±3s, không metadata, không ảnh: llm() không
+    có gì để suy luận, hỏi chỉ để đoán bừa (skill aic2026-retrieval, "Video QA":
+    thu thập bằng chứng rồi mới suy luận — không đoán khi không có bằng chứng).
+
+    `ev.frames` được tính là bằng chứng (không chỉ OCR/ASR/metadata như ticket
+    liệt kê) vì route "visual" (câu hỏi màu sắc/hình dáng) và nhánh escalation
+    ảnh của "text-first" CHỈ có ảnh làm bằng chứng — loại ảnh ra khỏi điều kiện
+    này sẽ chặn nhầm toàn bộ câu hỏi thị giác, biến cổng an toàn thành lỗi im
+    lặng nặng hơn cái nó định sửa.
+    """
+    return not (ev.ocr_texts or ev.asr_texts or ev.metadata_text or ev.frames)
 
 
 def _try_shot(
@@ -1434,6 +1605,12 @@ def _try_shot(
             )
             return direct.answer, direct.evidence_frame_idx, direct.confidence
         print(f"  [cảnh báo] shot {hit.shot_id}: không đếm được bằng detector, hỏi LLM (kém tin cậy hơn)")
+
+    if _shot_has_no_evidence(ev):
+        # R3.Q2 (BUILD_TASKS P0): shot rỗng hoàn toàn thì KHÔNG gọi LLM — đây là
+        # chỗ nhiều lệnh gọi/câu bị đốt vô ích trên shot không có gì để suy luận.
+        print(f"  [cảnh báo] shot {hit.shot_id}: không OCR/ASR/metadata/ảnh — bỏ qua, không gọi LLM")
+        return None
 
     mode = _current_qa_mode()
     if mode == "legacy":
@@ -1724,7 +1901,18 @@ def _qa_pipeline_impl(
     # (query_vi, còn từ khoá cụ thể mà event_vi thuần thị giác không có).
     # `candidate_shots` được NỐI THÊM (không thay list gốc) để `_dua_len_dau`
     # cuối hàm vẫn dùng index bình thường.
-    if not budget_exhausted:
+    #
+    # ⚠️ THÊM 01/09 (R3.Q3) — vòng chính ở TRÊN vẫn thử hết `thu_de_suy_luan`
+    # y hệt như trước (KHÔNG đổi, giữ nguyên fix QA_004 20/08). Chỉ khi vòng đó
+    # đã thử HẾT rồi mà best vẫn ≥ EARLY_STOP_CONFIDENCE thì mới bỏ qua PHA MỞ
+    # RỘNG (rẻ hơn, rủi ro thấp hơn "dừng ở shot đầu tiên" — main loop vẫn lấy
+    # confidence CAO NHẤT trong toàn bộ ứng viên đã thử, không phải shot đầu
+    # tiên vượt ngưỡng).
+    da_du_tin_bo_qua_mo_rong = best is not None and best[4] >= EARLY_STOP_CONFIDENCE
+    if da_du_tin_bo_qua_mo_rong:
+        print(f"  [đủ tin] answer={best[2]!r} confidence={best[4]:.2f} ≥ "
+              f"{EARLY_STOP_CONFIDENCE} — bỏ qua mở rộng video (R3.Q3)")
+    if not budget_exhausted and not da_du_tin_bo_qua_mo_rong:
         seen_videos: list[str] = []
         for hit in thu_de_suy_luan:
             vid = hit.shot_id.split("#")[0]
@@ -1846,6 +2034,7 @@ def _qa_pipeline_impl(
             "generations_used": budget.used if budget is not None else None,
             "generation_limit": budget.limit if budget is not None else None,
             "generation_limit_reached": budget_exhausted,
+            "early_stop": da_du_tin_bo_qua_mo_rong,
         }
     return ranked_hits, answer
 

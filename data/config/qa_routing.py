@@ -41,10 +41,24 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], bool]] = [
     ("count", ("bao nhiêu người", "bao nhiêu chiếc", "bao nhiêu xe",
                "bao nhiêu con", "mấy người", "mấy chiếc", "mấy cái",
                "số lượng", "đếm"), False),
-    ("ocr", ("tên ", "chức danh", "biển số", "logo", "dòng chữ",
-             "tỉ số", "số áo", "kết quả trận", "bảng điện tử"), False),
-    ("asr", ("nói gì", "nói rằng", "phát biểu", "hô to", "bình luận viên",
-             "câu nói", "lời bài hát"), False),
+    # ⚠️ "asr" phải đứng TRƯỚC "ocr" (R3.Q4, 02/09). Các cụm chỉ-nguồn-lời-nói
+    # ("theo lời thoại", "được nhắc đến") là bằng chứng MẠNH về NGUỒN, trong khi
+    # "tên " chỉ nói về KIỂU câu trả lời — một câu có cả hai ("Nhà văn được nhắc
+    # đến trong đoạn này tên gì?", DRESS_QA_01) thì nguồn thắng kiểu. Bản trước
+    # để "ocr" trước nên 5/5 câu dress25 rơi vào OCR-ưu-tiên trong khi câu trả
+    # lời nằm trong lời thoại.
+    ("asr", ("lời thoại", "theo lời", "được nhắc đến", "nhắc đến",
+             "nói gì", "nói rằng", "phát biểu", "hô to", "bình luận viên",
+             "câu nói", "lời bài hát", "cho biết", "chia sẻ", "kể lại",
+             "được giới thiệu", "giới thiệu"), False),
+    # CLAUDE.md §5.2: "tên/chức danh → OCR · số/tỉ số → OCR". Bản trước thiếu
+    # hẳn nhánh SỐ ĐỌC TRÊN HÌNH — "con số hiển thị cuối cùng trên cân"
+    # (query-p1-3-qa) và "con số được ghi trên biển báo" (query-p1-9-qa) đều
+    # không khớp luật nào và rơi về text_first.
+    ("ocr", ("tên ", "chức danh", "biển số", "biển báo", "biển hiệu",
+             "bảng hiệu", "logo", "dòng chữ", "chữ trên", "tỉ số", "số áo",
+             "kết quả trận", "bảng điện tử", "con số", "chỉ số",
+             "hiển thị", "ghi trên", "ghi ở", "màn hình"), False),
     ("metadata", ("địa điểm", "ở đâu", "nơi nào", "thành phố nào", "quốc gia nào"), False),
     ("visual", ("màu gì", "màu sắc", "hình dáng", "kiểu dáng"), True),
 ]
@@ -54,6 +68,72 @@ ROUTING_RULES: list[tuple[str, tuple[str, ...], bool]] = [
 # đúng chiến thuật "Text-first" đã chốt ở Phase 2 (tiết kiệm token, VLM chỉ khi
 # thật sự cần).
 DEFAULT_EVIDENCE_TYPE = "text_first"
+
+
+# ------------------------------------------------- R3.Q4: route → ưu tiên nguồn
+#
+# Vì sao cần bảng này: `route_question()` / planner đã kết luận câu hỏi nên tin
+# nguồn nào, nhưng TRƯỚC 02/09 kết luận đó KHÔNG hề tới được prompt suy luận.
+# `backend/tasks/qa.py::_build_prompt` đổ mọi bằng chứng vào prompt theo một thứ
+# tự CỐ ĐỊNH (metadata → OCR → ASR), ngang hàng nhau, không nói nguồn nào đáng
+# tin hơn. Hệ quả im lặng: câu "Theo lời thoại, giá tàu lá là bao nhiêu?"
+# (DRESS_QA_04) được đưa metadata video lên đầu prompt, kèm OCR mà đo được phần
+# lớn là nhiễu watermark ("htv online", slide cạnh shot — xem ghi chú R3.Q2 đầu
+# `qa.py`: 136/140 shot có OCR khác rỗng nhưng gần như không có bằng chứng thật).
+#
+# Bảng dưới CHỈ đổi THỨ TỰ trình bày + nhãn "nguồn chính" trong prompt. Nó KHÔNG
+# lọc bỏ nguồn nào — loại hẳn nguồn phụ sẽ biến route sai (regex/planner đoán
+# nhầm) từ "mất ưu tiên" thành "mất bằng chứng", tức đổi một lỗi nhẹ lấy một lỗi
+# im lặng nặng hơn.
+EVIDENCE_PRIORITY: dict[str, tuple[str, ...]] = {
+    "ocr":        ("ocr", "asr", "metadata"),
+    "asr":        ("asr", "ocr", "metadata"),
+    "metadata":   ("metadata", "asr", "ocr"),
+    # Detector đã trượt mới tới LLM (xem NO_IMAGE_ESCALATION_ROUTES): số đọc được
+    # trên hình đáng tin hơn lời bình luận.
+    "count":      ("ocr", "asr", "metadata"),
+    "visual":     ("ocr", "asr", "metadata"),
+    "text_first": ("ocr", "asr", "metadata"),
+}
+
+# Nhãn tiếng Việt hiển thị trong prompt cho từng nguồn.
+EVIDENCE_SOURCE_LABELS: dict[str, str] = {
+    "ocr": "Chữ đọc được trên hình (OCR)",
+    "asr": "Lời thoại quanh khoảnh khắc (ASR, ±3s)",
+    "metadata": "Metadata video (tiêu đề/mô tả cấp VIDEO, không riêng khoảnh khắc)",
+}
+
+
+# ------------------------------------ R3.Q4: route nào được leo thang sang ảnh
+#
+# `CLAUDE.md` §5.2 và docstring "count" ở đầu file này viết là "đếm → detector,
+# TUYỆT ĐỐI không hỏi VLM". Trước 02/09 câu đó chỉ đúng một nửa: `_try_shot` quả
+# thật không gửi ảnh NGAY (`route_question` trả needs_images=False cho "count"),
+# nhưng khi detector trượt (`_object_count` trả None — nhãn LLM sinh không khớp
+# 600 lớp OpenImages, ca rất thường gặp) thì luồng rơi xuống `_infer_legacy` /
+# `_infer_two_stage`, và ở đó hễ confidence text < LOW_CONFIDENCE là gọi thẳng
+# `collect_evidence(..., needs_images=True)` → VLM đếm bằng mắt. Không exception,
+# không cảnh báo, và answer sai của VLM lại thường kèm confidence cao.
+#
+# Route nằm ngoài tập này thì KHÔNG được leo thang ảnh; vẫn được hỏi LLM bằng
+# bằng chứng TEXT (OCR/ASR/metadata có thể ghi thẳng con số) — cấm là cấm cho
+# VLM NHÌN ẢNH mà đếm, không phải cấm suy luận.
+NO_IMAGE_ESCALATION_ROUTES = frozenset({"count"})
+
+
+def evidence_order(evidence_type: str) -> tuple[str, ...]:
+    """Route → thứ tự nguồn bằng chứng đưa vào prompt (nguồn chính đứng đầu)."""
+    return EVIDENCE_PRIORITY.get(evidence_type, EVIDENCE_PRIORITY[DEFAULT_EVIDENCE_TYPE])
+
+
+def allows_image_escalation(evidence_type: str) -> bool:
+    """Route này có được phép leo thang sang ảnh khi bằng chứng text yếu không?
+
+    Chỉ "count" bị cấm (CLAUDE.md §5.2). Route lạ/rỗng được coi là text_first —
+    mặc định AN TOÀN theo nghĩa không mất bằng chứng; muốn cấm thì phải khai báo
+    tường minh ở trên.
+    """
+    return evidence_type not in NO_IMAGE_ESCALATION_ROUTES
 
 
 # ---------------------------------------------------------------- nhãn đối tượng

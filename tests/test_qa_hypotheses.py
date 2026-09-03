@@ -132,7 +132,52 @@ def test_structured_answer_mode_dieu_khien_evidence_route(monkeypatch):
     assert trace["answer_mode"] == "asr"
 
 
-def test_main_tu_tin_cao_van_thu_het_video_expansion_budget(monkeypatch):
+def test_main_tu_tin_cao_thi_bo_qua_mo_rong_video(monkeypatch):
+    """R3.Q3 (BUILD_TASKS P0): vòng chính đã thử hết `thu_de_suy_luan` (KHÔNG
+    đổi thứ tự/số lượng thử — giữ nguyên fix QA_004 20/08) rồi mà confidence
+    cao nhất ≥ EARLY_STOP_CONFIDENCE thì bỏ qua hẳn PHA MỞ RỘNG VIDEO (không
+    gọi _expand_within_video()) — đây là ~nửa số lệnh gọi/câu bị đốt khi câu
+    hỏi đã có câu trả lời rõ ràng. Trước bản sửa này, tên test mô tả đúng hành
+    vi SAI đang bị khoá (main tự tin 0,99 vẫn chạy hết budget mở rộng)."""
+    from backend.tasks import qa
+
+    monkeypatch.setattr(
+        qa, "parse_question",
+        lambda query: qa.QuestionParts("sự kiện", "câu hỏi", "asr"),
+    )
+    main = {"shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10"}
+    monkeypatch.setattr(qa, "search", lambda *a, **kw: [main])
+    expand_called: list[int] = []
+    monkeypatch.setattr(
+        qa, "_expand_within_video",
+        lambda *a, **kw: expand_called.append(1) or [],
+    )
+    fmap = {"L21_V001#k10": 10}
+    monkeypatch.setattr(qa, "load_frame_map", lambda: fmap)
+    qa._reverse_frame_map.cache_clear()
+
+    def fake_try(hit, *args, **kwargs):
+        attempt = qa._qa_attempt_ctx.get()
+        assert attempt is not None
+        attempt["evidence_hash"] = "a" * 64
+        return "đỏ", 10, .99
+
+    monkeypatch.setattr(qa, "_try_shot", fake_try)
+    try:
+        _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
+    finally:
+        qa._reverse_frame_map.cache_clear()
+
+    assert answer == "đỏ"
+    assert [item["shot_id"] for item in trace["hypotheses"]] == ["L21_V001#s1"]
+    assert trace["early_stop"] is True
+    assert expand_called == [], "confidence 0.99 ≥ 0.90 rồi thì không được gọi mở rộng video"
+
+
+def test_main_chua_du_tin_thi_van_mo_rong_video(monkeypatch):
+    """Đối trọng của test trên: confidence vòng chính CHƯA tới ngưỡng thì pha mở
+    rộng video vẫn phải chạy như cũ — R3.Q3 không được làm mất khả năng cứu câu
+    trả lời "đúng video sai shot" mà pha mở rộng (thêm 21/08) tồn tại để bắt."""
     from backend.tasks import qa
 
     monkeypatch.setattr(
@@ -151,7 +196,7 @@ def test_main_tu_tin_cao_van_thu_het_video_expansion_budget(monkeypatch):
         attempt = qa._qa_attempt_ctx.get()
         assert attempt is not None
         attempt["evidence_hash"] = ("a" if hit.shot_id.endswith("s1") else "b") * 64
-        return ("đỏ", 10, .99) if hit.shot_id.endswith("s1") else ("xanh", 20, .8)
+        return ("cam", 10, .6) if hit.shot_id.endswith("s1") else ("xanh", 20, .8)
 
     monkeypatch.setattr(qa, "_try_shot", fake_try)
     try:
@@ -159,10 +204,11 @@ def test_main_tu_tin_cao_van_thu_het_video_expansion_budget(monkeypatch):
     finally:
         qa._reverse_frame_map.cache_clear()
 
-    assert answer == "đỏ"
+    assert answer == "xanh"
     assert [item["shot_id"] for item in trace["hypotheses"]] == [
         "L21_V001#s1", "L21_V001#s2",
     ]
+    assert trace["early_stop"] is False
 
 
 def test_pipeline_bo_refusal_ngan_va_chon_answer_hop_le_phia_sau(monkeypatch):
@@ -646,7 +692,13 @@ def test_image_fallback_khong_duoc_ghi_de_digest_khi_ket_qua_van_tu_text(monkeyp
         return image_ev
 
     monkeypatch.setattr(qa, "collect_evidence", fake_collect)
-    monkeypatch.setattr(qa, "ask_llm", lambda *a, **kw: [low] if not kw else [])
+    # Phân biệt lượt TEXT với lượt ẢNH bằng `usage_tag` — không bằng "có kwargs
+    # hay không". Từ R3.Q4 cả hai lượt đều nhận `evidence_type=` nên điều kiện
+    # `if not kw` cũ luôn sai và test xanh/đỏ vì lý do không liên quan.
+    monkeypatch.setattr(
+        qa, "ask_llm",
+        lambda *a, **kw: [] if kw.get("usage_tag") == "qa.legacy.image" else [low],
+    )
     try:
         result = qa._infer_legacy("màu gì?", hit, text_ev, "visual")
     finally:

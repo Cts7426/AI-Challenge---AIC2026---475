@@ -398,8 +398,11 @@ def test_two_stage_cap_42_phu_text_main_image_va_expansion(monkeypatch, fake_fra
         ],
     )
     def fake_collect(hit, *args, **kwargs):
+        # ocr_texts giả KHÔNG rỗng: cổng R3.Q2 (_shot_has_no_evidence) chặn LLM
+        # trên shot rỗng hoàn toàn — test này đo cơ chế budget generation, không
+        # phải cổng bằng chứng, nên phải cho shot có bằng chứng để tới được ask_llm().
         evidence = Evidence(
-            hit.shot_id, hit.shot_id.split("#")[0], [], [], "", None, [], 10,
+            hit.shot_id, hit.shot_id.split("#")[0], ["bằng chứng giả"], [], "", None, [], 10,
             hashlib.sha256(hit.shot_id.encode("utf-8")).hexdigest(),
         )
         attempt = Q._qa_attempt_ctx.get()
@@ -529,3 +532,212 @@ def test_capture_fail_closed_khi_thieu_digest_hoac_khong_ghi_duoc(tmp_path, monk
     monkeypatch.setenv("QA_EVIDENCE_LOG_PATH", str(tmp_path))
     with pytest.raises(RuntimeError, match="không ghi bền"):
         capture_evidence(hit, "gì?", "default", False, ev_text)
+
+
+# ------------------------------------------- R3.Q2: cổng bằng chứng trước LLM
+
+def test_try_shot_khong_goi_llm_khi_khong_co_bang_chung():
+    """R3.Q2 (BUILD_TASKS P0): shot không OCR, không ASR, không metadata, không
+    ảnh — _try_shot() phải trả None NGAY, không được gọi ask_llm(). Đây là chỗ
+    ticket kỳ vọng cắt phần lớn ~87 lệnh gọi/câu (đo thực tế trên run 01/09:
+    chỉ cắt được khi shot rỗng THẬT — xem ghi chú đầu file, phần lớn OCR có
+    trong dữ liệu thật là watermark nhiễu, không phải rỗng)."""
+    ev = Evidence("s0", "V1", [], [], "", None, [], 10)
+    with patch("backend.tasks.qa.collect_evidence", return_value=ev), \
+         patch("backend.tasks.qa.ask_llm") as ask:
+        got = Q._try_shot(ShotHit("s0", 1.0), "câu hỏi bất kỳ", "ocr", False)
+    assert got is None
+    ask.assert_not_called()
+
+
+def test_try_shot_co_asr_van_goi_llm(monkeypatch):
+    """Cổng R3.Q2 không được chặn NHẦM shot có bằng chứng thật — chỉ một nguồn
+    (ASR) khác rỗng cũng đủ để vẫn hỏi LLM bình thường."""
+    monkeypatch.setenv("QA_INFERENCE_MODE", "legacy")
+    ev = Evidence("s0", "V1", [], ["ai đó nói gì đó"], "", None, [], 10)
+    with patch("backend.tasks.qa.collect_evidence", return_value=ev), \
+         patch("backend.tasks.qa.ask_llm",
+               side_effect=lambda *a, **kw: [_qa_result("5", 0.9)] * kw.get("n", 3)) as ask:
+        got = Q._try_shot(ShotHit("s0", 1.0), "câu hỏi bất kỳ", "asr", False)
+    assert got is not None
+    ask.assert_called()
+
+
+def test_try_shot_visual_chi_co_anh_khong_bi_chan(monkeypatch):
+    """Câu hỏi 'visual' (màu sắc/hình dáng) chỉ có ẢNH làm bằng chứng, không
+    OCR/ASR/metadata — cổng R3.Q2 phải coi ảnh là bằng chứng hợp lệ, không
+    được chặn nhầm cả loại câu hỏi thị giác (đây sẽ là lỗi im lặng nặng hơn cái
+    ticket định sửa: R@k của mọi câu 'visual' tụt về 0 mà không crash gì)."""
+    monkeypatch.setenv("QA_INFERENCE_MODE", "two_stage")
+    ev = Evidence("s0", "V1", [], [], "", None, [(10, None)], 10)
+    with patch("backend.tasks.qa.collect_evidence", return_value=ev), \
+         patch("backend.tasks.qa.ask_llm",
+               side_effect=lambda *a, **kw: [_qa_result("đỏ", 0.9)] * kw["n"]) as ask:
+        got = Q._try_shot(ShotHit("s0", 1.0), "màu gì?", "visual", True)
+    assert got is not None
+    ask.assert_called()
+
+
+# ---------------------------------------------------------------------------
+# R3.Q4 — định tuyến bằng chứng theo CLAUDE.md §5.2
+#
+# Cả ba nhóm dưới đây đều là lỗi IM LẶNG: không cái nào crash, cả ba chỉ làm
+# `answer` sai — mà `answer` sai = 0 điểm dù frame đúng (hai cửa tử độc lập).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("question,mong_doi", [
+    # lời nói → ASR. "được nhắc đến"/"theo lời thoại" là dấu hiệu NGUỒN, phải
+    # thắng "tên gì" (chỉ là dấu hiệu KIỂU câu trả lời).
+    ("Nhà văn được nhắc đến trong đoạn này tên gì?", "asr"),
+    ("Theo lời thoại, giá tàu lá được nhắc đến là bao nhiêu?", "asr"),
+    ("Món ăn được giới thiệu trong chương trình hôm nay là món gì?", "asr"),
+    # số/tỉ số đọc trên hình → OCR
+    ("Con số hiển thị cuối cùng trên cân là bao nhiêu?", "ocr"),
+    ("Con số được ghi trên biển báo bên trái của cây cầu là bao nhiêu?", "ocr"),
+    ("Tỉ số của trận đấu là bao nhiêu?", "ocr"),
+    # tên/chức danh → OCR (không có cụm chỉ nguồn lời nói)
+    ("Tên của con đèo là gì?", "ocr"),
+    ("Chức danh của người đàn ông là gì?", "ocr"),
+    # đếm vật thể → detector
+    ("Trong khung hình có bao nhiêu người?", "count"),
+    # "bao nhiêu" đo lường KHÔNG được đi detector (không có danh từ vật thể)
+    ("Công thức canh sườn mít non cần bao nhiêu gam sườn non?", "text_first"),
+])
+def test_route_question_theo_claude_md_52(question, mong_doi):
+    """Bảng luật phải khớp CLAUDE.md §5.2 trên chính 9 câu tune + vài ca biên.
+
+    Trước R3.Q4, "lời thoại" không có trong luật asr nào và "con số"/"biển báo"
+    không có trong luật ocr nào → cả 4 câu rơi về text_first, mất hẳn ưu tiên
+    nguồn.
+    """
+    from data.config.qa_routing import route_question
+    assert route_question(question)[0] == mong_doi
+
+
+def test_route_asr_dung_truoc_ocr():
+    """Thứ tự ROUTING_RULES là ưu tiên: cụm chỉ NGUỒN phải đứng trước cụm chỉ
+    KIỂU. Đảo lại thì "được nhắc đến ... tên gì" rơi vào ocr — đúng ca
+    DRESS_QA_01/02 đo được ngày 02/09."""
+    from data.config.qa_routing import ROUTING_RULES
+    thu_tu = [evidence_type for evidence_type, _, _ in ROUTING_RULES]
+    assert thu_tu.index("asr") < thu_tu.index("ocr")
+    assert thu_tu.index("count") < thu_tu.index("asr")
+
+
+def test_prompt_dua_nguon_chinh_len_dau_va_gan_nhan():
+    """Route quyết định THỨ TỰ trình bày bằng chứng trong prompt.
+
+    Bản v2 luôn xếp metadata → OCR → ASR bất kể route, nên câu "theo lời thoại"
+    đọc metadata cấp video và nhiễu watermark OCR TRƯỚC lời thoại.
+    """
+    ev = Evidence("s0", "V1", ["htv online"], ["hôm nay nấu cá kho tộ"],
+                  "tiêu đề video", None, [], 10)
+    prompt = Q._build_prompt("Món ăn tên gì?", ev, "asr")
+
+    assert "NGUỒN CHÍNH" in prompt
+    # nguồn chính = ASR, và phải đứng TRƯỚC hai nguồn còn lại
+    vi_tri_asr = prompt.index("hôm nay nấu cá kho tộ")
+    assert vi_tri_asr < prompt.index("htv online")
+    assert vi_tri_asr < prompt.index("tiêu đề video")
+    # nguồn phụ KHÔNG bị cắt bỏ — route sai chỉ được mất ƯU TIÊN, không được
+    # mất BẰNG CHỨNG
+    assert "htv online" in prompt and "tiêu đề video" in prompt
+    assert "tham khảo" in prompt
+
+
+def test_prompt_khong_co_route_giu_nguyen_hanh_vi_cu():
+    """`evidence_type=""` (chỗ gọi cũ/test) giữ đúng thứ tự v2 và KHÔNG dán
+    nhãn nguồn chính — không được đổi hành vi của caller chưa biết route."""
+    ev = Evidence("s0", "V1", ["ocr text"], ["asr text"], "meta text", None, [], 10)
+    prompt = Q._build_prompt("hỏi gì đó?", ev)
+    assert "NGUỒN CHÍNH" not in prompt
+    assert prompt.index("meta text") < prompt.index("ocr text") < prompt.index("asr text")
+
+
+def test_prompt_khong_dan_nhan_nguon_chinh_khi_nguon_do_rong():
+    """Route "ocr" nhưng shot không có OCR: không được ghi "NGUỒN CHÍNH: OCR"
+    rồi để trống — như vậy chỉ dạy model bịa. Nhãn phải rơi xuống nguồn ĐANG
+    THỰC SỰ có nội dung."""
+    ev = Evidence("s0", "V1", [], ["chỉ có lời thoại"], "", None, [], 10)
+    prompt = Q._build_prompt("Tên là gì?", ev, "ocr")
+    assert "NGUỒN CHÍNH cho câu hỏi này: Lời thoại" in prompt
+
+
+@pytest.mark.parametrize("mode", ["legacy", "two_stage"])
+def test_count_khong_bao_gio_leo_thang_sang_anh(monkeypatch, mode):
+    """CLAUDE.md §5.2: "đếm → detector, TUYỆT ĐỐI không hỏi VLM".
+
+    Trước R3.Q4 luật này chỉ đúng ở lượt đầu. Khi detector trượt
+    (`_object_count` trả None vì nhãn LLM sinh không khớp 600 lớp OpenImages),
+    luồng rơi xuống `_infer_*`, và confidence text thấp là đủ để gọi
+    `collect_evidence(needs_images=True)` → VLM đếm bằng mắt, confidence cao,
+    không cảnh báo gì.
+    """
+    monkeypatch.setenv("QA_INFERENCE_MODE", mode)
+    # object_count=None = detector KHÔNG đếm được (khác 0 = đếm được và bằng 0)
+    ev = Evidence("s0", "V1", ["vài chữ"], [], "", None, [], 10)
+    with patch("backend.tasks.qa.collect_evidence", return_value=ev) as collect, \
+         patch("backend.tasks.qa.ask_llm",
+               side_effect=lambda *a, **kw: [_qa_result("3", 0.1)] * kw.get("n", 3)):
+        Q._try_shot(ShotHit("s0", 1.0), "có bao nhiêu người?", "count", False)
+
+    # confidence 0.1 < LOW_CONFIDENCE → route khác chắc chắn đã xin ảnh ở đây
+    assert all(
+        kwargs.get("needs_images") is not True and True not in args[3:]
+        for args, kwargs in collect.call_args_list
+    ), "route 'count' đã gửi ảnh cho VLM — vi phạm CLAUDE.md §5.2"
+
+
+@pytest.mark.parametrize("mode", ["legacy", "two_stage"])
+def test_route_khac_count_van_duoc_leo_thang_anh(monkeypatch, mode):
+    """Chốt chặn ngược: cấm ảnh phải CHỈ áp cho "count". Cấm rộng hơn sẽ giết
+    nhánh escalation của text_first/ocr/asr — mất bằng chứng thật, lỗi im lặng
+    nặng hơn cái đang sửa."""
+    monkeypatch.setenv("QA_INFERENCE_MODE", mode)
+    text_ev = Evidence("s0", "V1", ["vài chữ"], [], "", None, [], 10)
+    image_ev = Evidence("s0", "V1", ["vài chữ"], [], "", None, [(10, None)], 10)
+
+    def fake_collect(*args, **kwargs):
+        muon_anh = kwargs.get("needs_images", args[3] if len(args) > 3 else False)
+        return image_ev if muon_anh else text_ev
+
+    with patch("backend.tasks.qa.collect_evidence", side_effect=fake_collect) as collect, \
+         patch("backend.tasks.qa.ask_llm",
+               side_effect=lambda *a, **kw: [_qa_result("đỏ", 0.1)] * kw.get("n", 3)):
+        Q._try_shot(ShotHit("s0", 1.0), "màu gì?", "ocr", False)
+
+    assert any(
+        kwargs.get("needs_images") is True or True in args[3:]
+        for args, kwargs in collect.call_args_list
+    ), "route 'ocr' phải leo thang sang ảnh khi bằng chứng text yếu"
+
+
+def test_allows_image_escalation_chi_cam_count():
+    from data.config.qa_routing import allows_image_escalation
+    assert allows_image_escalation("count") is False
+    for route in ("ocr", "asr", "metadata", "visual", "text_first", ""):
+        assert allows_image_escalation(route) is True
+
+
+def test_prompt_version_da_bump_khi_prompt_doi():
+    """prompt_version nằm trong `_qa_cache_identity`. Không bump thì output v2
+    cũ được replay cho prompt mới và mọi phép đo trước/sau thành vô nghĩa."""
+    from data.config.qa_hypotheses import (
+        QA_INFERENCE_PROMPT_VERSION,
+        QA_PLANNER_PROMPT_VERSION,
+    )
+    assert QA_INFERENCE_PROMPT_VERSION != "qa-evidence-v2"
+    assert QA_PLANNER_PROMPT_VERSION != "qa-planner-v2"
+
+
+def test_planner_prompt_day_du_luat_52():
+    """Planner LÀ chỗ quyết định route trên đường chạy chính (`route_question`
+    chỉ là fallback khi planner lỗi). Prompt phải nói rõ luật, không chỉ liệt
+    kê tên enum."""
+    prompt = Q._build_planner_prompt("câu hỏi nào đó")
+    for tu_khoa in ("visual_count", "ocr", "asr", "metadata",
+                    "visual_attribute", "visual_read"):
+        assert tu_khoa in prompt
+    # luật ưu tiên nguồn-thắng-kiểu phải có mặt
+    assert "NGUỒN" in prompt and "lời thoại" in prompt

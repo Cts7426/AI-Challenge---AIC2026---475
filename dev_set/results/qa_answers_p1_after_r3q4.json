@@ -1,0 +1,59 @@
+{
+  "run_at": "2026-09-02T14:19:12.743495+00:00",
+  "part": "p1",
+  "gate": "answer_only",
+  "runtime_fingerprint": "feb41afe2757889fd995360375a610b629fa436311f4b8a617baa6c8b2d3010c",
+  "aggregate": {
+    "n_queries": 3,
+    "n_answer_match": 0,
+    "answer_match_rate": 0.0,
+    "n_error": 1,
+    "total_seconds": 1253.3
+  },
+  "per_query": [
+    {
+      "query_id": "query-p1-3-qa",
+      "video_id_gt": "L26_V068",
+      "video_id_pred_row1": null,
+      "answer_pred": "",
+      "answer_gt": "600g",
+      "answer_match": false,
+      "match_tier": 0,
+      "route": {},
+      "latency_s": 486.576,
+      "error": "SolveQueryError: Thử 19 shot (kể cả ứng viên nhánh text và mở rộng trong video) đều không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không."
+    },
+    {
+      "query_id": "query-p1-15-qa",
+      "video_id_gt": "L25_V065",
+      "video_id_pred_row1": "L21_V010",
+      "answer_pred": "7",
+      "answer_gt": "12",
+      "answer_match": false,
+      "match_tier": 0,
+      "route": {
+        "evidence_type": "count",
+        "answer_mode": "visual_count",
+        "planner_fallback": false
+      },
+      "latency_s": 270.611,
+      "error": null
+    },
+    {
+      "query_id": "query-p1-17-qa",
+      "video_id_gt": "L22_V008",
+      "video_id_pred_row1": "L22_V022",
+      "answer_pred": "Đèo Chuối",
+      "answer_gt": "đèo Tà Pứa",
+      "answer_match": false,
+      "match_tier": 0,
+      "route": {
+        "evidence_type": "ocr",
+        "answer_mode": "ocr",
+        "planner_fallback": false
+      },
+      "latency_s": 496.161,
+      "error": null
+    }
+  ]
+}

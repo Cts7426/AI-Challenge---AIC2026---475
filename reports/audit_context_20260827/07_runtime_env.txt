@@ -1,0 +1,37 @@
+# Runtime environment — do that 27/08/2026
+
+## Python
+Python 3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]
+
+## Platform
+Windows-11-10.0.26200-SP0
+AMD64 | Intel64 Family 6 Model 154 Stepping 3, GenuineIntel
+
+## RAM
+total=15.7 GB  available=3.2 GB
+
+## Packages (loc)
+anthropic          0.125.0
+elasticsearch      8.19.3
+fastapi            0.141.1
+google-genai       2.19.0
+numpy              2.5.2
+open_clip_torch    3.3.0
+pandas             3.0.5
+pillow             12.3.0
+pyarrow            25.0.1
+pymilvus           3.0.1
+pytest             9.1.1
+torch              2.13.0+cpu
+torchvision        0.28.0
+
+## Services
+Elasticsearch:9200 CLOSED (TimeoutError)
+Milvus:19530 CLOSED (TimeoutError)
+docker: daemon KHONG chay (npipe dockerDesktopLinuxEngine not found)
+
+## .env (REDACTED)
+ANTHROPIC_API_KEY=<REDACTED>
+LLM_BACKEND=api
+LLM_API_MODEL=claude-sonnet-5
+GEMINI_API_KEY=<REDACTED>

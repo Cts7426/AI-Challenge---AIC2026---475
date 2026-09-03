@@ -1,0 +1,51 @@
+# Git state — snapshot 2026-08-27T08:14:12Z
+
+## git branch --show-current
+codex/batch1-accuracy-repair
+
+## git rev-parse HEAD
+b419f6e8114da5e3a045cb85e19a8b9dda0b6788
+
+## git status --short
+?? dev_set/ground_truth/sotuyen1_p1_draft_gt.jsonl
+?? reports/audit_context_20260827/
+
+## git log --oneline --decorate -20
+b419f6e (HEAD -> codex/batch1-accuracy-repair, main) docs: update architecture and testing docs, fix LLM adapter and runner runtime fallback
+c443903 fix: close release provenance gaps
+9b107cd fix: bind release gates to verified provenance
+00a6c08 feat: add promotion and release rehearsal gates
+0853535 fix: harden QA evidence and cache identity
+4d28d93 feat: add evidence-specific QA hypotheses
+7dcd8db fix: derive temporal order from anchor spans
+41609d0 fix: normalize anchor chronology safely
+f9dcacb fix: preserve anchor constraint relations
+3f50bfe fix: fail closed on invalid KIS anchors
+edd6343 feat: add KIS multi-anchor retrieval
+8042414 fix: harden runner fingerprints and traces
+0a9d3b9 refactor: unify query execution and traces
+3af0dd4 docs: mark round1 scores unreproduced
+f5bb02b docs: restore batch1 uplift acceptance spec
+0ea6ce7 feat: add verified evaluation foundation
+b8090cd feat: hoan tat audit Batch 1, resolver anh, cau hinh QA two-stage va cong cu tao query
+52bee37 docs: sua so lieu test — 2 fail test_evidence la loi moi truong co san, khong phai da het
+5de46ca merge: gop origin/main (ban Ly da merge) — giu nguyen QA+TRAKE cua Ly, chi chong them chieu sau
+255b7a8 fix(TRAKE): to_answers() mac dinh bam theo so video ung vien, tra lai run_minimal ban goc
+
+## branch topology
+* codex/batch1-accuracy-repair                             b419f6e docs: update architecture and testing docs, fix LLM adapter and runner runtime fallback
+  feature/checkpoint-w3-freeze                             0157d8b [origin/feature/checkpoint-w3-freeze] test: record reproducible tune baseline
+  feature/online-3-dot-plan                                458e73b Update BUILD_TASKS.md
+  fix/qa-allocator-pipeline-eval                           d496ecb [origin/fix/qa-allocator-pipeline-eval] fix(pipeline): sua loi crash QA/Haiku, unknown shot_id allocator, bo sung query_en tinh va cong cu eval
+  main                                                     b419f6e [origin/main: behind 2] docs: update architecture and testing docs, fix LLM adapter and runner runtime fallback
+  remotes/origin/HEAD                                      -> origin/main
+  remotes/origin/HoangCongLy-fix-trake-rrf-tuning-20260820 9b65b9f feat: Add generated QA/TRAKE test queries and fix QA fallback image path
+  remotes/origin/claude/claude-agents-alignment-rw8pam     e33f2dc docs(skill): sửa aic2026-retrieval cho khớp AGENTS.md
+  remotes/origin/feature/(backup)online-3-dot-plan         458e73b Update BUILD_TASKS.md
+  remotes/origin/feature/checkpoint-w3-freeze              0157d8b test: record reproducible tune baseline
+  remotes/origin/feature/online-3-dot-plan                 458e73b Update BUILD_TASKS.md
+  remotes/origin/fix/qa-allocator-pipeline-eval            d496ecb fix(pipeline): sua loi crash QA/Haiku, unknown shot_id allocator, bo sung query_en tinh va cong cu eval
+  remotes/origin/main                                      e82d5b4 feat: Add incremental_load_clip.py for 3050 Densification Engine
+
+## baseline commit truoc PLAN
+b8090cd85133433cbaa5a37d542abea48c778f5c 2026-08-21 19:48:23 +0700 feat: hoan tat audit Batch 1, resolver anh, cau hinh QA two-stage va cong cu tao query

@@ -1,0 +1,24 @@
+# Lich su cham diem cua dung 13 query trong manifest batch1_holdout13
+# GT dung: dev_set/ground_truth/holdout_gt.jsonl (legacy, KHONG human-verified)
+# Muc dich: tra loi cau hoi contamination cua auditor (muc M)
+
+run_20260820_2108  split=holdout  commit=c7f68ad  present=13/13
+   overall=0.1385  KIS=0.1800(n=10)  QA=0.0000(n=3)
+   per-query: KIS_001=0.00, KIS_002=0.40, KIS_003=0.00, KIS_004=0.00, KIS_005=0.40, KIS_006=0.00, KIS_007=0.80, KIS_008=0.20, KIS_009=0.00, KIS_010=0.00, QA_011=0.00, QA_012=0.00, QA_013=0.00
+
+run_20260820_2207  split=holdout  commit=c7f68ad  present=13/13
+   overall=0.2154  KIS=0.2800(n=10)  QA=0.0000(n=3)
+   per-query: KIS_001=0.00, KIS_002=0.40, KIS_003=0.00, KIS_004=0.60, KIS_005=0.40, KIS_006=0.00, KIS_007=0.80, KIS_008=0.00, KIS_009=0.60, KIS_010=0.00, QA_011=0.00, QA_012=0.00, QA_013=0.00
+
+run_20260820_2312  split=holdout  commit=0c4bf04  present=13/13
+   overall=0.2154  KIS=0.2800(n=10)  QA=0.0000(n=3)
+   per-query: KIS_001=0.00, KIS_002=0.40, KIS_003=0.00, KIS_004=0.60, KIS_005=0.40, KIS_006=0.00, KIS_007=0.80, KIS_008=0.00, KIS_009=0.60, KIS_010=0.00, QA_011=0.00, QA_012=0.00, QA_013=0.00
+
+# Trang thai verification cua moi file ground truth
+dress25_gt.jsonl                   n=  25 {'<field absent>': 25}
+gen10_gt.jsonl                     n=  20 {'<field absent>': 20}
+gen2_gt.jsonl                      n=   4 {'<field absent>': 4}
+holdout_gt.jsonl                   n=  63 {'<field absent>': 63}
+sotuyen1_p1_draft_gt.jsonl         n=  25 {'<field absent>': 25}
+synth_gt.jsonl                     n=   6 {'<field absent>': 6}
+tune_gt.jsonl                      n=  30 {'<field absent>': 30}

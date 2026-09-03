@@ -1,0 +1,69 @@
+# pytest -q  — chay 27/08/2026, Python 3.14.0, .venv
+# lenh: .venv/Scripts/python.exe -m pytest -q
+
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 61%]
+........................................................................ [ 70%]
+........................................................................ [ 79%]
+........................................................................ [ 88%]
+........................................................................ [ 97%]
+.....................                                                    [100%]
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\dev\aic2026\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+.venv\Lib\site-packages\google\genai\types.py:42
+  C:\dev\aic2026\.venv\Lib\site-packages\google\genai\types.py:42: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+813 passed, 1 skipped, 2 warnings in 125.06s (0:02:05)
+
+[exited with code 0]
+
+## Test count per file (pytest --collect-only -q)
+     79 tests/test_allocator.py
+     68 tests/test_validator.py
+     59 tests/test_eval.py
+     52 tests/test_labels.py
+     48 tests/test_export.py
+     44 tests/test_run.py
+     39 tests/test_trake.py
+     39 tests/test_multi_anchor.py
+     39 tests/test_answer_match.py
+     37 tests/test_qa_hypotheses.py
+     32 tests/test_preflight.py
+     31 tests/test_evidence.py
+     27 tests/test_qa.py
+     23 tests/test_release_rehearsal.py
+     22 tests/test_offline_search.py
+     20 tests/test_health.py
+     18 dev_set/tests/test_promotion_gate.py
+     15 tests/test_qa_text_fallback.py
+     14 tests/test_task_runner.py
+     14 tests/test_score_simulator.py
+     13 tests/test_qa_routing.py
+      8 tests/test_ndcg.py
+      7 tests/test_frame_assets.py
+      7 tests/test_audit_batch_manifest.py
+      7 dev_set/tests/test_scoring.py
+      6 tests/test_load_clip_guard.py
+      5 tests/test_search_filter.py
+      5 tests/test_make_queries.py
+      5 dev_set/tests/test_run_evaluation_runtime.py
+      5 dev_set/tests/test_ground_truth_verification.py
+      4 tests/test_llm_adapter.py
+      4 dev_set/tests/test_stats.py
+      4 dev_set/tests/test_schema.py
+      4 dev_set/tests/test_qa_variants.py
+      4 dev_set/tests/test_eval_kis_only.py
+      2 tests/test_api_search.py
+      1 tests/test_generate_queries.py
+      1 dev_set/tests/test_scorer_contract.py
+      1 dev_set/tests/test_frozen_evaluator_integration.py

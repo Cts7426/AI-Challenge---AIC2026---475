@@ -1,5 +1,10 @@
 # BUILD_TASKS.md — Lộ trình 3 đợt sơ tuyển
 
+> **v4 · 31/08/2026** — chiến dịch đang chạy là
+> **"Chiến dịch Đợt 3 — bốn làn · 31/08 → 03/09"**. Đọc mục đó trước; các mục
+> W0–W3 và R0–R2 giữ làm lịch sử. Mục `Thứ tự cắt nếu trễ` có **một dòng đã bị
+> đảo** cho Đợt 3 — xem ghi chú tại chỗ.
+>
 > **v3 · 21/08/2026** — nguồn task hiện hành cho ba đợt cộng điểm
 >
 > **Cách dùng:** làm TỪNG task theo thứ tự P0 → P1, chạy thật + test thật rồi mới
@@ -145,7 +150,344 @@ Hướng đi:
 - [ ] **POST.1 · P1 · Tổng kết**: lưu điểm ba đợt, artefact, config, failure ledger
   và danh sách hạng mục chuyển sang chung kết.
 
-### Luật promotion và thứ tự cắt
+---
+
+## Chiến dịch Đợt 3 — bốn làn · 31/08 → 03/09/2026
+
+> **Chốt 31/08/2026.** Đợt 3 thi **04/09 19:30**, còn **4 ngày làm việc**
+> (31/08, 01/09, 02/09, 03/09). Mọi mốc dưới đây tính theo 4 ngày, không phải 6.
+
+### Vì sao có chiến dịch này
+
+Điểm **hệ thống thật sự kiếm được**, tách khỏi phần tìm bằng mắt:
+
+| Đợt | Nộp lên BTC | Hệ thống tự kiếm | Trung bình/câu |
+|---|---|---|---|
+| 1 · 21/08 | 8,6/13 | **6,8** | 0,523 |
+| 2 · 28/08 | 13,6/15 | **4,4** | 0,293 |
+
+Điều kiện vào chung kết là chạy bằng hệ thống của chính đội và nộp mã nguồn cho
+BTC kiểm. Khoảng cách 13,6 với 4,4 sẽ bị phơi ra ở vòng đó dù có muốn hay không.
+Chiến dịch này để khép khoảng cách đó.
+
+Chẩn đoán từ `run_20260828_round2_single_anchor_final_01` (19 câu KIS):
+
+- `R@1 = 0,0526` · `R@5 = 0,4211` · `R@100 = 0,5789`
+- **8/19 câu trượt sạch 100 dòng** → tường recall
+- **7/19 câu nằm hạng 2–5** → tường ranking; kéo 7 câu này lên hạng 1 là `+0,074`
+  Final mà không cần model mới
+- `wrong_frame` 14/19 → tường temporal
+- Q&A: 196–476 s/câu, ~87 lời gọi LLM/câu, điểm ~0
+- TRAKE: 100 dòng = 100 video khác nhau nên R@5..R@100 không bao giờ vượt R@1
+
+### 🔓 Đảo một quyết định đã ghi thành văn
+
+Mục `Thứ tự cắt nếu trễ` phía dưới ghi **"1. SigLIP re-encode (dùng CLIP B/32 của
+BTC)"** đứng đầu danh sách cắt. Chiến dịch này **làm đúng thứ đó**.
+
+Lý do đảo: dòng đó viết khi chưa có số đo. Giờ có rồi — `R@1 = 0,0526` và 8/19
+câu trượt sạch. Mọi cải tiến khác chỉ xếp lại thứ hạng **bên trong** tập ứng viên
+mà encoder đã bỏ sót. Đây là quyết định có ý thức của Thạch ngày 31/08, không
+phải bỏ quên luật cũ.
+
+### Bộ đo dùng cho toàn chiến dịch
+
+`dev_set/ground_truth/official_r1r2.jsonl` — **55 câu đề chính thức** Đợt 1+2,
+dựng lại được bằng `dev_set/tools/build_official_gt.py`.
+
+- **41 câu dùng được ngay** ở mức video (`video_confidence >= HIGH`)
+- Tách riêng `video_confidence` và `frame_confidence`: tường recall/ranking chỉ
+  cần GT mức video, mà mức video đáng tin hơn hẳn mức frame
+
+**Chia tune / holdout — đọc kỹ, đây là chỗ dễ đốt nhầm hạn mức:**
+
+| Bộ lọc | Tổng | KIS | Q&A | TRAKE | Dùng cho |
+|---|---|---|---|---|---|
+| `--part p1 --min-confidence MEDIUM` | 25 | 20 | 4 | 1 | **TUNE — chạy thoải mái** |
+| `--part p1 --min-confidence HIGH` | 11 | 9 | 2 | 0 | tập con sạch, kiểm tỉnh táo |
+| `--part p2 --min-confidence HIGH` | 30 | 19 | 9 | 2 | **HOLDOUT — 2 lượt cho cả chiến dịch** |
+
+⚠️ **Mọi cổng chặn trước 03/09 chấm trên `p1 --min-confidence MEDIUM`, không phải
+trên 41 câu.** 30/41 câu ở mức HIGH nằm trong holdout Đợt 2; chấm bake-off trên
+đó là đốt hạn mức ngay ngày đầu.
+
+`MEDIUM` nghĩa là tiên nghiệm ~66% nhãn đúng, tức khoảng 1/3 nhãn sai. Chấp nhận
+được vì **cổng K1/K4 là so sánh TƯƠNG ĐỐI** (encoder A với B, có rerank với
+không): cùng một tập nhãn nhiễu áp cho mọi nhánh thì nhiễu hạ điểm tuyệt đối
+nhưng **giữ nguyên thứ tự thắng thua**. Chỉ đừng đọc con số tuyệt đối từ tập này.
+
+⚠️ **Q&A chỉ có 4 câu ở tập tune.** Quá mỏng để tune một mình — làn Q&A phải ghép
+thêm 5 câu Q&A của `dress25` (legacy, chưa xác minh, chỉ dùng so sánh tương đối)
+để có 9 câu. Ghi rõ điều này khi báo cáo số Q&A.
+
+Bộ chấm: `dev_set/tools/eval_official.py` — đo **hai tầng tách bạch**, mức video
+(không phụ thuộc cửa sổ `[s,e]` chưa biết, là thước chính) và mức frame ở nhiều
+dung sai `±5 / ±15 / ±40` cùng lúc. Script **chặn `--part p2`** trừ khi truyền
+`--i-am-spending-a-holdout-run`, và tự ghi vào `dev_set/holdout_log.md`.
+- Cửa sổ `[s,e]` của BTC vẫn chưa công bố → file chỉ lưu `frame_exact`;
+  evaluator phải báo cáo điểm ở nhiều mức dung sai (±5 / ±15 / ±40)
+- **Ba câu Đợt 1 đã phân xử lại bằng keyframe thật** vì bài nộp sai:
+  `p1-18` → `L26_V389` (không phải `L26_V235`), `p1-17` → `L22_V008` /
+  "đèo Tà Pứa" (không phải `L22_V025` / "Đèo Tằng Quái"), `p1-9` → `L21_V003`
+- ⚠️ `verified_by` còn ghi "trợ lý — CẦN NGƯỜI KÝ LẠI". Chưa có tên người thật
+  thì đây là **development evidence**, chưa phải promotion evidence (R3.V1)
+
+**Đợt 2 đã dùng lại kho Đợt 1** — 54/54 video đáp án của cả hai đợt nằm trong
+Batch 1, và `L24_V035` + `L25_V060` xuất hiện ở **cả hai đợt**. Nên giả định làm
+việc: Đợt 3 vẫn Batch 1, hoặc Batch 1 cộng thêm L31+. Batch 2 tới 31/08 vẫn
+chưa có.
+
+---
+
+### Làn KIS · Công Lý + Minh Hoàng — 19/30 câu
+
+- [ ] **R3.K1 · P0 · [Công Lý] Bake-off encoder trên 5.000 keyframe**
+  - Ba nhánh cùng một bộ truy vấn: `ViT-B-32-quickgelu` (nền) ·
+    `google/siglip2-so400m-patch16-384` · `facebook/PE-Core-L14-336`.
+  - Bỏ `PE-Core-bigG-14-448` dù MERVIN dùng: ~1,9 tỷ tham số ở 448px, encode
+    177K ảnh mất 5–10 giờ GPU, không còn đường lùi nếu hỏng.
+  - **Xong khi:** có bảng R@1/R@5 **mức video** của cả ba trên
+    `eval_official.py --part p1 --min-confidence MEDIUM` (25 câu, 20 KIS).
+    **KHÔNG chấm trên p2** — đó là holdout, chỉ có 2 lượt cho cả chiến dịch.
+  - **🔒 Cổng 31/08 23:00:** encoder mới phải hơn `B/32` **≥ +0,15 R@5 mức video**.
+    Không đạt → **huỷ hẳn K1–K2**, Lý và Hoàng chuyển toàn bộ sang K3–K5 trên
+    encoder cũ.
+
+- [ ] **R3.K2 · P0 · [Công Lý] Encode 177.321 keyframe, nạp `keyframes_v2`**
+  - 5 tài khoản Kaggle chia theo `hash(video_id) % 5`, checkpoint + resume, tải
+    kết quả về ngay sau mỗi lô.
+  - **Collection MỚI `keyframes_v2`. Không đụng collection đang chạy** — đó là
+    đường lùi cho tối 04/09.
+  - **Xong khi:** `.meta.json` đủ trường; kiểm chứng không gian vector **kiểu mới**
+    đạt — bất biến cũ ("encode lại ảnh BTC → cosine ≈ 1,0") **chết** khi đổi model
+    vì khác không gian. Thay bằng: (a) encode cùng một ảnh hai lần → cosine = 1,0;
+    (b) 20 cặp ảnh–caption đã biết đúng → cosine cao rõ rệt so với cặp ngẫu nhiên.
+
+- [ ] **R3.K3 · P1 · [Minh Hoàng] Quét lại fusion trên 7 nhánh**
+  - Bỏ bước dịch VI→EN khỏi đường online nếu chọn SigLIP 2 (đa ngữ, hiểu tiếng
+    Việt trực tiếp) — bớt một lời gọi LLM, bớt một nguồn sai, bớt độ trễ.
+  - `RRF_K = 7` được chọn cho `B/32`; encoder mạnh hơn thì K tối ưu gần như chắc
+    chắn đổi. Quét `{3,5,7,10,15,20,30,60}` **trước**, cố định, rồi mới quét
+    `BRANCH_WEIGHTS` của hai nhánh mới. Một biến mỗi lần.
+  - Giữ **song song hai nhánh vector** (B/32 cũ + mới): cả hai đã encode sẵn, chi
+    phí query gần bằng 0, và ensemble hai không gian là cách rerank rẻ nhất có.
+  - **Xong khi:** có bảng quét; đo lại độ trễ và đối chiếu ngân sách 30s
+    (bất biến 10 — thêm 2 nhánh là thêm 2 truy vấn, phải đo chứ không suy đoán).
+
+- [ ] **R3.K4 · P1 · [Minh Hoàng] Tầng rerank top-50**
+  - Đây là nơi 40% điểm nằm và hệ thống hiện **không có tầng nào**: RRF là bước
+    xếp hạng cuối cùng.
+  - Chấm lại top-50 bằng tín hiệu RRF không dùng được: điểm cosine **thật** đã
+    chuẩn hoá theo phân bố của chính truy vấn đó · khớp `extract_constraints()`
+    (đã có sẵn, chưa từng dùng để rerank) · đồng thuận nhánh (shot được ≥3/7
+    nhánh đề cử đáng tin hơn shot chỉ một nhánh đẩy lên).
+  - **🔒 Cổng 02/09:** R@1 **mức video** trên `--part p1 --min-confidence MEDIUM`
+    ≥ **0,25**. Không đạt thì **tắt đi** — rerank sai còn tệ hơn không có, vì nó
+    đẩy đáp án đúng xuống. **Không chạm p2 hôm nay.**
+
+- [ ] **R3.K5 · P1 · [Công Lý] Chỉnh `SLOT_BUDGET` sâu hơn**
+  - Bảng hiện tại `[(1,2),(2,2),(94,1)]` phủ rộng vì ranking kém. Ranking khá lên
+    thì cân lại về phía sâu: thử `[(1,8),(4,4),(10,2),(56,1)]`.
+  - **Xong khi:** đo ở cả ba giả định cửa sổ ±5 / ±15 / ±40.
+
+### Làn Q&A · Thạch — 9/30 câu
+
+- [ ] **🔒 R3.Q1 · P0 · [Thạch] Sửa H1 — sentinel lọt qua validator**
+  - Review 28/08 kết luận `NOT READY — P0/P1 BLOCKER REMAINS` chỉ vì mục này.
+  - `"Không đủ căn cứ xác định"` được `is_valid_qa_answer()` nhận là đáp án hợp lệ,
+    đi qua validator, vào CSV, vào ZIP; vì không thành `missing_evidence` nên
+    `--only`/resume **không tự chạy lại**. Quan sát thật ở
+    `dev_set/results/run_20260827_154710_27d970c1/DRESS_QA_01.csv` dòng 3 và 6.
+  - Chặn ở **cả hai chỗ**: `is_valid_qa_answer()` và constructor `QAHypothesis`.
+  - **Xong khi:** có test dùng **đúng chuỗi đã quan sát**; verdict `NOT READY` gỡ được.
+
+- [ ] **R3.Q2 · P0 · [Thạch] Cổng bằng chứng trước khi gọi LLM**
+  - Shot không có OCR, không có ASR trong ±3s, không có metadata thì **không gọi
+    LLM**. Đây là chỗ phần lớn trong ~87 lời gọi/câu đang bị đốt.
+  - **Xong khi:** số lời gọi mỗi câu xuống ≤ 25.
+
+- [ ] **R3.Q3 · P0 · [Thạch] Dừng sớm khi đã đủ tin**
+  - `legacy` hiện không có ngân sách sinh và không dừng khi đã có câu trả lời mạnh.
+    Test `test_main_tu_tin_cao_van_thu_het_video_expansion_budget` đang **khoá đúng
+    hành vi ngược lại** — sửa cả test.
+  - **🔒 Cổng 02/09:** ≤ **60 s/câu**. Không đạt → tối 04/09 **để Q&A làm sau cùng**
+    và chấp nhận bỏ nếu hết giờ (9 câu × 6 phút = 54 phút, không được ăn hết buổi thi).
+
+- [ ] **R3.Q4 · P1 · [Thạch] Định tuyến bằng chứng đúng `CLAUDE.md` 5.2**
+  - tên/chức danh → OCR · lời nói → ASR · **đếm → detector, TUYỆT ĐỐI không hỏi
+    VLM** · số/tỉ số → OCR.
+  - **Xong khi:** Q&A ≥ **0,40** trên 9 câu tune — 4 câu Q&A của `p1` cộng 5 câu
+    Q&A của `dress25`. ⚠️ Tập mỏng và `dress25` chưa xác minh; chỉ đọc **chênh
+    lệch trước/sau**, không đọc con số tuyệt đối. 9 câu Q&A của `p2` là holdout,
+    để dành cho quyết định cuối 03/09.
+
+### Làn TRAKE · Thạch — 2/30 câu
+
+- [ ] **R3.T1 · P1 · [Thạch] `to_answers()` phát nhiều phương án mỗi video**
+  - Lỗi đã ghi sẵn trong `data/config/slot_budget.py`: 1 dòng/video → 100 dòng =
+    100 video, nên khi video đúng đã ở hạng 1 thì 99 dòng còn lại **không thể**
+    cải thiện điểm. TR01 đo được R@1..R@100 đều 0,50.
+  - 100 dòng nên phủ ~10–20 video × 5–10 phương án chuỗi frame, rút từ top-`K`
+    ứng viên mỗi sự kiện của DP.
+  - **Xong khi:** R@5..R@100 không còn bằng R@1.
+
+- [ ] **R3.T2 · P1 · [Thạch] Đo lại TRAKE** trên 3 câu TRAKE trong `official_r1r2`,
+  có số trước/sau.
+
+### Làn Text · Thạch + Công Lý + Minh Hoàng
+
+> Đây là phần MERVIN (đội *chmod*, **79/88 vòng sơ tuyển AIC HCMC 2025**) có mà
+> nhóm chưa có. Lý do độc lập với MERVIN: hệ thống hiện **không có tìm kiếm ngữ
+> nghĩa tiếng Việt ở bất kỳ đâu** — 5 nhánh là CLIP (tiếng Anh, qua bản dịch) cộng
+> bốn nhánh BM25 khớp từ khoá. Đó là lỗ hổng **năng lực**, không phải chất lượng.
+>
+> **Mọi job trong làn này phải idempotent theo `video_id`, checkpoint, resume,
+> nạp delta** (đúng yêu cầu R3.1). Đó là thứ biến làn này từ "artefact dùng một
+> lần" thành "pipeline chạy lại được trong 4–6 giờ" nếu Đợt 3 có batch mới.
+>
+> **Chạy như script offline sinh parquet, KHÔNG nằm trong vòng lặp `run.py`** —
+> để việc đổi provider không lây vào runtime fingerprint của lượt chạy.
+
+- [ ] **🔒 R3.X1 · P1 · [Thạch] Làm sạch 13.415 đoạn ASR bằng `gemini-3.6-flash`**
+  - `LLM_BACKEND=gemini` — một dòng config, không sửa code (`CLAUDE.md` mục 3).
+    Key **trả phí**, nên không vướng tường 5 request/phút của free-tier.
+  - Gom 5 đoạn/lô → 2.683 lời gọi. Ghi ra **cột mới `text_vi_clean`**, không ghi
+    đè `text_vi`.
+  - **Smoke 100 bản ghi trước khi phóng 2.683.** Cache hiện có 755 entry toàn bộ
+    `claude-sonnet-5` — đường Gemini gần như chưa chạy thật ở quy mô nào, và
+    review 28/08 liệt "Provider integration test gap" vào backlog. Bài học
+    `maxItems` là lỗi tương thích provider chỉ lộ ra ở lần gọi thật.
+  - **Bắt đầu SÁNG 31/08** — đường găng dài nhất của làn này; X2/X3/X4 đều đứng sau.
+  - **Xong khi:** 13.415/13.415 đoạn có bản sạch, resume được.
+
+- [ ] **R3.X2 · P1 · [Công Lý] Encode nhánh vector tiếng Việt — HAI nhánh**
+  - `dangvantuan/vietnamese-embedding` (PhoBERT, 768 chiều, 512 token) —
+    **bắt buộc `pyvi.ViTokenizer.tokenize()` trước khi encode.** Bỏ bước này thì
+    model vẫn chạy, vector vẫn `norm = 1`, chỉ chất lượng tụt không cảnh báo.
+  - `BAAI/bge-m3` — huấn luyện thẳng cho **retrieval**, đa ngữ, context 8192, không
+    cần tách từ. Chạy nhánh này vì bảng của MERVIN đo **STS** (đối xứng) chứ không
+    đo retrieval (bất đối xứng, truy vấn → tài liệu); dangvantuan đứng đầu STS là
+    dấu hiệu, không phải bằng chứng.
+  - Chọn bằng đo trên 41 câu GT. **14.198 vector, ~15 phút GPU** nên chạy hai nhánh
+    vẫn dưới nửa giờ.
+  - ⚠️ Máy hiện không có CUDA (`torch 2.13.0+cpu`) nhưng X2 nhỏ: CPU khoảng 10–20
+    phút với dangvantuan, 30–60 phút với bge-m3. **X2 không tranh GPU với K2.**
+  - **Xong khi:** hai collection, `.meta.json` đủ, có bảng so sánh.
+
+- [ ] **R3.X3 · P2 · [Công Lý] Tóm tắt cấp video** từ ASR sạch, 783 video,
+  `gemini-3.6-flash`, index riêng.
+  - ⚠️ **Chốt trần độ dài tóm tắt ≤ 400 token trong prompt.** Transcript trung bình
+    2.130 token/video — gấp 4 lần cửa sổ 512 của dangvantuan; không chặn thì nhánh
+    này bị cắt cụt âm thầm lúc encode. Ràng buộc biến mất nếu chọn `bge-m3`.
+  - Bằng chứng yếu nhất trong bốn mục X: MERVIN dùng nhánh này cho **người lọc**
+    trên UI, chưa có bằng chứng nó giúp pipeline chạy tự động.
+
+- [ ] **R3.X4 · P1 · [Minh Hoàng] Nối nhánh 6 và 7 vào `BRANCHES`**
+  - **Mặc định `False`** cho tới khi R3.K3 đo xong. Hoàng nối đúng hai nhánh mà
+    ngay sau đó chính anh quét ở K3 — cùng một file, không có bàn giao ở giữa.
+  - ⚠️ **90/873 video không có ASR.** Hai nhánh mới sẽ mù với những video đó.
+
+### Làn vận hành · Quang Linh
+
+- [ ] **🔒 R3.V1 · P0 · [Linh] Ký tên vào ground truth**
+  - Ba phán quyết p1-18 / p1-17 / p1-9 đang ghi `verified_by = "trợ lý — CẦN NGƯỜI
+    KÝ LẠI"`. Promotion gate không mở khi thiếu tên người thật.
+  - **Xong khi:** `verified_by` + `verified_how` có tên Linh ở ≥ 41 bản ghi.
+
+- [ ] **R3.V2 · P1 · [Linh] Hỏi BTC về mẫu số chấm điểm**
+  - **25 file nộp nhưng điểm /13; 30 file nhưng điểm /15.** Tỉ lệ ≈ 2 ở cả hai đợt.
+    Nếu BTC chỉ chấm một nửa thì tiên nghiệm 66%/91% trong `official_r1r2` đang áp
+    cho một tập con không xác định được, và phép tính mục tiêu cũng đổi theo.
+  - **Xong khi:** có câu trả lời, hoặc ghi nhận đã hỏi và không có hồi đáp.
+
+- [ ] **R3.V3 · P1 · [Linh] Diễn tập 10 câu bấm giờ 6 phút/câu** trên UI của nhóm,
+  ghi lại chỗ người thao tác kẹt.
+
+### Ba file hai làn cùng chạm — luật tránh đụng
+
+| File | Luật |
+|---|---|
+| `data/config/search_weights.py` | KIS sở hữu phần trên; **TRAKE sở hữu từ `# --- TRAKE (C3.2)` xuống**. Không ai format lại nửa của người kia |
+| `data/config/slot_budget.py` | KIS sở hữu `SLOT_BUDGET` + `SHOT_EDGE_INSET`; **TRAKE sở hữu từ `# ═══ TRAKE — chiều sâu dòng nộp` xuống** |
+| `backend/slot/allocator.py` | KIS sở hữu `allocate()`, `_frames_of_shot()`; **TRAKE sở hữu `_allocate_trake()`, `_trake_row()`, `_draw_fresh_row()`** |
+| `backend/retrieval/search.py` | **KIS sở hữu độc quyền.** Q&A gọi `search()` nhưng không đổi chữ ký — đổi một dòng ở đây là đổi ngầm 19 câu KIS |
+
+Hai luật vận hành đi kèm:
+
+1. **Thạch giữ quyền phủ quyết schema nhưng không tự sửa.** `CLAUDE.md` mục 13 cho
+   Thạch quyền phủ quyết schema; anh đang ở làn Q&A nên schema `keyframes_v2` và
+   mọi thay đổi `search()` do Công Lý/Hoàng viết, **Thạch duyệt**. Không sửa tay
+   để tránh hai người cùng đụng một file.
+2. **Đo riêng trước, đo chung một lần.** Làn Q&A đo trên encoder **hiện tại** (đóng
+   băng); làn KIS đo ở mức video. Chỉ 03/09 mới chạy một lượt chung. Trộn sớm là
+   lặp lại đúng vấn đề review đã ghi: cùng fingerprint, kết quả khác nhau, không
+   quy được cho ai.
+
+### Lịch bốn ngày
+
+| | KIS · Lý + Hoàng | Q&A + TRAKE · Thạch | Text | Vận hành · Linh |
+|---|---|---|---|---|
+| **31/08 T2** | K1 bake-off 3 nhánh → **chốt encoder tối nay** | Q1 sửa H1 → Q2 cổng bằng chứng | **X1 khởi động sáng nay** (Thạch) | V1 ký GT · V2 hỏi BTC |
+| **01/09 T3** | K2 encode 177K → nạp `keyframes_v2` | Q3 dừng sớm, đo latency | X1 xong → X2 (Lý) → X3 (Lý) | V1 xong |
+| **02/09 T4** | K3 quét fusion 7 nhánh → K4 rerank | Q4 định tuyến → T1 TRAKE nhiều dòng | X4 nối nhánh (Hoàng) → bàn giao K3 | V3 diễn tập |
+| **03/09 T5** | **12:00 FREEZE** · K5 slot · đo lượt cuối | freeze · T2 đo | — | rehearsal ZIP + receipt |
+| **04/09 T6** | — | **19:30 THI** | — | — |
+
+**🔒 Quyết định cuối · 03/09 20:00.** Cấu hình mới phải thắng cấu hình cũ trên
+holdout Đợt 2. Bằng nhau hoặc thua → **nộp bằng cấu hình cũ**: nó đã rehearsal,
+đã có ZIP hợp lệ, và 4,4 điểm chắc chắn hơn một con số chưa ai kiểm.
+
+Holdout Đợt 2 chỉ được mở **hai lần** trong cả chiến dịch: 31/08 (K1) và 03/09
+(quyết định cuối). Vi phạm là lặp lại đúng lỗi đã làm hỏng `batch1_holdout13`.
+
+### Ngân sách API
+
+| Hạng mục | Token | Model |
+|---|---|---|
+| R3.X1 làm sạch ASR | 7.970.637 | `gemini-3.6-flash` · ~$11,7 |
+| R3.X3 tóm tắt 783 video | 3.991.684 | `gemini-3.6-flash` · ~$1,0 |
+| R3.K1 bake-off + mọi lượt `eval_official.py` | **~6.700/lượt** | `claude-sonnet-5` · **~$0,03/lượt** |
+| **Tổng** | **~12.000.000** | **≈ $12,7** |
+
+R3.X2 tốn **0 token API** — chạy embedding local.
+
+Con số 6.700 gồm **6.062 token vào đo thật** bằng `client.messages.count_tokens()`
+trên đúng 25 câu tune (242 token/câu), cộng ~625 token ra ước lượng.
+
+Vì sao làn KIS gần như miễn phí token: `search()` chỉ có **một** chỗ gọi `llm()` —
+`text_query.translate_to_english()`, prompt 3 dòng, `max_tokens=128`, không JSON
+schema. Nó **không** đi qua chuỗi `understand()` 3 lời gọi trong
+`query_understanding.py`.
+
+Cả ba nhánh bake-off dùng **chung một cache entry**: khoá cache băm prompt +
+model + backend, **không có encoder trong đó**, nên lời gọi dịch không biết ảnh sẽ
+được encode bằng gì. Trả tiền đúng một lần cho lượt đầu, ba nhánh sau đó miễn phí.
+
+⚠️ **`search()` hiện LUÔN dịch khi `query_en=None`, không phân biệt encoder.**
+Việc `siglip2` đa ngữ bỏ được bước dịch là **kết quả của R3.K3**, chưa đúng ở mã
+hiện tại. Trước K3, nhánh SigLIP rẻ vì trúng cache, không phải vì bỏ dịch.
+
+Encode ảnh thì **luôn 0 token** — chạy GPU local, không có LLM nào tham gia.
+
+**Đổi provider cho một job:** biến môi trường của shell **thắng** `.env`
+(`_nap_dotenv()` chỉ điền biến còn THIẾU). Nên chạy X1/X3 bằng Gemini là:
+
+```powershell
+$env:LLM_BACKEND='gemini'   # LLM_GEMINI_MODEL mặc định gemini-3.6-flash
+```
+
+Đặt trong đúng process chạy job đó, **không sửa `.env`** — `.env` phải giữ nguyên
+`api`/`claude-sonnet-5` cho đường thi.
+
+⚠️ **Không đổi provider cho đường thi.** `LLM_API_MODEL` nằm trong runtime
+fingerprint; đổi backend là vô hiệu toàn bộ checkpoint, cache và mọi artefact đã
+đo. Tối 04/09 giữ nguyên `api` + `claude-sonnet-5` như runbook đã khoá.
+
+---
+
+## Luật promotion và thứ tự cắt
+
+> Áp cho mọi chiến dịch, không riêng Đợt 3.
 
 - Correctness/invariant: nhận khi test + regression qua.
 - Tuning: tăng ít nhất 0.02 trên tune hoặc tốt hơn ít nhất hai query holdout;
@@ -505,8 +847,18 @@ Bốn việc này chặn mọi thứ phía sau. Làm trước khi sprint bắt �
 
 ## Thứ tự cắt nếu trễ
 
+> ⚠️ **Mục 1 đã bị ĐẢO cho Đợt 3 (31/08/2026).** Xem
+> "Chiến dịch Đợt 3 — bốn làn". Đổi encoder giờ là **ưu tiên cao nhất**, không
+> còn là thứ cắt đầu tiên. Lý do: dòng dưới viết khi chưa có số đo; đo được
+> `R@1 = 0,0526` và 8/19 câu KIS trượt sạch 100 dòng thì mọi cải tiến khác chỉ
+> xếp lại thứ hạng bên trong tập ứng viên mà encoder đã bỏ sót.
+>
+> Thứ tự cắt còn hiệu lực cho Đợt 3 nằm ở cuối mục chiến dịch: X3 tóm tắt →
+> X2 nhánh thứ hai (`bge-m3`) → K5 slot → K4 rerank. **Không cắt** K1–K2 sau khi
+> đã qua cổng 31/08.
+
 Cắt từ trên xuống:
-1. SigLIP re-encode (dùng CLIP B/32 của BTC)
+1. ~~SigLIP re-encode (dùng CLIP B/32 của BTC)~~ — **đảo, xem trên**
 2. Caption VLM
 3. TRAKE DP (chuyển sang fallback C4.4)
 4. Rerank text

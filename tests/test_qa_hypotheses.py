@@ -165,6 +165,85 @@ def test_main_tu_tin_cao_van_thu_het_video_expansion_budget(monkeypatch):
     ]
 
 
+def test_pipeline_bo_refusal_ngan_va_chon_answer_hop_le_phia_sau(monkeypatch):
+    """Refusal ở shot đầu không được che mất answer có evidence ở shot sau."""
+    from backend.tasks import qa
+
+    monkeypatch.setattr(
+        qa, "parse_question",
+        lambda query: qa.QuestionParts("sự kiện", "câu hỏi", "visual_attribute"),
+    )
+    monkeypatch.setattr(qa, "search", lambda *a, **kw: [
+        {"shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10"},
+        {"shot_id": "L21_V002#s2", "score": .8, "keyframe_id": "L21_V002#k20"},
+    ])
+    monkeypatch.setattr(qa, "_expand_within_video", lambda *a, **kw: [])
+    monkeypatch.setattr(
+        qa, "load_frame_map",
+        lambda: {"L21_V001#k10": 10, "L21_V002#k20": 20},
+    )
+    qa._reverse_frame_map.cache_clear()
+
+    def fake_try(hit, *args, **kwargs):
+        attempt = qa._qa_attempt_ctx.get()
+        assert attempt is not None
+        attempt["evidence_hash"] = ("a" if hit.shot_id.endswith("s1") else "b") * 64
+        return ("Không rõ", 10, .99) if hit.shot_id.endswith("s1") else ("đỏ", 20, .8)
+
+    monkeypatch.setattr(qa, "_try_shot", fake_try)
+    try:
+        _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
+    finally:
+        qa._reverse_frame_map.cache_clear()
+
+    assert answer == "đỏ"
+    assert [item["shot_id"] for item in trace["hypotheses"]] == ["L21_V002#s2"]
+
+
+def test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel(monkeypatch):
+    """Hết đáp án thật thì nộp CHỖ TRỐNG — nhưng tuyệt đối không nộp câu từ chối.
+
+    ⚠️ Test này đổi hợp đồng khi gộp hai nhánh 03/09. Bản của Thạch
+    (`codex/qa-last-3h`) đòi `QANoValidHypothesisError`; bản `integrate/dot3`
+    cố ý bỏ đường ném lỗi đó (commit 9bbee76 + 73dbf41) vì nó để CẢ CÂU trống
+    trong gói ZIP, mà BTC không phạt câu sai — bỏ trống là 0 điểm CHẮC CHẮN
+    còn nộp bừa thì vẫn còn cửa (CLAUDE.md §6 luật 1: luôn nộp đủ 100 slot).
+
+    Giữ nguyên điều Thạch muốn bảo vệ, và đó mới là phần đáng ghim: câu từ chối
+    KHÔNG được đi tiếp thành đáp án nộp. Chỉ khác chỗ hệ quả — thay vì ném lỗi
+    thì hạ xuống chỗ trống có nhãn để người soi ảnh điền tay.
+    """
+    from backend.tasks import qa
+
+    monkeypatch.setattr(
+        qa, "parse_question",
+        lambda query: qa.QuestionParts("sự kiện", "câu hỏi", "visual_attribute"),
+    )
+    monkeypatch.setattr(qa, "search", lambda *a, **kw: [
+        {"shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10"},
+    ])
+    monkeypatch.setattr(qa, "_expand_within_video", lambda *a, **kw: [])
+    monkeypatch.setattr(qa, "load_frame_map", lambda: {"L21_V001#k10": 10})
+    monkeypatch.setattr(
+        qa,
+        "_try_shot",
+        lambda *a, **kw: _fake_inference_with_hash(qa, ("Không rõ", 10, .99)),
+    )
+
+    _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
+
+    # Câu từ chối không được trở thành đáp án nộp — ý gốc của phép kiểm.
+    assert qa.is_valid_qa_answer(answer) is False or answer == "TODO"
+    assert "không rõ" not in str(answer).lower()
+    # Và phải là chỗ trống có nhãn, không phải im lặng trả rỗng.
+    assert answer == "TODO"
+    # Chỗ trống vẫn sinh hypothesis để bài nộp có dòng, nhưng MỌI dòng phải là
+    # chỗ trống — không được lẫn một dòng nào mang câu từ chối.
+    gia_thuyet = trace.get("hypotheses") or []
+    assert gia_thuyet, "chỗ trống vẫn phải có dòng để nộp, không được rỗng"
+    assert all(h["answer_text"] == "TODO" for h in gia_thuyet)
+
+
 def test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel():
     from backend.tasks.qa import QAHypothesis
 
@@ -236,9 +315,59 @@ def test_sentinel_prefix_surface_bi_loai(answer):
 @pytest.mark.parametrize(
     "answer",
     [
+        "Không đủ căn cứ xác định",
+        "Không thể xác định từ bằng chứng",
+        "Không có cân hiển thị trong hình ảnh",
+        "Không thấy cân hoặc số trên cân trong hình",
+        "Không đủ bằng chứng",
+        "Cannot determine from the evidence",
+        "Cannot determine",
+        "Không biết",
+        "Không rõ",
+        "Tôi không thể xác định từ bằng chứng",
+        "I cannot determine from the evidence",
+        "Tôi không biết",
+        "Tôi không rõ",
+        "Mình chưa rõ",
+        "We don't know",
+    ],
+)
+def test_refusal_surface_tu_run_that_bi_loai(answer):
+    """Biến thể từ chối không được lọt qua chỉ vì khác sentinel một vài từ."""
+    from backend.tasks.qa import is_valid_qa_answer
+
+    assert is_valid_qa_answer(answer) is False
+
+
+def test_refusal_surface_khong_duoc_tao_qa_hypothesis():
+    """Surface đã lọt vào CSV phải bị chặn ngay tại biên hypothesis."""
+    from backend.tasks.qa import QAHypothesis
+
+    with pytest.raises(ValueError, match="answer rỗng/sentinel"):
+        QAHypothesis(
+            answer_text="Không đủ căn cứ xác định",
+            video_id="L21_V001",
+            shot_id="L21_V001#s0001",
+            keyframe_id="L21_V001#k0001",
+            evidence_frame_idx=10,
+            confidence=0.9,
+            evidence_hash="a" * 64,
+            provenance="main:llm:legacy",
+            evidence_type="visual",
+            answer_mode="visual_attribute",
+        )
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
         'Biển báo ghi "Không có thông tin trong bằng chứng"',
         "No Information Technology",
         "Không có thông tin liên lạc",
+        "Không",
+        "0",
+        "Không thấy mưa",
+        "Không có người trong ảnh",
     ],
 )
 def test_sentinel_policy_khong_loai_answer_lien_quan_nhung_hop_le(answer):

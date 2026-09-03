@@ -225,8 +225,26 @@ def run(args) -> int:
     if args.rrf_k is not None:
         search_mod.RRF_K = args.rrf_k
     rrf_k = search_mod.RRF_K
-    branches = ({"vector_siglip2": True, "ocr_probe": True}
-                if args.dual_vector else {"ocr_probe": True})
+    if args.rerank and args.no_rerank:
+        raise SystemExit("--rerank và --no-rerank loại trừ nhau, chọn một.")
+    branches = {"ocr_probe": not args.no_ocr_probe}
+    if args.dual_vector:
+        branches["vector_siglip2"] = True
+    # None = để config quyết định; False = tắt tường minh bất kể config.
+    rerank_flag = False if args.no_rerank else (args.rerank or None)
+
+    # Giá trị THỰC THI của hai knob đọc-từ-config, tính ngay tại đây để ghi vào
+    # artefact. Phải khớp đúng cách `search()` giải nghĩa None, nếu không thì
+    # nhãn lại nói dối lần nữa — xem chú thích ở chỗ ghi provenance bên dưới.
+    from data.config.rerank import ENABLED as _RERANK_ON
+    from data.config.video_prior import ALPHA as _VP_ALPHA, ENABLED as _VP_ON
+    rerank_effective = bool(_RERANK_ON) if rerank_flag is None else bool(rerank_flag)
+    if not _VP_ON:
+        video_prior_effective = 0.0
+    elif args.video_prior is None:
+        video_prior_effective = float(_VP_ALPHA)
+    else:
+        video_prior_effective = float(args.video_prior)
 
     # Trọng số nhánh: sửa TRÊN MODULE config. `_search_core()` import
     # BRANCH_WEIGHTS ở trong thân hàm (mỗi lần gọi một lần) nên nó đọc lại giá
@@ -294,7 +312,7 @@ def run(args) -> int:
                 top_k=100,
                 group_by_shot=True,
                 branches=branches,
-                rerank_top50=args.rerank or None,
+                rerank_top50=rerank_flag,
                 video_prior_alpha=args.video_prior,
             )
         except Exception as e:
@@ -396,8 +414,15 @@ def run(args) -> int:
                     "rrf_k": rrf_k,
                     "dual_vector": bool(args.dual_vector),
                     "slot_budget": slot_budget,
-                    "rerank_top50": bool(args.rerank),
-                    "video_prior_alpha": args.video_prior,
+                    # ⚠️ Ghi giá trị THỰC THI, không phải cờ dòng lệnh. Bản cũ ghi
+                    # `bool(args.rerank)`: không truyền cờ nào thì nó ghi `false`
+                    # trong khi `search()` nhận None rồi đọc `data/config/rerank.py`
+                    # — mà file đó ENABLED=True từ 02/09. Tức artefact khai "rerank
+                    # tắt" cho những lượt rerank THỰC SỰ CHẠY. Đúng lớp lỗi im lặng
+                    # mà bất biến 8 (mọi artefact đi kèm meta) sinh ra để chặn:
+                    # số thì đúng, nhãn thì sai, và sáu tháng sau không ai dựng lại nổi.
+                    "rerank_top50": rerank_effective,
+                    "video_prior_alpha": video_prior_effective,
                     "branch_weights": branch_weights,
                     "tolerances": tols,
                     "aggregate": agg,
@@ -438,6 +463,16 @@ def main() -> int:
     ap.add_argument("--video-prior", type=float, default=None, metavar="A",
                     help="trọng số tiên nghiệm mức video (0..1). Bỏ trống = đọc "
                          "data/config/video_prior.py. 0 = tắt hẳn.")
+    # Hai công tắc TẮT. Cần để dựng lại đúng cấu hình đã chạy ở Đợt 2 (trước
+    # chiến dịch Đợt 3): lúc đó chưa có `ocr_probe` lẫn rerank. Không có chúng
+    # thì không A/B được "cấu hình cũ vs mới" trên holdout, mà đó là phép đo duy
+    # nhất phân biệt được "tune đúng" với "học thuộc 20 câu p1".
+    ap.add_argument("--no-ocr-probe", action="store_true",
+                    help="tắt nhánh probe token hiếm (R3 mới thêm 03/09). "
+                         "Dùng để dựng lại cấu hình Đợt 2.")
+    ap.add_argument("--no-rerank", action="store_true",
+                    help="tắt hẳn rerank top-50, KỂ CẢ khi data/config/rerank.py "
+                         "đang bật. Loại trừ với --rerank.")
     ap.add_argument("--rerank", action="store_true",
                     help="bật tầng rerank top-50 (R3.K4). Mặc định tắt, "
                          "đúng như config production.")

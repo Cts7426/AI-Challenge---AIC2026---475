@@ -241,7 +241,25 @@ chưa có.
 
 ### Làn KIS · Công Lý + Minh Hoàng — 19/30 câu
 
-- [ ] **R3.K1 · P0 · [Công Lý] Bake-off encoder trên 5.000 keyframe**
+> ✅ **K1–K5 XONG, đã xác nhận trên holdout 03/09.** Cấu hình chốt cho Đợt 3:
+> hai nhánh vector (CLIP chính + SigLIP2 phụ, trọng số 1,0) · `RRF_K = 7` ·
+> `KIS_CANDIDATE_MULTIPLIER = 15` · `ocr_probe` BẬT · rerank top-50 BẬT ·
+> `SLOT_BUDGET = [(50, 2)]` · `video_prior` **TẮT**.
+>
+> A/B trên holdout p2 (`scripts/ab_dot2_vs_dot3.sh`) chứng minh cấu hình này
+> KHÁI QUÁT ĐƯỢC, không phải học thuộc p1: Final mức video 0,3895 → **0,6421**
+> so với cấu hình Đợt 2, R@5 0,210 → 0,526, ±40 0,084 → 0,190.
+>
+> ⚠️ **HẾT HOLDOUT (0/5 lượt).** Từ đây không còn tập độc lập nào để kiểm chứng.
+> Đừng chỉnh thêm tham số nào trước giờ thi — mọi thay đổi sau điểm này là cược
+> mù. Nút quay đầu vẫn còn nguyên, xem `docs/evaluation/2026-09-02-kis-r3-k1-k5.md` §8.
+>
+> **Điểm yếu còn lại, biết mà chưa sửa được:** mức frame trên dữ liệu chưa từng
+> thấy vẫn thấp (±5 = 0,032). Máy tìm đúng VIDEO tốt (16/19) nhưng định vị FRAME
+> kém. Bước Claude soi ảnh là chỗ bù lại — đừng cắt để tiết kiệm thời gian.
+
+
+- [x] **R3.K1 · P0 · [Công Lý] Bake-off encoder trên 5.000 keyframe** — **TRƯỢT CỔNG 02/09, đúng như thiết kế.** SigLIP2 hơn B/32 chỉ +0,10 R@5 mức video ở CẢ hai độ sâu pool (500 và 1500) < ngưỡng +0,15 → không đổi hẳn encoder. Nhưng đo được hai encoder BÙ NHAU chứ không thay nhau (nhìn sâu tới 50: chỉ CLIP 19/20, chỉ SigLIP2 19/20, cả hai 20/20) → dẫn thẳng sang K3. PE-Core không chạy. Artefact `dev_set/results/run_20260902_k1_bakeoff/`.
   - Ba nhánh cùng một bộ truy vấn: `ViT-B-32-quickgelu` (nền) ·
     `google/siglip2-so400m-patch16-384` · `facebook/PE-Core-L14-336`.
   - Bỏ `PE-Core-bigG-14-448` dù MERVIN dùng: ~1,9 tỷ tham số ở 448px, encode
@@ -253,7 +271,7 @@ chưa có.
     Không đạt → **huỷ hẳn K1–K2**, Lý và Hoàng chuyển toàn bộ sang K3–K5 trên
     encoder cũ.
 
-- [ ] **R3.K2 · P0 · [Công Lý] Encode 177.321 keyframe, nạp `keyframes_v2`**
+- [x] **R3.K2 · P0 · [Công Lý] Encode 177.321 keyframe, nạp `keyframes_v2`** — **XONG**, collection tên `keyframes_siglip2` (521.526 vector, 1152 chiều, COSINE/HNSW). Collection `keyframes` (CLIP) KHÔNG suy suyển một vector nào — đường lùi còn nguyên. Kiểm chứng không gian kiểu mới ĐẠT 03/09: 20/20 mẫu cosine ≥ 0,999 giữa ảnh encode lại và vector đã lưu, norm L2 ≈ 1, phủ 873/873 video, 0 frame nằm ngoài shot. Công cụ `scripts/verify_siglip2_space.py`.
   - 5 tài khoản Kaggle chia theo `hash(video_id) % 5`, checkpoint + resume, tải
     kết quả về ngay sau mỗi lô.
   - **Collection MỚI `keyframes_v2`. Không đụng collection đang chạy** — đó là
@@ -263,7 +281,7 @@ chưa có.
     vì khác không gian. Thay bằng: (a) encode cùng một ảnh hai lần → cosine = 1,0;
     (b) 20 cặp ảnh–caption đã biết đúng → cosine cao rõ rệt so với cặp ngẫu nhiên.
 
-- [ ] **R3.K3 · P1 · [Minh Hoàng] Quét lại fusion trên 7 nhánh**
+- [x] **R3.K3 · P1 · [Minh Hoàng] Quét lại fusion trên 7 nhánh** — **ĐẠT, đòn bẩy lớn nhất chiến dịch.** Giữ SONG SONG hai nhánh vector (đúng gợi ý trong mục này). Quét `RRF_K` {3,5,7,10,15,20}: bão hoà từ 7 → **giữ 7, không đổi**. Quét `BRANCH_WEIGHTS` nhánh phụ {0,4…1,5}: dưới 1,0 tệ rõ, trên 1,0 không kết luận được → **giữ 1,0**. Tách `KIS_CANDIDATE_MULTIPLIER = 15` riêng cho làn KIS để không đội chi phí Q&A/TRAKE. KHÔNG bỏ bước dịch VI→EN (vẫn chạy CLIP làm nhánh chính). Độ trễ đo lại: trung vị **1,3–1,7s**, ngân sách 30s.
   - Bỏ bước dịch VI→EN khỏi đường online nếu chọn SigLIP 2 (đa ngữ, hiểu tiếng
     Việt trực tiếp) — bớt một lời gọi LLM, bớt một nguồn sai, bớt độ trễ.
   - `RRF_K = 7` được chọn cho `B/32`; encoder mạnh hơn thì K tối ưu gần như chắc
@@ -274,7 +292,7 @@ chưa có.
   - **Xong khi:** có bảng quét; đo lại độ trễ và đối chiếu ngân sách 30s
     (bất biến 10 — thêm 2 nhánh là thêm 2 truy vấn, phải đo chứ không suy đoán).
 
-- [ ] **R3.K4 · P1 · [Minh Hoàng] Tầng rerank top-50**
+- [x] **R3.K4 · P1 · [Minh Hoàng] Tầng rerank top-50** — **ĐẠT, mức lợi khiêm tốn.** ⚠️ Cổng như viết KHÔNG kiểm được gì: đòi R@1 ≥ 0,25, đạt 0,550 nhưng con số đó GIỐNG HỆT khi tắt rerank — nó là công của K3. Bằng chứng thật để bật nằm ở mức frame (±15 và ±40 cải thiện, không tụt chỗ nào, độ trễ không đổi). Một lỗi im lặng đã xảy ra và đã sửa: bản đầu ghi điểm mới vào `rerank.score` rồi đổi thứ tự, nhưng `allocate()` tự sắp lại theo `score` nên bật/tắt cho ra số liệu giống hệt — ghim bằng `tests/test_rerank_top50.py`.
   - Đây là nơi 40% điểm nằm và hệ thống hiện **không có tầng nào**: RRF là bước
     xếp hạng cuối cùng.
   - Chấm lại top-50 bằng tín hiệu RRF không dùng được: điểm cosine **thật** đã
@@ -285,7 +303,7 @@ chưa có.
     ≥ **0,25**. Không đạt thì **tắt đi** — rerank sai còn tệ hơn không có, vì nó
     đẩy đáp án đúng xuống. **Không chạm p2 hôm nay.**
 
-- [ ] **R3.K5 · P1 · [Công Lý] Chỉnh `SLOT_BUDGET` sâu hơn**
+- [x] **R3.K5 · P1 · [Công Lý] Chỉnh `SLOT_BUDGET` sâu hơn** — **ĐẠT.** Quét 5 bảng ngày 02/09 rồi quét lại 03/09 sau khi bật `ocr_probe`; chốt **`[(50, 2)]`** — tốt nhất ở CẢ BA dung sai ±5/±15/±40. **Đã xác nhận trên holdout p2 ngày 03/09**: `50x2` vẫn thắng bảng cũ ở cả ba dung sai trên dữ liệu chưa từng thấy, nên đây không phải học thuộc p1. Giá phải trả đã biết: bảng cũ tìm ra nhiều hơn 1 video (17/19 vs 16/19) — chấp nhận vì BTC chấm `frame_id ∈ [s,e]`.
   - Bảng hiện tại `[(1,2),(2,2),(94,1)]` phủ rộng vì ranking kém. Ranking khá lên
     thì cân lại về phía sâu: thử `[(1,8),(4,4),(10,2),(56,1)]`.
   - **Xong khi:** đo ở cả ba giả định cửa sổ ±5 / ±15 / ±40.

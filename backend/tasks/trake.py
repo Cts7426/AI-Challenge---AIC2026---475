@@ -75,11 +75,11 @@ from data.config.search_weights import (
     TRAKE_ORDER_BONUS,
 )
 from data.config.slot_budget import (
-    TRAKE_ALT_BUDGET,
+    TRAKE_ALT_CANDIDATE_RANKS,
     TRAKE_ALT_GENERATED,
-    TRAKE_BREADTH_ROWS,
+    TRAKE_MAX_VIDEOS,
     TRAKE_PAD_SHIFT_FRAMES,
-    budget_per_shot,
+    TRAKE_VARIANTS_PER_VIDEO,
 )
 from data.config.submit_format import ANSWERS_PER_QUERY, Answer
 
@@ -607,15 +607,12 @@ def _alternative_frame_sets(
     phần nghi ngờ nhất. Đo được (TR01): vị trí 1/3/4 đã đúng, chỉ vị trí 2 sai —
     một phương án đổi riêng vị trí 2 đưa 3/4 lên 4/4.
 
-    ===== Thứ tự: XOAY VÒNG theo vị trí, đáng ngờ trước =====
-    Vòng 1 lấy ứng viên tốt-thứ-2 của từng vị trí (vị trí có ứng viên đang chọn
-    điểm THẤP NHẤT đi trước — đáng ngờ nhất), vòng 2 lấy tốt-thứ-3, v.v.
-
-    ⚠️ Phải XOAY VÒNG chứ không "mỗi vị trí đúng một phương án rồi thôi". Đo trên
-    TR01: ứng viên ĐÚNG của vị trí 2 nằm ở **hạng 11/12** trong rổ của chính vị
-    trí đó. Bản chỉ-lấy-một không bao giờ chạm tới nó, và TR01 đứng im 0.750 ở
-    lần đo đầu. Xoay vòng thì vị trí đáng ngờ được đào tới độ sâu cần thiết,
-    miễn `n_alt` đủ lớn.
+    ===== Thứ tự: đào sâu vị trí đáng ngờ trước, rồi mới xoay vòng =====
+    Bốn phương án đầu thay vị trí có điểm DP thấp nhất bằng ứng viên tại các
+    hạng cấu hình `TRAKE_ALT_CANDIDATE_RANKS`. TR01 đo được frame đúng của vị
+    trí 2 ở hạng 12/20; cách xoay vòng cũ chỉ chạm hạng 1–2 của vị trí này dù
+    đã dựng tám alternatives. Sau bốn mốc sâu, phần dung lượng còn lại mới xoay
+    vòng mọi vị trí để không bỏ hẳn các lỗi ở vị trí khác.
 
     Vị trí không có ứng viên nào (frame là giá trị nội suy) không đổi được, bỏ
     qua — không có gì để thay vào.
@@ -625,33 +622,59 @@ def _alternative_frame_sets(
     # Vị trí đáng ngờ trước: điểm ứng viên đang chọn thấp nhất lên đầu. Vị trí
     # không nằm trong `chosen_score_at` là vị trí nội suy → không có rổ để đổi.
     thu_tu = sorted(chosen_score_at, key=lambda j: chosen_score_at[j])
-    # Ứng viên thay thế của từng vị trí, tốt nhất trước, bỏ cái đang dùng.
+    # Giữ nguyên toàn bộ rổ để các mốc 1/4/8/12 đúng với HẠNG RETRIEVAL ban
+    # đầu. Không loại candidate đang dùng tại đây vì sẽ làm mọi hạng phía sau
+    # lệch một đơn vị; `da_co` bên dưới tự loại chuỗi trùng base.
     kho = {
         j: sorted(
-            (c for c in candidates_by_position[j] if c["frame_idx"] != base[j]),
-            key=lambda c: c["score"], reverse=True,
+            candidates_by_position[j],
+            key=lambda c: c.get("_orig_score", c["score"]), reverse=True,
         )
         for j in thu_tu
     }
 
     ra: list[tuple[int, ...]] = []
     da_co: set[tuple[int, ...]] = {tuple(base)}
+
+    def them(j: int, candidate: dict) -> None:
+        """Thử thêm một chuỗi đổi đúng vị trí j; bỏ chuỗi trùng/ngoài video."""
+        moi = list(base)
+        moi[j] = candidate["frame_idx"]
+        moi = _repair_strictly_increasing(moi, n_frames_video)
+        khoa = tuple(moi)
+        if khoa in da_co or any(not (0 <= f < n_frames_video) for f in moi):
+            return
+        da_co.add(khoa)
+        ra.append(khoa)
+
+    # R3.T1: bốn dòng thật sự dùng trong lịch 20×5 phải đào đủ sâu ở vị trí
+    # yếu nhất. Nếu một mốc trùng frame gốc/không hợp lệ, lấy ứng viên chưa thử
+    # kế tiếp theo điểm để vẫn mua đủ số phương án khi rổ cho phép.
+    primary = thu_tu[0] if thu_tu else None
+    if primary is not None:
+        ranked = kho[primary]
+        checkpoint_indices = [
+            rank - 1 for rank in TRAKE_ALT_CANDIDATE_RANKS
+            if 1 <= rank <= len(ranked)
+        ]
+        checkpoint_set = set(checkpoint_indices)
+        ordered = [ranked[i] for i in checkpoint_indices]
+        ordered.extend(c for i, c in enumerate(ranked) if i not in checkpoint_set)
+        primary_quota = min(n_alt, len(TRAKE_ALT_CANDIDATE_RANKS))
+        for candidate in ordered:
+            if len(ra) >= primary_quota:
+                break
+            them(primary, candidate)
+
+    # Alternatives dựng dư sau quota vận hành: xoay vòng các vị trí, ứng viên
+    # mạnh trước. `da_co` tự bỏ những chuỗi vị trí yếu nhất đã thêm ở trên.
     for vong in range(max(len(v) for v in kho.values()) if kho else 0):
         for j in thu_tu:
             if len(ra) >= n_alt:
                 return ra
             if vong >= len(kho[j]):
                 continue
-            moi = list(base)
-            moi[j] = kho[j][vong]["frame_idx"]
-            moi = _repair_strictly_increasing(moi, n_frames_video)
-            khoa = tuple(moi)
-            # `_repair_strictly_increasing` có thể đẩy tràn khỏi video hoặc đẩy
-            # về đúng `base` — cả hai đều là dòng vô giá trị, bỏ.
-            if khoa in da_co or any(not (0 <= f < n_frames_video) for f in moi):
-                continue
-            da_co.add(khoa)
-            ra.append(khoa)
+            them(j, kho[j][vong])
     return ra
 
 
@@ -847,12 +870,10 @@ def to_answers(
     Đo trên file nộp thật (`dev_set/results/run_20260820_2101/`): TR01 Final
     0.500 đóng băng, TR02 0.533. Xem `data/config/slot_budget.py` mục TRAKE.
 
-    Bố cục dòng trả về:
-      · dòng 1..TRAKE_BREADTH_ROWS — dòng GỐC của từng video, ĐÚNG THỨ TỰ CŨ.
-        Giữ nguyên vẹn để R@1/R@5/R@20 **không thể tệ đi về mặt cấu trúc**.
-      · phần còn lại — xen kẽ: một phương án thay thế của video hạng cao, rồi
-        một dòng gốc của video tiếp theo, luân phiên. Vừa mua thêm cơ hội cho
-        video đã tin, vừa không bỏ rơi chiều rộng.
+    R3.T1: 100 dòng phủ 20 video × 5 phương án (một chuỗi DP gốc + tối đa bốn
+    chuỗi thay thế lấy từ top-K từng sự kiện). Xếp trọn nhóm năm phương án theo
+    hạng video để phương án sâu nhất của video hạng 1 vẫn nằm trong top-5 — đây
+    là điều kiện cần để R@5 có thể vượt R@1 trên TR01.
 
     `total=None` (mặc định) = "đúng bằng số video ứng viên, tối đa
     ANSWERS_PER_QUERY". Chọn vậy để KHÔNG phải sửa một dòng nào ở run.py /
@@ -869,32 +890,21 @@ def to_answers(
     if total is None:
         total = min(ANSWERS_PER_QUERY, len(candidates))
 
-    goc = [(_row(c, c.frame_ids, True), i) for i, c in enumerate(candidates)]
-    # Mỗi video được dùng bao nhiêu phương án thay thế — theo HẠNG, bảng
-    # TRAKE_ALT_BUDGET. Dùng lại `budget_per_shot` của slot_budget.py (đã có test,
-    # đã xử mọi ca lệch số lượng) thay vì viết bản trải bảng thứ hai.
-    han_muc = budget_per_shot(len(candidates), TRAKE_ALT_BUDGET, sum(n * k for n, k in TRAKE_ALT_BUDGET))
-    alt: list[Answer] = [
-        _row(c, frames, False)
-        for c, q in zip(candidates, han_muc) for frames in c.alternatives[:q]
-    ]
+    n_videos = min(
+        len(candidates),
+        TRAKE_MAX_VIDEOS,
+        max(1, (total + TRAKE_VARIANTS_PER_VIDEO - 1) // TRAKE_VARIANTS_PER_VIDEO),
+    )
+    bundles: list[list[Answer]] = []
+    for candidate in candidates[:n_videos]:
+        rows = [_row(candidate, candidate.frame_ids, True)]
+        rows.extend(
+            _row(candidate, frames, False)
+            for frames in candidate.alternatives[:TRAKE_VARIANTS_PER_VIDEO - 1]
+        )
+        bundles.append(rows)
 
-    ra: list[Answer] = []
-    # --- phần CHIỀU RỘNG: giữ y hệt hành vi cũ
-    for row, _ in goc[:TRAKE_BREADTH_ROWS]:
-        ra.append(row)
-        if len(ra) >= total:
-            return ra
-
-    # --- phần XEN KẼ: 1 phương án thay thế, 1 video mới, luân phiên
-    con_goc = [row for row, _ in goc[TRAKE_BREADTH_ROWS:]]
-    i_alt = i_goc = 0
-    while len(ra) < total and (i_alt < len(alt) or i_goc < len(con_goc)):
-        if i_alt < len(alt):
-            ra.append(alt[i_alt]); i_alt += 1
-        if len(ra) < total and i_goc < len(con_goc):
-            ra.append(con_goc[i_goc]); i_goc += 1
-    return ra
+    return [row for rows in bundles for row in rows][:total]
 
 
 def pad_answers(candidates: list[TrakeCandidate], total: int) -> list[Answer]:
@@ -928,14 +938,17 @@ def pad_answers(candidates: list[TrakeCandidate], total: int) -> list[Answer]:
             used.add((vid, frames))
             answers.append(Answer(video_id=vid, frame_ids=frames, keyframe_id=kf))
 
-    # 1) dòng gốc, rồi 2) phương án thay thế — cả hai đều là bằng chứng thật
-    for c in candidates:
-        them(c.video_id, c.frame_ids, next((k for k in c.keyframe_ids if k), None))
-    for c in candidates:
-        for frames in c.alternatives:
-            if len(answers) >= total:
-                break
-            them(c.video_id, frames, None)
+    # Giữ nguyên lịch bằng chứng của `to_answers`; bản cũ dựng lại toàn bộ dòng
+    # gốc trước nên phương án phụ lại rơi khỏi top-5, tái sinh đúng lỗi R3.T1.
+    for answer in to_answers(candidates, total):
+        them(answer.video_id, answer.frame_ids, answer.keyframe_id)
+
+    n_videos = min(
+        len(candidates),
+        TRAKE_MAX_VIDEOS,
+        max(1, (total + TRAKE_VARIANTS_PER_VIDEO - 1) // TRAKE_VARIANTS_PER_VIDEO),
+    )
+    selected = candidates[:n_videos]
 
     # 3) hết bằng chứng thật → dịch cả bộ sang shot kề, xa dần
     shift = 0
@@ -948,9 +961,9 @@ def pad_answers(candidates: list[TrakeCandidate], total: int) -> list[Answer]:
                 f"Không đệm đủ {total} dòng TRAKE — chỉ dựng được {len(answers)} dòng "
                 f"KHÔNG TRÙNG từ {len(candidates)} video ứng viên."
             )
-        if i % len(candidates) == 0:
+        if i % len(selected) == 0:
             shift += 1
-        c = candidates[i % len(candidates)]
+        c = selected[i % len(selected)]
         # xen kẽ tiến/lùi: khoảnh khắc đúng nằm ở shot kề nào thì chưa biết
         delta = TRAKE_PAD_SHIFT_FRAMES * ((shift + 1) // 2) * (1 if shift % 2 else -1)
         frames = tuple(_repair_strictly_increasing(

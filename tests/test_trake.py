@@ -14,6 +14,7 @@ import pytest
 from backend.tasks.trake import (
     TrakeCandidate,
     _align_events_in_video,
+    _alternative_frame_sets,
     _apply_asr_context_bonus,
     _cross_event_bonus,
     _fill_missing,
@@ -23,7 +24,9 @@ from backend.tasks.trake import (
     _topk_per_video,
     _repair_strictly_increasing,
     _UnitWeight,
+    pad_answers,
     parse_events,
+    to_answers,
     trake_search,
 )
 
@@ -59,6 +62,103 @@ def test_topk_rong():
 
 def _c(score: float, frame_idx: int, kf: str = "kf") -> dict:
     return {"score": score, "frame_idx": frame_idx, "keyframe_id": kf}
+
+
+def _trake_candidate(rank: int, n_alternatives: int = 4) -> TrakeCandidate:
+    """Dựng ứng viên thuần logic; mỗi phương án có chuỗi frame biết trước."""
+    base = (100 + rank * 100, 150 + rank * 100)
+    alternatives = tuple(
+        (base[0] + depth, base[1] + depth)
+        for depth in range(1, n_alternatives + 1)
+    )
+    return TrakeCandidate(
+        video_id=f"V{rank:03d}",
+        score=float(100 - rank),
+        frame_ids=base,
+        keyframe_ids=(f"V{rank:03d}_K1", f"V{rank:03d}_K2"),
+        n_hit_events=2,
+        has_full_order=True,
+        alternatives=alternatives,
+    )
+
+
+# --------------------------------------------------------------- to_answers
+
+def test_to_answers_100_dong_phu_20_video_moi_video_5_phuong_an():
+    """Bắt lỗi R3.T1: quay lại một dòng/video hoặc hoãn chiều sâu sau top-5."""
+    candidates = [_trake_candidate(rank) for rank in range(30)]
+
+    answers = to_answers(candidates, total=100)
+
+    counts = {
+        video_id: sum(answer.video_id == video_id for answer in answers)
+        for video_id in {answer.video_id for answer in answers}
+    }
+    assert len(answers) == 100
+    assert len(counts) == 20
+    assert set(counts.values()) == {5}
+    assert [answer.video_id for answer in answers[:5]] == ["V000"] * 5
+    assert len({(answer.video_id, answer.frame_ids) for answer in answers}) == 100
+    assert all(a < b for answer in answers for a, b in zip(answer.frame_ids, answer.frame_ids[1:]))
+
+
+def test_pad_answers_giu_lich_chieu_sau_va_chi_bu_tren_20_video():
+    """Bắt lỗi nhánh pad dựng lại từ đầu và làm 100 dòng nở quá 20 video."""
+    candidates = [_trake_candidate(rank, n_alternatives=1) for rank in range(30)]
+    evidence_rows = to_answers(candidates, total=100)
+
+    with patch("backend.tasks.trake.n_frames_of", return_value=1_000_000):
+        answers = pad_answers(candidates, total=100)
+
+    assert answers[:len(evidence_rows)] == evidence_rows
+    assert len(answers) == 100
+    assert len({answer.video_id for answer in answers}) == 20
+    assert len({(answer.video_id, answer.frame_ids) for answer in answers}) == 100
+    assert all(a < b for answer in answers for a, b in zip(answer.frame_ids, answer.frame_ids[1:]))
+
+
+def test_alternative_frame_sets_dao_toi_hang_12_cua_vi_tri_yeu_nhat():
+    """Bắt lỗi xoay vòng nông khiến frame đúng sâu trong top-K không được nộp."""
+    weak_candidates = [
+        _c(score=1.0 - rank / 100, frame_idx=200 + rank * 50, kf=f"weak_{rank}")
+        for rank in range(1, 21)
+    ]
+    other_candidates = [
+        _c(score=2.0 - rank / 100, frame_idx=1_200 + rank * 50, kf=f"other_{rank}")
+        for rank in range(1, 21)
+    ]
+
+    alternatives = _alternative_frame_sets(
+        base=[100, 500, 2_500],
+        candidates_by_position=[[_c(2.0, 100)], weak_candidates, other_candidates],
+        chosen_score_at={0: 2.0, 1: 0.1, 2: 1.0},
+        n_frames_video=10_000,
+        n_alt=4,
+    )
+
+    rank_12_frame = weak_candidates[11]["frame_idx"]
+    assert len(alternatives) == 4
+    assert all(frames[0] == 100 and frames[2] == 2_500 for frames in alternatives)
+    assert rank_12_frame in {frames[1] for frames in alternatives}
+
+
+def test_alternative_frame_sets_lay_hang_theo_diem_retrieval_goc():
+    """Bonus ASR không được làm lệch các mốc độ sâu 1/4/8/12 của top-K."""
+    weak_candidates = []
+    for rank in range(1, 21):
+        candidate = _c(score=float(rank), frame_idx=200 + rank * 50, kf=f"weak_{rank}")
+        candidate["_orig_score"] = 1.0 - rank / 100
+        weak_candidates.append(candidate)
+
+    alternatives = _alternative_frame_sets(
+        base=[100, 500, 2_500],
+        candidates_by_position=[[_c(2.0, 100)], weak_candidates, [_c(1.0, 2_500)]],
+        chosen_score_at={0: 2.0, 1: 0.1, 2: 1.0},
+        n_frames_video=10_000,
+        n_alt=4,
+    )
+
+    assert weak_candidates[11]["frame_idx"] in {frames[1] for frames in alternatives}
 
 
 def test_align_chon_dung_moi_vi_tri_1_ung_vien_tang_dan():

@@ -1,0 +1,1749 @@
+{
+  "schema_version": 1,
+  "task": "R3.T2",
+  "run_at": "2026-09-03T22:50:04.234316+07:00",
+  "baseline_ref": "HEAD",
+  "baseline_commit": "8dc2bcdaf1863005cf1bc306f7c52aa0de637bf6",
+  "comparison": "HEAD trước R3.T1 vs working tree sau R3.T1; cùng cache hit ES/Milvus cho từng event",
+  "ground_truth": "dev_set/ground_truth/official_r1r2.jsonl",
+  "window_policy": "Mỗi vị trí đúng khi abs(frame_pred-frame_exact) <= tolerance; báo cả exact và ±5/±15/±40 vì BTC chưa công bố [s,e].",
+  "k_thresholds": [
+    1,
+    5,
+    20,
+    50,
+    100
+  ],
+  "tolerances": [
+    0,
+    5,
+    15,
+    40
+  ],
+  "search_calls_unique": 11,
+  "search_cache_entries": 11,
+  "caveats": [
+    "Ba event của query-p1-16-trake không dịch được VI→EN do Connection error; search dùng nguyên tiếng Việt. A/B vẫn dùng chung hit nên delta R3.T1 hợp lệ, nhưng điểm tuyệt đối câu p1 không đại diện cho release khi backend dịch hoạt động.",
+    "Cửa sổ [s,e] chính thức chưa được BTC công bố; exact và ±5/±15/±40 chỉ là các giả định báo cáo song song."
+  ],
+  "working_tree_status_before_artifact": [
+    " M BUILD_TASKS.md",
+    " M backend/tasks/trake.py",
+    " M data/config/slot_budget.py",
+    " M tests/test_trake.py",
+    "?? .tmp/"
+  ],
+  "source_sha256": {
+    "baseline_trake_py": "54321955d0d2d540e9e5137303e09bbf757b2743a00cb2489662cacb517d5925",
+    "after_trake_py": "0ff207fedf9b580fe78a03127f46dd9e79309c85c9f1b44e6c8e741acdbdbaed",
+    "after_slot_budget_py": "be7012ceecee24cf23b64cfbbfaa9ce00ea1f4d0d04362d2764f1541bd6dbcc2",
+    "official_gt": "61f75b2cce14615c39bc281f3ef53b94761f41e4f4c82d44543437e32b90e4ca"
+  },
+  "aggregate": {
+    "0": {
+      "before_mean_final": 0.0,
+      "after_mean_final": 0.0,
+      "delta": 0.0
+    },
+    "5": {
+      "before_mean_final": 0.0,
+      "after_mean_final": 0.0,
+      "delta": 0.0
+    },
+    "15": {
+      "before_mean_final": 0.0,
+      "after_mean_final": 0.0,
+      "delta": 0.0
+    },
+    "40": {
+      "before_mean_final": 0.25,
+      "after_mean_final": 0.25,
+      "delta": 0.0
+    }
+  },
+  "per_query": [
+    {
+      "query_id": "query-p1-16-trake",
+      "part": "p1",
+      "video_id_gt": "L24_V009",
+      "frames_gt": [
+        2480,
+        10912,
+        11036
+      ],
+      "video_confidence": "MEDIUM",
+      "frame_confidence": "MEDIUM",
+      "events": [
+        "Khoảnh khắc đầu tiên xuất hiện đầy đủ hai con rồng vàng đang xoay vòng.",
+        "Khoảnh khắc đầu tiên con lân hoàn tất cú xoay người trên các thanh trụ (thời điểm đầu tiên các chân của lân đặt trên trụ sau khi xoay).",
+        "Khoảnh khắc đầu tiên dùi chạm vào kẻng đồng múa lân."
+      ],
+      "before": {
+        "elapsed_s": 47.153,
+        "candidate_video_rank": null,
+        "first_answer_video_rank": null,
+        "n_candidates": 100,
+        "n_answers": 100,
+        "n_unique_answer_videos": 60,
+        "scores": {
+          "0": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "5": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "15": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "40": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          }
+        }
+      },
+      "after": {
+        "elapsed_s": 0.438,
+        "candidate_video_rank": null,
+        "first_answer_video_rank": null,
+        "n_candidates": 100,
+        "n_answers": 100,
+        "n_unique_answer_videos": 20,
+        "scores": {
+          "0": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "5": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "15": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "40": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L25_V039",
+                "frame_ids": [
+                  33000,
+                  42600,
+                  44213
+                ],
+                "r_score": 0.0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "query_id": "query-p2-21-trake",
+      "part": "p2",
+      "video_id_gt": "L30_V031",
+      "frames_gt": [
+        2105,
+        2130,
+        2220,
+        2230
+      ],
+      "video_confidence": "HIGH",
+      "frame_confidence": "HIGH",
+      "events": [
+        "Hai người phụ nữ cùng nhau dán niêm phong một thùng carton.",
+        "Các thùng mì tôm và bọc bánh mì được sắp xếp ngay ngắn.",
+        "Một người đàn ông nhấc thùng mì tôm lên và xếp lên trên chồng thùng mì.",
+        "Cảnh quay cận cảnh các thùng mì được xếp chồng trên xe tải."
+      ],
+      "before": {
+        "elapsed_s": 29.752,
+        "candidate_video_rank": 1,
+        "first_answer_video_rank": 1,
+        "n_candidates": 100,
+        "n_answers": 100,
+        "n_unique_answer_videos": 60,
+        "scores": {
+          "0": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "5": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "15": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "40": {
+            "r_at_k": {
+              "1": 0.25,
+              "5": 0.25,
+              "20": 0.25,
+              "50": 0.25,
+              "100": 0.25
+            },
+            "final": 0.25,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              }
+            }
+          }
+        }
+      },
+      "after": {
+        "elapsed_s": 0.503,
+        "candidate_video_rank": 1,
+        "first_answer_video_rank": 1,
+        "n_candidates": 100,
+        "n_answers": 100,
+        "n_unique_answer_videos": 20,
+        "scores": {
+          "0": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "5": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "15": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "40": {
+            "r_at_k": {
+              "1": 0.25,
+              "5": 0.25,
+              "20": 0.25,
+              "50": 0.25,
+              "100": 0.25
+            },
+            "final": 0.25,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L30_V031",
+                "frame_ids": [
+                  2074,
+                  2226,
+                  2877,
+                  2986
+                ],
+                "r_score": 0.25
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "query_id": "query-p2-8-trake",
+      "part": "p2",
+      "video_id_gt": "L27_V011",
+      "frames_gt": [
+        3855,
+        3880,
+        4030,
+        4105
+      ],
+      "video_confidence": "HIGH",
+      "frame_confidence": "HIGH",
+      "events": [
+        "Cảnh đầu tiên có trái sầu riêng.",
+        "Cảnh đầu tiên có trái măng cụt.",
+        "Cảnh đầu tiên có trái bưởi.",
+        "Cảnh đầu tiên có trái dâu bòn bon."
+      ],
+      "before": {
+        "elapsed_s": 22.077,
+        "candidate_video_rank": 1,
+        "first_answer_video_rank": 1,
+        "n_candidates": 100,
+        "n_answers": 100,
+        "n_unique_answer_videos": 60,
+        "scores": {
+          "0": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "5": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "15": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "40": {
+            "r_at_k": {
+              "1": 0.5,
+              "5": 0.5,
+              "20": 0.5,
+              "50": 0.5,
+              "100": 0.5
+            },
+            "final": 0.5,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              }
+            }
+          }
+        }
+      },
+      "after": {
+        "elapsed_s": 0.334,
+        "candidate_video_rank": 1,
+        "first_answer_video_rank": 1,
+        "n_candidates": 100,
+        "n_answers": 100,
+        "n_unique_answer_videos": 20,
+        "scores": {
+          "0": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "5": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "15": {
+            "r_at_k": {
+              "1": 0.0,
+              "5": 0.0,
+              "20": 0.0,
+              "50": 0.0,
+              "100": 0.0
+            },
+            "final": 0.0,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.0
+              }
+            }
+          },
+          "40": {
+            "r_at_k": {
+              "1": 0.5,
+              "5": 0.5,
+              "20": 0.5,
+              "50": 0.5,
+              "100": 0.5
+            },
+            "final": 0.5,
+            "best_rows": {
+              "1": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "5": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "20": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "50": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              },
+              "100": {
+                "rank": 1,
+                "video_id": "L27_V011",
+                "frame_ids": [
+                  3827,
+                  3908,
+                  4096,
+                  4853
+                ],
+                "r_score": 0.5
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

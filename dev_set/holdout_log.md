@@ -121,3 +121,15 @@
 
 - **Còn lại: 0/5 lượt. HẾT HOLDOUT.** Mọi quyết định sau đây không còn tập nào
   độc lập để kiểm chứng — đừng chỉnh thêm tham số nào trước giờ thi.
+## Official R1R2 · lượt 1/2 — 03/09/2026 22:50 (Thạch)
+
+- **Lý do:** R3.T2 đo A/B thay đổi độ sâu TRAKE R3.T1 trên đủ 3 câu official;
+  phần p2 gồm 2 câu holdout và được mở đúng một lần.
+- **Cách chống nhiễu:** 11 truy vấn sự kiện chỉ gọi ES/Milvus một lần rồi chia
+  cùng cache hit cho `HEAD` trước R3.T1 và working tree sau R3.T1.
+- **Kết quả:** exact/±5/±15 `0,000→0,000`; ±40 `0,250→0,250`; không có mức
+  dung sai nào tăng hoặc giảm. Artefact:
+  `dev_set/results/r3t2_official_trake_20260903.json`.
+- **Caveat:** ba event p1 dùng fallback tiếng Việt do dịch VI→EN lỗi kết nối;
+  A/B vẫn chung hit, nhưng điểm tuyệt đối p1 chưa đại diện cho release có dịch.
+- **Còn lại của hạn mức official Đợt 3:** 1/2 lượt.

@@ -98,79 +98,29 @@ SHOT_EDGE_INSET = 0.10
 TRAKE_DEFAULT_N = 4
 
 
-# ══════════════════════ TRAKE — chiều sâu dòng nộp (21/08) ══════════════════════
+# ══════════════════════ TRAKE — chiều sâu dòng nộp (R3.T1) ══════════════════════
 #
-# ⚠️ VẤN ĐỀ ĐO ĐƯỢC. `backend/tasks/trake.py::to_answers()` sinh ĐÚNG 1 dòng cho
-# mỗi video ứng viên → 100 dòng nộp = 100 video KHÁC NHAU, mỗi video đúng MỘT
-# phương án. Mà BTC chấm `R@k = R-Score CAO NHẤT trong k dòng đầu`
-# (data/config/scoring.py). Hệ quả: khi video đúng đã nằm ở hạng 1, **99 dòng
-# còn lại không thể cải thiện điểm** — điểm bị ĐÓNG BĂNG ở giá trị của đúng một
-# dòng. Kiểm trực tiếp trên file nộp `dev_set/results/run_20260820_2101/`:
-#
-#   TR01: 100 dòng = 100 video khác nhau, video đúng xuất hiện ĐÚNG 1 lần
-#         (dòng 1), trúng 2/4 sự kiện → R@1..R@100 đều 0.50, Final 0.500
-#   TR02: video đúng ở dòng 5, trúng 2/3 → Final 0.533
-#
-# Và phương án đúng NẰM SẴN TRONG RỔ: soi rổ ứng viên trong chính video đúng,
-# 2/3 vị trí bị DP chọn hụt vẫn có ứng viên đúng trong rổ (TR01 vị trí 2 có
-# frame 3840 trong rổ 12 ứng viên; TR02 vị trí 3 có frame 2816 trong rổ 6).
-# Tức là KHÔNG PHẢI truy hồi thiếu — chỉ là không có dòng nào để đặt cược thứ hai.
-#
-# ⚠️ VÌ SAO CÓ `TRAKE_BREADTH_ROWS` — bảo đảm KHÔNG HỒI QUY.
-# "Sai video = 0 điểm tuyệt đối" (CLAUDE.md §5.3), nên đổi chiều rộng lấy chiều
-# sâu là canh bạc. Đặt ngưỡng này = 20 thì **20 dòng đầu giữ NGUYÊN VẸN như
-# trước** (mỗi dòng một video, đúng thứ tự cũ) → R@1, R@5, R@20 **không thể tệ
-# đi về mặt cấu trúc**, chỉ R@50/R@100 mới có thể tốt lên. Đây là thay đổi
-# không-âm theo thiết kế, không phải theo may mắn.
-#
-# Muốn cược mạnh hơn (đưa phương án thay thế lên sớm, ăn cả R@5/R@20) thì hạ số
-# này — nhưng phải đo lại trên bộ đề TRAKE có nhiều câu hơn 2 câu hiện có.
-TRAKE_BREADTH_ROWS = 20
+# BTC lấy R-Score tốt nhất trong top-k. Vì vậy 100 dòng phải mua cả chiều rộng
+# video lẫn chiều sâu chuỗi frame, không thể dành mỗi video đúng một dòng.
+# 20 × 5 = 100 là cấu hình vận hành R3.T1: phủ 20 video đầu, mỗi video gồm một
+# chuỗi DP gốc và tối đa bốn chuỗi thay thế lấy từ rổ top-K của từng sự kiện.
+TRAKE_MAX_VIDEOS = 20
+TRAKE_VARIANTS_PER_VIDEO = 5
 
 # Số phương án thay thế DỰNG SẴN cho mỗi video. Đây là DỮ LIỆU, không phải
 # chiến thuật — dựng thừa không tốn gì (tính thuần tuý trên rổ ứng viên đã tải,
-# không thêm một lần gọi Milvus/ES nào), còn dùng bao nhiêu là việc của
-# `TRAKE_ALT_BUDGET` bên dưới.
+# không thêm một lần gọi Milvus/ES nào); `TRAKE_VARIANTS_PER_VIDEO` quyết định
+# số phương án thực sự được đưa vào bài nộp.
 #
-# 8 = cao hơn hẳn mức bảng dưới dùng tới (3), chừa chỗ nếu ai đó nâng bảng mà
-# không phải sửa chỗ sinh. Dựng thừa gần như miễn phí.
+# 8 > 4 phương án thay thế đang dùng, chừa chỗ để đo cấu hình sâu hơn mà không
+# phải chạy lại retrieval.
 TRAKE_ALT_GENERATED = 8
 
-# Dùng BAO NHIÊU phương án thay thế cho video hạng nào — cùng dạng bảng với
-# SLOT_BUDGET: (số video, số phương án mỗi video), xếp theo hạng video giảm dần.
-#
-# ===== ĐÃ ĐO (21/08, TR01 + TR02, đường chạy thật) =====
-#   bảng                       TR01     TR02      TB
-#   không chiều sâu (cũ)       0.750    0.267    0.508
-#   [(1,12),(4,3),(95,1)]      0.750    0.333    0.542
-#   [(5,3),(95,1)]   ← chọn    0.750    0.400    0.575
-#   [(100,2)]                  0.750    0.267    0.508
-#   [(100,1)]                  0.750    0.267    0.508
-#   [(1,6),(9,2),(90,1)]       0.750    0.267    0.508
-#
-# Vì sao KHÔNG dồn cho hạng 1 (bảng [(1,12),...] trông hợp lý mà lại kém hơn):
-# 12 phương án của video hạng 1 chiếm hết dòng 21–43, đẩy phương án của video
-# hạng 5 — chính là video ĐÚNG của TR02 — từ dòng 47 xuống 67, tức rơi khỏi
-# R@50. Đào sâu một video là lấy chỗ của mọi video khác; dồn quá tay thì tự bắn
-# vào chân.
-#
-# Vì sao [(100,2)] và [(1,6),(9,2),...] không ăn gì: phương án cứu TR02 là
-# phương án THỨ BA của video hạng 5. Bảng nào cấp <3 cho video hạng 5 đều trượt.
-#
-# ⚠️ TRUNG THỰC VỀ CỠ MẪU: đây là 2 câu. Bảng B thắng vì đúng 1 câu (TR02) cải
-# thiện, và mức 3-phương-án vừa đủ chạm phương án cứu nó. Đừng đọc con số này
-# như "đã tối ưu" — đọc như "chiều sâu có tác dụng thật, và mức vừa phải tốt hơn
-# mức dồn". Đo lại khi bộ đề TRAKE có nhiều hơn 2 câu.
-#
-# ⚠️ TR01 KHÔNG cải thiện ở BẤT KỲ bảng nào: ứng viên đúng của vị trí 2 nằm ở
-# hạng 11/12 trong rổ của chính vị trí đó, ngoài tầm mọi ngân sách hợp lý. Đó là
-# lỗi XẾP HẠNG trong rổ (CLIP), không phải lỗi cấp dòng — chiều sâu không sửa được.
-#
-# ⚠️ ĐÁNH ĐỔI ĐÃ BIẾT: mỗi dòng phương án chiếm chỗ một dòng gốc. Sau dòng 20,
-# xen kẽ 1-1 nên dòng gốc của video hạng r rơi vào khoảng dòng 20+2(r-20) — video
-# hạng 36–50 bị đẩy từ R@50 xuống chỉ còn R@100. Chấp nhận vì hai ca đo được đều
-# có video đúng ở hạng 1 và 5, và vì video SAI thì dòng gốc của nó vốn 0 điểm.
-TRAKE_ALT_BUDGET: list[tuple[int, int]] = [(5, 3), (95, 1)]
+# Bốn độ sâu lấy mẫu đầu tiên trong rổ top-K của vị trí DP yếu nhất. Lấy liền
+# các hạng 1,2,3,4 tạo nhiều chuỗi gần như nhau và đã đo là không chạm frame
+# đúng của TR01 ở hạng 12/20. Các mốc tăng dần mua cả ứng viên mạnh lẫn ứng
+# viên sâu mà vẫn chỉ dùng bốn dòng thay thế/video.
+TRAKE_ALT_CANDIDATE_RANKS: tuple[int, ...] = (1, 4, 8, 12)
 
 # Bước dịch frame khi phải ĐỆM dòng (chỉ dùng khi số video ứng viên < 100 và đã
 # hết phương án thay thế).

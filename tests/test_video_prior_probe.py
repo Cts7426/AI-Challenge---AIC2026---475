@@ -123,3 +123,34 @@ def test_tat_nhanh_ocr_probe_thi_phieu_bau_probe_cung_tat(monkeypatch):
 
     S._search_core("x", "x", top_k=5, branches={"ocr_probe": True})
     assert len(da_goi) == 1, "bật nhánh ocr_probe thì phiếu bầu probe phải chạy"
+
+
+def test_finalize_va_search_cung_luat_khi_alpha_bang_khong(monkeypatch):
+    """alpha hiệu dụng = 0 thì KHÔNG xen kẽ — ở `_finalize` cũng như `search()`.
+
+    Trước bản vá, `search()` kiểm `a > 0` còn `_finalize` thì không. Đặt
+    `ALPHA = 0.0` (cách tắt tự nhiên nhất khi muốn giữ ENABLED) sẽ vẫn xen kẽ ở
+    `_finalize` mà không ở `search()`: hai luật khác nhau cho cùng một hàm.
+    """
+    import data.config.video_prior as VP
+    from backend.retrieval import search as S
+
+    monkeypatch.setattr(VP, "ENABLED", True)
+    monkeypatch.setattr(VP, "ALPHA", 0.0)
+
+    da_goi: list[float] = []
+
+    def xen_ke_gia(rows, alpha, **kwargs):
+        da_goi.append(alpha)
+        return rows
+
+    monkeypatch.setattr(S, "_video_diverse_order", xen_ke_gia)
+
+    rows = [_row("A", 0.9), _row("B", 0.8)]
+    S._finalize(list(rows), {}, 10, group_by_shot=False)
+    assert not da_goi, "alpha = 0 mà _finalize vẫn xen kẽ"
+
+    # Đối chứng: alpha > 0 thì vẫn phải xen kẽ như cũ.
+    monkeypatch.setattr(VP, "ALPHA", 0.6)
+    S._finalize(list(rows), {}, 10, group_by_shot=False)
+    assert da_goi == [0.6]

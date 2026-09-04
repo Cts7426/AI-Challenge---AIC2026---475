@@ -896,7 +896,21 @@ def _finalize(
     from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON
     if VP_ON and video_prior_alpha != 0.0:
         a = VP_ALPHA if video_prior_alpha is None else float(video_prior_alpha)
-        ket_qua = _video_diverse_order(ket_qua, a)
+        # Cùng luật với `search()`: alpha hiệu dụng = 0 thì KHÔNG xen kẽ. Trước
+        # bản vá `search()` có kiểm `a > 0` còn chỗ này không, nên đặt ALPHA=0.0
+        # (cách tắt tự nhiên nhất) vẫn xen kẽ ở đây mà không ở kia — hai luật
+        # khác nhau cho cùng một hàm là lỗi im lặng chờ ngày nổ.
+        if a > 0.0:
+            # ⚠️ CHƯA SỬA, PHẢI ĐO LẠI TRƯỚC KHI ĐỤNG: chỗ này gọi với `giu_dau`
+            # mặc định = 0 (xen kẽ CẢ bảng), còn `search()` gọi với `GIU_DAU`.
+            # Đo pool KIS thật (04/09): 3.047 ứng viên -> 1.648 shot -> 304 video,
+            # nên vòng 1 của xen kẽ đã sinh 304 dòng > 100. Nghĩa là khi bật
+            # video_prior, top-100 thành 100 video × đúng 1 shot, và `GIU_DAU` ở
+            # lần gọi sau chỉ giữ đầu của bảng ĐÃ bị xáo — không phải đầu bảng
+            # theo điểm như comment của nó nói. Bảng tune α trong
+            # data/config/video_prior.py đo TRÊN hành vi này, nên sửa `giu_dau` ở
+            # đây là làm sai toàn bộ số đó. Đo lại rồi mới đổi, đừng vá mù.
+            ket_qua = _video_diverse_order(ket_qua, a)
     return ket_qua[:top_k]
 
 

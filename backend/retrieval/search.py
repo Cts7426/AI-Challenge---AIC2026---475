@@ -499,6 +499,7 @@ def _search_core(
             "ocr": pool_thread.submit(_an_toan, "ocr", _branch_ocr, query_vi, pool, filter_video_id),
             "ocr_probe": pool_thread.submit(
                 _an_toan, "ocr_probe", _branch_ocr_probe, query_vi, query_en, pool,
+                filter_video_id,
             ),
             "asr": pool_thread.submit(_an_toan, "asr", _branch_asr, query_vi, pool, filter_video_id),
             "text_vi": pool_thread.submit(
@@ -713,7 +714,8 @@ def _ung_vien_probe(query_vi: str, query_en: str | None) -> list[str]:
     return ra
 
 
-def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[dict]:
+def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int,
+                      filter_video_id: str | None = None) -> list[dict]:
     """Nhánh OCR theo TỪNG TOKEN HIẾM, mức keyframe. Xem data/config/token_probe.py.
 
     Khác `_branch_ocr` ở chỗ nó KHÔNG ném cả câu vào BM25. Đo được trên p1:
@@ -726,6 +728,14 @@ def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[d
 
     Token nào khớp quá nhiều dòng thì bị loại: nó là từ thường, không phân biệt
     được gì. Ngưỡng tự đo, không cần từ điển tiếng Việt.
+
+    ⚠️ `filter_video_id` LỌC HÀNG TRẢ VỀ, KHÔNG lọc lệnh đo độ hiếm.
+    Lệnh `_branch_ocr(tok, MAX_HITS + 1)` bên dưới không phải để lấy kết quả —
+    nó là phép đo "token này khớp bao nhiêu dòng trong TOÀN KHO OCR". Ném filter
+    vào đó thì mọi token đều khớp vài dòng (vì chỉ còn một video) nên từ thường
+    nào cũng lọt cửa hiếm, và probe biến thành nhiễu mà KHÔNG báo lỗi gì. Vậy
+    nên: đo hiếm toàn cục, rồi mới bỏ những hàng ngoài video cần tìm. Cách này
+    cũng không tốn thêm truy vấn ES nào.
     """
     from data.config.token_probe import ENABLED, MAX_HITS, MAX_PROBES
 
@@ -735,7 +745,7 @@ def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[d
     thong_tin: dict[str, dict] = {}
     for tok in _ung_vien_probe(query_vi, query_en)[:MAX_PROBES]:
         try:
-            rows = _branch_ocr(tok, MAX_HITS + 1)
+            rows = _branch_ocr(tok, MAX_HITS + 1)  # KHÔNG truyền filter — xem docstring
         except Exception:
             continue
         if not rows or len(rows) > MAX_HITS:
@@ -743,6 +753,11 @@ def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[d
         # Token càng hiếm càng đáng tin -> nhân thêm 1/log(số dòng khớp).
         hiem = 1.0 / (1.0 + math.log(len(rows) + 1.0))
         for i, r in enumerate(rows, 1):
+            # Giữ hạng `i` của danh sách TOÀN CỤC, không đánh số lại sau khi lọc:
+            # một hàng đứng hạng 200 toàn kho không được vì lọc mà thành hạng 1.
+            # Thứ tự tương đối trong video giữ nguyên, nên bảng xếp không đổi.
+            if filter_video_id is not None and r["video_id"] != filter_video_id:
+                continue
             kf = r["keyframe_id"]
             diem[kf] = diem.get(kf, 0.0) + hiem / (RRF_K + i)
             thong_tin.setdefault(kf, r)

@@ -79,7 +79,14 @@ from data.config.submit_format import ANSWERS_PER_QUERY
 # Giá phải trả: Final mức VIDEO 0,8400 → 0,8300 (một video rớt khỏi 100 dòng).
 # Chấp nhận, vì BTC chấm `frame_id ∈ [s,e]` — đúng video mà sai frame vẫn 0 điểm,
 # nên cột frame mới là điểm thật, cột video chỉ là trần trên.
-SLOT_BUDGET: list[tuple[int, int]] = [(1, 4), (4, 3), (12, 2), (60, 1)]
+# Đo 03/09 · 20 câu KIS p1 · nhánh ocr_probe bật · dual vector · pool 1500:
+#   bảng                    ±5     ±15    ±40
+#   1x4,4x3,12x2,60x1      0,18   0,26   0,33   (bảng chọn ngày 02/09)
+#   1x2,2x2,94x1           0,23   0,24   0,33   (bảng cũ)
+#   50x2                   0,23   0,27   0,34   <- chọn, tốt nhất ở CẢ BA dung sai
+# Mức video giống hệt nhau ở cả ba bảng (top-10 0,95), nên chọn thuần theo frame
+# — BTC chấm frame_id ∈ [s,e], đúng video mà sai frame vẫn 0 điểm.
+SLOT_BUDGET: list[tuple[int, int]] = [(50, 2)]
 
 # Thụt vào mỗi đầu shot khi rải frame, theo tỉ lệ độ dài shot. Frame sát biên hay
 # dính chuyển cảnh (mờ, lẫn hai cảnh). Frame ĐẦU TIÊN của shot không chịu luật này —

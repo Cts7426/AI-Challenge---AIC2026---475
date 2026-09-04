@@ -1,0 +1,474 @@
+{
+  "run_at": "2026-09-03T15:38:37.975248+00:00",
+  "part": "p2",
+  "task": "KIS",
+  "min_confidence": "MEDIUM",
+  "vector_backend": "clip",
+  "query_en_source": "file:official_r1r2.en.json(model=claude-opus-5)",
+  "candidate_multiplier": 15,
+  "rrf_k": 7,
+  "dual_vector": true,
+  "slot_budget": [
+    [
+      50,
+      2
+    ]
+  ],
+  "rerank_top50": false,
+  "video_prior_alpha": null,
+  "branch_weights": {
+    "vector": 1.0,
+    "vector_siglip2": 1.0,
+    "objects": 0.7,
+    "ocr": 0.6,
+    "ocr_probe": 1.0,
+    "text_vi": 0.6,
+    "asr": 0.6,
+    "metadata": 0.4
+  },
+  "tolerances": [
+    5,
+    15,
+    40
+  ],
+  "aggregate": {
+    "n_queries": 19,
+    "n_error": 0,
+    "final_video": 0.6421,
+    "r_at_k_video": {
+      "1": 0.2105,
+      "5": 0.5263,
+      "20": 0.7895,
+      "50": 0.8421,
+      "100": 0.8421
+    },
+    "video_found_in_100": 16,
+    "video_rank_1": 4,
+    "latency_median_s": 1.674,
+    "final_frame": {
+      "5": 0.0316,
+      "15": 0.0947,
+      "40": 0.1895
+    }
+  },
+  "per_query": [
+    {
+      "query_id": "query-p2-1-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L24_V035",
+      "video_rank": 13,
+      "final_video": 0.6,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 29.616,
+      "video_confidence": "HIGH",
+      "frame_exact": 1700,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-2-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L21_V013",
+      "video_rank": 11,
+      "final_video": 0.6,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 2.524,
+      "video_confidence": "HIGH",
+      "frame_exact": 22880,
+      "final_frame": {
+        "5": 0.6,
+        "15": 0.6,
+        "40": 0.6
+      }
+    },
+    {
+      "query_id": "query-p2-3-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L24_V044",
+      "video_rank": 7,
+      "final_video": 0.6,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.185,
+      "video_confidence": "HIGH",
+      "frame_exact": 230,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-4-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L30_V072",
+      "video_rank": 5,
+      "final_video": 0.8,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.674,
+      "video_confidence": "HIGH",
+      "frame_exact": 676,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.8
+      }
+    },
+    {
+      "query_id": "query-p2-5-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L21_V022",
+      "video_rank": null,
+      "final_video": 0.0,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 0.0,
+        "50": 0.0,
+        "100": 0.0
+      },
+      "latency_s": 2.261,
+      "video_confidence": "HIGH",
+      "frame_exact": 26300,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-6-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L22_V024",
+      "video_rank": 29,
+      "final_video": 0.4,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 0.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 2.874,
+      "video_confidence": "HIGH",
+      "frame_exact": 20780,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.4
+      }
+    },
+    {
+      "query_id": "query-p2-10-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L26_V120",
+      "video_rank": 2,
+      "final_video": 0.8,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 3.795,
+      "video_confidence": "HIGH",
+      "frame_exact": 5204,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-11-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L26_V392",
+      "video_rank": 5,
+      "final_video": 0.8,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.872,
+      "video_confidence": "HIGH",
+      "frame_exact": 3860,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-13-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L26_V422",
+      "video_rank": 1,
+      "final_video": 1.0,
+      "r_at_k_video": {
+        "1": 1.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.202,
+      "video_confidence": "HIGH",
+      "frame_exact": 4480,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.2,
+        "40": 0.6
+      }
+    },
+    {
+      "query_id": "query-p2-14-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L23_V010",
+      "video_rank": 1,
+      "final_video": 1.0,
+      "r_at_k_video": {
+        "1": 1.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.185,
+      "video_confidence": "HIGH",
+      "frame_exact": 625,
+      "final_frame": {
+        "5": 0.0,
+        "15": 1.0,
+        "40": 1.0
+      }
+    },
+    {
+      "query_id": "query-p2-15-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L26_V486",
+      "video_rank": null,
+      "final_video": 0.0,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 0.0,
+        "50": 0.0,
+        "100": 0.0
+      },
+      "latency_s": 2.205,
+      "video_confidence": "HIGH",
+      "frame_exact": 1230,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-16-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L29_V014",
+      "video_rank": 1,
+      "final_video": 1.0,
+      "r_at_k_video": {
+        "1": 1.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.826,
+      "video_confidence": "HIGH",
+      "frame_exact": 13780,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-17-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L30_V026",
+      "video_rank": 2,
+      "final_video": 0.8,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.09,
+      "video_confidence": "HIGH",
+      "frame_exact": 3109,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-18-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L23_V017",
+      "video_rank": null,
+      "final_video": 0.0,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 0.0,
+        "50": 0.0,
+        "100": 0.0
+      },
+      "latency_s": 0.925,
+      "video_confidence": "HIGH",
+      "frame_exact": 2560,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-20-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L25_V060",
+      "video_rank": 3,
+      "final_video": 0.8,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.515,
+      "video_confidence": "HIGH",
+      "frame_exact": 34200,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-22-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L26_V470",
+      "video_rank": 1,
+      "final_video": 1.0,
+      "r_at_k_video": {
+        "1": 1.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.995,
+      "video_confidence": "HIGH",
+      "frame_exact": 2108,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-24-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L23_V013",
+      "video_rank": 7,
+      "final_video": 0.6,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.359,
+      "video_confidence": "HIGH",
+      "frame_exact": 4970,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    },
+    {
+      "query_id": "query-p2-25-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L25_V045",
+      "video_rank": 8,
+      "final_video": 0.6,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 0.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 1.146,
+      "video_confidence": "HIGH",
+      "frame_exact": 16441,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.2
+      }
+    },
+    {
+      "query_id": "query-p2-26-kis",
+      "task_type": "KIS",
+      "video_id_gt": "L25_V062",
+      "video_rank": 5,
+      "final_video": 0.8,
+      "r_at_k_video": {
+        "1": 0.0,
+        "5": 1.0,
+        "20": 1.0,
+        "50": 1.0,
+        "100": 1.0
+      },
+      "latency_s": 0.957,
+      "video_confidence": "HIGH",
+      "frame_exact": 13800,
+      "final_frame": {
+        "5": 0.0,
+        "15": 0.0,
+        "40": 0.0
+      }
+    }
+  ]
+}

@@ -235,10 +235,11 @@ def post_search(req: SearchRequest) -> SearchResponse:
         else:
             # Dùng ĐÚNG cấu hình làn KIS mà `run.py` dùng. Trước bản vá 03/09
             # chỗ này gọi `fused_search()` trần, nên UI tìm kiếm lúc thi chạy
-            # bằng cấu hình TRƯỚC R3.K3 (một nhánh vector, pool 500) trong khi
-            # mọi phép đo lại làm trên cấu hình mới — người vận hành nhìn thấy
-            # kết quả kém hơn hẳn thứ đã được đo mà không có gì báo.
-            # Kiểm nhanh: hit trả về phải có `vector_siglip2` trong `ranks`.
+            # bằng cấu hình TRƯỚC R3.K3 (một nhánh vector, pool 500, không
+            # ocr_probe) trong khi mọi phép đo lại làm trên cấu hình mới —
+            # người vận hành nhìn thấy kết quả kém hơn hẳn thứ đã được đo mà
+            # không có gì báo. Chỉ áp cho nhánh KIS: Q&A và TRAKE có nhánh
+            # riêng ở hai khối `if` phía trên, không đụng tới.
             from data.config.search_weights import (
                 KIS_CANDIDATE_MULTIPLIER,
                 KIS_EXTRA_BRANCHES,

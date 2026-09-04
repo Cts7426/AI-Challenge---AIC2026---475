@@ -58,17 +58,53 @@ QA_REFUSAL_NEGATIONS = frozenset({
 # theo chúng là loại nhầm. Chỉ giữ từ nói về việc NHÌN/ĐỌC được bằng chứng —
 # những từ này chỉ xuất hiện khi model đang từ chối, không xuất hiện trong đáp
 # án thật. Các chuỗi "không có thông tin ..." vẫn do QA_SENTINEL_ANSWERS bắt.
+#
+# ⚠️ THU HẸP 03/09 khi gộp nhánh Thạch. Bản cũ còn có "thấy", "hiển thị",
+# "quan sát", "trong hình", "trong ảnh", "visible" — và chính chúng LOẠI NHẦM
+# đáp án thật, test của Thạch bắt được hai ca:
+#     "Không thấy mưa"             -> "thấy"     -> bị loại SAI
+#     "Không có người trong ảnh"   -> "trong ảnh" -> bị loại SAI
+# Loại nhầm đắt hơn bỏ sót: bỏ sót thì nộp một câu từ chối (0 điểm câu đó),
+# loại nhầm thì vứt một đáp án ĐÚNG (cũng 0 điểm, mà lại còn tưởng mình đang
+# lọc rác). Hai surface "cân" mà bộ rộng từng bắt được nay nằm ở
+# QA_REFUSAL_EXACT_ANSWERS bên dưới — chặn đích danh, không quét bằng lưới rộng.
 QA_REFUSAL_EVIDENCE_WORDS = frozenset({
-    "xác định", "thấy", "đọc được", "nhận ra", "nhận diện",
-    "hiển thị", "quan sát", "bằng chứng", "căn cứ",
-    "trong hình", "trong ảnh", "trong khung hình",
-    "determine", "identify", "visible", "legible", "discern",
-    "evidence", "shown in", "in the image",
+    "xác định", "đọc được", "nhận diện", "bằng chứng", "căn cứ",
+    "determine", "identify", "legible", "discern", "evidence",
 })
 
 # Chỉ dò khi answer đủ dài. "Không" (câu có/không) và "0" (câu đếm) là đáp án
-# THẬT — luật dài >= 3 từ giữ chúng lại.
-QA_REFUSAL_MIN_WORDS = 3
+# THẬT — luật dài >= 2 từ giữ chúng lại.
+# 2 chứ không phải 3: "Cannot determine" đúng 2 từ và là câu từ chối thật.
+QA_REFUSAL_MIN_WORDS = 2
+
+# Hai surface QUAN SÁT ĐƯỢC THẬT trong run đợt 1, chặn đích danh vì luật hình
+# dạng không với tới: chúng nói "không nhìn thấy X" chứ không nhắc tới việc xác
+# định hay bằng chứng, nên mọi từ khoá đủ hẹp để an toàn đều trượt chúng.
+# Khớp TRỌN VẸN cả answer. Thêm vào đây chỉ khi đã thấy surface đó trong log thật.
+QA_REFUSAL_EXACT_ANSWERS = frozenset({
+    "không có cân hiển thị trong hình ảnh",
+    "không thấy cân hoặc số trên cân trong hình",
+})
+
+# Câu từ chối NGẮN — lỗ hổng của luật dò theo hình dạng ở trên. Nhập từ nhánh
+# `codex/qa-last-3h` của Thạch khi gộp 03/09: luật `>= 3 từ` cố ý bỏ qua answer
+# ngắn để giữ "Không"/"0", nhưng chính vì thế mà "không biết", "không rõ",
+# "not sure", "unclear" đi thẳng vào bài nộp làm đáp án. Kiểm bằng code trước
+# khi gộp: 9/9 surface dưới đây lọt qua `is_valid_qa_answer` của bản dot3.
+#
+# Đây là danh sách ĐÓNG và chỉ được phép chứa chuỗi KHÔNG BAO GIỜ là đáp án
+# thật — khớp TRỌN VẸN cả answer, không phải khớp một phần. Không nhồi thêm
+# chuỗi dài vào đây: việc đó thuộc luật hình dạng phía trên.
+QA_REFUSAL_SHORT_ANSWERS = frozenset({
+    "không biết", "không rõ", "chưa rõ", "không chắc",
+    "not sure", "unclear", "unknown",
+    "don't know", "do not know", "i don't know", "i do not know",
+})
+
+# Chủ ngữ đứng trước câu từ chối, bóc ra rồi mới so với danh sách trên:
+# "tôi không biết" và "không biết" là cùng một câu từ chối.
+QA_REFUSAL_SUBJECT_PREFIXES = frozenset({"tôi", "mình", "i", "we"})
 
 # ------------------------------------------------- kiểu đáp án theo answer_mode
 # Đáp án phải đúng DẠNG mà câu hỏi đòi. Đo thật: p1-17 hỏi "tên con đèo là gì"

@@ -1,0 +1,81 @@
+ .gitignore                                         |   2 +
+ ARCHITECTURE.md                                    |  92 +++
+ README.md                                          |  46 +-
+ backend/export/release_rehearsal.py                | 786 +++++++++++++++++++++
+ backend/llm/adapter.py                             |  68 +-
+ backend/retrieval/multi_anchor.py                  | 426 +++++++++++
+ backend/tasks/qa.py                                | 656 +++++++++++++++--
+ backend/tasks/qa_portfolio.py                      | 140 ++++
+ backend/tasks/runner.py                            | 514 ++++++++++++++
+ data/config/multi_anchor.py                        |  50 ++
+ data/config/qa_hypotheses.py                       |  64 ++
+ data/config/release_gate.py                        |  44 ++
+ dev_set/manifests/batch1_holdout13.json            |  29 +
+ dev_set/manifests/batch1_round1_queries.json       |  36 +
+ dev_set/tests/test_frozen_evaluator_integration.py | 131 ++++
+ dev_set/tests/test_ground_truth_verification.py    | 102 +++
+ dev_set/tests/test_promotion_gate.py               | 427 +++++++++++
+ dev_set/tests/test_run_evaluation_runtime.py       |  59 ++
+ dev_set/tests/test_scorer_contract.py              |  25 +
+ dev_set/tools/promotion_gate.py                    | 578 +++++++++++++++
+ dev_set/tools/promotion_provenance.py              |  79 +++
+ dev_set/tools/run_evaluation.py                    | 599 +++++++++++-----
+ dev_set/tools/schema.py                            | 122 +++-
+ dev_set/tools/scorer_contract.py                   |  27 +
+ dev_set/tools/scoring.py                           |  14 +-
+ docs/deployment.md                                 |  69 ++
+ docs/design/README.md                              |   9 +
+ docs/plans/2026-08-24-batch1-accuracy-uplift.md    |  76 ++
+ docs/plans/README.md                               |   9 +
+ docs/product-spec.md                               | 109 +++
+ docs/testing.md                                    |  56 ++
+ run.py                                             | 230 ++++--
+ tests/test_llm_adapter.py                          |   6 +-
+ tests/test_multi_anchor.py                         | 750 ++++++++++++++++++++
+ tests/test_qa.py                                   |  45 +-
+ tests/test_qa_hypotheses.py                        | 687 ++++++++++++++++++
+ tests/test_qa_text_fallback.py                     |  30 +-
+ tests/test_release_rehearsal.py                    | 563 +++++++++++++++
+ tests/test_run.py                                  |  89 +++
+ tests/test_task_runner.py                          | 321 +++++++++
+ 40 files changed, 7828 insertions(+), 337 deletions(-)
+M	.gitignore
+A	ARCHITECTURE.md
+M	README.md
+A	backend/export/release_rehearsal.py
+M	backend/llm/adapter.py
+A	backend/retrieval/multi_anchor.py
+M	backend/tasks/qa.py
+A	backend/tasks/qa_portfolio.py
+A	backend/tasks/runner.py
+A	data/config/multi_anchor.py
+A	data/config/qa_hypotheses.py
+A	data/config/release_gate.py
+A	dev_set/manifests/batch1_holdout13.json
+A	dev_set/manifests/batch1_round1_queries.json
+A	dev_set/tests/test_frozen_evaluator_integration.py
+A	dev_set/tests/test_ground_truth_verification.py
+A	dev_set/tests/test_promotion_gate.py
+M	dev_set/tests/test_run_evaluation_runtime.py
+A	dev_set/tests/test_scorer_contract.py
+A	dev_set/tools/promotion_gate.py
+A	dev_set/tools/promotion_provenance.py
+M	dev_set/tools/run_evaluation.py
+M	dev_set/tools/schema.py
+A	dev_set/tools/scorer_contract.py
+M	dev_set/tools/scoring.py
+A	docs/deployment.md
+A	docs/design/README.md
+A	docs/plans/2026-08-24-batch1-accuracy-uplift.md
+A	docs/plans/README.md
+A	docs/product-spec.md
+A	docs/testing.md
+M	run.py
+M	tests/test_llm_adapter.py
+A	tests/test_multi_anchor.py
+M	tests/test_qa.py
+A	tests/test_qa_hypotheses.py
+M	tests/test_qa_text_fallback.py
+A	tests/test_release_rehearsal.py
+M	tests/test_run.py
+A	tests/test_task_runner.py

@@ -86,6 +86,9 @@ from data.config.qa_hypotheses import (
     QA_GAP_FILL_VIDEOS,
     QA_PLACEHOLDER_VIDEOS,
     QA_REFUSAL_NEGATIONS,
+    QA_REFUSAL_EXACT_ANSWERS,
+    QA_REFUSAL_SHORT_ANSWERS,
+    QA_REFUSAL_SUBJECT_PREFIXES,
     QA_SENTINEL_ANSWERS,
     QA_SENTINEL_PREFIX_CONTINUATIONS,
     QA_WINNER_RANK_PENALTY,
@@ -481,21 +484,44 @@ def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
 
 
 def _la_cau_tu_choi(normalized: str) -> bool:
-    """Dò HÌNH DẠNG câu từ chối: phủ định + từ nói về việc thiếu bằng chứng.
+    """Dò câu từ chối bằng BA luật, xếp từ chặt tới rộng.
 
-    Vì sao không liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô hạn.
-    Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
+    Vì sao không chỉ liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô
+    hạn. Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
+    Vì sao không chỉ dò hình dạng: lưới rộng LOẠI NHẦM đáp án thật ("Không thấy
+    mưa", "Không có người trong ảnh") — mà loại nhầm đắt hơn bỏ sót.
 
-    Chỉ dò khi >= QA_REFUSAL_MIN_WORDS từ — "Không" (câu có/không) và "0"
-    (câu đếm) là đáp án THẬT, không được loại.
+    Hợp nhất 03/09 từ hai bản làm độc lập (Minh Hoàng ở `integrate/dot3`,
+    Thạch ở `codex/qa-last-3h`). Bản hợp nhất phải qua trọn 22 ca của
+    `tests/test_qa_hypotheses.py`: 15 chuỗi phải chặn, 7 chuỗi phải giữ.
+
+      ① ĐÍCH DANH  hai surface quan sát được thật, luật hình dạng không với tới.
+      ② NGẮN       "không biết" / "we don't know" — bóc chủ ngữ rồi khớp trọn vẹn.
+      ③ HÌNH DẠNG  phủ định ĐỨNG ĐẦU + từ nói về việc xác định/bằng chứng.
+
+    Luật ③ đòi phủ định đứng ĐẦU chứ không phải nằm đâu đó, vì đó là thứ duy
+    nhất phân biệt được câu từ chối với đáp án có chứa chữ phủ định:
+        'Biển báo ghi "Không có thông tin trong bằng chứng"'  -> GIỮ (đáp án thật)
+        "Không thể xác định từ bằng chứng"                    -> CHẶN
     """
+    if normalized in QA_REFUSAL_EXACT_ANSWERS:          # ①
+        return True
+
     tokens = normalized.split()
-    if len(tokens) < QA_REFUSAL_MIN_WORDS:
+    # Bóc chủ ngữ: "tôi không biết" và "không biết" là cùng một câu từ chối.
+    if tokens and tokens[0] in QA_REFUSAL_SUBJECT_PREFIXES:
+        tokens = tokens[1:]
+    con_lai = " ".join(tokens)
+
+    if con_lai in QA_REFUSAL_SHORT_ANSWERS:             # ②
+        return True
+
+    if len(tokens) < QA_REFUSAL_MIN_WORDS:              # ③
         return False
-    if not any(t in QA_REFUSAL_NEGATIONS for t in tokens):
+    if tokens[0] not in QA_REFUSAL_NEGATIONS:
         return False
     # Từ bằng chứng có thể gồm hai tiếng ("xác định") nên dò trên cả chuỗi.
-    return any(w in normalized for w in QA_REFUSAL_EVIDENCE_WORDS)
+    return any(w in con_lai for w in QA_REFUSAL_EVIDENCE_WORDS)
 
 
 def _dung_kieu_dap_an(normalized: str, answer_mode: str | None) -> bool:

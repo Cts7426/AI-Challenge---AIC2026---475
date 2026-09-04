@@ -1,0 +1,299 @@
+# Fusion order + config constants — trich thang tu source
+
+## backend/retrieval/search.py (inner, 5 nguon)
+        contrib_tho = {ten: BRANCH_WEIGHTS.get(ten, 1.0) * (1.0 / (RRF_K + h)) for ten, h in ranks.items()}
+        contrib = {ten: round(v, 6) for ten, v in contrib_tho.items()}
+        ket_qua.append({
+            "keyframe_id": kf,
+            "video_id": info["video_id"],
+            "frame_idx": info.get("frame_idx"),
+            "timestamp_ms": info.get("timestamp_ms"),
+            "shot_id": shots.get(kf),
+            # KHÔNG làm tròn score đem đi sắp xếp: làm tròn tạo ra các cặp bằng
+            # nhau giả, thứ tự giữa chúng thành tuỳ ý — mà R@1 vs R@5 chênh 0.20 điểm.
+            "score": sum(contrib_tho.values()),
+            "ranks": ranks,        # ← bắt buộc: phân tích lỗi dựa vào đây
+            "contrib": contrib,
+        })
+
+## backend/retrieval/multi_anchor.py (outer, multi-anchor RRF)
+        anchor_ranks: dict[str, int] = {}
+        for anchor, rank, _ in group_rows:
+            name = f"anchor_{anchor.ordinal}"
+            anchor_ranks[name] = min(rank, anchor_ranks.get(name, rank))
+        anchor_contributions = {
+            name: 1.0 / (RRF_K + rank) for name, rank in anchor_ranks.items()
+        }
+        temporal_match = str(representative.get("video_id") or "") in ordered_videos
+        score = sum(anchor_contributions.values())
+        if temporal_match:
+            score *= TEMPORAL_BONUS
+
+        fused_row = dict(representative)
+        fused_row.update({
+            "score": score,
+            "anchor_ranks": anchor_ranks,
+            "anchor_contributions": anchor_contributions,
+            "temporal_order_match": temporal_match,
+            "query_anchors": query_anchors,
+            # Alias tương thích QueryRun/source trace hiện hành; đây là rank và
+            # contribution của OUTER fusion, không phải nhánh retrieval bên trong.
+            "ranks": dict(anchor_ranks),
+            "contrib": dict(anchor_contributions),
+        })
+        fused.append(fused_row)
+
+## data/config/search_weights.py
+RRF_K = 7
+
+# Bật/tắt từng nhánh. Tắt = nhánh đó không chạy và không đóng góp hạng nào.
+# Dùng để đo đóng góp thật của mỗi nhánh (tắt đi, xem điểm rớt bao nhiêu).
+BRANCHES = {
+    "vector": True,     # CLIP trên Milvus — nhánh lõi
+    "metadata": True,   # BM25 title/description/keywords (mức VIDEO)
+    "objects": True,    # nhãn OpenImages (mức KEYFRAME)
+    "ocr": True,        # chữ trên hình (mức KEYFRAME)
+    "asr": True,        # lời thoại tiếng Việt (mức ĐOẠN THỜI GIAN)
+}
+
+# Trọng số RRF cho từng nhánh (Weighted RRF).
+# Các nhánh nhiễu như OCR/ASR thường sinh ra nhiều kết quả ảo do khớp từng từ,
+# trong khi Vector (CLIP) mới là giá trị cốt lõi. Cần áp trọng số để Vector không bị chìm.
+BRANCH_WEIGHTS = {
+    "vector": 1.0,
+    "objects": 0.7,
+    "ocr": 0.6,
+    "asr": 0.6,
+    "metadata": 0.4,
+}
+
+# ----------------- Gom nhóm theo shot (B0.1) -----------------
+# Mỗi nhánh lấy top_k * hệ số này làm ứng viên. Rộng hơn top_k để keyframe mạnh
+# ở nhánh phụ vẫn lọt vào bảng hợp nhất; rộng quá thì tốn thời gian vô ích.
+CANDIDATE_MULTIPLIER = 5
+
+# Gom kết quả về SHOT, mỗi shot giữ 1 keyframe điểm cao nhất.
+# Vì sao: 3–4 keyframe liền nhau trong cùng một shot là cùng một cảnh — chiếm
+# chỗ của nhau trên màn hình mà không thêm thông tin gì cho người duyệt.
+GROUP_BY_SHOT = True
+
+# ASR join theo thời gian: đoạn nói [start, end] nới ± ngần này khi so với
+# timestamp keyframe — lời bình thường lệch hình vài giây.
+ASR_TIME_PAD_MS = 2000
+
+# Số đoạn ASR khớp nhất được quyền ĐỀ CỬ keyframe (tra Milvus theo khoảng thời
+# gian). Cap lại để 1 query Milvus không phình filter vô hạn.
+ASR_NOMINATE_SEGMENTS = 5
+
+
+## data/config/multi_anchor.py (full)
+"""Knob vận hành cho KIS multi-anchor, tách khỏi caller để replay được."""
+
+ENABLED = True
+MAX_ANCHORS = 3
+MAX_CLIP_TOKENS = 60
+RRF_K = 7
+TEMPORAL_BONUS = 1.25
+PER_ANCHOR_POOL = 100
+
+# Query ngắn và không có dấu hiệu chuyển sự kiện phải giữ đường search hiện tại.
+SHORT_QUERY_MAX_WORDS = 18
+COMPLEX_MARKER_MIN = 1
+COMPLEX_MARKERS = (
+    "rồi",
+    "sau đó",
+    "trước khi",
+    "sau khi",
+    "tiếp theo",
+    ";",
+    "→",
+)
+ORDER_MARKERS = (
+    "rồi",
+    "sau đó",
+    "trước khi",
+    "sau khi",
+    "tiếp theo",
+    "kế tiếp",
+    "→",
+)
+ORDER_MARKER_PAIRS = (
+    ("đầu tiên", "sau đó"),
+    ("đầu tiên", "cuối cùng"),
+)
+
+# Quantifier có thể mang nghĩa khác theo head noun ("hai giờ" != "hai người"),
+# nên validator buộc cụm local quantifier + head xuất hiện nguyên dạng trong query.
+QUANTIFIER_TERMS = (
+    "không", "một", "hai", "ba", "bốn", "tư", "năm", "sáu", "bảy",
+    "tám", "chín", "mười", "chục", "trăm", "nghìn", "vài", "nhiều", "ít",
+    "duy nhất", "nhóm", "đám", "hàng loạt", "đôi", "cặp",
+)
+COUNT_CLASSIFIERS = (
+    "chiếc", "cái", "con", "tấm", "quả", "bộ", "đôi", "cặp", "chùm",
+)
+COLOR_MARKER = "màu"
+COMMON_COLOR_TERMS = (
+    "xanh lá", "xanh dương", "xanh lam", "đỏ", "cam", "vàng", "xanh",
+    "tím", "hồng", "nâu", "đen", "trắng", "xám", "ghi", "bạc", "be", "kem",
+)
+
+## data/config/slot_budget.py — SLOT_BUDGET
+# giữ 2 slot cho hạng 1 làm hàng rào phòng khi cửa sổ [s,e] hoá ra hẹp hơn cả
+# w=11. Phủ tới hạng 97 — đủ cứu cả K18 (hạng 91) lẫn K01 (hạng 95).
+# Quyết định này thuộc quyền Công Lý (chủ bảng) — tự chốt, không cần báo ai.
+SLOT_BUDGET: list[tuple[int, int]] = [(1, 2), (2, 2), (94, 1)]
+
+# Thụt vào mỗi đầu shot khi rải frame, theo tỉ lệ độ dài shot. Frame sát biên hay
+# dính chuyển cảnh (mờ, lẫn hai cảnh). Frame ĐẦU TIÊN của shot không chịu luật này —
+# nó là keyframe thật, có bằng chứng.
+SHOT_EDGE_INSET = 0.10
+
+# TRAKE: số khoảnh khắc mỗi dòng khi đề bài không công bố N.
+# TODO: BTC — chưa rõ đề TRAKE có cho biết N trước không.
+TRAKE_DEFAULT_N = 4
+
+
+# ══════════════════════ TRAKE — chiều sâu dòng nộp (21/08) ══════════════════════
+
+## data/config/release_gate.py (full)
+"""Ngưỡng promotion/release được gom một chỗ để audit không lệch code."""
+
+from __future__ import annotations
+
+
+PROMOTION_GATE_SCHEMA_VERSION = 1
+PROMOTION_SCORER_CONTRACT = "btc-final-score-v1"
+PROMOTION_SCORER_POLICY = "semantic"
+
+HOLDOUT_MANIFEST_ID = "batch1_holdout13"
+HOLDOUT_EXPECTED_TASK_COUNTS = {"KIS": 10, "QA": 3}
+HOLDOUT_EXPECTED_QUERY_IDS = (
+    "KIS_001", "KIS_002", "KIS_003", "KIS_004", "KIS_005",
+    "KIS_006", "KIS_007", "KIS_008", "KIS_009", "KIS_010",
+    "QA_011", "QA_012", "QA_013",
+)
+HOLDOUT_QUERY_SET_SHA256 = (
+    "faa40137c092a7039bcf307c0fa193e8b37a033cefcded32757a3018890ffa65"
+)
+HOLDOUT_OVERALL_MIN = 0.82
+HOLDOUT_KIS_MIN = 0.82
+HOLDOUT_QA_MIN = 0.75
+
+REGRESSION_MANIFEST_ID = "batch1_round1_queries"
+REGRESSION_EXPECTED_COUNT = 25
+REGRESSION_EXPECTED_QUERY_IDS = (
+    "query-p1-1-kis", "query-p1-10-kis", "query-p1-11-kis",
+    "query-p1-12-kis", "query-p1-13-kis", "query-p1-14-kis",
+    "query-p1-15-qa", "query-p1-16-trake", "query-p1-17-qa",
+    "query-p1-18-kis", "query-p1-19-kis", "query-p1-2-kis",
+    "query-p1-20-kis", "query-p1-21-kis", "query-p1-22-kis",
+    "query-p1-23-kis", "query-p1-24-kis", "query-p1-25-kis",
+    "query-p1-3-qa", "query-p1-4-kis", "query-p1-5-kis",
+    "query-p1-6-kis", "query-p1-7-kis", "query-p1-8-kis",
+    "query-p1-9-qa",
+)
+REGRESSION_QUERY_SET_SHA256 = (
+    "9b6b85b336a41ef1218efda19f497647d324a4cc656ba86868ea4d6beb1cb0ea"
+)
+REGRESSION_SCORE_EPSILON = 1e-12
+
+RELEASE_RECEIPT_SCHEMA_VERSION = 1
+RELEASE_CONFIG_SNAPSHOT_SCHEMA_VERSION = 1
+RELEASE_EVIDENCE_CACHE_MANIFEST_SCHEMA_VERSION = 1
+
+## data/config/qa_hypotheses.py (full)
+"""Cấu hình hypotheses Q&A để cache/portfolio có thể replay mà không hardcode."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+
+ANSWER_MODES = (
+    "visual_count",
+    "visual_read",
+    "ocr",
+    "asr",
+    "metadata",
+    "visual_attribute",
+)
+
+# Tăng version khi prompt/schema planner hoặc prompt suy luận đổi nghĩa.
+QA_PLANNER_PROMPT_VERSION = "qa-planner-v2"
+QA_INFERENCE_PROMPT_VERSION = "qa-evidence-v2"
+QA_HYPOTHESIS_CACHE_SCHEMA_VERSION = 1
+
+# Canonical của mọi hypothesis luôn đi trước; sau đó mỗi hypothesis chỉ chiếm
+# tối đa một frame thay thế trước khi phần đuôi phủ candidate retrieval mới.
+QA_HYPOTHESIS_ALTERNATIVES_PER_HYPOTHESIS = 1
+
+# Sentinel không mang bằng chứng trả lời; normalize case/whitespace ở caller.
+QA_SENTINEL_ANSWERS = frozenset({
+    "không đủ căn cứ",
+    "không có thông tin",
+    "không đủ thông tin",
+    "insufficient evidence",
+    "no information",
+    "not enough information",
+})
+
+# Chỉ reject prefix khi token kế tiếp là một continuation mang nghĩa "không có
+# evidence". Nhờ vậy answer thật như "No Information Technology" hay
+# "Không có thông tin liên lạc" không bị loại chỉ vì cùng tiền tố.
+QA_SENTINEL_PREFIX_CONTINUATIONS = frozenset({
+    "để", "trong", "từ", "về", "được", "có", "nhằm",
+    "is", "was", "to", "in", "from", "about", "available", "provided",
+})
+
+
+def qa_hypothesis_cache_dir() -> Path:
+    """Đường cache có thể đổi bằng env cho test/job; caller không tự ghép path."""
+    configured = os.environ.get("QA_HYPOTHESIS_CACHE_DIR", "").strip()
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[2] / "data" / "cache" / "qa_hypotheses"
+
+
+def qa_hypothesis_config_snapshot() -> dict[str, object]:
+    """Snapshot JSON-safe của knobs ảnh hưởng identity và thứ tự portfolio."""
+    return {
+        "answer_modes": list(ANSWER_MODES),
+        "planner_prompt_version": QA_PLANNER_PROMPT_VERSION,
+        "inference_prompt_version": QA_INFERENCE_PROMPT_VERSION,
+        "cache_schema_version": QA_HYPOTHESIS_CACHE_SCHEMA_VERSION,
+        "alternatives_per_hypothesis": QA_HYPOTHESIS_ALTERNATIVES_PER_HYPOTHESIS,
+        "sentinel_answers": sorted(QA_SENTINEL_ANSWERS),
+        "sentinel_prefix_continuations": sorted(QA_SENTINEL_PREFIX_CONTINUATIONS),
+    }
+
+## data/config/qa_inference.py — hang so
+12:QA_INFERENCE_MODE_DEFAULT = "legacy"
+13:QA_INFERENCE_MODES = frozenset({"legacy", "two_stage"})
+17:QA_COHORT_EFFORT = "high"
+18:QA_COHORT_MAX_TOKENS = 768
+19:QA_SCREEN_EFFORT = QA_COHORT_EFFORT
+20:QA_SCREEN_MAX_TOKENS = QA_COHORT_MAX_TOKENS
+21:QA_SCREEN_CONFIRM_MIN_CONFIDENCE = 0.50
+23:QA_CONFIRM_EFFORT = QA_COHORT_EFFORT
+24:QA_CONFIRM_ADDITIONAL_N = 2
+25:QA_CONFIRM_MAX_TOKENS = QA_COHORT_MAX_TOKENS
+29:QA_LEGACY_MAX_TOKENS = 2048
+34:QA_TWO_STAGE_MAX_GENERATIONS = 42
+
+## data/config/qa_evaluation.py — hang so
+12:QA_MATCH_POLICIES = ("semantic", "exact")
+17:DEFAULT_QA_MATCH_POLICY = "semantic"
+21:QA_SUBMISSION_POLICIES = ("semantic", "exact", "robust")
+26:QA_MAX_SURFACE_FORMS = 3
+27:QA_EXACT_VARIANT_FRAMES = 10
+28:QA_ROBUST_VARIANT_FRAMES = 1
+
+## data/config/submit_format.py + scoring.py — hang so
+data/config/submit_format.py:42:TASK_TYPES = ("KIS", "QA", "TRAKE")
+data/config/submit_format.py:45:SUBMIT_EXT = "csv"
+data/config/submit_format.py:53:ANSWERS_PER_QUERY = 100
+data/config/submit_format.py:60:ANSWER_MAX_CHARS = 100
+data/config/scoring.py:8:MAX_ANSWERS = 100                        # BTC chỉ chấm 100 câu đầu mỗi truy vấn
+data/config/scoring.py:9:TASKS_WITH_ANSWER = ("QA",)              # dạng bài có thêm cửa tử `answer`

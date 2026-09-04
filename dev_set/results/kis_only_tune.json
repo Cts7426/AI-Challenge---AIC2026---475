@@ -30,7 +30,7 @@
     "r50": 1.0,
     "r100": 1.0,
     "final": 0.8,
-    "raw_rank": 5
+    "raw_rank": 4
   },
   {
     "query_id": "Q4",
@@ -83,20 +83,20 @@
     "r5": 0.0,
     "r20": 0.0,
     "r50": 0.0,
-    "r100": 1.0,
-    "final": 0.2,
-    "raw_rank": 58
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K04",
     "query_vi": "các thiếu nữ mặc trang phục truyền thống quỳ trong sảnh có tượng đá",
-    "r1": 1.0,
+    "r1": 0.0,
     "r5": 1.0,
     "r20": 1.0,
     "r50": 1.0,
     "r100": 1.0,
-    "final": 1.0,
-    "raw_rank": 1
+    "final": 0.8,
+    "raw_rank": 5
   },
   {
     "query_id": "K05",
@@ -104,10 +104,10 @@
     "r1": 0.0,
     "r5": 0.0,
     "r20": 0.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.4,
-    "raw_rank": 30
+    "r50": 0.0,
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K06",
@@ -151,18 +151,18 @@
     "r50": 0.0,
     "r100": 1.0,
     "final": 0.2,
-    "raw_rank": 69
+    "raw_rank": 64
   },
   {
     "query_id": "K10",
     "query_vi": "thịt và cà chua trong nồi thủy tinh trên bếp, có đũa khuấy",
     "r1": 0.0,
-    "r5": 1.0,
-    "r20": 1.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.8,
-    "raw_rank": 5
+    "r5": 0.0,
+    "r20": 0.0,
+    "r50": 0.0,
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K11",
@@ -179,34 +179,34 @@
     "query_id": "K12",
     "query_vi": "bàn thờ sơn son thếp vàng với hai lọng vàng hai bên",
     "r1": 0.0,
-    "r5": 0.0,
+    "r5": 1.0,
     "r20": 1.0,
     "r50": 1.0,
     "r100": 1.0,
-    "final": 0.6,
-    "raw_rank": 15
+    "final": 0.8,
+    "raw_rank": null
   },
   {
     "query_id": "K13",
     "query_vi": "hai bàn tay sửa chữa bộ phận phanh xe máy cận cảnh",
     "r1": 0.0,
     "r5": 0.0,
-    "r20": 1.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.6,
-    "raw_rank": 19
+    "r20": 0.0,
+    "r50": 0.0,
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K14",
     "query_vi": "kho hàng ven sông với cờ đỏ sao vàng và các bao tải xếp trên bến",
     "r1": 0.0,
-    "r5": 1.0,
+    "r5": 0.0,
     "r20": 1.0,
     "r50": 1.0,
     "r100": 1.0,
-    "final": 0.8,
-    "raw_rank": 5
+    "final": 0.6,
+    "raw_rank": null
   },
   {
     "query_id": "K15",
@@ -214,10 +214,10 @@
     "r1": 0.0,
     "r5": 0.0,
     "r20": 0.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.4,
-    "raw_rank": 27
+    "r50": 0.0,
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K16",
@@ -225,21 +225,21 @@
     "r1": 0.0,
     "r5": 0.0,
     "r20": 0.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.4,
-    "raw_rank": 23
+    "r50": 0.0,
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K17",
     "query_vi": "động cơ Honda màu đỏ gắn trên xe tự chế",
     "r1": 0.0,
     "r5": 0.0,
-    "r20": 1.0,
-    "r50": 1.0,
-    "r100": 1.0,
-    "final": 0.6,
-    "raw_rank": 6
+    "r20": 0.0,
+    "r50": 0.0,
+    "r100": 0.0,
+    "final": 0.0,
+    "raw_rank": null
   },
   {
     "query_id": "K18",

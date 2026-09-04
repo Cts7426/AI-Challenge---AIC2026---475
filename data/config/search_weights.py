@@ -120,6 +120,27 @@ CANDIDATE_MULTIPLIER = 5
 # độ trễ tăng gấp bội — câu p1-23 nhảy từ "không tìm thấy" lên hạng 1 ở mốc này.
 KIS_CANDIDATE_MULTIPLIER = 15
 
+# Nhánh mà làn KIS bật thêm so với mặc định. NGUỒN DUY NHẤT — mọi chỗ gọi
+# `search()` trên đường KIS phải dùng hằng số này thay vì chép tay dict.
+#
+# ⚠️ Vì sao thành hằng số (03/09): tham số này được chép tay ở `runner.py`,
+# và BA chỗ khác trên đường KIS đã QUÊN chép — `backend/api/main.py` (UI tìm
+# kiếm lúc thi), `scripts/build_kis_submission.py`, và `search_multi()`.
+# Cả ba vẫn chạy, vẫn trả kết quả trông bình thường, chỉ là bằng cấu hình
+# TRƯỚC R3.K3. Kiểm nhanh xem một lượt search có đúng cấu hình KIS không:
+# hit trả về phải có `vector_siglip2` (và `ocr_probe`) trong `ranks`.
+#
+# Chỉ liệt kê nhánh cần BẬT THÊM; `search()` gộp `{**BRANCHES, **branches}` nên
+# nhánh không nhắc tới giữ nguyên mặc định.
+KIS_EXTRA_BRANCHES: dict[str, bool] = {
+    ten: True
+    for ten in ("vector_siglip2", "ocr_probe")
+    # Lọc theo BRANCHES để hằng số này dùng chung được giữa các nhánh git đang
+    # có khác nhau. Bật một khoá mà `search()` không biết thì nó nằm im, không
+    # báo lỗi — đúng thứ cần tránh.
+    if ten in BRANCHES
+}
+
 # Gom kết quả về SHOT, mỗi shot giữ 1 keyframe điểm cao nhất.
 # Vì sao: 3–4 keyframe liền nhau trong cùng một shot là cùng một cảnh — chiếm
 # chỗ của nhau trên màn hình mà không thêm thông tin gì cho người duyệt.

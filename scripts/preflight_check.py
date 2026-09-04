@@ -329,6 +329,120 @@ def check_milvus() -> tuple[bool | None, str]:
     return True, f"{COLLECTION_NAME}: {n_rows:,} vector"
 
 
+def check_branch_inventory() -> tuple[bool | None, str]:
+    """MỌI nhánh mà đường thi bật đều phải có chỗ dựa thật (collection/index).
+
+    ⚠️ Vì sao mục này tồn tại — 04/09, sau khi mất `keyframes_siglip2`:
+    `_an_toan()` trong `search.py` cố ý nuốt lỗi từng nhánh để một nhánh chết
+    không kéo sập cả câu. Đúng thiết kế lúc thi, nhưng cái giá là mất một nhánh
+    KHÔNG crash và KHÔNG mất câu — chỉ tụt hạng. Sáng 04/09 collection SigLIP2
+    biến mất mà `--profile release` vẫn cho 18 ĐẠT · 0 HỎNG, vì mục "encoder
+    đang chạy" chỉ kiểm collection của encoder CHÍNH; nhánh vector thứ hai,
+    `ocr_probe` và `text_vi` không ai kiểm cả.
+
+    Tập nhánh kiểm ở đây = `BRANCHES` mặc định GỘP override của làn KIS
+    (`runner.KIS_BRANCH_OVERRIDE`) — IMPORT chứ không chép lại. Chép tay thì hai
+    bên trôi khỏi nhau, và cái trôi đó cũng không crash: preflight sẽ kiểm nhầm
+    nhánh rồi báo xanh, tức là tái tạo đúng lỗi nó sinh ra để bắt.
+
+    Nhánh TẮT thì bỏ qua, không tính là hỏng: tắt là một quyết định đã ghi trong
+    config, không phải một hỏng hóc. Nhánh BẬT mà preflight không biết nó dựa
+    vào đâu thì FAIL — thà chặn một nhánh mới còn hơn im lặng không kiểm nó.
+    """
+    from backend.indexing.load_metadata import INDEX_NAME as METADATA_INDEX
+    from backend.indexing.load_objects import INDEX_NAME as OBJECTS_INDEX
+    from backend.indexing.milvus_client import COLLECTION_NAME
+    from backend.tasks.runner import KIS_BRANCH_OVERRIDE
+    from data.config.search_weights import BRANCHES
+    from data.config.siglip2_model import SIGLIP2_COLLECTION, use_siglip2
+
+    bat = {**BRANCHES, **KIS_BRANCH_OVERRIDE}
+
+    # Nhánh vector thứ hai LUÔN là encoder CÒN LẠI, không phải "luôn là SigLIP2"
+    # — mirror đúng `encoder_chinh`/`encoder_phu` trong search.py. Đặt cứng
+    # SigLIP2 ở đây thì đổi VECTOR_BACKEND=siglip2 là preflight kiểm nhầm.
+    chinh = SIGLIP2_COLLECTION if use_siglip2() else COLLECTION_NAME
+    phu = COLLECTION_NAME if use_siglip2() else SIGLIP2_COLLECTION
+
+    can_milvus: dict[str, str] = {}
+    can_es: dict[str, str] = {}
+    for ten, dang_bat in bat.items():
+        if not dang_bat:
+            continue
+        if ten == "vector":
+            can_milvus[ten] = chinh
+        elif ten == "vector_siglip2":
+            can_milvus[ten] = phu
+        elif ten == "text_vi":
+            from data.config.text_vi_vector import COLLECTION as TEXT_VI_COLLECTION
+            can_milvus[ten] = TEXT_VI_COLLECTION
+        elif ten == "metadata":
+            can_es[ten] = METADATA_INDEX
+        elif ten == "objects":
+            can_es[ten] = OBJECTS_INDEX
+        elif ten in ("ocr", "ocr_probe"):
+            can_es[ten] = "ocr"
+        elif ten == "asr":
+            can_es[ten] = "asr"
+        else:
+            return False, (
+                f"nhánh {ten!r} đang BẬT nhưng preflight không biết nó dựa vào đâu — "
+                "thêm nó vào check_branch_inventory() trước khi thi"
+            )
+
+    hong: list[str] = []
+    song: list[str] = []
+
+    if can_milvus:
+        try:
+            from backend.indexing.milvus_client import connect as milvus_connect
+
+            client = milvus_connect()
+            co_san = set(client.list_collections())
+        except Exception as e:
+            return None, f"không hỏi được Milvus ({e}) — chạy `docker compose up -d` trước"
+        for ten, collection in can_milvus.items():
+            if collection not in co_san:
+                hong.append(f"{ten}→{collection} KHÔNG TỒN TẠI")
+                continue
+            # `row_count` từng nói dối sau upsert (xem docs/evaluation/
+            # 2026-09-04-x2-text-vi-bakeoff.md mục 2) — ở đây chỉ dùng để phân
+            # biệt "có dữ liệu" với "rỗng", sai số đếm không đổi kết luận.
+            if int(client.get_collection_stats(collection).get("row_count", 0)) <= 0:
+                hong.append(f"{ten}→{collection} RỖNG")
+            else:
+                song.append(ten)
+
+    if can_es:
+        from backend.indexing.es_client import ES_URL, connect as es_connect
+
+        if not _port_responds(ES_URL):
+            return None, f"không có ai nghe ở {ES_URL} — chạy `docker compose up -d` trước"
+        try:
+            es = es_connect()
+        except Exception as e:
+            return False, f"{ES_URL} đang sống nhưng client không dùng được — {str(e).splitlines()[0]}"
+        for ten, index in can_es.items():
+            if not es.indices.exists(index=index):
+                hong.append(f"{ten}→{index} THIẾU")
+            elif es.count(index=index)["count"] == 0:
+                hong.append(f"{ten}→{index} RỖNG")
+            else:
+                song.append(ten)
+
+    tong = len(can_milvus) + len(can_es)
+    if hong:
+        return False, (
+            f"{len(hong)}/{tong} nhánh đường thi KHÔNG có chỗ dựa: " + " · ".join(hong)
+            + "  ← search() sẽ nuốt lỗi và chạy tiếp, điểm tụt mà không báo gì"
+        )
+    tat = sorted(ten for ten, dang_bat in bat.items() if not dang_bat)
+    return True, (
+        f"{tong}/{tong} nhánh bật có chỗ dựa ({', '.join(sorted(song))})"
+        + (f" · tắt: {', '.join(tat)}" if tat else "")
+    )
+
+
 def check_api_health() -> tuple[bool | None, str]:
     """Gọi `/health` deep check và đọc trạng thái tổng, không chỉ ping HTTP."""
     import urllib.error
@@ -731,6 +845,7 @@ CHECKLIST: list[Check] = [
 
     Check("B. Hạ tầng", "Elasticsearch", check_elasticsearch, needs_infra=True),
     Check("B. Hạ tầng", "Milvus", check_milvus, needs_infra=True),
+    Check("B. Hạ tầng", "nhánh search có chỗ dựa", check_branch_inventory, needs_infra=True),
     Check("B. Hạ tầng", "API /health", check_api_health, needs_infra=True,
           required_in_release=False),
 

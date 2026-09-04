@@ -33,6 +33,13 @@ FAILURE_CLASSES: frozenset[str] = frozenset({
 })
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# Nhánh mà RIÊNG làn KIS bật thêm so với mặc định `BRANCHES` (R3.K3). Đặt tên
+# thay vì viết thẳng dict vào lời gọi `search()` để preflight kiểm được ĐÚNG tập
+# nhánh đường thi thật sự dùng: chép tay sang preflight thì hai bên trôi khỏi
+# nhau, và cái trôi đó không crash — nó chỉ làm preflight kiểm nhầm nhánh rồi
+# báo xanh (đúng lỗi đã xảy ra 04/09 với `keyframes_siglip2`).
+KIS_BRANCH_OVERRIDE: dict[str, bool] = {"vector_siglip2": True, "ocr_probe": True}
+
 
 def _answer_to_dict(answer: Answer) -> dict[str, Any]:
     return {
@@ -478,7 +485,7 @@ def solve_query(
                 query_en=query_en,
                 top_k=total,
                 group_by_shot=True,
-                branches={"vector_siglip2": True, "ocr_probe": True},
+                branches=dict(KIS_BRANCH_OVERRIDE),
                 candidate_multiplier=KIS_CANDIDATE_MULTIPLIER,
             )
         else:

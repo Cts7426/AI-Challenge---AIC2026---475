@@ -345,3 +345,158 @@ def test_main_json_keeps_exit_code(monkeypatch, capsys):
     assert pf.main() == 1
     report = json.loads(capsys.readouterr().out)
     assert report["failed"] == 1 and report["passed"] == 0
+
+
+# ------------------------------- kiểm kê nhánh: mục sinh ra sau sự cố 04/09
+#
+# Bối cảnh: sáng 04/09 collection `keyframes_siglip2` biến mất khỏi Milvus mà
+# `--profile release` vẫn cho 18 ĐẠT · 0 HỎNG. `search()` nuốt lỗi từng nhánh
+# (đúng thiết kế lúc thi) nên hệ chạy 6/7 nhánh, không crash, chỉ tụt hạng.
+# Mọi test dưới đây ghim lại đúng lỗ hổng đó.
+
+class _MilvusGia:
+    """Milvus giả: chỉ cần trả danh sách collection và số dòng."""
+
+    def __init__(self, collections, row_count=100):
+        self._collections = list(collections)
+        self._row_count = row_count
+
+    def list_collections(self):
+        return list(self._collections)
+
+    def get_collection_stats(self, name):
+        return {"row_count": self._row_count}
+
+
+class _IndicesGia:
+    def __init__(self, names):
+        self._names = set(names)
+
+    def exists(self, index):
+        return index in self._names
+
+
+class _ESGia:
+    def __init__(self, names, count=10):
+        self.indices = _IndicesGia(names)
+        self._count = count
+
+    def count(self, index):
+        return {"count": self._count}
+
+
+def _gan_ha_tang(monkeypatch, collections, indices=("metadata", "objects", "ocr", "asr")):
+    from backend.indexing import es_client, milvus_client
+
+    monkeypatch.setattr(milvus_client, "connect", lambda: _MilvusGia(collections))
+    monkeypatch.setattr(es_client, "connect", lambda: _ESGia(indices))
+    monkeypatch.setattr(pf, "_port_responds", lambda url, timeout=3.0: True)
+
+
+def _gan_nhanh(monkeypatch, branches, override):
+    from backend.tasks import runner
+    from data.config import search_weights
+
+    monkeypatch.setattr(search_weights, "BRANCHES", branches)
+    monkeypatch.setattr(runner, "KIS_BRANCH_OVERRIDE", override)
+
+
+def test_branch_inventory_missing_collection_is_fail(monkeypatch):
+    """Đúng sự cố 04/09: nhánh bật, collection không còn → KHÔNG ĐẠT."""
+    _gan_nhanh(monkeypatch, {"vector": True, "vector_siglip2": True}, {})
+    _gan_ha_tang(monkeypatch, collections=["keyframes"])
+
+    ok, chi_tiet = pf.check_branch_inventory()
+    assert ok is False
+    assert "keyframes_siglip2" in chi_tiet
+    assert "vector_siglip2" in chi_tiet
+
+
+def test_branch_inventory_all_present_is_pass(monkeypatch):
+    _gan_nhanh(monkeypatch, {"vector": True, "vector_siglip2": True, "asr": True}, {})
+    _gan_ha_tang(monkeypatch, collections=["keyframes", "keyframes_siglip2"])
+
+    ok, _ = pf.check_branch_inventory()
+    assert ok is True
+
+
+def test_branch_inventory_checks_kis_override_not_just_config(monkeypatch):
+    """Nhánh TẮT trong config nhưng làn KIS bật vẫn phải được kiểm.
+
+    Đây là nửa còn lại của sự cố: `BRANCHES["vector_siglip2"]` mặc định `False`,
+    nhánh chỉ được bật ở `runner.KIS_BRANCH_OVERRIDE`. Mục kiểm nào chỉ đọc
+    config sẽ bỏ qua đúng nhánh đã chết.
+    """
+    _gan_nhanh(
+        monkeypatch,
+        {"vector": True, "vector_siglip2": False},
+        {"vector_siglip2": True},
+    )
+    _gan_ha_tang(monkeypatch, collections=["keyframes"])
+
+    ok, chi_tiet = pf.check_branch_inventory()
+    assert ok is False
+    assert "keyframes_siglip2" in chi_tiet
+
+
+def test_branch_inventory_ignores_disabled_branch(monkeypatch):
+    """Nhánh tắt không có dữ liệu KHÔNG phải lỗi — tắt là một quyết định."""
+    _gan_nhanh(monkeypatch, {"vector": True, "text_vi": False}, {})
+    _gan_ha_tang(monkeypatch, collections=["keyframes"])
+
+    ok, chi_tiet = pf.check_branch_inventory()
+    assert ok is True
+    assert "text_vi" in chi_tiet, "nhánh tắt vẫn phải hiện ra để người vận hành thấy"
+
+
+def test_branch_inventory_unknown_enabled_branch_is_fail(monkeypatch):
+    """Nhánh mới mà preflight chưa biết dựa vào đâu → chặn, không im lặng bỏ qua."""
+    _gan_nhanh(monkeypatch, {"vector": True, "nhanh_moi_toanh": True}, {})
+    _gan_ha_tang(monkeypatch, collections=["keyframes"])
+
+    ok, chi_tiet = pf.check_branch_inventory()
+    assert ok is False
+    assert "nhanh_moi_toanh" in chi_tiet
+
+
+def test_branch_inventory_second_vector_follows_vector_backend(monkeypatch):
+    """Nhánh vector thứ hai là encoder CÒN LẠI, không phải luôn luôn SigLIP2.
+
+    Đổi `VECTOR_BACKEND=siglip2` thì nhánh phụ trở thành CLIP; kiểm cứng SigLIP2
+    ở đây sẽ soi nhầm collection và bỏ lọt đúng nhánh đang chết.
+    """
+    monkeypatch.setenv("VECTOR_BACKEND", "siglip2")
+    _gan_nhanh(monkeypatch, {"vector": True, "vector_siglip2": True}, {})
+    _gan_ha_tang(monkeypatch, collections=["keyframes_siglip2"])
+
+    ok, chi_tiet = pf.check_branch_inventory()
+    assert ok is False
+    assert "keyframes" in chi_tiet
+
+
+def test_branch_inventory_empty_index_is_fail(monkeypatch):
+    """Index tồn tại nhưng rỗng cũng là nhánh chết — ES sống không đủ để yên tâm."""
+    from backend.indexing import es_client, milvus_client
+
+    _gan_nhanh(monkeypatch, {"vector": True, "asr": True}, {})
+    monkeypatch.setattr(milvus_client, "connect", lambda: _MilvusGia(["keyframes"]))
+    monkeypatch.setattr(es_client, "connect", lambda: _ESGia(["asr"], count=0))
+    monkeypatch.setattr(pf, "_port_responds", lambda url, timeout=3.0: True)
+
+    ok, chi_tiet = pf.check_branch_inventory()
+    assert ok is False
+    assert "RỖNG" in chi_tiet
+
+
+def test_branch_inventory_milvus_down_is_skip_not_pass(monkeypatch):
+    """Chưa hỏi được Milvus = CHƯA KIỂM (None), tuyệt đối không phải ĐẠT."""
+    from backend.indexing import milvus_client
+
+    def khong_ket_noi():
+        raise ConnectionError("Milvus chưa lên")
+
+    _gan_nhanh(monkeypatch, {"vector": True}, {})
+    monkeypatch.setattr(milvus_client, "connect", khong_ket_noi)
+
+    ok, _ = pf.check_branch_inventory()
+    assert ok is None

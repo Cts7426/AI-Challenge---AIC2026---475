@@ -22,6 +22,8 @@ Exit code: 0 = sẵn sàng · 1 = có thứ hỏng (đọc dòng HỎNG).
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import time
 from pathlib import Path
@@ -29,6 +31,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+# `search()` báo mọi sự cố xuống cấp bằng đúng tiền tố này rồi CHẠY TIẾP: nhánh
+# chết, dịch VI→EN hỏng, không đọc được shots.parquet... Lúc thi đó là hành vi
+# đúng (một nhánh chết không được kéo sập cả câu). Lúc làm nóng thì ngược lại:
+# còn 2 tiếng để sửa, nên bất kỳ dòng nào như vậy đều phải làm warmup ĐỎ.
+# `tests/test_warmup.py` ghim tiền tố này khớp với search.py.
+CANH_BAO = "[cảnh báo]"
 
 # Câu nháp cố ý tầm thường và KHÔNG dính đề thi: mục đích là chạm vào mọi nhánh,
 # không phải đo chất lượng. Giữ nguyên văn để lần chạy nào cũng so sánh được.
@@ -48,14 +57,31 @@ def _buoc(ten: str, fn):
     return True, kq
 
 
+def _kiem_milvus() -> str:
+    """Kiểm cả hai collection vector và provenance trước khi chạy lô KIS."""
+    from backend.indexing.load_clip import assert_index_meta
+    from backend.indexing.load_siglip2 import assert_siglip2_index_meta
+    from backend.indexing.milvus_client import COLLECTION_NAME, connect
+    from data.config.siglip2_model import SIGLIP2_COLLECTION
+
+    client = connect()
+    thong_ke: list[str] = []
+    for collection_name in (COLLECTION_NAME, SIGLIP2_COLLECTION):
+        if not client.has_collection(collection_name):
+            raise RuntimeError(f"thiếu collection {collection_name}")
+        row_count = int(client.get_collection_stats(collection_name)["row_count"])
+        if row_count <= 0:
+            raise RuntimeError(f"collection {collection_name} rỗng")
+        thong_ke.append(f"{collection_name}: {row_count:,} vector")
+
+    assert_index_meta(strict=True)
+    assert_siglip2_index_meta(strict=True)
+    return " · ".join(thong_ke)
+
+
 def main() -> int:
     print(f"LÀM NÓNG — {QUERY_VI!r}\n")
     ok = True
-
-    def _milvus():
-        from backend.indexing.milvus_client import COLLECTION_NAME, connect
-        n = connect().get_collection_stats(COLLECTION_NAME)["row_count"]
-        return f"{COLLECTION_NAME}: {int(n):,} vector"
 
     def _es():
         from backend.indexing.es_client import connect
@@ -74,7 +100,7 @@ def main() -> int:
         v = enc2(QUERY_EN)
         return f"SigLIP2 {v.shape[0]} chiều · |v|={float((v @ v) ** .5):.4f}"
 
-    for ten, fn in (("Milvus", _milvus), ("Elasticsearch", _es),
+    for ten, fn in (("Milvus", _kiem_milvus), ("Elasticsearch", _es),
                     ("encoder CLIP", _clip), ("encoder SigLIP2", _siglip2)):
         dat, _ = _buoc(ten, fn)
         ok = ok and dat
@@ -83,10 +109,27 @@ def main() -> int:
     # truyền lúc thi. Chạy hai lần: lần đầu gồm nạp model, lần sau là tốc độ thật.
     def _lan_kis():
         from backend.retrieval.search import search
+        from backend.tasks.runner import KIS_BRANCH_OVERRIDE
         from data.config.search_weights import KIS_CANDIDATE_MULTIPLIER
-        rows = search(QUERY_VI, query_en=QUERY_EN, top_k=100, group_by_shot=True,
-                      branches={"vector_siglip2": True, "ocr_probe": True},
-                      candidate_multiplier=KIS_CANDIDATE_MULTIPLIER)
+
+        # Bắt stdout của `search()` thay vì chỉ nhìn số dòng trả về. `_an_toan()`
+        # nuốt lỗi từng nhánh rồi in một dòng cảnh báo và đi tiếp — nên một nhánh
+        # chết vẫn cho ĐỦ 100 dòng và bước này vẫn xanh. Đúng chuyện đã xảy ra
+        # 04/09: `keyframes_siglip2` biến mất, warmup in cảnh báo rồi vẫn kết
+        # luận "SẴN SÀNG — mọi nhánh sống".
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            rows = search(QUERY_VI, query_en=QUERY_EN, top_k=100, group_by_shot=True,
+                          branches=dict(KIS_BRANCH_OVERRIDE),
+                          candidate_multiplier=KIS_CANDIDATE_MULTIPLIER)
+        log = buffer.getvalue().splitlines()
+        for dong in log:  # không nuốt log của search()
+            print(f"    {dong.strip()}")
+        xuong_cap = [d.strip() for d in log if CANH_BAO in d]
+        if xuong_cap:
+            raise RuntimeError(
+                f"{len(xuong_cap)} sự cố xuống cấp trong lượt search: " + " | ".join(xuong_cap)
+            )
         if len(rows) < 1:
             raise RuntimeError("làn KIS trả 0 dòng — có nhánh nào đang chết lặng")
         return f"{len(rows)} dòng"

@@ -67,3 +67,59 @@ def test_ung_vien_probe_bo_token_qua_ngan():
     """Token ngắn khớp lung tung, probe chúng chỉ tốn truy vấn ES."""
     ra = _ung_vien_probe("xe đi qua ngã tư", None)
     assert all(len(t) >= 4 for t in ra)
+
+
+# --------------------------------------------------------------------------
+# Công tắc: probe token hiếm có HAI đầu ra (nhánh mức keyframe + phiếu bầu mức
+# video) nhưng là MỘT tính năng, nên phải tắt/bật cùng nhau.
+# --------------------------------------------------------------------------
+
+def _chan_moi_nhanh(monkeypatch) -> None:
+    """Bịt mọi nhánh + mọi lần chạm Milvus/ES để test `_search_core` thuần logic.
+
+    Chỉ để `vector` trả đúng MỘT hàng: `_search_core` thoát sớm khi không có ứng
+    viên nào, mà khối tính phiếu bầu nằm SAU chỗ thoát đó.
+    """
+    from backend.retrieval import search as S
+
+    mot_hang = [{"keyframe_id": "L21_V001#k1", "video_id": "L21_V001",
+                 "frame_idx": 10, "timestamp_ms": 400}]
+    monkeypatch.setattr(S, "_branch_vector", lambda *a, **k: list(mot_hang))
+    for ten in ("_branch_metadata", "_branch_objects", "_branch_ocr",
+                "_branch_ocr_probe", "_branch_asr", "_branch_text_vi"):
+        monkeypatch.setattr(S, ten, lambda *a, **k: [])
+    monkeypatch.setattr(S, "_fill_from_milvus", lambda candidates: None)
+    monkeypatch.setattr(S, "_shot_map", lambda: {})
+    monkeypatch.setattr(S, "_shot_of_frame", lambda video_id, frame_idx: None)
+
+
+def test_tat_nhanh_ocr_probe_thi_phieu_bau_probe_cung_tat(monkeypatch):
+    """`branches={'ocr_probe': False}` phải tắt CẢ phiếu bầu mức video của probe.
+
+    Trước bản vá 04/09, chỉ `token_probe.ENABLED` tắt được `_probe_video_votes`;
+    công tắc `BRANCHES['ocr_probe']` chỉ gác nhánh mức keyframe. Hệ quả: phép đo
+    "bỏ probe ra thì rớt bao nhiêu điểm" vẫn chạy probe ở tầng phiếu bầu và trả
+    về số SAI mà không có gì báo — đúng kiểu lỗi im lặng của mục 12 CLAUDE.md.
+    """
+    import data.config.video_prior as VP
+    from backend.retrieval import search as S
+
+    _chan_moi_nhanh(monkeypatch)
+    # Phiếu bầu chỉ được tính khi alpha > 0, nên phải bật video_prior lên mới
+    # chạm tới được dòng gọi probe.
+    monkeypatch.setattr(VP, "ENABLED", True)
+    monkeypatch.setattr(VP, "ALPHA", 0.5)
+
+    da_goi: list[tuple] = []
+
+    def probe_gia(query_vi, query_en):
+        da_goi.append((query_vi, query_en))
+        return {}
+
+    monkeypatch.setattr(S, "_probe_video_votes", probe_gia)
+
+    S._search_core("x", "x", top_k=5, branches={"ocr_probe": False})
+    assert not da_goi, "tắt nhánh ocr_probe mà phiếu bầu probe vẫn chạy"
+
+    S._search_core("x", "x", top_k=5, branches={"ocr_probe": True})
+    assert len(da_goi) == 1, "bật nhánh ocr_probe thì phiếu bầu probe phải chạy"

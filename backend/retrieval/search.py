@@ -634,7 +634,13 @@ def _search_core(
         # hoá trước, đúng như đã làm giữa rrf và vote.
         from data.config.token_probe import PROBE_MIX
         video_vote = _chuan(video_vote)
-        probe = _probe_video_votes(query_vi, query_en)
+        # Cùng công tắc `ocr_probe` với nhánh mức-keyframe: nhánh và phiếu bầu là
+        # MỘT tính năng (probe token hiếm), chỉ khác đơn vị đầu ra. Trước bản vá,
+        # chỉ `token_probe.ENABLED` tắt được phiếu bầu, còn
+        # `branches={'ocr_probe': False}` thì không — nên phép đo "bỏ probe ra thì
+        # rớt bao nhiêu điểm" trả về số SAI mà không có gì báo.
+        probe = (_probe_video_votes(query_vi, query_en)
+                 if bat.get("ocr_probe", True) else {})
         if probe:
             max_probe = max(probe.values()) or 1.0
             for vid, diem in probe.items():

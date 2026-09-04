@@ -194,15 +194,21 @@ def test_kis_tat_multi_anchor_giu_duong_single_va_query_en(monkeypatch):
     # bản dịch EN mà chỗ gọi đưa vào phải được giữ nguyên (không tự dịch lại).
     from data.config.search_weights import KIS_CANDIDATE_MULTIPLIER
 
+    assert set(runner.KIS_BRANCH_OVERRIDE) == {"vector_siglip2", "ocr_probe"}
     assert search_calls == [
         ((query["query_vi"],), {
             "query_en": query["query_en"],
             "top_k": 100,
             "group_by_shot": True,
-            # R3.K3 — làn KIS chạy hai nhánh vector và pool sâu riêng. Ghim ở
+            # R3.K3 — làn KIS bật thêm nhánh riêng và pool sâu riêng. Ghim ở
             # đây để lần sau ai bỏ hai tham số này thì test đỏ: bỏ đi là điểm
             # tụt mà không có gì báo (đo 02/09: Final mức video 0,67 → 0,83).
-            "branches": {"vector_siglip2": True, "ocr_probe": True},
+            # ĐỌC từ runner chứ KHÔNG chép giá trị: chép tay thì đổi cờ ở
+            # runner (vd tắt `vector_siglip2` 04/09) làm test đỏ oan, và người
+            # sửa sẽ sửa test cho khớp — tức phép kiểm không còn kiểm gì. Tập
+            # KHOÁ vẫn được ghim tường minh ngay dưới, nên xoá hẳn một nhánh
+            # khỏi lời gọi vẫn đỏ.
+            "branches": dict(runner.KIS_BRANCH_OVERRIDE),
             "candidate_multiplier": KIS_CANDIDATE_MULTIPLIER,
         })
     ]

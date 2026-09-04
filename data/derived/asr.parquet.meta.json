@@ -8,7 +8,9 @@
     "end_s",
     "start_frame",
     "end_frame",
-    "text_vi"
+    "text_vi",
+    "text_vi_clean",
+    "text_vi_clean_source"
   ],
   "dtypes": {
     "video_id": "string",
@@ -17,6 +19,13 @@
     "end_s": "float32",
     "start_frame": "int64",
     "end_frame": "int64",
-    "text_vi": "string"
+    "text_vi": "string",
+    "text_vi_clean": "str",
+    "text_vi_clean_source": "str"
+  },
+  "r3_x1_asr_cleaned_at": "2026-09-04T15:57:43",
+  "r3_x1_source_breakdown": {
+    "gemini:gemini-3.6-flash": 9210,
+    "none:raw_fallback": 4205
   }
 }

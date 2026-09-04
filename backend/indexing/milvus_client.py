@@ -10,7 +10,26 @@
 
 import os
 
-from pymilvus import MilvusClient
+
+def _import_milvus_client_without_env_side_effect():
+    """Import symbol PyMilvus nhưng không cho dependency tự nạp `.env` vào process.
+
+    `pymilvus.settings` gọi `load_dotenv()` vô điều kiện. Nếu để nguyên, chỉ một
+    deep health check cũng có thể đổi model LLM sau khi `run.py` đã chụp runtime
+    fingerprint, làm checkpoint vừa ghi xong bị coi là hết hạn ở lần resume.
+    """
+    env_before = dict(os.environ)
+    try:
+        from pymilvus import DataType as data_type
+        from pymilvus import MilvusClient as client_type
+    finally:
+        for key in set(os.environ) - set(env_before):
+            os.environ.pop(key, None)
+        os.environ.update(env_before)
+    return client_type, data_type
+
+
+MilvusClient, DataType = _import_milvus_client_without_env_side_effect()
 
 # Không hardcode địa chỉ (CLAUDE.md mục 7) — đổi máy/port chỉ cần set env
 MILVUS_URL = os.environ.get("MILVUS_URL", "http://localhost:19530")

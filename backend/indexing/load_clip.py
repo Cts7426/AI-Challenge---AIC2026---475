@@ -36,9 +36,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-from pymilvus import DataType, MilvusClient
 
-from backend.indexing.milvus_client import COLLECTION_NAME, connect
+from backend.indexing.milvus_client import COLLECTION_NAME, DataType, MilvusClient, connect
 from data.config.clip_model import (
     CLIP_BTC_MODEL_NAME,
     CLIP_EMBEDDING_DIM,

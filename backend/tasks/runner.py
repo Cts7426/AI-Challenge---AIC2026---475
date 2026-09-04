@@ -38,7 +38,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # nhánh đường thi thật sự dùng: chép tay sang preflight thì hai bên trôi khỏi
 # nhau, và cái trôi đó không crash — nó chỉ làm preflight kiểm nhầm nhánh rồi
 # báo xanh (đúng lỗi đã xảy ra 04/09 với `keyframes_siglip2`).
-KIS_BRANCH_OVERRIDE: dict[str, bool] = {"vector_siglip2": True, "ocr_probe": True}
+# 04/09/2026 — `vector_siglip2` TẮT trước Đợt 3. Collection `keyframes_siglip2`
+# biến mất khỏi Milvus sáng nay, encode lại ~40 giờ trên máy chỉ có torch+cpu nên
+# không kịp. Tắt KHÔNG đổi điểm: `_an_toan()` trong search.py trả `[]` cả khi
+# nhánh tắt lẫn khi nhánh raise, hạ nguồn giống hệt nhau — nó chỉ bỏ một lượt gọi
+# Milvus chắc chắn hỏng mỗi truy vấn, và làm preflight/warmup báo xanh VÌ ĐÚNG
+# thay vì vì mù. Hệ quả đã biết, không sửa trong đêm thi: `W_VECTOR_AGREE` ở
+# rerank_top50 luôn bằng 0 vì `_hai_nhanh_cung_de_cu()` cần cả hai nhánh vector.
+# Khôi phục: nạp lại `keyframes_siglip2` rồi đổi False → True ở đúng dòng này.
+KIS_BRANCH_OVERRIDE: dict[str, bool] = {"vector_siglip2": False, "ocr_probe": True}
 
 
 def _answer_to_dict(answer: Answer) -> dict[str, Any]:

@@ -19,12 +19,38 @@ class _MilvusChiCoClip:
         return {"row_count": 177_321}
 
 
-def test_kiem_milvus_bao_hong_khi_thieu_collection_siglip2(monkeypatch) -> None:
-    """Warmup phải chặn release nếu nhánh vector phụ không có index để search."""
+def _dat_nhanh_phu(monkeypatch, bat: bool) -> None:
+    """Bật/tắt nhánh vector thứ hai đúng chỗ đường thi đọc nó."""
+    from backend.tasks import runner
+
+    monkeypatch.setattr(
+        runner, "KIS_BRANCH_OVERRIDE", {"vector_siglip2": bat, "ocr_probe": True}
+    )
+
+
+def test_kiem_milvus_bao_hong_khi_thieu_collection_cua_nhanh_dang_bat(monkeypatch) -> None:
+    """Warmup phải chặn release nếu nhánh vector phụ ĐANG BẬT mà không có index."""
     monkeypatch.setattr(milvus_client, "connect", lambda: _MilvusChiCoClip())
+    _dat_nhanh_phu(monkeypatch, bat=True)
 
     with pytest.raises(RuntimeError, match="keyframes_siglip2"):
         warmup._kiem_milvus()
+
+
+def test_kiem_milvus_khong_doi_hoi_collection_cua_nhanh_da_tat(monkeypatch) -> None:
+    """Đối trọng (04/09): nhánh TẮT thì thiếu collection KHÔNG phải hỏng hóc.
+
+    Tắt `vector_siglip2` là quyết định đã ghi trong config sau khi mất
+    `keyframes_siglip2`. Nếu warmup vẫn đỏ vì nó thì người vận hành học cách bỏ
+    qua màn hình đỏ — và lần sau có nhánh chết thật cũng không ai tin nữa.
+    """
+    monkeypatch.setattr(milvus_client, "connect", lambda: _MilvusChiCoClip())
+    _dat_nhanh_phu(monkeypatch, bat=False)
+
+    ket_qua = warmup._kiem_milvus()
+
+    assert milvus_client.COLLECTION_NAME in ket_qua
+    assert "bỏ qua keyframes_siglip2" in ket_qua, "phải nói rõ đã bỏ qua cái gì, không im lặng"
 
 
 # --------------------------- nhánh chết lặng trong lượt search (sự cố 04/09)

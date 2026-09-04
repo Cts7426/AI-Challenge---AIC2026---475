@@ -25,13 +25,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pymilvus import DataType, MilvusClient
 
 REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from backend.indexing.milvus_client import connect  # noqa: E402
+from backend.indexing.milvus_client import DataType, MilvusClient, connect  # noqa: E402
 from data.config.siglip2_model import (  # noqa: E402
     SIGLIP2_COLLECTION,
     SIGLIP2_EMBEDDING_DIM,

@@ -471,14 +471,17 @@ def solve_query(
             # tường minh tại đây chứ không đổi mặc định của search(): Q&A và
             # TRAKE cũng gọi search(), đổi mặc định là đội chi phí hai làn khác
             # mà không ai yêu cầu (Q&A đang 196–476 s/câu).
-            from data.config.search_weights import KIS_CANDIDATE_MULTIPLIER
+            from data.config.search_weights import (
+                KIS_CANDIDATE_MULTIPLIER,
+                KIS_EXTRA_BRANCHES,
+            )
 
             rows = search(
                 query_vi,
                 query_en=query_en,
                 top_k=total,
                 group_by_shot=True,
-                branches={"vector_siglip2": True},
+                branches=KIS_EXTRA_BRANCHES,
                 candidate_multiplier=KIS_CANDIDATE_MULTIPLIER,
             )
         else:

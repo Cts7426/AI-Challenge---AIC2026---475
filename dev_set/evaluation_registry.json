@@ -1,0 +1,449 @@
+{
+  "sets": [
+    {
+      "path": "dev_set/queries/dress25_kis.jsonl",
+      "sha256": "8495c58182380aff65c1c5fd6678ff5ae4196ad5d33fd2f460dedc8bbeda5edf",
+      "records": 19,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "8495c58182380aff65c1c5fd6678ff5ae4196ad5d33fd2f460dedc8bbeda5edf",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/dress25_qa.jsonl",
+      "sha256": "46736bd1e7fcf8fbbe1af6e96e8060efa891df203e898c0255378680d00f12e6",
+      "records": 5,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "46736bd1e7fcf8fbbe1af6e96e8060efa891df203e898c0255378680d00f12e6",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/dress25_trake.jsonl",
+      "sha256": "2d93ea61d5e3775d16c5306ea76b08971f6ec3dfc6a7b6998ffbe72f420aef1a",
+      "records": 1,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "2d93ea61d5e3775d16c5306ea76b08971f6ec3dfc6a7b6998ffbe72f420aef1a",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/full_test.jsonl",
+      "sha256": "31d4b99f993f88bbc2dba2db0b7ce5afa415458f7c2f28021b60bbf1b65a1c9e",
+      "records": 4,
+      "role_for_new_cycle": "smoke_test",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "31d4b99f993f88bbc2dba2db0b7ce5afa415458f7c2f28021b60bbf1b65a1c9e",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/gen10_qa.jsonl",
+      "sha256": "815bfe6a97a5554b7712e6c7b4506da7f9ee9aaa174b4873a8ad543126e29a95",
+      "records": 10,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "815bfe6a97a5554b7712e6c7b4506da7f9ee9aaa174b4873a8ad543126e29a95",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/gen10_trake.jsonl",
+      "sha256": "c776bcf5ce0a5058632ed732a1cb3476270987668050c6a6d9909886d4a43da5",
+      "records": 10,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "c776bcf5ce0a5058632ed732a1cb3476270987668050c6a6d9909886d4a43da5",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/gen2_qa.jsonl",
+      "sha256": "c5d846f28e9ade12345af4649b6c48df45fcdb7dcb9aa41f0911633f369837d5",
+      "records": 2,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "c5d846f28e9ade12345af4649b6c48df45fcdb7dcb9aa41f0911633f369837d5",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/gen2_trake.jsonl",
+      "sha256": "034dad5a34290f7ff23beb1bd4ea04b6f24946ca1bd7b302a307262f7c7cc10d",
+      "records": 2,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "034dad5a34290f7ff23beb1bd4ea04b6f24946ca1bd7b302a307262f7c7cc10d",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/holdout_kis.jsonl",
+      "sha256": "aa3d760b33151fe84fc21be705ca0682fa2f0dd413d7d1654e86763e9634ce7a",
+      "records": 36,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "aa3d760b33151fe84fc21be705ca0682fa2f0dd413d7d1654e86763e9634ce7a",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/holdout_qa.jsonl",
+      "sha256": "7050f5d53813aa67655e78e2b14e77367ed4cab86aef253d45f3275af2f8f604",
+      "records": 27,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "7050f5d53813aa67655e78e2b14e77367ed4cab86aef253d45f3275af2f8f604",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/holdout_trake.jsonl",
+      "sha256": "cd63507e5a4a9111b048a8eeb44875aaf0494f3f510a71581cd3a439ec4d0072",
+      "records": 29,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "cd63507e5a4a9111b048a8eeb44875aaf0494f3f510a71581cd3a439ec4d0072",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/holdout_trake_single_window.jsonl",
+      "sha256": "0de761873c984f4bd18e0f6cb5952d2aadb3088f25f7881c2f0c2e51548808c4",
+      "records": 29,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "0de761873c984f4bd18e0f6cb5952d2aadb3088f25f7881c2f0c2e51548808c4",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/queries/synth_trake.jsonl",
+      "sha256": "a311710c6eba26af1ce0e73e4ced6bbe2481f2ba5edbeafe6aec95f41c98f87b",
+      "records": 6,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "a311710c6eba26af1ce0e73e4ced6bbe2481f2ba5edbeafe6aec95f41c98f87b",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/tune_kis.jsonl",
+      "sha256": "11d8bf8acdfc03bc7054be2628a1f9dc3459bf8b0d921d583f445e228825daae",
+      "records": 23,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "11d8bf8acdfc03bc7054be2628a1f9dc3459bf8b0d921d583f445e228825daae",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/tune_qa.jsonl",
+      "sha256": "bf28a3b4954f0fdad82600f342e4efcca742f00d3dfae5008b57c64a049248cc",
+      "records": 5,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "bf28a3b4954f0fdad82600f342e4efcca742f00d3dfae5008b57c64a049248cc",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/queries/tune_trake.jsonl",
+      "sha256": "cd9a526246fb3254c23256106de7dff725e1d7c0952c73fa693ece9b623286ef",
+      "records": 2,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "cd9a526246fb3254c23256106de7dff725e1d7c0952c73fa693ece9b623286ef",
+      "allowed_e01_roles": [
+        "train_tuning",
+        "regression"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/official_r1r2.jsonl",
+      "sha256": "61f75b2cce14615c39bc281f3ef53b94761f41e4f4c82d44543437e32b90e4ca",
+      "records": 55,
+      "role_for_new_cycle": "competition_derived_diagnostic_consumed_validation",
+      "independent": false,
+      "human_verified_all": false,
+      "warning": "confidence from submission-score priors and assistant labels is not human ground truth",
+      "current_sha256": "61f75b2cce14615c39bc281f3ef53b94761f41e4f4c82d44543437e32b90e4ca",
+      "allowed_e01_roles": [
+        "competition_postmortem",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/manifests/batch1_holdout13.json",
+      "sha256": "60007d08ba38380759e1e635d808efc2adb55732512dc04fa3f38ee177d8b88c",
+      "records": 13,
+      "human_verified_records": 6,
+      "role_for_new_cycle": "consumed_regression_partial_verified",
+      "independent": false,
+      "human_verified_all": false,
+      "current_sha256": "60007d08ba38380759e1e635d808efc2adb55732512dc04fa3f38ee177d8b88c",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "data/queries/dienlap.jsonl",
+      "sha256": "20d98b6d3fcbb66011942b84721d93db74c305d21f313c061fb97c5b59e369c3",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "20d98b6d3fcbb66011942b84721d93db74c305d21f313c061fb97c5b59e369c3",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "data/queries/dienlap2.jsonl",
+      "sha256": "69eb31815926dae975d67f3b7d39dd1af829865668d5eff274d036cf985c45e3",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "69eb31815926dae975d67f3b7d39dd1af829865668d5eff274d036cf985c45e3",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "data/queries/dienlap_qa.jsonl",
+      "sha256": "66c2dc88abe4e80acfd3aaa211f288dc0996176597a3cbf14faacabe85ab3eaf",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "66c2dc88abe4e80acfd3aaa211f288dc0996176597a3cbf14faacabe85ab3eaf",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "data/queries/round2.jsonl",
+      "sha256": "eea6630ab28a6d19e7e0695a07334f8ef29608e8cf9d05ad88828e258a6e2074",
+      "independent": false,
+      "role_for_new_cycle": "competition_postmortem_consumed",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "eea6630ab28a6d19e7e0695a07334f8ef29608e8cf9d05ad88828e258a6e2074",
+      "allowed_e01_roles": [
+        "competition_postmortem",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "data/queries/round3.jsonl",
+      "sha256": "fbdab83b4b503a5aaf66fb14c979d3b12ef5cd7a67e5be0de613bf0cc74d1afe",
+      "independent": false,
+      "role_for_new_cycle": "competition_postmortem_consumed",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "fbdab83b4b503a5aaf66fb14c979d3b12ef5cd7a67e5be0de613bf0cc74d1afe",
+      "allowed_e01_roles": [
+        "competition_postmortem",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "data/queries/sotuyen1_p1.jsonl",
+      "sha256": "fe633a9ef2eda96f4e82ef9bb3f4d75cd0a18eeff5fb6d7e9ae9f84acc06a122",
+      "independent": false,
+      "role_for_new_cycle": "competition_postmortem_consumed",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "fe633a9ef2eda96f4e82ef9bb3f4d75cd0a18eeff5fb6d7e9ae9f84acc06a122",
+      "allowed_e01_roles": [
+        "competition_postmortem",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/dress25_gt.jsonl",
+      "sha256": "761b4ca139f3a21fbeb2826abcef8cb18988dfdbbf2886c71c147c72c0d6c7bd",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "761b4ca139f3a21fbeb2826abcef8cb18988dfdbbf2886c71c147c72c0d6c7bd",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/gen10_gt.jsonl",
+      "sha256": "2208cf94476a330d93f28b4fe7c3429104b0c2ce7d609f5b0cd70c6dca112cfc",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "2208cf94476a330d93f28b4fe7c3429104b0c2ce7d609f5b0cd70c6dca112cfc",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/gen2_gt.jsonl",
+      "sha256": "1fdc507fa325201a66a09a1b0e337fa52cfe3251804b5a4a6e1bc79539e7c415",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "1fdc507fa325201a66a09a1b0e337fa52cfe3251804b5a4a6e1bc79539e7c415",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/holdout_gt.jsonl",
+      "sha256": "904d2b11810664acad87d89490a295273f4237c6c3662e75bcedf51f01653741",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "904d2b11810664acad87d89490a295273f4237c6c3662e75bcedf51f01653741",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/sotuyen1_p1_draft_gt.jsonl",
+      "sha256": "cfdf666d14e0f63a66b6ef7efc8513c7d939e8dd378dc86d4f58a4ed0a68035e",
+      "independent": false,
+      "role_for_new_cycle": "competition_postmortem_consumed",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "cfdf666d14e0f63a66b6ef7efc8513c7d939e8dd378dc86d4f58a4ed0a68035e",
+      "allowed_e01_roles": [
+        "competition_postmortem",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/synth_gt.jsonl",
+      "sha256": "a3a691477bda8686645947e0d63aa1345b5badc3e2c24f3ecfd2e713182c823a",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "a3a691477bda8686645947e0d63aa1345b5badc3e2c24f3ecfd2e713182c823a",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/tune_gt.jsonl",
+      "sha256": "e8e21db2f11d49aa553f66e23b414c28a5d55736539ba28e82dae5ac71cdf8e3",
+      "independent": false,
+      "role_for_new_cycle": "diagnostic_not_independent",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "e8e21db2f11d49aa553f66e23b414c28a5d55736539ba28e82dae5ac71cdf8e3",
+      "allowed_e01_roles": [
+        "regression",
+        "diagnostic"
+      ]
+    },
+    {
+      "path": "dev_set/manifests/batch1_round1_queries.json",
+      "sha256": "9fc0fd7777952999c6c59c978d2e74f4df31cacfbbf515306e437758b960f344",
+      "independent": false,
+      "role_for_new_cycle": "competition_postmortem_consumed",
+      "human_verified_all": false,
+      "rationale": "Không nâng vai trò khi thiếu bằng chứng độc lập; metadata/GT file không là dataset mới.",
+      "current_sha256": "9fc0fd7777952999c6c59c978d2e74f4df31cacfbbf515306e437758b960f344",
+      "allowed_e01_roles": [
+        "competition_postmortem",
+        "diagnostic"
+      ]
+    }
+  ],
+  "ready_independent_set": null,
+  "proposed_new_set_status": "source_packets_pending_human_queries_gt",
+  "schema_version": "e01.registry.v1",
+  "updated_at": "2026-09-12T13:58:09.644004+00:00",
+  "previous_registry": {
+    "path": "reports/post_preliminary_cycle_20260911/evaluation_registry.json",
+    "sha256": "0207aa821359e857a91fd6cb4d5a3b141785abbb9d5a29398d3c88772d13ba01"
+  },
+  "h02_contract_state": "PROMOTED_CORRECTNESS_ONLY",
+  "h01_performance_baseline": "NOT_PROMOTED",
+  "proposed_e01": {
+    "dataset_version": "e01-v1",
+    "target": {
+      "validation": {
+        "KIS": 12,
+        "QA": 6,
+        "TRAKE": 4
+      },
+      "sealed_heldout": {
+        "KIS": 12,
+        "QA": 6,
+        "TRAKE": 4
+      }
+    },
+    "status": "pending_human_creation_verification_and_leakage_review",
+    "independent": false
+  }
+}

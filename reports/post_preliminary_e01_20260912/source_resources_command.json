@@ -1,0 +1,22 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "-m",
+    "scripts.run_reproducible_baseline",
+    "--out",
+    "reports/post_preliminary_e01_20260912/resource_capture",
+    "--capture-only",
+    "--content-digests",
+    "--qa-submission-policy",
+    "robust",
+    "--baseline-label",
+    "PP-B0"
+  ],
+  "exit_code": 0,
+  "seconds": 514.051,
+  "hard_guard": true,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "model_selection": "api/claude-sonnet-5",
+  "cache_only": true
+}

@@ -1,0 +1,37 @@
+M reports/post_preliminary_h01_20260912/CHECKPOINT_H01.md
+ M reports/post_preliminary_h01_20260912/README.md
+ M reports/post_preliminary_h01_20260912/live_api_sonnet5/COST_ESTIMATE.md
+?? reports/context_handoff_20260912/PROJECT_CONTEXT_FOR_REVIEW.md
+?? reports/post_preliminary_e01_20260912/authorization.txt
+?? reports/post_preliminary_e01_20260912/offline_guard/sitecustomize.py
+?? reports/post_preliminary_e01_20260912/run_check.py
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/CACHE_ONLY_CHECKPOINT.md
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_delivery_checksums.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_delivery_verification.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/measurements.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/queries.jsonl
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/query_manifest.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/runtime_manifest.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/submission/Q1.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/submission/Q2.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/submission/Q3.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/submission/Q4.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/submission/Q5.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off_command.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/measurements.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/queries.jsonl
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/query_manifest.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/runtime_manifest.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/submission/Q1.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/submission/Q2.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/submission/Q3.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/submission/Q4.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/submission/Q5.csv
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current_command.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/compare_diagnostic.py
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/comparison.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/comparison_commit_note.md
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/off_comparison_protocol.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/run_cache_only_diagnostic_off.ps1
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/run_cache_only_diagnostic_on_current.ps1
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/source_cache_only_snapshot_manifest.json

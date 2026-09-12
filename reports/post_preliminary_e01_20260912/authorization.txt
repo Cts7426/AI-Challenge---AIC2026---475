@@ -1,0 +1,505 @@
+CHECKPOINT_H02 is APPROVED.
+
+Decision:
+
+PROMOTE H02 CORRECTNESS.
+
+This is a correctness-contract promotion only.
+
+Do NOT claim:
+- higher autonomous accuracy;
+- higher recall;
+- higher competition score;
+- lower latency;
+- improved retrieval performance.
+
+H01 performance baseline remains NOT PROMOTED.
+
+PP-H03 implementation is NOT YET AUTHORIZED.
+
+Before H03, execute a new bounded phase:
+
+PP-E01 — EVALUATION FOUNDATION.
+
+==================================================
+FREEZE H02 STATUS
+==================================================
+
+Record as current source of truth:
+
+H02 source commit:
+4fe4f2e
+
+H02 report/checkpoint commit:
+7842d11
+
+Accepted evidence:
+
+- 981 passed, 1 skipped;
+- development preflight passed;
+- release preflight passed;
+- historical replay locked at:
+  129 records
+  80 unique query IDs
+  66 historical CSVs;
+- reviewable evidence preserved for 14 records;
+- false rejection = 0 in the registered fixture audit;
+- provider calls = 0;
+- historical competition artifacts unchanged.
+
+Selfcheck exit 1 remains an EVALUATION/GT COVERAGE GAP:
+
+- holdout13: 6/13 verified;
+- round1: 0/25 GT in the relevant manifest.
+
+Do NOT modify GT simply to make selfcheck green.
+
+==================================================
+H02 SEMANTIC CLAIM
+==================================================
+
+The allowed claim is:
+
+The post-preliminary QA pipeline now distinguishes supported autonomous
+answers from review-required/unsupported/refusal/placeholder outcomes
+across the covered live/replay/export paths, while preserving reviewable
+candidate/evidence where applicable.
+
+Do not turn this into an accuracy claim.
+
+==================================================
+NEXT PHASE
+PP-E01 — EVALUATION FOUNDATION
+==================================================
+
+Goal:
+
+Create the evaluation foundation required before making any claim that
+H03/H04/H05 improves system performance.
+
+This phase is primarily dataset/protocol/instrumentation work.
+
+Do NOT tune retrieval yet.
+
+Do NOT change KIS ranking, weights, pool sizes, slot allocation,
+translation model, reranker, or frame-selection algorithm during E01.
+
+==================================================
+E01-A — FREEZE CURRENT POST-H02 SOURCE
+==================================================
+
+Record:
+
+- HEAD;
+- branch;
+- git status;
+- H01 infrastructure state;
+- H02 contract state;
+- current config;
+- current index/resource identity;
+- scorer identity;
+- runtime/dependency identity.
+
+If working tree is dirty, distinguish:
+
+H01 changes
+H02 changes
+report/audit files
+unrelated user changes.
+
+Do not discard anything.
+
+Create a reproducible post-H02 source identity for later paired runs.
+
+==================================================
+E01-B — EVALUATION ROLE REGISTRY
+==================================================
+
+Update the evaluation registry.
+
+Previously consumed sets remain:
+
+TRAIN/TUNING
+DIAGNOSTIC
+REGRESSION
+COMPETITION POSTMORTEM
+
+according to existing evidence.
+
+Do NOT reclassify any consumed set as independent.
+
+Explicitly retain:
+
+- tune sets;
+- dress25;
+- legacy holdouts;
+- batch1_holdout13;
+- competition-derived sets;
+
+in their currently allowed roles.
+
+==================================================
+E01-C — NEW HUMAN-VERIFIED DATASET
+==================================================
+
+Target corpus remains:
+
+24 KIS
+12 QA
+8 TRAKE
+
+Split BEFORE model/system evaluation into:
+
+VALIDATION:
+12 KIS
+6 QA
+4 TRAKE
+
+SEALED HELD-OUT:
+12 KIS
+6 QA
+4 TRAKE
+
+This target is approved.
+
+However:
+
+do not fabricate human verification.
+
+The system/agent may prepare tooling, manifests and annotation packets,
+but HUMAN verification must be explicitly recorded where required.
+
+==================================================
+INDEPENDENCE RULE
+==================================================
+
+Before GT is sealed:
+
+Do NOT inspect candidate-system outputs for the held-out items.
+
+Do NOT use:
+
+- current retrieval ranking;
+- previous submission candidates;
+- external-AI answer proposals;
+- old autonomous outputs;
+
+to decide GT.
+
+Ground truth must derive from the underlying source video/evidence and
+human verification, not from whichever answer the current system prefers.
+
+If an item cannot be confidently verified:
+
+mark it PENDING or exclude/version it before sealing.
+
+Do not invent certainty.
+
+==================================================
+SAMPLING / LEAKAGE CONTROL
+==================================================
+
+Prevent leakage between validation and sealed held-out.
+
+At minimum group/check by:
+
+- video ID;
+- near-duplicate video if identifiable;
+- repeated/similar event;
+- near-identical question wording where relevant.
+
+Do not place obvious near-duplicates across validation and held-out.
+
+Record the grouping rule.
+
+==================================================
+E01-D — ANNOTATION SCHEMA
+==================================================
+
+Define/version a schema for each task.
+
+KIS must support at least:
+
+- query ID;
+- target video;
+- acceptable frame window(s);
+- evidence/reference frame(s);
+- verifier;
+- verification status;
+- notes;
+- source/version/hash.
+
+Q&A must support at least:
+
+- query ID;
+- target video/frame or acceptable evidence region;
+- acceptable answer form(s);
+- exact/semantic normalization policy;
+- evidence support;
+- answerable/unanswerable status;
+- verifier;
+- verification status;
+- source/version/hash.
+
+TRAKE must support at least:
+
+- query ID;
+- target video;
+- ordered event list;
+- acceptable frame/window per event;
+- evidence-backed vs ambiguous event;
+- allowed temporal tolerance if justified;
+- verifier;
+- verification status;
+- source/version/hash.
+
+Do not silently widen GT windows after seeing model output.
+
+==================================================
+E01-E — ANNOTATION TOOLING
+==================================================
+
+Reuse existing gallery / mark_verified tooling where safe.
+
+If tooling is insufficient, you may implement annotation-support code.
+
+This code must:
+
+- NOT change retrieval;
+- NOT call paid providers;
+- NOT pre-fill labels from system answers unless clearly separated as
+  non-GT diagnostic information;
+- preserve human-entered provenance;
+- version edits;
+- avoid overwriting previous verified labels silently.
+
+If possible, hide system ranking/output from the human during initial GT
+creation.
+
+==================================================
+E01-F — DATASET VERSIONING AND SEALING
+==================================================
+
+Before any candidate system is evaluated on the new sets, create:
+
+dataset_version
+manifest
+query hashes
+GT hashes
+split assignment
+video/duplicate group identity
+verification status
+created_at
+sealed_at
+annotation schema version
+
+For the SEALED HELD-OUT set:
+
+store an immutable manifest/hash before running the model.
+
+Once model output has been inspected, that version remains consumed.
+
+If a GT error is later found:
+
+do NOT silently edit the sealed version.
+
+Create a new dataset version and record:
+
+- old label;
+- corrected label;
+- reason;
+- verifier;
+- date.
+
+==================================================
+E01-G — DATASET QUALITY REPORT
+==================================================
+
+Before H03 begins, report:
+
+- number proposed;
+- number human verified;
+- number pending/rejected;
+- task distribution;
+- video distribution;
+- near-duplicate groups;
+- ambiguous cases;
+- annotation disagreements if multiple reviewers exist;
+- validation count;
+- sealed-held-out count;
+- hashes/version.
+
+Do not call the dataset independent if its construction violated the
+independence rule.
+
+==================================================
+H03 PREREGISTRATION — DESIGN ONLY
+==================================================
+
+During E01 you MAY prepare the H03 experiment protocol.
+
+Do NOT implement H03 retrieval changes yet.
+
+H03 target remains:
+
+KIS FRAME LOCALIZATION / CANDIDATE PRESERVATION.
+
+The first experiment must be H03a DIAGNOSIS, not a new algorithm.
+
+H03a must measure where the relevant frame/video is lost:
+
+raw source hits
+→ fusion
+→ heuristic rerank
+→ shot grouping
+→ slot allocation
+→ final top-100.
+
+For every query, capture candidate rank/stage survival.
+
+==================================================
+H03A REQUIRED METRICS
+==================================================
+
+Pre-register at least:
+
+- video R@1/5/20/50/100;
+- frame R@1/5/20/50/100 against fixed verified windows;
+- conditional frame localization error given correct video;
+- candidate availability before fusion;
+- candidate survival after fusion;
+- survival after rerank;
+- survival after shot grouping;
+- survival after allocation;
+- moved-out-of-top100;
+- duplicate/shot coverage;
+- mapping violations;
+- latency/stage timing where reliable.
+
+Do not collapse video retrieval and frame localization into one number.
+
+==================================================
+H03A IMPORTANT CONTROL
+==================================================
+
+The purpose of H03a is to answer:
+
+WHERE IS THE CORRECT CANDIDATE LOST?
+
+Do not assume the allocator is the problem.
+
+Possible outcomes include:
+
+A. correct video/frame absent from raw candidate pool;
+B. present raw, lost during fusion;
+C. lost in reranker;
+D. lost during shot grouping;
+E. lost during slot allocation;
+F. video present but no sufficiently close frame exists in the indexed
+   candidate pool.
+
+Each outcome implies a different H03b intervention.
+
+Do not implement H03b until H03a identifies the dominant failure stage.
+
+==================================================
+LLM / COST POLICY
+==================================================
+
+No paid provider call is authorized during E01.
+
+Do not switch model/provider.
+
+Do not spend the remaining API balance.
+
+If KIS end-to-end evaluation requires translation calls that are not
+available from exact cache:
+
+STOP that end-to-end part.
+
+You may prepare a clearly labelled FIXED-TRANSLATION diagnostic arm using
+frozen translations ONLY if those translations are already available and
+their provenance is recorded.
+
+Such an arm is:
+
+DIAGNOSTIC / COMPONENT-LEVEL
+
+not a full autonomous end-to-end baseline.
+
+Do not substitute a cheaper model merely to finish the run.
+
+==================================================
+BASELINE REQUIREMENT BEFORE H03B
+==================================================
+
+Before any H03b improvement is promoted, baseline and candidate must be
+evaluated under the SAME:
+
+- query/GT set;
+- translation inputs;
+- source code base except intended change;
+- model/resource identity;
+- index;
+- config;
+- scorer;
+- cache policy;
+- runtime protocol.
+
+If a resource changes:
+
+rerun the baseline on the changed resource.
+
+Never attribute a gain to localization code if model/index/data also
+changed.
+
+==================================================
+NO SEALED-HOLDOUT TUNING
+==================================================
+
+Validation may be used to choose between preregistered H03 variants.
+
+Sealed held-out:
+
+- open once for final selection;
+- do not grid-search on it;
+- do not tune weights on it;
+- do not inspect query failures then revise H03 and rerun while still
+  calling it held-out.
+
+Once opened, its role is consumed for that development decision.
+
+==================================================
+STOP POINT E01
+==================================================
+
+After completing the evaluation foundation, STOP.
+
+Do NOT start H03 implementation.
+
+Return:
+
+A. Post-H02 frozen source identity
+B. Updated evaluation registry
+C. Dataset creation protocol
+D. Annotation schema
+E. Annotation tooling changes, if any
+F. Human verification status
+G. Validation manifest/hash
+H. Sealed held-out manifest/hash
+I. Leakage/near-duplicate audit
+J. Dataset quality report
+K. Proposed H03a diagnostic protocol
+L. Preregistered H03 metrics
+M. Exact baseline requirements
+N. Remaining blockers
+O. Recommendation:
+   READY FOR H03A
+   or
+   NOT READY FOR H03A
+
+Do not write report v2.
+
+Do not implement H03b.
+
+Do not call paid APIs.

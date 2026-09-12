@@ -1,0 +1,1290 @@
+{
+  "seed": "PP-E01-20260912-source-only-v1",
+  "selection": "SHA256(seed|video_id) ascending; first 44 eligible videos",
+  "eligible_videos": 726,
+  "corpus_videos": 873,
+  "excluded_video_ids": [
+    "L21_V001",
+    "L21_V003",
+    "L21_V005",
+    "L21_V006",
+    "L21_V007",
+    "L21_V008",
+    "L21_V009",
+    "L21_V010",
+    "L21_V011",
+    "L21_V012",
+    "L21_V013",
+    "L21_V015",
+    "L21_V016",
+    "L21_V017",
+    "L21_V022",
+    "L21_V023",
+    "L21_V024",
+    "L21_V026",
+    "L21_V029",
+    "L21_V031",
+    "L22_V001",
+    "L22_V005",
+    "L22_V006",
+    "L22_V008",
+    "L22_V010",
+    "L22_V012",
+    "L22_V013",
+    "L22_V015",
+    "L22_V017",
+    "L22_V021",
+    "L22_V023",
+    "L22_V024",
+    "L22_V025",
+    "L22_V027",
+    "L22_V028",
+    "L22_V029",
+    "L22_V031",
+    "L23_V005",
+    "L23_V008",
+    "L23_V010",
+    "L23_V011",
+    "L23_V012",
+    "L23_V013",
+    "L23_V015",
+    "L23_V017",
+    "L23_V021",
+    "L23_V022",
+    "L23_V025",
+    "L24_V002",
+    "L24_V009",
+    "L24_V010",
+    "L24_V011",
+    "L24_V012",
+    "L24_V016",
+    "L24_V021",
+    "L24_V026",
+    "L24_V035",
+    "L24_V044",
+    "L25_V001",
+    "L25_V012",
+    "L25_V014",
+    "L25_V015",
+    "L25_V031",
+    "L25_V041",
+    "L25_V045",
+    "L25_V048",
+    "L25_V056",
+    "L25_V060",
+    "L25_V061",
+    "L25_V062",
+    "L25_V065",
+    "L25_V069",
+    "L25_V078",
+    "L25_V085",
+    "L25_V087",
+    "L26_V001",
+    "L26_V002",
+    "L26_V034",
+    "L26_V035",
+    "L26_V039",
+    "L26_V041",
+    "L26_V046",
+    "L26_V052",
+    "L26_V054",
+    "L26_V068",
+    "L26_V081",
+    "L26_V120",
+    "L26_V128",
+    "L26_V171",
+    "L26_V183",
+    "L26_V186",
+    "L26_V192",
+    "L26_V209",
+    "L26_V221",
+    "L26_V235",
+    "L26_V254",
+    "L26_V316",
+    "L26_V319",
+    "L26_V325",
+    "L26_V352",
+    "L26_V358",
+    "L26_V368",
+    "L26_V371",
+    "L26_V380",
+    "L26_V382",
+    "L26_V389",
+    "L26_V392",
+    "L26_V394",
+    "L26_V422",
+    "L26_V425",
+    "L26_V450",
+    "L26_V458",
+    "L26_V467",
+    "L26_V470",
+    "L26_V482",
+    "L26_V486",
+    "L26_V488",
+    "L26_V498",
+    "L27_V003",
+    "L27_V010",
+    "L27_V011",
+    "L27_V014",
+    "L28_V002",
+    "L28_V003",
+    "L28_V004",
+    "L28_V008",
+    "L28_V011",
+    "L28_V013",
+    "L28_V014",
+    "L28_V016",
+    "L28_V020",
+    "L29_V001",
+    "L29_V003",
+    "L29_V004",
+    "L29_V013",
+    "L29_V014",
+    "L29_V021",
+    "L30_V003",
+    "L30_V004",
+    "L30_V026",
+    "L30_V028",
+    "L30_V030",
+    "L30_V031",
+    "L30_V043",
+    "L30_V046",
+    "L30_V063",
+    "L30_V072"
+  ],
+  "exclusion_sources": [
+    {
+      "path": "data/queries/dienlap.jsonl",
+      "sha256": "20d98b6d3fcbb66011942b84721d93db74c305d21f313c061fb97c5b59e369c3",
+      "video_ids": []
+    },
+    {
+      "path": "data/queries/dienlap2.jsonl",
+      "sha256": "69eb31815926dae975d67f3b7d39dd1af829865668d5eff274d036cf985c45e3",
+      "video_ids": []
+    },
+    {
+      "path": "data/queries/dienlap_qa.jsonl",
+      "sha256": "66c2dc88abe4e80acfd3aaa211f288dc0996176597a3cbf14faacabe85ab3eaf",
+      "video_ids": []
+    },
+    {
+      "path": "data/queries/round2.jsonl",
+      "sha256": "eea6630ab28a6d19e7e0695a07334f8ef29608e8cf9d05ad88828e258a6e2074",
+      "video_ids": []
+    },
+    {
+      "path": "data/queries/round3.jsonl",
+      "sha256": "fbdab83b4b503a5aaf66fb14c979d3b12ef5cd7a67e5be0de613bf0cc74d1afe",
+      "video_ids": []
+    },
+    {
+      "path": "data/queries/sotuyen1_p1.jsonl",
+      "sha256": "fe633a9ef2eda96f4e82ef9bb3f4d75cd0a18eeff5fb6d7e9ae9f84acc06a122",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/ground_truth/dress25_gt.jsonl",
+      "sha256": "761b4ca139f3a21fbeb2826abcef8cb18988dfdbbf2886c71c147c72c0d6c7bd",
+      "video_ids": [
+        "L21_V003",
+        "L21_V016",
+        "L21_V026",
+        "L22_V015",
+        "L22_V017",
+        "L22_V028",
+        "L23_V011",
+        "L23_V015",
+        "L24_V011",
+        "L24_V021",
+        "L25_V069",
+        "L25_V085",
+        "L26_V186",
+        "L26_V221",
+        "L26_V368",
+        "L26_V425",
+        "L27_V003",
+        "L27_V014",
+        "L28_V003",
+        "L28_V004",
+        "L28_V011",
+        "L28_V016",
+        "L29_V003",
+        "L29_V004",
+        "L30_V063"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/gen10_gt.jsonl",
+      "sha256": "2208cf94476a330d93f28b4fe7c3429104b0c2ce7d609f5b0cd70c6dca112cfc",
+      "video_ids": [
+        "L21_V011",
+        "L21_V031",
+        "L23_V025",
+        "L25_V015",
+        "L25_V031",
+        "L25_V056",
+        "L25_V061",
+        "L25_V078",
+        "L26_V034",
+        "L26_V039",
+        "L26_V052",
+        "L26_V183",
+        "L26_V319",
+        "L26_V352",
+        "L26_V358",
+        "L26_V371",
+        "L26_V382",
+        "L26_V482",
+        "L26_V498",
+        "L30_V004"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/gen2_gt.jsonl",
+      "sha256": "1fdc507fa325201a66a09a1b0e337fa52cfe3251804b5a4a6e1bc79539e7c415",
+      "video_ids": [
+        "L25_V078",
+        "L26_V352",
+        "L26_V358",
+        "L30_V004"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/holdout_gt.jsonl",
+      "sha256": "904d2b11810664acad87d89490a295273f4237c6c3662e75bcedf51f01653741",
+      "video_ids": [
+        "L21_V001",
+        "L21_V003",
+        "L21_V005",
+        "L21_V006",
+        "L21_V007",
+        "L21_V008",
+        "L21_V009",
+        "L21_V010",
+        "L21_V012",
+        "L21_V015",
+        "L21_V017",
+        "L21_V023",
+        "L21_V024",
+        "L21_V029",
+        "L21_V031",
+        "L22_V005",
+        "L22_V010",
+        "L22_V012",
+        "L22_V013",
+        "L22_V027",
+        "L22_V031",
+        "L23_V005",
+        "L23_V010",
+        "L23_V012",
+        "L23_V013",
+        "L23_V017",
+        "L23_V021",
+        "L23_V022",
+        "L23_V025",
+        "L24_V010",
+        "L24_V012",
+        "L25_V001",
+        "L25_V048",
+        "L26_V001",
+        "L26_V002"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/official_r1r2.en.json",
+      "sha256": "c42bf57c83379084844738b061bf12b17f341a6b4c56a61cc2ab83f5690e0546",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/ground_truth/official_r1r2.en.manual.json",
+      "sha256": "9e2519d556e2a3e88825b32517d4ec98a44a57048b40cc0411401cf7ec194d9e",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/ground_truth/official_r1r2.jsonl",
+      "sha256": "61f75b2cce14615c39bc281f3ef53b94761f41e4f4c82d44543437e32b90e4ca",
+      "video_ids": [
+        "L21_V003",
+        "L21_V009",
+        "L21_V013",
+        "L21_V022",
+        "L21_V026",
+        "L22_V008",
+        "L22_V021",
+        "L22_V023",
+        "L22_V024",
+        "L22_V025",
+        "L22_V029",
+        "L23_V005",
+        "L23_V010",
+        "L23_V013",
+        "L23_V017",
+        "L24_V002",
+        "L24_V009",
+        "L24_V016",
+        "L24_V035",
+        "L24_V044",
+        "L25_V012",
+        "L25_V041",
+        "L25_V045",
+        "L25_V060",
+        "L25_V062",
+        "L25_V065",
+        "L26_V035",
+        "L26_V041",
+        "L26_V068",
+        "L26_V081",
+        "L26_V120",
+        "L26_V171",
+        "L26_V192",
+        "L26_V235",
+        "L26_V254",
+        "L26_V316",
+        "L26_V389",
+        "L26_V392",
+        "L26_V394",
+        "L26_V422",
+        "L26_V450",
+        "L26_V470",
+        "L26_V486",
+        "L27_V011",
+        "L28_V008",
+        "L28_V020",
+        "L29_V001",
+        "L29_V013",
+        "L29_V014",
+        "L29_V021",
+        "L30_V026",
+        "L30_V031",
+        "L30_V043",
+        "L30_V046",
+        "L30_V072"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/official_r1r2.meta.json",
+      "sha256": "27fe5b1a1ac9915b6c27d951cd37dc3e9e62a5938789fea63b1995ea6d5c166e",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/ground_truth/round1_kis_findings.json",
+      "sha256": "6957c74fbca4095e44b49dd56f37e2d1f3312c4ddb42d9012c7987e411917c92",
+      "video_ids": [
+        "L21_V003",
+        "L22_V021",
+        "L22_V023",
+        "L22_V029",
+        "L23_V025",
+        "L24_V026",
+        "L25_V041",
+        "L26_V035",
+        "L26_V041",
+        "L26_V389",
+        "L26_V467",
+        "L28_V013",
+        "L29_V013",
+        "L29_V014",
+        "L30_V003",
+        "L30_V046"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/sotuyen1_p1_draft_gt.jsonl",
+      "sha256": "cfdf666d14e0f63a66b6ef7efc8513c7d939e8dd378dc86d4f58a4ed0a68035e",
+      "video_ids": [
+        "L21_V003",
+        "L22_V008",
+        "L22_V021",
+        "L22_V023",
+        "L22_V029",
+        "L24_V035",
+        "L25_V041",
+        "L26_V035",
+        "L26_V389",
+        "L29_V001",
+        "L29_V013"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/synth_gt.jsonl",
+      "sha256": "a3a691477bda8686645947e0d63aa1345b5badc3e2c24f3ecfd2e713182c823a",
+      "video_ids": [
+        "L26_V046",
+        "L26_V054",
+        "L26_V128",
+        "L26_V209",
+        "L26_V325",
+        "L26_V488"
+      ]
+    },
+    {
+      "path": "dev_set/ground_truth/tune_gt.jsonl",
+      "sha256": "e8e21db2f11d49aa553f66e23b414c28a5d55736539ba28e82dae5ac71cdf8e3",
+      "video_ids": [
+        "L21_V005",
+        "L21_V011",
+        "L21_V023",
+        "L22_V001",
+        "L22_V006",
+        "L22_V024",
+        "L23_V008",
+        "L23_V013",
+        "L24_V010",
+        "L24_V016",
+        "L25_V014",
+        "L25_V087",
+        "L26_V380",
+        "L26_V458",
+        "L27_V003",
+        "L27_V010",
+        "L27_V014",
+        "L28_V002",
+        "L28_V014",
+        "L29_V001",
+        "L29_V003",
+        "L30_V028",
+        "L30_V030",
+        "L30_V072"
+      ]
+    },
+    {
+      "path": "dev_set/manifests/batch1_holdout13.json",
+      "sha256": "60007d08ba38380759e1e635d808efc2adb55732512dc04fa3f38ee177d8b88c",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/manifests/batch1_round1_queries.json",
+      "sha256": "9fc0fd7777952999c6c59c978d2e74f4df31cacfbbf515306e437758b960f344",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/dress25_kis.jsonl",
+      "sha256": "8495c58182380aff65c1c5fd6678ff5ae4196ad5d33fd2f460dedc8bbeda5edf",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/dress25_qa.jsonl",
+      "sha256": "46736bd1e7fcf8fbbe1af6e96e8060efa891df203e898c0255378680d00f12e6",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/dress25_trake.jsonl",
+      "sha256": "2d93ea61d5e3775d16c5306ea76b08971f6ec3dfc6a7b6998ffbe72f420aef1a",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/full_test.jsonl",
+      "sha256": "31d4b99f993f88bbc2dba2db0b7ce5afa415458f7c2f28021b60bbf1b65a1c9e",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/gen10_qa.jsonl",
+      "sha256": "815bfe6a97a5554b7712e6c7b4506da7f9ee9aaa174b4873a8ad543126e29a95",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/gen10_trake.jsonl",
+      "sha256": "c776bcf5ce0a5058632ed732a1cb3476270987668050c6a6d9909886d4a43da5",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/gen2_qa.jsonl",
+      "sha256": "c5d846f28e9ade12345af4649b6c48df45fcdb7dcb9aa41f0911633f369837d5",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/gen2_trake.jsonl",
+      "sha256": "034dad5a34290f7ff23beb1bd4ea04b6f24946ca1bd7b302a307262f7c7cc10d",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/holdout_kis.jsonl",
+      "sha256": "aa3d760b33151fe84fc21be705ca0682fa2f0dd413d7d1654e86763e9634ce7a",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/holdout_qa.jsonl",
+      "sha256": "7050f5d53813aa67655e78e2b14e77367ed4cab86aef253d45f3275af2f8f604",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/holdout_trake.jsonl",
+      "sha256": "cd63507e5a4a9111b048a8eeb44875aaf0494f3f510a71581cd3a439ec4d0072",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/holdout_trake_single_window.jsonl",
+      "sha256": "0de761873c984f4bd18e0f6cb5952d2aadb3088f25f7881c2f0c2e51548808c4",
+      "video_ids": [
+        "L21_V008",
+        "L21_V009",
+        "L21_V012",
+        "L21_V015",
+        "L21_V017",
+        "L21_V023",
+        "L21_V024",
+        "L21_V029",
+        "L21_V031",
+        "L22_V005",
+        "L22_V010",
+        "L22_V012",
+        "L22_V013",
+        "L22_V027",
+        "L22_V031",
+        "L23_V005",
+        "L23_V010",
+        "L23_V012",
+        "L23_V013",
+        "L23_V017",
+        "L23_V021",
+        "L23_V022",
+        "L23_V025",
+        "L24_V010",
+        "L24_V012",
+        "L25_V001",
+        "L25_V048",
+        "L26_V001",
+        "L26_V002"
+      ]
+    },
+    {
+      "path": "dev_set/queries/synth_trake.jsonl",
+      "sha256": "a311710c6eba26af1ce0e73e4ced6bbe2481f2ba5edbeafe6aec95f41c98f87b",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/tune_kis.jsonl",
+      "sha256": "11d8bf8acdfc03bc7054be2628a1f9dc3459bf8b0d921d583f445e228825daae",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/tune_qa.jsonl",
+      "sha256": "bf28a3b4954f0fdad82600f342e4efcca742f00d3dfae5008b57c64a049248cc",
+      "video_ids": []
+    },
+    {
+      "path": "dev_set/queries/tune_trake.jsonl",
+      "sha256": "cd9a526246fb3254c23256106de7dff725e1d7c0952c73fa693ece9b623286ef",
+      "video_ids": []
+    }
+  ],
+  "selected_videos": [
+    "L26_V194",
+    "L26_V301",
+    "L26_V060",
+    "L30_V076",
+    "L26_V487",
+    "L27_V002",
+    "L25_V072",
+    "L26_V431",
+    "L26_V281",
+    "L26_V062",
+    "L30_V010",
+    "L26_V446",
+    "L30_V089",
+    "L26_V246",
+    "L26_V456",
+    "L26_V082",
+    "L26_V166",
+    "L23_V001",
+    "L25_V086",
+    "L26_V279",
+    "L26_V066",
+    "L26_V057",
+    "L26_V101",
+    "L29_V006",
+    "L26_V402",
+    "L30_V017",
+    "L26_V136",
+    "L26_V495",
+    "L25_V084",
+    "L25_V051",
+    "L30_V022",
+    "L26_V303",
+    "L25_V029",
+    "L26_V423",
+    "L26_V229",
+    "L26_V051",
+    "L28_V019",
+    "L26_V262",
+    "L26_V097",
+    "L30_V088",
+    "L26_V223",
+    "L25_V039",
+    "L25_V036",
+    "L26_V442"
+  ],
+  "split_assigned_before_evaluation": true,
+  "system_outputs_read_for_sampling_or_gt": false,
+  "query_texts_created": 0,
+  "limitations": [
+    "Exclusion metadata không chứng minh chưa từng thấy video; human exposure review vẫn bắt buộc.",
+    "Exact file hash chỉ phát hiện ảnh byte-identical; near-duplicate/repeated event cần người xem.",
+    "Keyframe sampling không chứng minh biên sự kiện chính xác; thiếu video dày thì pending."
+  ],
+  "exact_shared_frame_hashes": [
+    {
+      "sha256": "0e9ebb01b43b1d89a7ac856358b832398d08d0a50cad4cc93a0902e903c7c1cd",
+      "videos": [
+        "L26_V194",
+        "L26_V246",
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "aea1052a8244e99b91d650eb8ac1d2791ee7bf0bc8ea0c26d0c69a416ea7c33e",
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "74df5fd710aa4531fff3305fadd247ae1ff6d2d64489e0f66707be3296f42af0",
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "5fd5a522698663f1556b4258bcff0745b1147535b1b2b1fbeec62e61b7138edd",
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "d0af10ce2accb178c5696eb091c7be5dc0a2efd64b1f65713742ad26d795f103",
+      "videos": [
+        "L26_V194",
+        "L26_V262",
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "b4b7f31b9451adb8229b978f3f0b0a8eb2b0d9b3fa05e8df651b601aa017b550",
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "c593fe437a73e93dab781829ba837d16e6b168cd92640d24ee208d20a80c94ed",
+      "videos": [
+        "L26_V194",
+        "L26_V262",
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "b7d84c55e84dfed5343b68d72717bf64b5cea33e9a4ed5f937cf36bf8afff9c1",
+      "videos": [
+        "L26_V194",
+        "L26_V246",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "c0c3d691544f82c0a3a7864e794302d9eff53fca5a8701909dc3a750ba728a51",
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "6df70e6eb30a52031dc110ba8e81cf3cf74eadf35a83942a708654296e166704",
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "5c47b36ed09198cb898d41fdfaf5cb58c10b882375703d4ab1a6e32cd409a877",
+      "videos": [
+        "L26_V194",
+        "L26_V246",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "db1ce539438eb697f96773dbab0a4f0a28a512e57fecd94f7ed4e0f2d50b02be",
+      "videos": [
+        "L26_V194",
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "9377a136b3acec538c1c5538802cef0a03f219dc5ee1f7cd89098df7c82ada5f",
+      "videos": [
+        "L26_V223",
+        "L26_V229",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "84931e80c206755c94d6b06f16e23874a361da6727c012e73582f533dd297bbe",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "ac0400bb9e6727f4a56f411a3219a1054433534309df4ccd68efd2b00e8499ed",
+      "videos": [
+        "L26_V223",
+        "L26_V229",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "33fce1c20bf5b7fb72fb9865513397dcddfbdb4dbe2c7e710d0dab31ac2c1801",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "05150e33df70105532772049af79b72f527c46c6d1d2b9021873f0f175b9083e",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "cfda2eb3982785e97e82c2522f6544f8479561112a1849984112d6a254645139",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "2a6db6e28d56cd736c4211ba6102323d2ca54e903775fe76d27f34e1a7e0dd3b",
+      "videos": [
+        "L26_V223",
+        "L26_V229",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "d5d200616c4ebb47efdc0ec40dc51a91c781cf43a16478c5f69864c1075f785b",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "9a12b6f60a5ca70f665e773d92e5291b960a0b5aa7546106de38370009f58ccc",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "991b3903dccd614cf2fe6268e96e397eca05fc16edb5050317dde6d622d78a29",
+      "videos": [
+        "L26_V223",
+        "L26_V301",
+        "L26_V423"
+      ]
+    },
+    {
+      "sha256": "abdc300ab1df09d40430cac349b770ae01bd381f7d568454e45c5feb8f244818",
+      "videos": [
+        "L30_V022",
+        "L30_V076"
+      ]
+    },
+    {
+      "sha256": "3bc4406e1dd1a9055026219b16ac2481dc3d09503509cf1ee5c9d0060492766b",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "e518962677d4f3ff4d46fbca25e6c907cd6cc11486cd6e912795266c490ab04e",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "efb991110d32043ba0df2f2b541f159cedea7acd7f96acb007b6e71d729d07a1",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "c5117154d837da1de19ce3645db7e1255a3a1a18f0a4b86dc5045296c5542bd2",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "696fe65bca3a4981b58a7489f595c75c7e49bc610b44fd6f4400c53771ead80d",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "7a1acea339a1fe58eb0d78319e2e6de719ef966f81118e675fea0ae62ebcf80e",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "d0bcd96b0c29ebb3db3d87eafd518b36a8531cd9b7bf096719abeaf40547211a",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "b5927dd2ea3b2bce18938c657f63ef99e56a5c94b7d0998e6d49b63525ed451d",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "831d66f368295044a7ad33f5cca90118e2084640e489c5879d284eb0cc8472d1",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "d09d2ce0c9d83b1605abdfd2a9983e6a20d53ae84ff44a5bf71e396d7bb8f75b",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "64c27baee1a5c20d4cfefd84b3d288184ced773c32232274c94d8ff89fe4dc39",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "4796bce83336e055f9f4273b9a93ce71153a33e1af5eb77908459d30773fe684",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "606e15bf40e7d791e08511dee153a6f941b4cb8351dfe508f6ac6f5d12dad377",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "e1b8419f1ca4c638cdde0d0a43ad7f6e040cb1e8e6afe1476e60784fff809ff0",
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ]
+    },
+    {
+      "sha256": "2990ab11108db665f11d4db0f0a00868f1298a765edbe11e4f8d6780db8eef64",
+      "videos": [
+        "L25_V051",
+        "L25_V072"
+      ]
+    },
+    {
+      "sha256": "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742",
+      "videos": [
+        "L25_V029",
+        "L25_V036",
+        "L25_V051",
+        "L25_V072",
+        "L25_V084",
+        "L25_V086"
+      ]
+    },
+    {
+      "sha256": "e41cbccd02ab2728c454f05fcc163b31b272a938db0a3566df638cb4503d5726",
+      "videos": [
+        "L26_V262",
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "f9e5710877f4f710f65f09d1f88a98dea66d99b1a4af68cc672dc7963bdbbca4",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "19f4b986e29632f6b12237bf88c1bf7017dd50bd265fe275717f1afd6dff79aa",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "6365e7e9592d8779e931331646b38e666c50bd8f3737c58137794e9c0284557c",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "d276929ad0309d843fd236ccd4e56a9b61f07103d568befbf1950a3635c550a5",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "174be87c7a051768014aeacc4a913fb580e2e6fa9041d63e7cac00e7af0de070",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "b256283650d7ea4549b608a058a9171bb6ce3d3292bb349a0d3297ab67e5b5d9",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "2fe371f6445e9bc69b92b66f207e6ef73cc163d1e8cc046ca81ce077264832e9",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "a6ccd7dfee85f38e79a3dd9e0acbd2d902c3693a28ddea679f8c81c43893b09a",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "9e1858ef00fdb1991e4be235b312ee50edaccdee540c89b9975ccb7abbb22814",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "7c1a2182c8ee54876ab63c63e41c19493625746ee96a528aa3597fca35377e4d",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "e45e92b1beb4f3a67af0d3e09521a971fc02ca22234262d1bdaa386ad6c39527",
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ]
+    },
+    {
+      "sha256": "8666cd12718a71f395b4be632f1b40b98fea47733d9be4f2427853605cb43fc8",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "5e5cc7143a193b8805b718be798e0c0da45c0d3678c03f8a1cfffc69887412b9",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "4f42806523924bfddd4c637a0a96f4ff2e6ad81cf6e189a0c0bea8aff109e078",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "7b281dda7e919122b18f4c15ddceb17ecbc3902899f1838646796577fb243640",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "afcaf572816efc74a7666d09a48416c22521885045160b0ab2e0ebd73ab67b08",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "1b96e39e5bab1dfde725dc56df257418ad07d2607ac6c59a592e2c45e3423de6",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "da942ed85ea42b7d0a5675962bff8c588401de174e59d184c527608659064aab",
+      "videos": [
+        "L26_V279",
+        "L26_V281"
+      ]
+    },
+    {
+      "sha256": "508c7b3f7c7916dbb4cce0848c0ec965a7d313a04b9dd931efc77b5cbda7983c",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "e9886b836be85207482522a058e198d96c6778a8f68260ee19189036e1f76d64",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "c6d33a9d11579141343befd1355e4e4e9c879bbe4a19118ebbbc5e66638dfb71",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "8d128ec4c69c459dbaeef0b7197cf51ff8e68088ec7101a797f7e36d529380f3",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "2dd4e56fffa724e489c64a82e3f614b2becd78b10cfe9214300a82c76f981c57",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "23ca8e6061bab9edbe5e393051d9472d5d4c90732d53c882e2432166b9d6b923",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "28991610a7af633bb7efe7dd09cba615fb78488911df9d4ac62248b9d4c96d0c",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "91e055a22e130b7399e2f07590a960a5ab24edf03585aac7d203614ae5e127d6",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "bf870454adac865ecbb15e98a818b88e3b328c73de9701fbf69447bdf0ce576b",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "6d80055d8bf0b414ab8a5686a607bf429f8f16d23bd7ac0dccb37ec2ae404365",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "9a55509fdc90baa11b13addb22c68924d6023947b8910d0f554cecbbbff63775",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "f3c241272f05e68c58dce48a84b1ea5be16439adf5bbac583dae6ff607c943e7",
+      "videos": [
+        "L26_V446",
+        "L26_V456"
+      ]
+    },
+    {
+      "sha256": "498cc1dec78a9708814cfcc472ce38b636ec0b081497f7a6ed756b3d01f5d378",
+      "videos": [
+        "L30_V088",
+        "L30_V089"
+      ]
+    },
+    {
+      "sha256": "2752be7d360da20e77552df42ae1dda069a3322061db4f6c46996b02123954f9",
+      "videos": [
+        "L30_V088",
+        "L30_V089"
+      ]
+    },
+    {
+      "sha256": "53207b491e44de5dd2b197107a315c7b0b7c9aa68297fbfe0369d623cf8a31a5",
+      "videos": [
+        "L26_V246",
+        "L26_V262"
+      ]
+    },
+    {
+      "sha256": "6eb51591a2d7d451113ddfe675bb254bc950529df6e6e2b298406bea0b494e2a",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "b0d0b3d3b5632292598eb7480c7eef0d08940042743e77a9880036ac2f1c5b2e",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "4003f521c56972ac2dab93a2885dbc4d5d9fc763224289bd28b268a5e589d23c",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "162fbb4f9fff7d604554e963af0914b3161ae69d291014e4829a22d1f0f8033c",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "27d66104e6e43adb512dd052210a74c145ec635febf42748a5f919325f3d8ac0",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "2989924c583ded73dd0a17883dd72d544d56de728749dd92e39278e42730d615",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "167027aa32de0f3898d23c7f2fc0ec299f477d3858d1cb356b0117dba14a0fcb",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "aada4c68a35b9880b583bf5a38cab5ed7d042becabe0c84d67224b89d5705c14",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "7650a0e4d5c44edb630db48b306e81b1a8490d3330322d48adffd5d070656c8b",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "a990b640588ff35079c0a0c58f54a8312b77504284cee10667302587ee347c72",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "ea7a26c2a57192b4b1dbdaba15a6fb66f6da5ea86ae3d8c8ec02e7035e452f67",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "3fd64d7671fc24a8846cc2e29b266730ad9c6e1691833698c52e0dde56110b30",
+      "videos": [
+        "L26_V082",
+        "L26_V097",
+        "L26_V101",
+        "L26_V136"
+      ]
+    },
+    {
+      "sha256": "4768842c39be8cddde1f8fdb303416b22308b6a2e71849de050adaea117299f4",
+      "videos": [
+        "L26_V223",
+        "L26_V229"
+      ]
+    }
+  ],
+  "video_distribution": {
+    "L26": 27,
+    "L30": 6,
+    "L27": 1,
+    "L25": 7,
+    "L23": 1,
+    "L29": 1,
+    "L28": 1
+  }
+}

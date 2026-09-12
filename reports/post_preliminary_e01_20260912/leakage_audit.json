@@ -1,0 +1,495 @@
+{
+  "cross_split_issues": [],
+  "grouping_or_exposure_pending": [
+    "E01_VAL_KIS_01",
+    "E01_VAL_KIS_02",
+    "E01_VAL_KIS_03",
+    "E01_VAL_KIS_04",
+    "E01_VAL_KIS_05",
+    "E01_VAL_KIS_06",
+    "E01_VAL_KIS_07",
+    "E01_VAL_KIS_08",
+    "E01_VAL_KIS_09",
+    "E01_VAL_KIS_10",
+    "E01_VAL_KIS_11",
+    "E01_VAL_KIS_12",
+    "E01_VAL_QA_01",
+    "E01_VAL_QA_02",
+    "E01_VAL_QA_03",
+    "E01_VAL_QA_04",
+    "E01_VAL_QA_05",
+    "E01_VAL_QA_06",
+    "E01_VAL_TRAKE_01",
+    "E01_VAL_TRAKE_02",
+    "E01_VAL_TRAKE_03",
+    "E01_VAL_TRAKE_04",
+    "E01_HOLD_KIS_01",
+    "E01_HOLD_KIS_02",
+    "E01_HOLD_KIS_03",
+    "E01_HOLD_KIS_04",
+    "E01_HOLD_KIS_05",
+    "E01_HOLD_KIS_06",
+    "E01_HOLD_KIS_07",
+    "E01_HOLD_KIS_08",
+    "E01_HOLD_KIS_09",
+    "E01_HOLD_KIS_10",
+    "E01_HOLD_KIS_11",
+    "E01_HOLD_KIS_12",
+    "E01_HOLD_QA_01",
+    "E01_HOLD_QA_02",
+    "E01_HOLD_QA_03",
+    "E01_HOLD_QA_04",
+    "E01_HOLD_QA_05",
+    "E01_HOLD_QA_06",
+    "E01_HOLD_TRAKE_01",
+    "E01_HOLD_TRAKE_02",
+    "E01_HOLD_TRAKE_03",
+    "E01_HOLD_TRAKE_04"
+  ],
+  "clear": false,
+  "exact_shared_hash_groups_all_splits": 86,
+  "cross_split_exact_frame_pairs": [
+    {
+      "videos": [
+        "L25_V029",
+        "L25_V072"
+      ],
+      "query_ids": [
+        "E01_HOLD_KIS_11",
+        "E01_VAL_KIS_07"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V029",
+        "L25_V086"
+      ],
+      "query_ids": [
+        "E01_HOLD_KIS_11",
+        "E01_VAL_TRAKE_01"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V036",
+        "L25_V072"
+      ],
+      "query_ids": [
+        "E01_HOLD_TRAKE_03",
+        "E01_VAL_KIS_07"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V036",
+        "L25_V086"
+      ],
+      "query_ids": [
+        "E01_HOLD_TRAKE_03",
+        "E01_VAL_TRAKE_01"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V051",
+        "L25_V072"
+      ],
+      "query_ids": [
+        "E01_HOLD_KIS_08",
+        "E01_VAL_KIS_07"
+      ],
+      "shared_hash_count": 2,
+      "shared_sha256": [
+        "2990ab11108db665f11d4db0f0a00868f1298a765edbe11e4f8d6780db8eef64",
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V051",
+        "L25_V086"
+      ],
+      "query_ids": [
+        "E01_HOLD_KIS_08",
+        "E01_VAL_TRAKE_01"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V072",
+        "L25_V084"
+      ],
+      "query_ids": [
+        "E01_VAL_KIS_07",
+        "E01_HOLD_KIS_07"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L25_V084",
+        "L25_V086"
+      ],
+      "query_ids": [
+        "E01_HOLD_KIS_07",
+        "E01_VAL_TRAKE_01"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "3f1634e2f423d37c5686846f17f37b536ac634a83c639c573a437d39ffed2742"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V082",
+        "L26_V097"
+      ],
+      "query_ids": [
+        "E01_VAL_QA_04",
+        "E01_HOLD_QA_05"
+      ],
+      "shared_hash_count": 12,
+      "shared_sha256": [
+        "6eb51591a2d7d451113ddfe675bb254bc950529df6e6e2b298406bea0b494e2a",
+        "b0d0b3d3b5632292598eb7480c7eef0d08940042743e77a9880036ac2f1c5b2e",
+        "4003f521c56972ac2dab93a2885dbc4d5d9fc763224289bd28b268a5e589d23c",
+        "162fbb4f9fff7d604554e963af0914b3161ae69d291014e4829a22d1f0f8033c",
+        "27d66104e6e43adb512dd052210a74c145ec635febf42748a5f919325f3d8ac0",
+        "2989924c583ded73dd0a17883dd72d544d56de728749dd92e39278e42730d615",
+        "167027aa32de0f3898d23c7f2fc0ec299f477d3858d1cb356b0117dba14a0fcb",
+        "aada4c68a35b9880b583bf5a38cab5ed7d042becabe0c84d67224b89d5705c14",
+        "7650a0e4d5c44edb630db48b306e81b1a8490d3330322d48adffd5d070656c8b",
+        "a990b640588ff35079c0a0c58f54a8312b77504284cee10667302587ee347c72",
+        "ea7a26c2a57192b4b1dbdaba15a6fb66f6da5ea86ae3d8c8ec02e7035e452f67",
+        "3fd64d7671fc24a8846cc2e29b266730ad9c6e1691833698c52e0dde56110b30"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V082",
+        "L26_V101"
+      ],
+      "query_ids": [
+        "E01_VAL_QA_04",
+        "E01_HOLD_KIS_01"
+      ],
+      "shared_hash_count": 12,
+      "shared_sha256": [
+        "6eb51591a2d7d451113ddfe675bb254bc950529df6e6e2b298406bea0b494e2a",
+        "b0d0b3d3b5632292598eb7480c7eef0d08940042743e77a9880036ac2f1c5b2e",
+        "4003f521c56972ac2dab93a2885dbc4d5d9fc763224289bd28b268a5e589d23c",
+        "162fbb4f9fff7d604554e963af0914b3161ae69d291014e4829a22d1f0f8033c",
+        "27d66104e6e43adb512dd052210a74c145ec635febf42748a5f919325f3d8ac0",
+        "2989924c583ded73dd0a17883dd72d544d56de728749dd92e39278e42730d615",
+        "167027aa32de0f3898d23c7f2fc0ec299f477d3858d1cb356b0117dba14a0fcb",
+        "aada4c68a35b9880b583bf5a38cab5ed7d042becabe0c84d67224b89d5705c14",
+        "7650a0e4d5c44edb630db48b306e81b1a8490d3330322d48adffd5d070656c8b",
+        "a990b640588ff35079c0a0c58f54a8312b77504284cee10667302587ee347c72",
+        "ea7a26c2a57192b4b1dbdaba15a6fb66f6da5ea86ae3d8c8ec02e7035e452f67",
+        "3fd64d7671fc24a8846cc2e29b266730ad9c6e1691833698c52e0dde56110b30"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V082",
+        "L26_V136"
+      ],
+      "query_ids": [
+        "E01_VAL_QA_04",
+        "E01_HOLD_KIS_05"
+      ],
+      "shared_hash_count": 12,
+      "shared_sha256": [
+        "6eb51591a2d7d451113ddfe675bb254bc950529df6e6e2b298406bea0b494e2a",
+        "b0d0b3d3b5632292598eb7480c7eef0d08940042743e77a9880036ac2f1c5b2e",
+        "4003f521c56972ac2dab93a2885dbc4d5d9fc763224289bd28b268a5e589d23c",
+        "162fbb4f9fff7d604554e963af0914b3161ae69d291014e4829a22d1f0f8033c",
+        "27d66104e6e43adb512dd052210a74c145ec635febf42748a5f919325f3d8ac0",
+        "2989924c583ded73dd0a17883dd72d544d56de728749dd92e39278e42730d615",
+        "167027aa32de0f3898d23c7f2fc0ec299f477d3858d1cb356b0117dba14a0fcb",
+        "aada4c68a35b9880b583bf5a38cab5ed7d042becabe0c84d67224b89d5705c14",
+        "7650a0e4d5c44edb630db48b306e81b1a8490d3330322d48adffd5d070656c8b",
+        "a990b640588ff35079c0a0c58f54a8312b77504284cee10667302587ee347c72",
+        "ea7a26c2a57192b4b1dbdaba15a6fb66f6da5ea86ae3d8c8ec02e7035e452f67",
+        "3fd64d7671fc24a8846cc2e29b266730ad9c6e1691833698c52e0dde56110b30"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V194",
+        "L26_V262"
+      ],
+      "query_ids": [
+        "E01_VAL_KIS_01",
+        "E01_HOLD_QA_04"
+      ],
+      "shared_hash_count": 10,
+      "shared_sha256": [
+        "aea1052a8244e99b91d650eb8ac1d2791ee7bf0bc8ea0c26d0c69a416ea7c33e",
+        "74df5fd710aa4531fff3305fadd247ae1ff6d2d64489e0f66707be3296f42af0",
+        "5fd5a522698663f1556b4258bcff0745b1147535b1b2b1fbeec62e61b7138edd",
+        "d0af10ce2accb178c5696eb091c7be5dc0a2efd64b1f65713742ad26d795f103",
+        "b4b7f31b9451adb8229b978f3f0b0a8eb2b0d9b3fa05e8df651b601aa017b550",
+        "c593fe437a73e93dab781829ba837d16e6b168cd92640d24ee208d20a80c94ed",
+        "b7d84c55e84dfed5343b68d72717bf64b5cea33e9a4ed5f937cf36bf8afff9c1",
+        "c0c3d691544f82c0a3a7864e794302d9eff53fca5a8701909dc3a750ba728a51",
+        "6df70e6eb30a52031dc110ba8e81cf3cf74eadf35a83942a708654296e166704",
+        "5c47b36ed09198cb898d41fdfaf5cb58c10b882375703d4ab1a6e32cd409a877"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V223",
+        "L26_V301"
+      ],
+      "query_ids": [
+        "E01_HOLD_TRAKE_01",
+        "E01_VAL_KIS_02"
+      ],
+      "shared_hash_count": 10,
+      "shared_sha256": [
+        "9377a136b3acec538c1c5538802cef0a03f219dc5ee1f7cd89098df7c82ada5f",
+        "84931e80c206755c94d6b06f16e23874a361da6727c012e73582f533dd297bbe",
+        "ac0400bb9e6727f4a56f411a3219a1054433534309df4ccd68efd2b00e8499ed",
+        "33fce1c20bf5b7fb72fb9865513397dcddfbdb4dbe2c7e710d0dab31ac2c1801",
+        "05150e33df70105532772049af79b72f527c46c6d1d2b9021873f0f175b9083e",
+        "cfda2eb3982785e97e82c2522f6544f8479561112a1849984112d6a254645139",
+        "2a6db6e28d56cd736c4211ba6102323d2ca54e903775fe76d27f34e1a7e0dd3b",
+        "d5d200616c4ebb47efdc0ec40dc51a91c781cf43a16478c5f69864c1075f785b",
+        "9a12b6f60a5ca70f665e773d92e5291b960a0b5aa7546106de38370009f58ccc",
+        "991b3903dccd614cf2fe6268e96e397eca05fc16edb5050317dde6d622d78a29"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V229",
+        "L26_V301"
+      ],
+      "query_ids": [
+        "E01_HOLD_QA_01",
+        "E01_VAL_KIS_02"
+      ],
+      "shared_hash_count": 3,
+      "shared_sha256": [
+        "9377a136b3acec538c1c5538802cef0a03f219dc5ee1f7cd89098df7c82ada5f",
+        "ac0400bb9e6727f4a56f411a3219a1054433534309df4ccd68efd2b00e8499ed",
+        "2a6db6e28d56cd736c4211ba6102323d2ca54e903775fe76d27f34e1a7e0dd3b"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V246",
+        "L26_V262"
+      ],
+      "query_ids": [
+        "E01_VAL_QA_02",
+        "E01_HOLD_QA_04"
+      ],
+      "shared_hash_count": 3,
+      "shared_sha256": [
+        "b7d84c55e84dfed5343b68d72717bf64b5cea33e9a4ed5f937cf36bf8afff9c1",
+        "5c47b36ed09198cb898d41fdfaf5cb58c10b882375703d4ab1a6e32cd409a877",
+        "53207b491e44de5dd2b197107a315c7b0b7c9aa68297fbfe0369d623cf8a31a5"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V262",
+        "L26_V279"
+      ],
+      "query_ids": [
+        "E01_HOLD_QA_04",
+        "E01_VAL_TRAKE_02"
+      ],
+      "shared_hash_count": 2,
+      "shared_sha256": [
+        "d0af10ce2accb178c5696eb091c7be5dc0a2efd64b1f65713742ad26d795f103",
+        "c593fe437a73e93dab781829ba837d16e6b168cd92640d24ee208d20a80c94ed"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V262",
+        "L26_V281"
+      ],
+      "query_ids": [
+        "E01_HOLD_QA_04",
+        "E01_VAL_KIS_09"
+      ],
+      "shared_hash_count": 2,
+      "shared_sha256": [
+        "d0af10ce2accb178c5696eb091c7be5dc0a2efd64b1f65713742ad26d795f103",
+        "c593fe437a73e93dab781829ba837d16e6b168cd92640d24ee208d20a80c94ed"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V262",
+        "L26_V431"
+      ],
+      "query_ids": [
+        "E01_HOLD_QA_04",
+        "E01_VAL_KIS_08"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "e41cbccd02ab2728c454f05fcc163b31b272a938db0a3566df638cb4503d5726"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V301",
+        "L26_V423"
+      ],
+      "query_ids": [
+        "E01_VAL_KIS_02",
+        "E01_HOLD_KIS_12"
+      ],
+      "shared_hash_count": 10,
+      "shared_sha256": [
+        "9377a136b3acec538c1c5538802cef0a03f219dc5ee1f7cd89098df7c82ada5f",
+        "84931e80c206755c94d6b06f16e23874a361da6727c012e73582f533dd297bbe",
+        "ac0400bb9e6727f4a56f411a3219a1054433534309df4ccd68efd2b00e8499ed",
+        "33fce1c20bf5b7fb72fb9865513397dcddfbdb4dbe2c7e710d0dab31ac2c1801",
+        "05150e33df70105532772049af79b72f527c46c6d1d2b9021873f0f175b9083e",
+        "cfda2eb3982785e97e82c2522f6544f8479561112a1849984112d6a254645139",
+        "2a6db6e28d56cd736c4211ba6102323d2ca54e903775fe76d27f34e1a7e0dd3b",
+        "d5d200616c4ebb47efdc0ec40dc51a91c781cf43a16478c5f69864c1075f785b",
+        "9a12b6f60a5ca70f665e773d92e5291b960a0b5aa7546106de38370009f58ccc",
+        "991b3903dccd614cf2fe6268e96e397eca05fc16edb5050317dde6d622d78a29"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V431",
+        "L26_V442"
+      ],
+      "query_ids": [
+        "E01_VAL_KIS_08",
+        "E01_HOLD_TRAKE_04"
+      ],
+      "shared_hash_count": 12,
+      "shared_sha256": [
+        "e41cbccd02ab2728c454f05fcc163b31b272a938db0a3566df638cb4503d5726",
+        "f9e5710877f4f710f65f09d1f88a98dea66d99b1a4af68cc672dc7963bdbbca4",
+        "19f4b986e29632f6b12237bf88c1bf7017dd50bd265fe275717f1afd6dff79aa",
+        "6365e7e9592d8779e931331646b38e666c50bd8f3737c58137794e9c0284557c",
+        "d276929ad0309d843fd236ccd4e56a9b61f07103d568befbf1950a3635c550a5",
+        "174be87c7a051768014aeacc4a913fb580e2e6fa9041d63e7cac00e7af0de070",
+        "b256283650d7ea4549b608a058a9171bb6ce3d3292bb349a0d3297ab67e5b5d9",
+        "2fe371f6445e9bc69b92b66f207e6ef73cc163d1e8cc046ca81ce077264832e9",
+        "a6ccd7dfee85f38e79a3dd9e0acbd2d902c3693a28ddea679f8c81c43893b09a",
+        "9e1858ef00fdb1991e4be235b312ee50edaccdee540c89b9975ccb7abbb22814",
+        "7c1a2182c8ee54876ab63c63e41c19493625746ee96a528aa3597fca35377e4d",
+        "e45e92b1beb4f3a67af0d3e09521a971fc02ca22234262d1bdaa386ad6c39527"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L26_V487",
+        "L26_V495"
+      ],
+      "query_ids": [
+        "E01_VAL_KIS_05",
+        "E01_HOLD_KIS_06"
+      ],
+      "shared_hash_count": 14,
+      "shared_sha256": [
+        "3bc4406e1dd1a9055026219b16ac2481dc3d09503509cf1ee5c9d0060492766b",
+        "e518962677d4f3ff4d46fbca25e6c907cd6cc11486cd6e912795266c490ab04e",
+        "efb991110d32043ba0df2f2b541f159cedea7acd7f96acb007b6e71d729d07a1",
+        "c5117154d837da1de19ce3645db7e1255a3a1a18f0a4b86dc5045296c5542bd2",
+        "696fe65bca3a4981b58a7489f595c75c7e49bc610b44fd6f4400c53771ead80d",
+        "7a1acea339a1fe58eb0d78319e2e6de719ef966f81118e675fea0ae62ebcf80e",
+        "d0bcd96b0c29ebb3db3d87eafd518b36a8531cd9b7bf096719abeaf40547211a",
+        "b5927dd2ea3b2bce18938c657f63ef99e56a5c94b7d0998e6d49b63525ed451d",
+        "831d66f368295044a7ad33f5cca90118e2084640e489c5879d284eb0cc8472d1",
+        "d09d2ce0c9d83b1605abdfd2a9983e6a20d53ae84ff44a5bf71e396d7bb8f75b",
+        "64c27baee1a5c20d4cfefd84b3d288184ced773c32232274c94d8ff89fe4dc39",
+        "4796bce83336e055f9f4273b9a93ce71153a33e1af5eb77908459d30773fe684",
+        "606e15bf40e7d791e08511dee153a6f941b4cb8351dfe508f6ac6f5d12dad377",
+        "e1b8419f1ca4c638cdde0d0a43ad7f6e040cb1e8e6afe1476e60784fff809ff0"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L30_V022",
+        "L30_V076"
+      ],
+      "query_ids": [
+        "E01_HOLD_KIS_09",
+        "E01_VAL_KIS_04"
+      ],
+      "shared_hash_count": 1,
+      "shared_sha256": [
+        "abdc300ab1df09d40430cac349b770ae01bd381f7d568454e45c5feb8f244818"
+      ],
+      "review_status": "PENDING"
+    },
+    {
+      "videos": [
+        "L30_V088",
+        "L30_V089"
+      ],
+      "query_ids": [
+        "E01_HOLD_QA_06",
+        "E01_VAL_QA_01"
+      ],
+      "shared_hash_count": 2,
+      "shared_sha256": [
+        "498cc1dec78a9708814cfcc472ce38b636ec0b081497f7a6ed756b3d01f5d378",
+        "2752be7d360da20e77552df42ae1dda069a3322061db4f6c46996b02123954f9"
+      ],
+      "review_status": "PENDING"
+    }
+  ],
+  "near_duplicate_video_groups": "PENDING_HUMAN",
+  "repeated_event_groups": "PENDING_HUMAN",
+  "wording_audit": "NOT_AVAILABLE_QUERY_TEXT_EMPTY",
+  "source_only_metadata_exclusion_videos": 147,
+  "independence_established": false
+}

@@ -1,0 +1,13 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "scripts/selfcheck.py"
+  ],
+  "exit_code": 1,
+  "seconds": 130.515,
+  "hard_guard": true,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "model_selection": "api/claude-sonnet-5",
+  "cache_only": true
+}

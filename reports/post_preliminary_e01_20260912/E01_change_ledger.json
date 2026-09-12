@@ -1,0 +1,55 @@
+{
+  "phase": "PP-E01",
+  "base_commit": "7842d11c3497a6b996959bb2484d44f055a285c6",
+  "source_files": [
+    {
+      "path": "data/config/evaluation_foundation.py",
+      "sha256": "1c465da8c2ea929162fa14fcc60bfc29c787b9d0f5aeb4fa798b8bb64888060b",
+      "base_status": "absent",
+      "bytes": 635
+    },
+    {
+      "path": "dev_set/evaluation_registry.json",
+      "sha256": "1b9dfb47175f521fbfe684ca2832487c7a1425e8ab86118e1339793b8f537138",
+      "base_status": "absent",
+      "bytes": 17659
+    },
+    {
+      "path": "dev_set/tools/e01_schema.py",
+      "sha256": "1a7da64a0782dec669f8620203670f6486c9213040c060ca4b6843377f30ce09",
+      "base_status": "absent",
+      "bytes": 6909
+    },
+    {
+      "path": "dev_set/tools/e01_dataset.py",
+      "sha256": "886e4241b06768219172d34c6fd23ff0046a9ade3370f35cb9a5a17555755e1a",
+      "base_status": "absent",
+      "bytes": 16409
+    },
+    {
+      "path": "dev_set/tests/test_e01_dataset.py",
+      "sha256": "89577b4f8219e4ee8d4f0400273a8254078bd0e2b34fbbe15d05518f7038cf41",
+      "base_status": "absent",
+      "bytes": 12753
+    }
+  ],
+  "retrieval_source_changed": false,
+  "legacy_GT_modified": false,
+  "created_at": "2026-09-12T14:20:24.895739+00:00",
+  "source_snapshot_sha256": "cff10e75ad4deb8442ae62b1d26d0db1e47a20558030afdaffd6208c823c2026",
+  "source_commit": "e387366b7ea6226739e186167d200f2500747fd2",
+  "report_tools": [
+    {
+      "path": "reports/post_preliminary_e01_20260912/offline_guard/sitecustomize.py",
+      "sha256": "bbd6e6a9f2e7034cd14a4706adb7f5ff8d5de0b799fff81fe32b7e5b1c5d4db4"
+    },
+    {
+      "path": "reports/post_preliminary_e01_20260912/prepare_packets.py",
+      "sha256": "d34f4b2d39e80262374d52e74c9d0b24a964b8dfb5667f177d598291a372ca29"
+    },
+    {
+      "path": "reports/post_preliminary_e01_20260912/run_check.py",
+      "sha256": "8fd9e67a158efbc1cf1d4a3944a1cc6c8beca0a0ee74b7594f9f23be13af3af5"
+    }
+  ]
+}

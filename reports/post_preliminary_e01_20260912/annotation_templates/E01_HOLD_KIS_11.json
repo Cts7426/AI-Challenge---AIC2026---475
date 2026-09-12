@@ -1,0 +1,40 @@
+{
+  "schema_version": "e01.annotation.v1",
+  "query_id": "E01_HOLD_KIS_11",
+  "task_type": "KIS",
+  "split": "sealed_heldout",
+  "video_id": "L25_V029",
+  "query_text": "",
+  "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+  "source_version": "e01.source.v1",
+  "verification": {
+    "status": "pending",
+    "verifier": null,
+    "verified_at": null,
+    "source_only_attestation": false,
+    "notes": ""
+  },
+  "grouping": {
+    "duplicate_group": null,
+    "event_group": null,
+    "review_status": "pending",
+    "verifier": null,
+    "reviewed_at": null,
+    "prior_exposure_checked": false,
+    "prior_exposure_found": null,
+    "shared_frame_reviewed": false,
+    "shared_frame_explanation": "",
+    "notes": ""
+  },
+  "label": {
+    "windows": [],
+    "acceptable_answers": [],
+    "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+    "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+    "answerability": "pending",
+    "unanswerable_reason": "",
+    "events": [],
+    "evidence": [],
+    "notes": ""
+  }
+}

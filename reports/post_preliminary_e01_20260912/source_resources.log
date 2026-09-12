@@ -1,0 +1,4 @@
+2026-09-12 20:57:23,680 [WARNING][__setup_ts_by_request]: failed to get mvccTs from milvus server, use client-side ts instead (query_iterator.py:306)
+2026-09-12 20:57:32,280 [WARNING][__setup_ts_by_request]: failed to get mvccTs from milvus server, use client-side ts instead (query_iterator.py:306)
+2026-09-12 20:57:43,240 [WARNING][__setup_ts_by_request]: failed to get mvccTs from milvus server, use client-side ts instead (query_iterator.py:306)
+identity=36441b9b8548fa348c4f15daf26117dc1b945c044729c203bc03df1f0ffb98e4; capture_only

@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "dev_set/tests/test_e01_dataset.py",
+    "-q"
+  ],
+  "exit_code": 0,
+  "seconds": 24.378,
+  "hard_guard": true,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "model_selection": "api/claude-sonnet-5",
+  "cache_only": true
+}

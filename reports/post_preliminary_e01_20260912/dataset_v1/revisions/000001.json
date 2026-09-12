@@ -1,0 +1,1688 @@
+{
+  "revision": 1,
+  "previous_sha256": null,
+  "created_at": "2026-09-12T13:58:54.886762+00:00",
+  "content_sha256": "6172538b17e3a81bce770e46590f565b232e37e1e5328c57dcbd4bc47f5fee41",
+  "content": {
+    "dataset_version": "e01-v1",
+    "created_at": "2026-09-12T13:58:54.885870+00:00",
+    "source_catalog": "reports/post_preliminary_e01_20260912/source_catalog.json",
+    "source_catalog_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+    "entries": [
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_01",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V194",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_02",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V301",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_03",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V060",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_04",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L30_V076",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_05",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V487",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_06",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L27_V002",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_07",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L25_V072",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_08",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V431",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_09",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V281",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_10",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V062",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_11",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L30_V010",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_KIS_12",
+        "task_type": "KIS",
+        "split": "validation",
+        "video_id": "L26_V446",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_QA_01",
+        "task_type": "QA",
+        "split": "validation",
+        "video_id": "L30_V089",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_QA_02",
+        "task_type": "QA",
+        "split": "validation",
+        "video_id": "L26_V246",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_QA_03",
+        "task_type": "QA",
+        "split": "validation",
+        "video_id": "L26_V456",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_QA_04",
+        "task_type": "QA",
+        "split": "validation",
+        "video_id": "L26_V082",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_QA_05",
+        "task_type": "QA",
+        "split": "validation",
+        "video_id": "L26_V166",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_QA_06",
+        "task_type": "QA",
+        "split": "validation",
+        "video_id": "L23_V001",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_TRAKE_01",
+        "task_type": "TRAKE",
+        "split": "validation",
+        "video_id": "L25_V086",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_TRAKE_02",
+        "task_type": "TRAKE",
+        "split": "validation",
+        "video_id": "L26_V279",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_TRAKE_03",
+        "task_type": "TRAKE",
+        "split": "validation",
+        "video_id": "L26_V066",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_VAL_TRAKE_04",
+        "task_type": "TRAKE",
+        "split": "validation",
+        "video_id": "L26_V057",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_01",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L26_V101",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_02",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L29_V006",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_03",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L26_V402",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_04",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L30_V017",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_05",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L26_V136",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_06",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L26_V495",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_07",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L25_V084",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_08",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L25_V051",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_09",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L30_V022",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_10",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L26_V303",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_11",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L25_V029",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_KIS_12",
+        "task_type": "KIS",
+        "split": "sealed_heldout",
+        "video_id": "L26_V423",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_QA_01",
+        "task_type": "QA",
+        "split": "sealed_heldout",
+        "video_id": "L26_V229",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_QA_02",
+        "task_type": "QA",
+        "split": "sealed_heldout",
+        "video_id": "L26_V051",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_QA_03",
+        "task_type": "QA",
+        "split": "sealed_heldout",
+        "video_id": "L28_V019",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_QA_04",
+        "task_type": "QA",
+        "split": "sealed_heldout",
+        "video_id": "L26_V262",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_QA_05",
+        "task_type": "QA",
+        "split": "sealed_heldout",
+        "video_id": "L26_V097",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_QA_06",
+        "task_type": "QA",
+        "split": "sealed_heldout",
+        "video_id": "L30_V088",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_TRAKE_01",
+        "task_type": "TRAKE",
+        "split": "sealed_heldout",
+        "video_id": "L26_V223",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_TRAKE_02",
+        "task_type": "TRAKE",
+        "split": "sealed_heldout",
+        "video_id": "L25_V039",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_TRAKE_03",
+        "task_type": "TRAKE",
+        "split": "sealed_heldout",
+        "video_id": "L25_V036",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      },
+      {
+        "schema_version": "e01.annotation.v1",
+        "query_id": "E01_HOLD_TRAKE_04",
+        "task_type": "TRAKE",
+        "split": "sealed_heldout",
+        "video_id": "L26_V442",
+        "query_text": "",
+        "source_manifest_sha256": "992b66868a3c7f642394c63b87144840c57727717b53d6bdfb9fb693b172bdef",
+        "source_version": "e01.source.v1",
+        "verification": {
+          "status": "pending",
+          "verifier": null,
+          "verified_at": null,
+          "source_only_attestation": false,
+          "notes": ""
+        },
+        "grouping": {
+          "duplicate_group": null,
+          "event_group": null,
+          "review_status": "pending",
+          "verifier": null,
+          "reviewed_at": null,
+          "prior_exposure_checked": false,
+          "prior_exposure_found": null,
+          "notes": ""
+        },
+        "label": {
+          "windows": [],
+          "acceptable_answers": [],
+          "exact_policy": "e01.qa.nfc_casefold_whitespace_v1",
+          "semantic_policy": "human_registered_variants_only_no_online_judge_v1",
+          "answerability": "pending",
+          "unanswerable_reason": "",
+          "events": [],
+          "evidence": [],
+          "notes": ""
+        }
+      }
+    ],
+    "inherited_consumed": false,
+    "changes": []
+  }
+}

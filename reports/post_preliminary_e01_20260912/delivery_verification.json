@@ -1,0 +1,14 @@
+{
+  "result": "PASS_FOR_TOOLING_DELIVERY_NOT_DATASET_READINESS",
+  "source_commit": "e387366b7ea6226739e186167d200f2500747fd2",
+  "source_files_verified": 5,
+  "command_audits": 8,
+  "provider_calls": 0,
+  "external_dispatch_attempts": 0,
+  "queries_created": 0,
+  "human_verified": 0,
+  "source_packets": 44,
+  "sealed_manifest_created": false,
+  "recommendation": "NOT_READY_FOR_H03A",
+  "selfcheck_exit_code": 1
+}

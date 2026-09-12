@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\dev\aic2026\reports\post_preliminary_e01_20260912\prepare_packets.py", line 150, in <module>
+    main()
+    ~~~~^^
+  File "C:\dev\aic2026\reports\post_preliminary_e01_20260912\prepare_packets.py", line 101, in main
+    path=Path(path)
+  File "C:\Python314\Lib\pathlib\__init__.py", line 150, in __init__
+    raise TypeError(
+    ...<2 lines>...
+        f"not {type(path).__name__!r}")
+TypeError: argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'FramePathResolution'

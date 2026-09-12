@@ -1,0 +1,8 @@
+{
+  "packet_local_image_links_verified": 9257,
+  "external_image_links": 0,
+  "existing_source_config_files_unchanged": 213,
+  "H02_evidence_files_unchanged": 69,
+  "old_GT_manifests_modified": false,
+  "historical_query_gt_manifest_files_verified": 36
+}

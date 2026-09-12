@@ -1,0 +1,405 @@
+{
+  "$defs": {
+    "Event": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/Window"
+          },
+          "minItems": 1,
+          "title": "Windows",
+          "type": "array"
+        },
+        "evidence_keys": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Keys",
+          "type": "array"
+        },
+        "support_status": {
+          "enum": [
+            "evidence_backed",
+            "ambiguous"
+          ],
+          "title": "Support Status",
+          "type": "string"
+        },
+        "temporal_tolerance_frames": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Temporal Tolerance Frames",
+          "type": "integer"
+        },
+        "tolerance_justification": {
+          "default": "",
+          "title": "Tolerance Justification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "windows",
+        "evidence_keys",
+        "support_status"
+      ],
+      "title": "Event",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "video_id": {
+          "minLength": 1,
+          "title": "Video Id",
+          "type": "string"
+        },
+        "keyframe_id": {
+          "minLength": 1,
+          "title": "Keyframe Id",
+          "type": "string"
+        },
+        "frame_idx": {
+          "minimum": 0,
+          "title": "Frame Idx",
+          "type": "integer"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "support": {
+          "minLength": 1,
+          "title": "Support",
+          "type": "string"
+        }
+      },
+      "required": [
+        "video_id",
+        "keyframe_id",
+        "frame_idx",
+        "path",
+        "sha256",
+        "support"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Grouping": {
+      "additionalProperties": false,
+      "properties": {
+        "duplicate_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicate Group"
+        },
+        "event_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Group"
+        },
+        "review_status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "verified"
+          ],
+          "title": "Review Status",
+          "type": "string"
+        },
+        "verifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verifier"
+        },
+        "reviewed_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewed At"
+        },
+        "prior_exposure_checked": {
+          "default": false,
+          "title": "Prior Exposure Checked",
+          "type": "boolean"
+        },
+        "prior_exposure_found": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prior Exposure Found"
+        },
+        "shared_frame_reviewed": {
+          "default": false,
+          "title": "Shared Frame Reviewed",
+          "type": "boolean"
+        },
+        "shared_frame_explanation": {
+          "default": "",
+          "title": "Shared Frame Explanation",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "Grouping",
+      "type": "object"
+    },
+    "Label": {
+      "additionalProperties": false,
+      "properties": {
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/Window"
+          },
+          "title": "Windows",
+          "type": "array"
+        },
+        "acceptable_answers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Acceptable Answers",
+          "type": "array"
+        },
+        "exact_policy": {
+          "default": "e01.qa.nfc_casefold_whitespace_v1",
+          "title": "Exact Policy",
+          "type": "string"
+        },
+        "semantic_policy": {
+          "default": "human_registered_variants_only_no_online_judge_v1",
+          "title": "Semantic Policy",
+          "type": "string"
+        },
+        "answerability": {
+          "default": "pending",
+          "enum": [
+            "answerable",
+            "unanswerable",
+            "pending"
+          ],
+          "title": "Answerability",
+          "type": "string"
+        },
+        "unanswerable_reason": {
+          "default": "",
+          "title": "Unanswerable Reason",
+          "type": "string"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "Label",
+      "type": "object"
+    },
+    "Verification": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "verified",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "verifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verifier"
+        },
+        "verified_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verified At"
+        },
+        "source_only_attestation": {
+          "default": false,
+          "title": "Source Only Attestation",
+          "type": "boolean"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "Verification",
+      "type": "object"
+    },
+    "Window": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Window",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Input bản ghi người duyệt; output schema chặt; frame chỉ là số tuyệt đối từ map.",
+  "properties": {
+    "schema_version": {
+      "default": "e01.annotation.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "query_id": {
+      "pattern": "^E01_(VAL|HOLD)_(KIS|QA|TRAKE)_\\d{2}$",
+      "title": "Query Id",
+      "type": "string"
+    },
+    "task_type": {
+      "enum": [
+        "KIS",
+        "QA",
+        "TRAKE"
+      ],
+      "title": "Task Type",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "validation",
+        "sealed_heldout"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "video_id": {
+      "minLength": 1,
+      "title": "Video Id",
+      "type": "string"
+    },
+    "query_text": {
+      "default": "",
+      "title": "Query Text",
+      "type": "string"
+    },
+    "source_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Manifest Sha256",
+      "type": "string"
+    },
+    "source_version": {
+      "minLength": 1,
+      "title": "Source Version",
+      "type": "string"
+    },
+    "verification": {
+      "$ref": "#/$defs/Verification"
+    },
+    "grouping": {
+      "$ref": "#/$defs/Grouping"
+    },
+    "label": {
+      "$ref": "#/$defs/Label"
+    }
+  },
+  "required": [
+    "query_id",
+    "task_type",
+    "split",
+    "video_id",
+    "source_manifest_sha256",
+    "source_version"
+  ],
+  "title": "Annotation",
+  "type": "object"
+}

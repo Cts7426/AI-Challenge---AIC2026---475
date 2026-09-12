@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 PY = sys.executable
 
 
@@ -109,14 +111,18 @@ def check_llm_backend() -> Check:
     """Bước dịch VI→EN đi qua llm(); backend chết thì KIS hỏng âm thầm, không crash."""
     import os
 
-    backend = os.environ.get("LLM_BACKEND", "api")
+    from backend.llm.adapter import selected_runtime
+    try:
+        backend, model = selected_runtime()
+    except ValueError as error:
+        return Check("LLM backend", False, str(error))
     if backend == "api" and not os.environ.get("ANTHROPIC_API_KEY"):
         detail = "LLM_BACKEND=api nhưng thiếu ANTHROPIC_API_KEY"
         return Check("LLM backend", False, detail)
     if backend == "gemini" and not os.environ.get("GEMINI_API_KEY"):
         return Check("LLM backend", False, "LLM_BACKEND=gemini nhưng thiếu GEMINI_API_KEY")
     # Có key không đồng nghĩa còn credit — chỉ khẳng định được cấu hình có mặt.
-    return Check("LLM backend", True, f"LLM_BACKEND={backend} (cấu hình có mặt; credit KHÔNG kiểm ở đây)")
+    return Check("LLM backend", True, f"LLM_BACKEND={backend}, model={model} (cấu hình có mặt; credit KHÔNG kiểm ở đây)")
 
 
 def main() -> int:

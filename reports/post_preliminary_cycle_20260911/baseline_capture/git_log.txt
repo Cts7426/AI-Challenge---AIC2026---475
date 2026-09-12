@@ -1,0 +1,30 @@
+8fee5fd07bfd03d945fe93d474ffe2c29a4b7106 2026-09-04T18:19:31+07:00 fix(dot3): tat nhanh vector_siglip2 va lam warmup kiem dung tap nhanh dang bat
+5b189748c1b78f475207877288d33e3f829ff542 2026-09-04T17:24:14+07:00 fix(preflight): chan lo hong nhanh chet lang truoc gio thi Dot 3
+014bc5ace5295ec7424201848acc107ed43e64e5 2026-09-03T23:33:01+07:00 chore: merge stash — BUILD_TASKS, holdout_log, TRAKE R3.T1/T2
+6a0790305149ded8baeca7c18e0a2f1f3277ebc4 2026-09-03T23:08:13+07:00 test(kis): A/B tren holdout — cau hinh Dot 3 KHAI QUAT DUOC, khong lui gi ca
+318749741800c5431cdb8ebcb187b474224974d8 2026-09-03T22:41:30+07:00 test(kis): do lai lan KIS tren de dot 1 + dot 2 sau khi gop — va tra loi cau hoi ban dich
+a5f8d87b08780ba6b2dc6016311132a8ceab0170 2026-09-03T22:30:47+07:00 feat: scripts/warmup.py — kiem song + lam nong truoc gio thi
+0617743d9b63eea7d2fa811acc1fca81ed409d21 2026-09-03T22:24:50+07:00 merge: gop lan Q&A cua Thach vao ban Dot 3 — giu dot3, nhap phan Thach lam tot hon
+d54335aeb5195c9380650c9bac6ed50b4cc46a89 2026-09-03T19:37:05+07:00 feat(kis): xep hang muc VIDEO + probe token hiem — top-10 0.90 -> 0.95
+730ad98378b900e53ae75ffd687e8dba85eb91ca 2026-09-03T00:16:07+07:00 feat: quet BRANCH_WEIGHTS nhanh vector thu hai — giu 1.0, loai vung duoi
+d97c01aabafd13354d70d069d6413624f4eba077 2026-09-02T23:42:49+07:00 docs: ghi ro chua tick duoc BUILD_TASKS vi ban tren main chua co chien dich Dot 3
+dbe10bb6388b1cf92657e25990ffc194568b51fb 2026-09-02T23:30:49+07:00 feat: K4 rerank top-50, K5 bang slot sau hon, X4 nhanh ngu nghia tieng Viet
+58518bc118bd2c7e388a84a8312a7004364af1fa 2026-09-02T23:14:33+07:00 feat: K3 nhanh vector thu hai vao RRF + pool sau rieng cho KIS
+e47637c21e7ffc5283b55b948455d360e871ab27 2026-09-02T22:57:26+07:00 feat: artefact bake-off K1 — 6 arm, co ca pool sau
+dc97298aeb1907455c9b8d9b60925b6e21b74a8e 2026-09-02T22:57:26+07:00 fix: chan ban dich rac di vao CLIP — kiem luc sinh va luc doc cache
+b5355eb669b2eb990ff12ef5c1f290fc61bfc74b 2026-09-02T21:39:36+07:00 feat: ban dich EN thu cong cho bake-off khi het han muc LLM
+7d8a923424197ef9263792dbf3ea449d24af4aca 2026-09-02T20:37:09+07:00 fix: Gemini cat cut dap an vi thinking token an het max_output_tokens
+ce3c9beb1145d6d3ba716f59d29c53122275c587 2026-09-02T19:03:20+07:00 fix: API preload dung encoder VECTOR_BACKEND chon, khong mac dinh CLIP
+5caeee7185915e608f61a0b0290ab18db2fd4ac2 2026-09-02T18:44:50+07:00 feat: kiem khong gian vector SigLIP2 + assert meta va preflight theo dung encoder dang chay
+0d28c38573459cf41bd3e760df683d149bc52abe 2026-09-02T18:26:21+07:00 feat: dong bang ban dich VI-EN + hai arm bake-off khong can LLM
+e4233ebe698a777b62d9b57d681a19bcb81735e1 2026-09-02T18:19:45+07:00 chore: mang bo de chinh thuc R1+R2 va may cham sang lan KIS
+4a4ba290a05f07b9aa582fce718a8db2c66e8fe2 2026-09-02T18:19:03+07:00 fix: tat multi-anchor va bo maxItems Anthropic tu choi
+43720695b0e85bff9b17808526690289accb4177 2026-09-01T16:47:19+07:00 chore(speckit): commit Spec Kit scaffold + constitution v2.0.0
+4bec8457f968e1b119ae101384e1e4215388c035 2026-08-31T18:36:15+07:00 feat(round2): official GT, eval tooling, docs & QA override
+5280431e0abaee966852f8c3c672930bddd1a681 2026-08-28T20:34:50+07:00 data(queries): add round 2 official query set
+fe7faca8a0ea50338ac20637add7c507b3565d57 2026-08-28T20:17:33+07:00 fix(qa): reject evidence-refusal answers
+adbfc12fdfb896add190cd8ea847fc80b3bcb089 2026-08-28T18:49:19+07:00 merge: sua Q&A truoc dot 2 — anchor, bo loc cau tu choi, bu shot vung trong
+8ade93ccf970422ec6288ace022920e16bc3e795 2026-08-28T18:49:06+07:00 docs: bao cao sua Q&A truoc dot 2 — nguyen nhan, do dac, viec con thieu
+85c7628711657e62c4808e23f1547e967f285d6b 2026-08-28T18:17:39+07:00 feat: bu shot khong co keyframe cho QA — frame nop cham duoc vung trong index
+65457dcd7cb8a7704cf1c4fcbf3ea72368d973b8 2026-08-28T18:05:45+07:00 feat: Q&A co anchor nhu KIS, moi anchor tim rieng roi xen ke theo hang
+73dbf417915e2ea85ae9e4c9eb407d5c2ae42262 2026-08-28T17:12:24+07:00 fix: QA het dap an thi nop 10 video dau bang retrieval, moi video mot dong

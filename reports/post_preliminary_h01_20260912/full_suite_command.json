@@ -1,0 +1,5 @@
+{
+  "command": ".venv/Scripts/python.exe -m pytest tests dev_set/tests -q",
+  "exit_code": 0,
+  "completed_at": "2026-09-12T07:35:51.2114094+07:00"
+}

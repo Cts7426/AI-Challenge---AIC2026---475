@@ -1,0 +1,8 @@
+{
+  "scope": "Audit artifact review, not system completion",
+  "json_links_manifest_checks_errors": [],
+  "recomputed_claims_match": true,
+  "temporary_test_directory_removed": true,
+  "selfcheck_remains_exit_1": true,
+  "production_changes_this_turn": []
+}

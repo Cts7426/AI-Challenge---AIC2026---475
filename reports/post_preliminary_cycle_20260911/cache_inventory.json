@@ -1,0 +1,20 @@
+{
+  "data/cache/llm": {
+    "exists": true,
+    "files": 2922,
+    "bytes": 4865781,
+    "content_snapshot": false
+  },
+  "data/cache/qa": {
+    "exists": false,
+    "files": 0,
+    "bytes": 0,
+    "content_snapshot": false
+  },
+  "data/cache/qa_hypotheses": {
+    "exists": true,
+    "files": 759,
+    "bytes": 1936687,
+    "content_snapshot": false
+  }
+}

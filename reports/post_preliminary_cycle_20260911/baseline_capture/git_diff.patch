@@ -1,0 +1,33 @@
+diff --git a/.claude/launch.json b/.claude/launch.json
+index 61b4fe8..34e193e 100644
+--- a/.claude/launch.json
++++ b/.claude/launch.json
+@@ -6,6 +6,12 @@
+       "runtimeExecutable": "python",
+       "runtimeArgs": ["-m", "uvicorn", "backend.api.main:app", "--port", "8000"],
+       "port": 8000
++    },
++    {
++      "name": "debug-ui",
++      "runtimeExecutable": "python",
++      "runtimeArgs": ["-m", "streamlit", "run", "app/debug_ui.py", "--server.port", "8501", "--server.headless", "true"],
++      "port": 8501
+     }
+   ]
+ }
+diff --git a/scripts/txt_to_run_queries.py b/scripts/txt_to_run_queries.py
+index 8adc9bc..9b8ff68 100644
+--- a/scripts/txt_to_run_queries.py
++++ b/scripts/txt_to_run_queries.py
+@@ -34,7 +34,10 @@ from pathlib import Path
+ 
+ TASK_TYPES = ("KIS", "QA", "TRAKE")
+ _SENTENCE_SPLIT = re.compile(r"\s*\.\s+|\s*\.\s*$")
+-_EVENT_LINE = re.compile(r"^E\d+\s*(.*)$")
++# `E1: mô tả` / `E1. mô tả` / `E1) mô tả` / `E1 mô tả` — dấu ngăn cách sau số
++# thứ tự KHÔNG phải nội dung, phải bỏ. Giữ lại thì mọi mô tả sự kiện gửi cho
++# LLM/CLIP đều mở đầu bằng ": " — không crash, chỉ làm bẩn query (lỗi im lặng).
++_EVENT_LINE = re.compile(r"^E\d+\s*[:.)\-–]?\s*(.*)$")
+ _FILENAME_TASK = re.compile(r"-(kis|qa|trake)$", re.IGNORECASE)
+ 
+ 

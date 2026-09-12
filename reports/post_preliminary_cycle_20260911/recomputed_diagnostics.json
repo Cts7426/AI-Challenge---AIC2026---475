@@ -1,0 +1,1244 @@
+{
+  "label": "POST-PRELIMINARY / POST-COMPETITION INTERNAL EVALUATION",
+  "scope": "Phân tích lại artefact lịch sử; không phải accuracy run mới",
+  "kis": {
+    "p1": {
+      "source": "dev_set/results/run_20260903_merge_p1_llm.json",
+      "n_queries": 20,
+      "video_found": 19,
+      "video_missing": [
+        "query-p1-19-kis"
+      ],
+      "video_below5": [
+        "query-p1-6-kis",
+        "query-p1-11-kis",
+        "query-p1-18-kis",
+        "query-p1-21-kis",
+        "query-p1-23-kis"
+      ],
+      "video_found_no_frame_pm40": [
+        "query-p1-6-kis",
+        "query-p1-7-kis",
+        "query-p1-13-kis",
+        "query-p1-18-kis",
+        "query-p1-20-kis",
+        "query-p1-22-kis",
+        "query-p1-23-kis"
+      ],
+      "video_found_no_frame_pm5": [
+        "query-p1-1-kis",
+        "query-p1-5-kis",
+        "query-p1-6-kis",
+        "query-p1-7-kis",
+        "query-p1-10-kis",
+        "query-p1-13-kis",
+        "query-p1-18-kis",
+        "query-p1-20-kis",
+        "query-p1-22-kis",
+        "query-p1-23-kis"
+      ],
+      "aggregate_recorded": {
+        "n_queries": 20,
+        "n_error": 0,
+        "final_video": 0.8,
+        "r_at_k_video": {
+          "1": 0.55,
+          "5": 0.7,
+          "20": 0.85,
+          "50": 0.95,
+          "100": 0.95
+        },
+        "video_found_in_100": 19,
+        "video_rank_1": 11,
+        "latency_median_s": 1.476,
+        "final_frame": {
+          "5": 0.25,
+          "15": 0.3,
+          "40": 0.33
+        }
+      }
+    },
+    "p2": {
+      "source": "dev_set/results/run_20260903_merge_p2_holdout.json",
+      "n_queries": 19,
+      "video_found": 16,
+      "video_missing": [
+        "query-p2-5-kis",
+        "query-p2-15-kis",
+        "query-p2-18-kis"
+      ],
+      "video_below5": [
+        "query-p2-1-kis",
+        "query-p2-2-kis",
+        "query-p2-3-kis",
+        "query-p2-6-kis",
+        "query-p2-24-kis",
+        "query-p2-25-kis"
+      ],
+      "video_found_no_frame_pm40": [
+        "query-p2-1-kis",
+        "query-p2-3-kis",
+        "query-p2-10-kis",
+        "query-p2-11-kis",
+        "query-p2-16-kis",
+        "query-p2-17-kis",
+        "query-p2-20-kis",
+        "query-p2-22-kis",
+        "query-p2-24-kis",
+        "query-p2-26-kis"
+      ],
+      "video_found_no_frame_pm5": [
+        "query-p2-1-kis",
+        "query-p2-3-kis",
+        "query-p2-4-kis",
+        "query-p2-6-kis",
+        "query-p2-10-kis",
+        "query-p2-11-kis",
+        "query-p2-13-kis",
+        "query-p2-14-kis",
+        "query-p2-16-kis",
+        "query-p2-17-kis",
+        "query-p2-20-kis",
+        "query-p2-22-kis",
+        "query-p2-24-kis",
+        "query-p2-25-kis",
+        "query-p2-26-kis"
+      ],
+      "aggregate_recorded": {
+        "n_queries": 19,
+        "n_error": 0,
+        "final_video": 0.6421,
+        "r_at_k_video": {
+          "1": 0.2105,
+          "5": 0.5263,
+          "20": 0.7895,
+          "50": 0.8421,
+          "100": 0.8421
+        },
+        "video_found_in_100": 16,
+        "video_rank_1": 4,
+        "latency_median_s": 1.674,
+        "final_frame": {
+          "5": 0.0316,
+          "15": 0.0947,
+          "40": 0.1895
+        }
+      }
+    }
+  },
+  "round3": {
+    "KIS": {
+      "n_queries": 26,
+      "status_counts": {
+        "success": 26
+      },
+      "latency_median_s": 6.6752575,
+      "latency_min_s": 4.098438,
+      "latency_max_s": 42.33681,
+      "latency_total_s": 257.006291
+    },
+    "QA": {
+      "n_queries": 8,
+      "status_counts": {
+        "success": 8
+      },
+      "latency_median_s": 359.60373500000003,
+      "latency_min_s": 94.839186,
+      "latency_max_s": 542.254463,
+      "latency_total_s": 2763.440312,
+      "placeholder_queries": [
+        "query-p2-14-qa",
+        "query-p2-24-qa",
+        "query-p2-6-qa"
+      ],
+      "placeholder_csvs": [
+        {
+          "path": "submissions/round3/submission/query-p2-14-qa.csv",
+          "rows": 100,
+          "todo_rows": 99
+        },
+        {
+          "path": "submissions/round3/submission/query-p2-24-qa.csv",
+          "rows": 100,
+          "todo_rows": 99
+        },
+        {
+          "path": "submissions/round3/submission/query-p2-6-qa.csv",
+          "rows": 100,
+          "todo_rows": 99
+        }
+      ]
+    },
+    "TRAKE": {
+      "n_queries": 2,
+      "status_counts": {
+        "success": 2
+      },
+      "latency_median_s": 76.576496,
+      "latency_min_s": 55.350084,
+      "latency_max_s": 97.802908,
+      "latency_total_s": 153.152992,
+      "candidate_provenance": [
+        {
+          "query_id": "query-p2-21-trake",
+          "n_candidates": 100,
+          "candidates_with_interpolation": 94,
+          "interpolated_positions": 209,
+          "total_positions": 400,
+          "top20_with_interpolation": 18
+        },
+        {
+          "query_id": "query-p2-34-trake",
+          "n_candidates": 100,
+          "candidates_with_interpolation": 79,
+          "interpolated_positions": 166,
+          "total_positions": 400,
+          "top20_with_interpolation": 8
+        }
+      ]
+    }
+  },
+  "trake_fixed_hit_experiment": {
+    "0": {
+      "before_mean_final": 0.0,
+      "after_mean_final": 0.0,
+      "delta": 0.0
+    },
+    "5": {
+      "before_mean_final": 0.0,
+      "after_mean_final": 0.0,
+      "delta": 0.0
+    },
+    "15": {
+      "before_mean_final": 0.0,
+      "after_mean_final": 0.0,
+      "delta": 0.0
+    },
+    "40": {
+      "before_mean_final": 0.25,
+      "after_mean_final": 0.25,
+      "delta": 0.0
+    }
+  },
+  "dress_single_anchor": {
+    "scope": "diagnostic_only_not_promotion",
+    "query_count": 19,
+    "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+    "strategy_counts": {
+      "single": 19
+    },
+    "fallback_reason_histogram": {
+      "null": 19
+    },
+    "planner_error_count": 0,
+    "anchor_count_histogram": {
+      "1": 19
+    },
+    "metrics": {
+      "final": 0.4,
+      "r_at_1": 0.05263157894736842,
+      "r_at_5": 0.42105263157894735,
+      "r_at_20": 0.42105263157894735,
+      "r_at_50": 0.5263157894736842,
+      "r_at_100": 0.5789473684210527
+    },
+    "latency_seconds": {
+      "median": 0.558034,
+      "p95_inclusive": 2.6684998999999783,
+      "max": 11.762234
+    },
+    "crash_count": 0,
+    "mapping_violation_count": 0,
+    "output_row_violation_count": 0,
+    "records": [
+      {
+        "query_id": "DRESS_KIS_01",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 11.762234,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_02",
+        "task_type": "KIS",
+        "r_at_1": 1.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 1.0,
+        "status": "success",
+        "failure_class": null,
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 1.280841,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_03",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 1.006493,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_04",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 1.007989,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_05",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.455936,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_06",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 1.658085,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_07",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.80864,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_08",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.516758,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_09",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.4,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.558034,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_10",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.742377,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_11",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.540533,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_12",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 1.0,
+        "final": 0.2,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.513628,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_13",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.532459,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_14",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 1.132743,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_15",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.543836,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_16",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.980034,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_17",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.420171,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_18",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.366713,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_19",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.4,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "single",
+        "fallback_reason": null,
+        "anchor_count": 1,
+        "anchor_clip_tokens": [
+          null
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 0.461132,
+        "runtime_fingerprint": "29bd614623abbe72f11dcc253fc23a81f46e01a6ea3085613fb9c5c5b75ea75e",
+        "error": null
+      }
+    ]
+  },
+  "dress_multi_anchor": {
+    "scope": "diagnostic_only_not_promotion",
+    "query_count": 19,
+    "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+    "strategy_counts": {
+      "multi": 19
+    },
+    "fallback_reason_histogram": {
+      "null": 19
+    },
+    "planner_error_count": 0,
+    "anchor_count_histogram": {
+      "2": 5,
+      "3": 14
+    },
+    "metrics": {
+      "final": 0.3263157894736842,
+      "r_at_1": 0.10526315789473684,
+      "r_at_5": 0.2631578947368421,
+      "r_at_20": 0.3157894736842105,
+      "r_at_50": 0.42105263157894735,
+      "r_at_100": 0.5263157894736842
+    },
+    "latency_seconds": {
+      "median": 10.485025,
+      "p95_inclusive": 15.958161099999955,
+      "max": 35.4016
+    },
+    "crash_count": 0,
+    "mapping_violation_count": 0,
+    "output_row_violation_count": 0,
+    "records": [
+      {
+        "query_id": "DRESS_KIS_01",
+        "task_type": "KIS",
+        "r_at_1": 1.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 1.0,
+        "status": "success",
+        "failure_class": null,
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          15,
+          12,
+          46
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 35.4016,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_02",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          17,
+          39,
+          24
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 11.071239,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_03",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          20,
+          12,
+          18
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 9.567853,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_04",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          9,
+          23,
+          19
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 8.956311,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_05",
+        "task_type": "KIS",
+        "r_at_1": 1.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 1.0,
+        "status": "success",
+        "failure_class": null,
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          34,
+          20,
+          38
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 8.962058,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_06",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          18,
+          11,
+          14
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 9.475774,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_07",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 2,
+        "anchor_clip_tokens": [
+          21,
+          9
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 9.064325,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_08",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          17,
+          22,
+          15
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 10.837775,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_09",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.4,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          24,
+          23,
+          17
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 12.546399,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_10",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 1.0,
+        "final": 0.2,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          18,
+          9,
+          10
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 11.041003,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_11",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          16,
+          14,
+          13
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 10.485025,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_12",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 2,
+        "anchor_clip_tokens": [
+          27,
+          18
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 9.15678,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_13",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 2,
+        "anchor_clip_tokens": [
+          17,
+          21
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 7.385192,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_14",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          17,
+          18,
+          10
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 12.478228,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_15",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.4,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          14,
+          9,
+          15
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 11.544409,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_16",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 0.0,
+        "final": 0.0,
+        "status": "success",
+        "failure_class": "retrieval_miss",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          26,
+          17,
+          27
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 13.797779,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_17",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 1.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.8,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 3,
+        "anchor_clip_tokens": [
+          20,
+          17,
+          28
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 11.803672,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_18",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 0.0,
+        "r_at_50": 0.0,
+        "r_at_100": 1.0,
+        "final": 0.2,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 2,
+        "anchor_clip_tokens": [
+          30,
+          15
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 8.479703,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      },
+      {
+        "query_id": "DRESS_KIS_19",
+        "task_type": "KIS",
+        "r_at_1": 0.0,
+        "r_at_5": 0.0,
+        "r_at_20": 1.0,
+        "r_at_50": 1.0,
+        "r_at_100": 1.0,
+        "final": 0.6,
+        "status": "success",
+        "failure_class": "wrong_frame",
+        "strategy": "multi",
+        "fallback_reason": null,
+        "anchor_count": 2,
+        "anchor_clip_tokens": [
+          26,
+          10
+        ],
+        "output_rows": 100,
+        "search_rows": 100,
+        "frame_mapping_violations": [],
+        "latency_seconds": 9.1707,
+        "runtime_fingerprint": "19b507d658b9a838a321f0100dd1024866a47071c4dd20756a41442b76872c9e",
+        "error": null
+      }
+    ]
+  },
+  "dress_qa": {
+    "n_queries": 5,
+    "status_counts": {
+      "success": 4,
+      "failed": 1
+    },
+    "total_seconds": 1647.534382,
+    "median_seconds": 360.622184
+  }
+}

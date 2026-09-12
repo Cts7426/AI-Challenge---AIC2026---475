@@ -1,0 +1,1681 @@
+{
+  "label": "POST-PRELIMINARY / POST-COMPETITION INTERNAL EVALUATION; historical trace analysis",
+  "sources": [
+    {
+      "path": "dev_set/results/run_20260827_154710_27d970c1/candidates.jsonl",
+      "sha256": "5e36c1d09dd07081ea4ba3c326751ddbbc47b08155c075c6728e7cc5c841042f",
+      "n_records": 25,
+      "per_query": [
+        {
+          "query_id": "DRESS_KIS_01",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 14.776983,
+            "total_seconds": 15.216742
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_02",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 1.01788,
+            "total_seconds": 1.018934
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_03",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.878817,
+            "total_seconds": 0.880105
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_04",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.924101,
+            "total_seconds": 0.925059
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_05",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.702793,
+            "total_seconds": 0.704115
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_06",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 1.001435,
+            "total_seconds": 1.002792
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_07",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.840512,
+            "total_seconds": 0.841782
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_08",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.862267,
+            "total_seconds": 0.863747
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_09",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.883006,
+            "total_seconds": 0.88401
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_10",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.881731,
+            "total_seconds": 0.882875
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_11",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 1.050597,
+            "total_seconds": 1.051683
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_12",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.849357,
+            "total_seconds": 0.850093
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_13",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.81117,
+            "total_seconds": 0.812493
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_14",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.852451,
+            "total_seconds": 0.853595
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_15",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.920193,
+            "total_seconds": 0.921112
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_16",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.821952,
+            "total_seconds": 0.822952
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_17",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.931778,
+            "total_seconds": 0.932722
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_18",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.814821,
+            "total_seconds": 0.816043
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_KIS_19",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 0.850439,
+            "total_seconds": 0.851462
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_QA_01",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 360.354565,
+            "total_seconds": 360.622184
+          },
+          "answer_text": "Nguyễn Minh Châu",
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 3,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 1,
+            "video_expand:llm:legacy": 2
+          }
+        },
+        {
+          "query_id": "DRESS_QA_02",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 208.726326,
+            "total_seconds": 210.647438
+          },
+          "answer_text": "Hàu xào bông cải",
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 18,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 5,
+            "main:llm:legacy": 4,
+            "video_expand:llm:legacy": 9
+          }
+        },
+        {
+          "query_id": "DRESS_QA_03",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 476.121809,
+            "total_seconds": 476.212048
+          },
+          "answer_text": "Tự cung tự cấp cho gia đình",
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 1,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:llm:legacy": 1
+          }
+        },
+        {
+          "query_id": "DRESS_QA_04",
+          "task_type": "QA",
+          "status": "failed",
+          "failure_class": "missing_evidence",
+          "error": "QANoValidHypothesisError: Thử 18 shot (kể cả ứng viên nhánh text và mở rộng trong video) đều không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không.",
+          "timings": {
+            "total_seconds": 404.152386
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 0,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "DRESS_QA_05",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 194.33361,
+            "total_seconds": 195.900326
+          },
+          "answer_text": "Mướp xào đậu phộng",
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 19,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 5,
+            "main:llm:legacy": 5,
+            "video_expand:llm:legacy": 9
+          }
+        },
+        {
+          "query_id": "DRESS_TRAKE_01",
+          "task_type": "TRAKE",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 17.857886,
+            "total_seconds": 17.873154
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "f9b986361ce69683e9c0b013858baba6d87d127d707f8f2c44e0461a6f2119db",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        }
+      ]
+    },
+    {
+      "path": "submissions/round2/trace.jsonl",
+      "sha256": "b09047c3e74016d89f34b6a35dfe540ce1457a2a266e36cabf3deba8d7b2f7ef",
+      "n_records": 33,
+      "per_query": [
+        {
+          "query_id": "query-p2-1-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 15.230344,
+            "total_seconds": 16.567853
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-10-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 4.266381,
+            "total_seconds": 4.282925
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-11-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.578039,
+            "total_seconds": 2.584563
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-12-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 256.485611,
+            "total_seconds": 256.78233
+          },
+          "answer_text": "7 cái",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 3,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:detector:legacy": 1,
+            "video_expand:detector:legacy": 2
+          }
+        },
+        {
+          "query_id": "query-p2-13-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.711765,
+            "total_seconds": 3.744921
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-14-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.761582,
+            "total_seconds": 3.777077
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-15-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.447373,
+            "total_seconds": 3.451204
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-16-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.985863,
+            "total_seconds": 2.994199
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-17-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.189463,
+            "total_seconds": 2.197595
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-18-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.707062,
+            "total_seconds": 2.713936
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-19-qa",
+          "task_type": "QA",
+          "status": "failed",
+          "failure_class": "missing_evidence",
+          "error": "QANoValidHypothesisError: Thử 18 shot (kể cả ứng viên nhánh text và mở rộng trong video) đều không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không.",
+          "timings": {
+            "total_seconds": 388.926622
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 0,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-2-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 4.137589,
+            "total_seconds": 4.156939
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-20-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.594972,
+            "total_seconds": 2.603454
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-21-trake",
+          "task_type": "TRAKE",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 33.239745,
+            "total_seconds": 37.197971
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-22-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.321948,
+            "total_seconds": 2.343279
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-23-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 514.622723,
+            "total_seconds": 514.909374
+          },
+          "answer_text": "15‰",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 3,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 2,
+            "video_expand:llm:legacy": 1
+          }
+        },
+        {
+          "query_id": "query-p2-24-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.85223,
+            "total_seconds": 2.858376
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-25-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 2.33454,
+            "total_seconds": 2.342052
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-26-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.120965,
+            "total_seconds": 3.129379
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-27-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 242.477175,
+            "total_seconds": 242.660451
+          },
+          "answer_text": "Số 2",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 2,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "video_expand:llm:legacy": 2
+          }
+        },
+        {
+          "query_id": "query-p2-28-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 184.293482,
+            "total_seconds": 185.445847
+          },
+          "answer_text": "Mực",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 13,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:llm:legacy": 4,
+            "video_expand:llm:legacy": 9
+          }
+        },
+        {
+          "query_id": "query-p2-29-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 319.251778,
+            "total_seconds": 319.689167
+          },
+          "answer_text": "100g",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 5,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:llm:legacy": 1,
+            "video_expand:llm:legacy": 4
+          }
+        },
+        {
+          "query_id": "query-p2-3-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.339652,
+            "total_seconds": 3.350599
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-30-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 176.47685,
+            "total_seconds": 176.699974
+          },
+          "answer_text": "Tôm",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 3,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:llm:legacy": 1,
+            "video_expand:llm:legacy": 2
+          }
+        },
+        {
+          "query_id": "query-p2-4-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.226848,
+            "total_seconds": 3.24735
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-5-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.038222,
+            "total_seconds": 3.05361
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-6-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 3.51859,
+            "total_seconds": 3.525428
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-7-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 367.044528,
+            "total_seconds": 367.361244
+          },
+          "answer_text": "4",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 6,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 1,
+            "main:llm:legacy": 1,
+            "video_expand:llm:legacy": 4
+          }
+        },
+        {
+          "query_id": "query-p2-8-trake",
+          "task_type": "TRAKE",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 24.949249,
+            "total_seconds": 27.996837
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-9-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 158.050931,
+            "total_seconds": 158.816546
+          },
+          "answer_text": "Cá chim",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 9,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:llm:legacy": 3,
+            "video_expand:llm:legacy": 6
+          }
+        },
+        {
+          "query_id": "query-p2-19-qa",
+          "task_type": "QA",
+          "status": "failed",
+          "failure_class": "missing_evidence",
+          "error": "QANoValidHypothesisError: Thử 18 shot (kể cả ứng viên nhánh text và mở rộng trong video) đều không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không.",
+          "timings": {
+            "total_seconds": 99.976925
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 0,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-19-qa",
+          "task_type": "QA",
+          "status": "failed",
+          "failure_class": "missing_evidence",
+          "error": "QANoValidHypothesisError: Thử 18 shot (kể cả ứng viên nhánh text và mở rộng trong video) đều không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) của các shot này có rỗng không.",
+          "timings": {
+            "total_seconds": 12.612949
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 0,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-19-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "total_seconds": 0.0
+          },
+          "answer_text": "Lý Thường Kiệt",
+          "runtime_fingerprint": "a68957b319ded3553aa899826fa023916d9cbf50c945bc4688d262edcb6162f6",
+          "n_answers": 100,
+          "n_hypotheses": 1,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "null": 1
+          }
+        }
+      ]
+    },
+    {
+      "path": "submissions/round3/trace.jsonl",
+      "sha256": "d64767f4005c4dc2ea479aabcabb833c87f5adc1bd2d44f9d6e79479a767b983",
+      "n_records": 36,
+      "per_query": [
+        {
+          "query_id": "query-p2-1-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 41.677172,
+            "total_seconds": 42.33681
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-10-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 5.724081,
+            "total_seconds": 5.83228
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-11-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 4.64589,
+            "total_seconds": 4.655403
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-12-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 4.992417,
+            "total_seconds": 4.999853
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-13-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 5.776548,
+            "total_seconds": 5.782822
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-14-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 186.597139,
+            "total_seconds": 187.484379
+          },
+          "answer_text": "TODO",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 10,
+          "n_placeholder_hypotheses": 10,
+          "qa_provenance_counts": {
+            "placeholder:no_answer:legacy": 10
+          }
+        },
+        {
+          "query_id": "query-p2-15-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 6.58352,
+            "total_seconds": 6.62437
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-16-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 6.597272,
+            "total_seconds": 6.621083
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-17-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 7.125398,
+            "total_seconds": 7.15212
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-18-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 349.620115,
+            "total_seconds": 350.240136
+          },
+          "answer_text": "Trường tiểu học Công Hải",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 7,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 4,
+            "main:llm:legacy": 1,
+            "video_expand:llm:legacy": 2
+          }
+        },
+        {
+          "query_id": "query-p2-19-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 6.533969,
+            "total_seconds": 6.580676
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-2-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 9.031685,
+            "total_seconds": 9.05351
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-20-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 5.071097,
+            "total_seconds": 5.088096
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-21-trake",
+          "task_type": "TRAKE",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 55.314476,
+            "total_seconds": 55.350084
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-22-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 7.738035,
+            "total_seconds": 8.158847
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-23-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 8.20382,
+            "total_seconds": 8.250641
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-24-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 93.97396,
+            "total_seconds": 94.839186
+          },
+          "answer_text": "TODO",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 10,
+          "n_placeholder_hypotheses": 10,
+          "qa_provenance_counts": {
+            "placeholder:no_answer:legacy": 10
+          }
+        },
+        {
+          "query_id": "query-p2-25-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 6.206041,
+            "total_seconds": 6.245416
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-26-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 4.030593,
+            "total_seconds": 4.098438
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-27-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 368.458339,
+            "total_seconds": 368.967334
+          },
+          "answer_text": "1 màu",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 5,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "main:detector:legacy": 1,
+            "video_expand:detector:legacy": 4
+          }
+        },
+        {
+          "query_id": "query-p2-28-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 6.041193,
+            "total_seconds": 6.115193
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-29-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 5.261177,
+            "total_seconds": 5.2958
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-3-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 8.582134,
+            "total_seconds": 8.616169
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-30-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 15.780002,
+            "total_seconds": 15.810987
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-31-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 9.28054,
+            "total_seconds": 9.373072
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-32-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 13.177499,
+            "total_seconds": 13.267784
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-33-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 6.704779,
+            "total_seconds": 6.726145
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-34-trake",
+          "task_type": "TRAKE",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 97.792106,
+            "total_seconds": 97.802908
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-35-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 541.557455,
+            "total_seconds": 542.254463
+          },
+          "answer_text": "4",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 6,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 1,
+            "video_expand:llm:legacy": 5
+          }
+        },
+        {
+          "query_id": "query-p2-36-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 19.133106,
+            "total_seconds": 19.273952
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-4-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 4.174967,
+            "total_seconds": 4.221507
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-5-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 442.761762,
+            "total_seconds": 443.227624
+          },
+          "answer_text": "10 tỉnh, thành",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 2,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 1,
+            "video_expand:llm:legacy": 1
+          }
+        },
+        {
+          "query_id": "query-p2-6-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 344.033994,
+            "total_seconds": 345.094474
+          },
+          "answer_text": "TODO",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 10,
+          "n_placeholder_hypotheses": 10,
+          "qa_provenance_counts": {
+            "placeholder:no_answer:legacy": 10
+          }
+        },
+        {
+          "query_id": "query-p2-7-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 11.283171,
+            "total_seconds": 11.332201
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        },
+        {
+          "query_id": "query-p2-8-qa",
+          "task_type": "QA",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "qa_seconds": 429.426826,
+            "total_seconds": 431.332716
+          },
+          "answer_text": "tuoi tretv",
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 7,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {
+            "text_fallback:llm:legacy": 3,
+            "main:llm:legacy": 2,
+            "video_expand:llm:legacy": 2
+          }
+        },
+        {
+          "query_id": "query-p2-9-kis",
+          "task_type": "KIS",
+          "status": "success",
+          "failure_class": null,
+          "error": null,
+          "timings": {
+            "retrieval_seconds": 25.434427,
+            "total_seconds": 25.493116
+          },
+          "answer_text": null,
+          "runtime_fingerprint": "ebbc682ef2ee97ea00a9ea30e792ca25c05f14a7f9ad9a9427978c6bc98a70fd",
+          "n_answers": 100,
+          "n_hypotheses": 0,
+          "n_placeholder_hypotheses": 0,
+          "qa_provenance_counts": {}
+        }
+      ]
+    }
+  ]
+}

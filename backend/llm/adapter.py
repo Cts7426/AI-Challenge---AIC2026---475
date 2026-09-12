@@ -5,13 +5,13 @@
 # backend chỉ sửa một dòng config, không phải lùng sửa từng chỗ gọi rải rác.
 #
 # ===== Cấu hình bằng biến môi trường =====
-#   LLM_BACKEND      = "api" (mặc định) | "gemini" | "local"
-#   LLM_API_MODEL    = model khi dùng API (mặc định claude-opus-5)
+#   LLM_BACKEND      = "api" | "gemini" | "local" — bắt buộc chọn tường minh
+#   LLM_API_MODEL    = model API do operator đặt trong process
 #   ANTHROPIC_API_KEY= bắt buộc khi LLM_BACKEND=api
-#   LLM_GEMINI_MODEL = model khi dùng Gemini (mặc định gemini-3.6-flash — xem
+#   LLM_GEMINI_MODEL = model Gemini do operator đặt (xem
 #                      lý do không mặc định "pro"/"-latest" ở DEFAULT_GEMINI_MODEL)
 #   GEMINI_API_KEY   = bắt buộc khi LLM_BACKEND=gemini, lấy tại aistudio.google.com/apikey
-#   LLM_LOCAL_MODEL  = model Ollama khi chạy offline (mặc định qwen2.5:7b-instruct)
+#   LLM_LOCAL_MODEL  = model Ollama do operator đặt khi chạy offline
 #   LLM_LOCAL_URL    = địa chỉ Ollama (mặc định http://localhost:11434)
 #   LLM_CACHE_DIR    = thư mục cache (mặc định data/cache/llm)
 #   LLM_NO_CACHE=1   → tắt cache (khi muốn đo độ trễ thật)
@@ -173,24 +173,7 @@ def print_usage() -> None:
 # -------------------------------------------------------------------- backends
 
 def _nap_dotenv() -> None:
-    """Điền các biến còn THIẾU từ `.env` vào os.environ.
-
-    Hai sửa so với bản cũ (bản cũ nằm lọt trong `_anthropic_client()`):
-
-    1. KHÔNG ghi đè biến operator đã export. Bản cũ gán thẳng
-       `os.environ[k] = v`, nên `.env` LUÔN thắng — operator export
-       `LLM_API_MODEL=claude-sonnet-5` mà `.env` ghi opus thì chạy opus, im
-       lặng, không cảnh báo. Đúng thứ `_llm_runtime_errors()` trong run.py sinh
-       ra để chặn ("một biến bị quên không âm thầm rơi về API/Opus mặc định"),
-       nhưng preflight kiểm os.environ TRƯỚC khi adapter nạp `.env` nên không
-       thấy. Nay `.env` chỉ VÁ CHỖ TRỐNG, export tường minh luôn thắng.
-
-    2. Gọi được từ mọi backend, không riêng Anthropic. Trước đây `.env` chỉ
-       được nạp bên trong `_anthropic_client()`, nên `LLM_BACKEND=gemini` với
-       GEMINI_API_KEY nằm trong `.env` sẽ QUA được preflight của run.py (hàm
-       đó có đọc `.env`) rồi mới chết ở adapter với "Thiếu GEMINI_API_KEY" —
-       lệch hợp đồng giữa hai tầng.
-    """
+    """Chỉ điền secret thiếu; `.env` không được chọn model/backend hoặc policy."""
     env_path = REPO_ROOT / ".env"
     if not env_path.is_file():
         return
@@ -199,8 +182,25 @@ def _nap_dotenv() -> None:
             continue
         k, v = line.split("=", 1)
         k, v = k.strip(), v.strip().strip('"').strip("'")
-        if k and v and not os.environ.get(k):
+        if k in {"ANTHROPIC_API_KEY", "GEMINI_API_KEY"} and v and not os.environ.get(k):
             os.environ[k] = v
+
+
+class RuntimeSelectionError(ValueError):
+    """Lỗi operator chưa chọn runtime, không phải lỗi dịch để fallback sang VI."""
+
+
+def selected_runtime() -> tuple[str, str]:
+    """Đọc backend/model từ process; thiếu/sai thì ValueError, không I/O hay default."""
+    backend = os.environ.get("LLM_BACKEND", "").strip()
+    model_env = {"api": "LLM_API_MODEL", "gemini": "LLM_GEMINI_MODEL",
+                 "local": "LLM_LOCAL_MODEL"}.get(backend)
+    if model_env is None:
+        raise RuntimeSelectionError("LLM_BACKEND phải được chọn tường minh: api, gemini hoặc local")
+    model = os.environ.get(model_env, "").strip()
+    if not model:
+        raise RuntimeSelectionError(f"{model_env} phải được chọn tường minh trong process")
+    return backend, model
 
 
 def _anthropic_client():
@@ -511,22 +511,14 @@ def llm(
     temperature: BỊ BỎ QUA ở backend "api" (model Claude mới không nhận), CÓ
     tác dụng ở backend "gemini" — xem đầu file.
     """
-    backend = os.environ.get("LLM_BACKEND", "api")
+    backend, selected_model = selected_runtime()
+    if model is not None and model != selected_model:
+        raise RuntimeSelectionError("model của lời gọi khác model operator đã chọn trong process")
+    model = selected_model
     if backend == "api":
-        model = model or os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL)
         if temperature not in (None, 0):
             print(f"[llm] bỏ qua temperature={temperature}: model {model} không nhận "
                   "tham số này. Cần đa dạng thì dùng n>1 hoặc mô tả trong prompt.")
-    elif backend == "gemini":
-        model = model or os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
-        # Gemini NHẬN temperature bình thường (không như Claude) — không cảnh
-        # báo/bỏ qua ở đây.
-    elif backend == "local":
-        model = model or os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL)
-    else:
-        raise ValueError(
-            f"LLM_BACKEND={backend!r} không hợp lệ (chỉ 'api', 'gemini' hoặc 'local')."
-        )
 
     key = _cache_key({
         "prompt": prompt, "schema": json_schema, "model": model, "n": n,

@@ -21,6 +21,8 @@ def test_hash_json_khong_phu_thuoc_thu_tu_key():
 
 
 def test_runtime_fingerprint_khoa_qa_mode_va_model_env_da_chon(monkeypatch):
+    # H01A không còn tự chọn api: fixture phải chỉ rõ backend đang kiểm.
+    monkeypatch.setenv("LLM_BACKEND", "api")
     monkeypatch.setenv("QA_INFERENCE_MODE", "legacy")
     monkeypatch.setenv("LLM_API_MODEL", "sonnet-manual-a")
     legacy_a, configs_a, provenance_a = _runtime_snapshot("tune")

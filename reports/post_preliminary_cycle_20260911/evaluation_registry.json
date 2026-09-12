@@ -1,0 +1,152 @@
+{
+  "sets": [
+    {
+      "path": "dev_set/queries/dress25_kis.jsonl",
+      "sha256": "8495c58182380aff65c1c5fd6678ff5ae4196ad5d33fd2f460dedc8bbeda5edf",
+      "records": 19,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/dress25_qa.jsonl",
+      "sha256": "46736bd1e7fcf8fbbe1af6e96e8060efa891df203e898c0255378680d00f12e6",
+      "records": 5,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/dress25_trake.jsonl",
+      "sha256": "2d93ea61d5e3775d16c5306ea76b08971f6ec3dfc6a7b6998ffbe72f420aef1a",
+      "records": 1,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/full_test.jsonl",
+      "sha256": "31d4b99f993f88bbc2dba2db0b7ce5afa415458f7c2f28021b60bbf1b65a1c9e",
+      "records": 4,
+      "role_for_new_cycle": "smoke_test",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/gen10_qa.jsonl",
+      "sha256": "815bfe6a97a5554b7712e6c7b4506da7f9ee9aaa174b4873a8ad543126e29a95",
+      "records": 10,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/gen10_trake.jsonl",
+      "sha256": "c776bcf5ce0a5058632ed732a1cb3476270987668050c6a6d9909886d4a43da5",
+      "records": 10,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/gen2_qa.jsonl",
+      "sha256": "c5d846f28e9ade12345af4649b6c48df45fcdb7dcb9aa41f0911633f369837d5",
+      "records": 2,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/gen2_trake.jsonl",
+      "sha256": "034dad5a34290f7ff23beb1bd4ea04b6f24946ca1bd7b302a307262f7c7cc10d",
+      "records": 2,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/holdout_kis.jsonl",
+      "sha256": "aa3d760b33151fe84fc21be705ca0682fa2f0dd413d7d1654e86763e9634ce7a",
+      "records": 36,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/holdout_qa.jsonl",
+      "sha256": "7050f5d53813aa67655e78e2b14e77367ed4cab86aef253d45f3275af2f8f604",
+      "records": 27,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/holdout_trake.jsonl",
+      "sha256": "cd63507e5a4a9111b048a8eeb44875aaf0494f3f510a71581cd3a439ec4d0072",
+      "records": 29,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/holdout_trake_single_window.jsonl",
+      "sha256": "0de761873c984f4bd18e0f6cb5952d2aadb3088f25f7881c2f0c2e51548808c4",
+      "records": 29,
+      "role_for_new_cycle": "diagnostic_consumed",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/synth_trake.jsonl",
+      "sha256": "a311710c6eba26af1ce0e73e4ced6bbe2481f2ba5edbeafe6aec95f41c98f87b",
+      "records": 6,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/tune_kis.jsonl",
+      "sha256": "11d8bf8acdfc03bc7054be2628a1f9dc3459bf8b0d921d583f445e228825daae",
+      "records": 23,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/tune_qa.jsonl",
+      "sha256": "bf28a3b4954f0fdad82600f342e4efcca742f00d3dfae5008b57c64a049248cc",
+      "records": 5,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/queries/tune_trake.jsonl",
+      "sha256": "cd9a526246fb3254c23256106de7dff725e1d7c0952c73fa693ece9b623286ef",
+      "records": 2,
+      "role_for_new_cycle": "tuning",
+      "independent": false,
+      "human_verified_all": false
+    },
+    {
+      "path": "dev_set/ground_truth/official_r1r2.jsonl",
+      "sha256": "61f75b2cce14615c39bc281f3ef53b94761f41e4f4c82d44543437e32b90e4ca",
+      "records": 55,
+      "role_for_new_cycle": "competition_derived_diagnostic_consumed_validation",
+      "independent": false,
+      "human_verified_all": false,
+      "warning": "confidence from submission-score priors and assistant labels is not human ground truth"
+    },
+    {
+      "path": "dev_set/manifests/batch1_holdout13.json",
+      "sha256": "60007d08ba38380759e1e635d808efc2adb55732512dc04fa3f38ee177d8b88c",
+      "records": 13,
+      "human_verified_records": 6,
+      "role_for_new_cycle": "consumed_regression_partial_verified",
+      "independent": false,
+      "human_verified_all": false
+    }
+  ],
+  "ready_independent_set": null,
+  "proposed_new_set_status": "not_created_not_verified"
+}

@@ -1,0 +1,229 @@
+{
+  "source": "dev_set/ground_truth/official_r1r2.en.json",
+  "model": "ViT-B-32-quickgelu",
+  "n_strings": 55,
+  "payload_budget": 75,
+  "over_budget": [],
+  "per_query": [
+    {
+      "query_id": "query-p1-1-kis",
+      "payload_tokens": 20
+    },
+    {
+      "query_id": "query-p1-10-kis",
+      "payload_tokens": 19
+    },
+    {
+      "query_id": "query-p1-11-kis",
+      "payload_tokens": 35
+    },
+    {
+      "query_id": "query-p1-12-kis",
+      "payload_tokens": 22
+    },
+    {
+      "query_id": "query-p1-13-kis",
+      "payload_tokens": 22
+    },
+    {
+      "query_id": "query-p1-14-kis",
+      "payload_tokens": 24
+    },
+    {
+      "query_id": "query-p1-15-qa",
+      "payload_tokens": 10
+    },
+    {
+      "query_id": "query-p1-16-trake",
+      "payload_tokens": 20
+    },
+    {
+      "query_id": "query-p1-17-qa",
+      "payload_tokens": 20
+    },
+    {
+      "query_id": "query-p1-18-kis",
+      "payload_tokens": 28
+    },
+    {
+      "query_id": "query-p1-19-kis",
+      "payload_tokens": 22
+    },
+    {
+      "query_id": "query-p1-2-kis",
+      "payload_tokens": 11
+    },
+    {
+      "query_id": "query-p1-20-kis",
+      "payload_tokens": 24
+    },
+    {
+      "query_id": "query-p1-21-kis",
+      "payload_tokens": 26
+    },
+    {
+      "query_id": "query-p1-22-kis",
+      "payload_tokens": 16
+    },
+    {
+      "query_id": "query-p1-23-kis",
+      "payload_tokens": 43
+    },
+    {
+      "query_id": "query-p1-24-kis",
+      "payload_tokens": 36
+    },
+    {
+      "query_id": "query-p1-25-kis",
+      "payload_tokens": 23
+    },
+    {
+      "query_id": "query-p1-3-qa",
+      "payload_tokens": 19
+    },
+    {
+      "query_id": "query-p1-4-kis",
+      "payload_tokens": 17
+    },
+    {
+      "query_id": "query-p1-5-kis",
+      "payload_tokens": 17
+    },
+    {
+      "query_id": "query-p1-6-kis",
+      "payload_tokens": 38
+    },
+    {
+      "query_id": "query-p1-7-kis",
+      "payload_tokens": 17
+    },
+    {
+      "query_id": "query-p1-8-kis",
+      "payload_tokens": 24
+    },
+    {
+      "query_id": "query-p1-9-qa",
+      "payload_tokens": 18
+    },
+    {
+      "query_id": "query-p2-1-kis",
+      "payload_tokens": 26
+    },
+    {
+      "query_id": "query-p2-10-kis",
+      "payload_tokens": 17
+    },
+    {
+      "query_id": "query-p2-11-kis",
+      "payload_tokens": 22
+    },
+    {
+      "query_id": "query-p2-12-qa",
+      "payload_tokens": 11
+    },
+    {
+      "query_id": "query-p2-13-kis",
+      "payload_tokens": 27
+    },
+    {
+      "query_id": "query-p2-14-kis",
+      "payload_tokens": 26
+    },
+    {
+      "query_id": "query-p2-15-kis",
+      "payload_tokens": 15
+    },
+    {
+      "query_id": "query-p2-16-kis",
+      "payload_tokens": 30
+    },
+    {
+      "query_id": "query-p2-17-kis",
+      "payload_tokens": 26
+    },
+    {
+      "query_id": "query-p2-18-kis",
+      "payload_tokens": 24
+    },
+    {
+      "query_id": "query-p2-19-qa",
+      "payload_tokens": 14
+    },
+    {
+      "query_id": "query-p2-2-kis",
+      "payload_tokens": 8
+    },
+    {
+      "query_id": "query-p2-20-kis",
+      "payload_tokens": 20
+    },
+    {
+      "query_id": "query-p2-21-trake",
+      "payload_tokens": 35
+    },
+    {
+      "query_id": "query-p2-22-kis",
+      "payload_tokens": 16
+    },
+    {
+      "query_id": "query-p2-23-qa",
+      "payload_tokens": 19
+    },
+    {
+      "query_id": "query-p2-24-kis",
+      "payload_tokens": 28
+    },
+    {
+      "query_id": "query-p2-25-kis",
+      "payload_tokens": 47
+    },
+    {
+      "query_id": "query-p2-26-kis",
+      "payload_tokens": 24
+    },
+    {
+      "query_id": "query-p2-27-qa",
+      "payload_tokens": 11
+    },
+    {
+      "query_id": "query-p2-28-qa",
+      "payload_tokens": 22
+    },
+    {
+      "query_id": "query-p2-29-qa",
+      "payload_tokens": 37
+    },
+    {
+      "query_id": "query-p2-3-kis",
+      "payload_tokens": 13
+    },
+    {
+      "query_id": "query-p2-30-qa",
+      "payload_tokens": 17
+    },
+    {
+      "query_id": "query-p2-4-kis",
+      "payload_tokens": 25
+    },
+    {
+      "query_id": "query-p2-5-kis",
+      "payload_tokens": 27
+    },
+    {
+      "query_id": "query-p2-6-kis",
+      "payload_tokens": 29
+    },
+    {
+      "query_id": "query-p2-7-qa",
+      "payload_tokens": 21
+    },
+    {
+      "query_id": "query-p2-8-trake",
+      "payload_tokens": 26
+    },
+    {
+      "query_id": "query-p2-9-qa",
+      "payload_tokens": 19
+    }
+  ]
+}

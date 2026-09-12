@@ -1,0 +1,8 @@
+{
+  "exit_code": 1,
+  "offline_model_downloads": true,
+  "llm_backend": null,
+  "completed_at": "2026-09-12T07:26:51.7772924+07:00",
+  "llm_api_model": null,
+  "command": ".venv/Scripts/python.exe scripts/preflight_check.py --profile development --json"
+}

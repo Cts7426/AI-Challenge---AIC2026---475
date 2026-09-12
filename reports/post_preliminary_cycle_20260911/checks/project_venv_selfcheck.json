@@ -1,0 +1,9 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "scripts/selfcheck.py"
+  ],
+  "exit_code": 1,
+  "seconds": 284.1224322319031,
+  "temporary_directory": "C:\\dev\\aic2026\\reports\\post_preliminary_cycle_20260911\\checks\\runtime_tmp"
+}

@@ -1,0 +1,95 @@
+{
+  "KIS": {
+    "records": 26,
+    "process_success": 26,
+    "latency_median_s": 6.6752575,
+    "latency_min_s": 4.098438,
+    "latency_max_s": 42.33681,
+    "latency_total_s": 257.006291,
+    "source_counts_in_kept_rows": {
+      "vector": 984,
+      "metadata": 2592,
+      "asr": 1338,
+      "ocr": 333,
+      "ocr_probe": 424,
+      "objects": 416
+    }
+  },
+  "QA": {
+    "records": 8,
+    "process_success": 8,
+    "latency_median_s": 359.60373500000003,
+    "latency_min_s": 94.839186,
+    "latency_max_s": 542.254463,
+    "latency_total_s": 2763.440312,
+    "placeholder_queries": [
+      "query-p2-14-qa",
+      "query-p2-24-qa",
+      "query-p2-6-qa"
+    ]
+  },
+  "TRAKE": {
+    "records": 2,
+    "process_success": 2,
+    "latency_median_s": 76.576496,
+    "latency_min_s": 55.350084,
+    "latency_max_s": 97.802908,
+    "latency_total_s": 153.152992,
+    "per_query": [
+      {
+        "query_id": "query-p2-21-trake",
+        "n_candidates": 100,
+        "event_count": 4,
+        "candidates_with_interpolation": 94,
+        "positions_total": 400,
+        "interpolated_positions": 209,
+        "top20_with_interpolation": 18,
+        "top1": {
+          "video_id": "L26_V156",
+          "score": 50.09517652119126,
+          "frame_ids": [
+            3200,
+            5120,
+            5312,
+            6806
+          ],
+          "keyframe_ids": [
+            "L26_V156#k0068",
+            "L26_V156#k0106",
+            "L26_V156#k0109",
+            "L26_V156#k0140"
+          ],
+          "n_hit_events": 4,
+          "has_full_order": true
+        }
+      },
+      {
+        "query_id": "query-p2-34-trake",
+        "n_candidates": 100,
+        "event_count": 4,
+        "candidates_with_interpolation": 79,
+        "positions_total": 400,
+        "interpolated_positions": 166,
+        "top20_with_interpolation": 8,
+        "top1": {
+          "video_id": "L24_V026",
+          "score": 44.80588128828859,
+          "frame_ids": [
+            9672,
+            12028,
+            12400,
+            12896
+          ],
+          "keyframe_ids": [
+            "L24_V026#k0122",
+            "L24_V026#k0153",
+            "L24_V026#k0160",
+            "L24_V026#k0164"
+          ],
+          "n_hit_events": 4,
+          "has_full_order": true
+        }
+      }
+    ]
+  }
+}

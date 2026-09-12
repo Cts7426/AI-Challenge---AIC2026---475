@@ -1,0 +1,155 @@
+{
+  "passed": 12,
+  "failed": 2,
+  "skipped": 7,
+  "profile": "development",
+  "checks": [
+    {
+      "group": "A. Môi trường",
+      "name": "interpreter Python",
+      "status": "ĐẠT",
+      "detail": "3.14.0 tại C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+      "ms": 0.005099999725644011
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "thư viện lõi",
+      "status": "ĐẠT",
+      "detail": "đủ: pandas, pyarrow, numpy, elasticsearch, pymilvus",
+      "ms": 2106.3788000001296
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "runtime Q&A",
+      "status": "KHÔNG ĐẠT",
+      "detail": "LLM_BACKEND phải được chọn tường minh: api, gemini hoặc local",
+      "ms": 6.0466000004453235
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "thư viện tuỳ chọn",
+      "status": "BỎ QUA",
+      "detail": "streamlit → mất UI debug (D2.1)",
+      "ms": 57711.60089999921
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "Elasticsearch",
+      "status": "BỎ QUA",
+      "detail": "không có ai nghe ở http://127.0.0.1:9200 — chạy `docker compose up -d` trước",
+      "ms": 2142.5060000001395
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "Milvus",
+      "status": "BỎ QUA",
+      "detail": "ConnectionError: Không kết nối được Milvus tại http://localhost:19530. Đã chạy `docker compose up -d milvus` chưa? (Milvus cần ~60-90s để lên)",
+      "ms": 2361.0943000003317
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "nhánh search có chỗ dựa",
+      "status": "BỎ QUA",
+      "detail": "không hỏi được Milvus (Không kết nối được Milvus tại http://localhost:19530. Đã chạy `docker compose up -d milvus` chưa? (Milvus cần ~60-90s để lên)) — chạy `docker compose up -d` trước",
+      "ms": 2330.3446999998414
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "API /health",
+      "status": "BỎ QUA",
+      "detail": "API chưa chạy (URLError) — chỉ cần khi thao tác qua UI",
+      "ms": 4082.1080999994592
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "parquet lõi",
+      "status": "ĐẠT",
+      "detail": "video_info=873 · frame_map=177,321 · shots=100,810 · keyframes=371,702 · clip_kf_map=371,702",
+      "ms": 28.977500000110012
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "kèm .meta.json",
+      "status": "ĐẠT",
+      "detail": "đủ .meta.json cho 5 file lõi",
+      "ms": 5.973299999823212
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "frame_map",
+      "status": "ĐẠT",
+      "detail": "354,642 khoá (177,321 dạng #k + 177,321 dạng 1fps)",
+      "ms": 507.00180000058026
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "video_info",
+      "status": "ĐẠT",
+      "detail": "873 video, n_frames hợp lệ",
+      "ms": 18.923200000244833
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "ảnh Q&A/UI",
+      "status": "ĐẠT",
+      "detail": "ảnh phủ đủ 873/873 video trong frame_map",
+      "ms": 1415.761599999314
+    },
+    {
+      "group": "D. Vector",
+      "name": "encoder đang chạy",
+      "status": "BỎ QUA",
+      "detail": "VECTOR_BACKEND=clip · collection=keyframes · không đếm được (Không kết nối được Milvus tại http://localhost:19530. Đã chạy `docker compose up -d milvus` chưa? (Milvus cần ~60-90s để lên))",
+      "ms": 2290.8809999998994
+    },
+    {
+      "group": "D. Vector",
+      "name": "index cùng không gian",
+      "status": "ĐẠT",
+      "detail": "ViT-B-32-quickgelu / openai · 512 chiều · metric COSINE · nạp 2026-08-20T10:38:02+00:00",
+      "ms": 34.991399999853456
+    },
+    {
+      "group": "D. Vector",
+      "name": "vector đã chuẩn hoá L2",
+      "status": "BỎ QUA",
+      "detail": "ConnectionError: Không kết nối được Milvus tại http://localhost:19530. Đã chạy `docker compose up -d milvus` chưa? (Milvus cần ~60-90s để lên)",
+      "ms": 2294.4899000003716
+    },
+    {
+      "group": "E. Đường nộp",
+      "name": "3 dạng bài → .zip",
+      "status": "ĐẠT",
+      "detail": "3 dạng bài × 100 dòng → .zip 2 KB, validator sạch",
+      "ms": 626.7964999997275
+    },
+    {
+      "group": "F. Độ trễ",
+      "name": "1 truy vấn ≤ 30s",
+      "status": "KHÔNG ĐẠT",
+      "detail": "search trả 0 kết quả sau 16.4s — nhánh nào cũng câm",
+      "ms": 16419.461700000284
+    },
+    {
+      "group": "G. Cấu hình",
+      "name": "bảng slot đủ 100",
+      "status": "ĐẠT",
+      "detail": "[(50, 2)] → đủ 100 slot, phủ 50 shot",
+      "ms": 0.3436999995756196
+    },
+    {
+      "group": "G. Cấu hình",
+      "name": "công thức Final Score",
+      "status": "ĐẠT",
+      "detail": "khớp ví dụ có đáp số của BTC (0.74)",
+      "ms": 1.1924000000362867
+    },
+    {
+      "group": "G. Cấu hình",
+      "name": "hằng định dạng nộp",
+      "status": "ĐẠT",
+      "detail": "100 dòng/truy vấn · .csv · answer ≤ 100 ký tự",
+      "ms": 0.009800000043469481
+    }
+  ]
+}

@@ -1,0 +1,292 @@
+STOP POINT 1 is APPROVED with the modifications below.
+
+You are authorized to begin PHASE 4 with PP-H01 ONLY.
+
+Do NOT continue automatically into PP-H02–PP-H05.
+
+Each hypothesis family requires its own evidence review and explicit promotion decision.
+
+==================================================
+APPROVED PRIORITY ORDER
+==================================================
+
+1. PP-H01 — runtime/index/evaluation identity and runnable baseline
+2. PP-H02 — evidence-backed Q&A output contract
+3. PP-H03 — KIS frame localization
+4. PP-H04 — TRAKE event provenance/localization
+5. PP-H05 — Q&A inference efficiency
+
+This order is approved.
+
+==================================================
+IMPORTANT CHANGE 1 — PP-H01 IS NOT AN ACCURACY IMPROVEMENT
+==================================================
+
+PP-H01 is measurement/reproducibility infrastructure.
+
+Do not claim performance improvement from H01.
+
+Its primary invariant is:
+
+Same input
++ same code/config
++ same model/resource identity
+→ same semantic output,
+
+except for behavior explicitly registered as a correctness fix.
+
+If H01 changes valid retrieval/ranking/output unexpectedly, treat that as a regression requiring explanation.
+
+==================================================
+PP-H01A — FIX INPUT/ENVIRONMENT CONTRACTS
+==================================================
+
+First address:
+
+1. preflight/import .env side effects;
+2. video_prior_alpha validation;
+3. explicit runtime/model selection boundaries.
+
+Requirements:
+
+- importing/checking dependencies must not silently select or change the operator's model;
+- operator-selected model/backend must be explicit in the run environment;
+- invalid configuration parameters must fail before external DB/retrieval I/O when practical.
+
+For the current failing video_prior_alpha test:
+
+Do NOT:
+- weaken/delete the test;
+- enable video prior;
+- special-case empty DB results to hide the problem.
+
+Expected contract:
+
+invalid video_prior_alpha
+→ deterministic ValueError
+→ independent of candidate/DB availability.
+
+Run focused tests before full suite.
+
+==================================================
+PP-H01B — RESOURCE IDENTITY
+==================================================
+
+Before an accuracy baseline is accepted, record as much as available:
+
+- source commit/snapshot;
+- config hashes;
+- prompt/function hashes;
+- selected LLM backend/model;
+- vector backend;
+- data manifest;
+- frame-map identity;
+- Milvus collection/schema/entity identity;
+- Elasticsearch index UUID/schema/count;
+- model metadata/weights identity where practical;
+- dependency/runtime versions;
+- scorer;
+- cache policy/state.
+
+Do NOT rebuild or reindex merely to make baseline runnable without recording the change.
+
+If the original live DB state cannot be reconstructed:
+
+create a clearly labelled:
+
+PP-B0-RESTORED
+
+Then run BOTH baseline and future candidate systems on that same restored resource identity.
+
+Do not compare historical scores against PP-B0-RESTORED as if they were the same environment.
+
+==================================================
+PP-H01C — EXPERIMENT HARNESS
+==================================================
+
+Create/verify a harness around the actual production call path.
+
+For each query, capture:
+
+- input/query hash;
+- translated/decomposed query actually executed;
+- branches enabled;
+- branches disabled;
+- branch failure;
+- zero-hit branch;
+- raw candidates by source;
+- fused ranking;
+- reranked ranking;
+- allocated/export ranking;
+- frame mapping;
+- task output;
+- timing;
+- errors;
+- runtime/resource manifest ID.
+
+Distinguish:
+
+disabled branch
+failed branch
+zero-hit branch
+
+These are not equivalent.
+
+Do not change ranking logic merely to add instrumentation.
+
+==================================================
+PP-H01 ACCEPTANCE GATE
+==================================================
+
+Before asking for approval of PP-H02, demonstrate:
+
+1. explicit model/backend selection;
+2. no dependency-import environment side effect;
+3. video_prior_alpha contract test passes for the correct reason;
+4. focused tests pass;
+5. full applicable test suite result recorded;
+6. development and release preflight results recorded;
+7. runtime/index/data/config identity recorded sufficiently for paired runs;
+8. baseline run can execute under one explicitly identified environment;
+9. mapping/export violations = 0 for the accepted baseline run;
+10. instrumentation does not cause unexplained semantic output changes.
+
+Selfcheck/preflight do not need to be cosmetically green by suppressing checks.
+
+Any remaining failure must be classified and explained.
+
+==================================================
+EVALUATION PROTOCOL CHANGE
+==================================================
+
+The proposed global tuning rule:
+
+“+0.02 OR >=2 validation queries”
+
+is NOT approved as a universal promotion criterion.
+
+Replace it with HYPOTHESIS-SPECIFIC preregistered gates.
+
+Before each experiment family, define the relevant quality, regression and latency criteria.
+
+Examples:
+
+PP-H03:
+- improve frame-localization metric;
+- preserve video recall;
+- inspect moved-out-of-top100;
+- mapping violations = 0.
+
+PP-H04:
+- improve evidence-backed event coverage/localization;
+- do not reduce verified event recall/order;
+- interpolation reduction must not result from dropping queries/candidates.
+
+PP-H05:
+- reduce generation count and/or latency;
+- preserve verified answer quality and coverage;
+- no increase in unsupported/refusal output.
+
+Do not choose thresholds after seeing experimental results.
+
+==================================================
+NEW HUMAN-VERIFIED DATASET PLAN
+==================================================
+
+The proposed target is approved in principle:
+
+24 KIS
+12 QA
+8 TRAKE
+
+Planned split:
+
+validation:
+12 KIS / 6 QA / 4 TRAKE
+
+sealed held-out:
+12 KIS / 6 QA / 4 TRAKE
+
+Before any system result is inspected on this dataset, create/freeze:
+
+- dataset manifest;
+- query hashes;
+- split assignment;
+- GT hashes;
+- verification status;
+- evidence references;
+- creation/version timestamp.
+
+Prefer GT verification without viewing candidate-system outputs first.
+
+Avoid video/near-duplicate leakage between validation and held-out.
+
+Once sealed, do not silently edit GT after observing system results.
+
+If annotation is later found wrong:
+
+create a new dataset version and record why.
+
+The sealed held-out is for the final selection decision, not iterative tuning.
+
+If the dataset cannot be completed yet, H01 correctness/reproducibility work may continue, but do not make independent accuracy claims.
+
+==================================================
+KEEP EXISTING EVALUATION ROLE REGISTRY
+==================================================
+
+Continue treating previously consumed sets as:
+
+- tuning;
+- diagnostic;
+- regression;
+- competition postmortem;
+
+according to STOP_POINT_1.
+
+Do not rename a previously used set “held-out” because a new cycle started.
+
+Do not use competition final submissions as autonomous ground truth.
+
+==================================================
+PP-H02–H05 STATUS
+==================================================
+
+Their designs are approved in principle, but implementation is NOT yet authorized.
+
+After PP-H01 completes, STOP and return:
+
+A. Changes made
+B. Commits / experiment IDs
+C. Test results
+D. Preflight/selfcheck results
+E. Runtime/model/index identity
+F. Runnable baseline manifest
+G. Baseline measurements
+H. Query-level instrumentation sample
+I. Remaining reproducibility gaps
+J. Any semantic output changes caused by H01
+K. Recommendation: PROMOTE H01 BASELINE / DO NOT PROMOTE
+L. Exact proposal for PP-H02 based on the now-runnable baseline
+
+Do not begin PP-H02 until I approve that checkpoint.
+
+==================================================
+HISTORICAL ATTRIBUTION
+==================================================
+
+All work remains:
+
+POST-PRELIMINARY / POST-COMPETITION.
+
+Do not modify historical submission artifacts.
+
+Do not attribute new fixes/features to the competition-time system.
+
+The competition scores:
+
+8.6/13
+13.6/15
+11.8/17
+
+remain results of the final operator-assisted competition workflow, not autonomous baseline metrics.

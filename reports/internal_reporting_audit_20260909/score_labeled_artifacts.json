@@ -1,0 +1,5961 @@
+{
+  "inputs": [
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T13:17:56.1505287Z",
+      "byte_identical_baseline_paths": [
+        "C:\\Users\\lehon\\Downloads\\Thanh Nghệ_round1 (1).zip"
+      ],
+      "normalized_csv_identical_baseline_paths": [
+        "C:\\Users\\lehon\\Downloads\\Thanh Nghệ_round1 (1).zip"
+      ],
+      "path": "C:\\Users\\lehon\\Downloads\\Thanh Nghệ_round1 (8,6).zip",
+      "sha256": "36F18D7EC153AD5CDE917914E7B45ACDADFB4FDC3AA3308FEFA77243184A1ACA",
+      "modified_utc": "2026-09-09T13:17:56.5510817Z",
+      "entries": [
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1437,
+          "name": "submission/query-p1-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1449,
+          "name": "submission/query-p1-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1429,
+          "name": "submission/query-p1-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1451,
+          "name": "submission/query-p1-12-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1440,
+          "name": "submission/query-p1-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1390,
+          "name": "submission/query-p1-14-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1752,
+          "name": "submission/query-p1-15-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 2516,
+          "name": "submission/query-p1-16-trake.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 3352,
+          "name": "submission/query-p1-17-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1401,
+          "name": "submission/query-p1-18-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1462,
+          "name": "submission/query-p1-19-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1433,
+          "name": "submission/query-p1-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1438,
+          "name": "submission/query-p1-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1412,
+          "name": "submission/query-p1-21-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1457,
+          "name": "submission/query-p1-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1455,
+          "name": "submission/query-p1-23-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1455,
+          "name": "submission/query-p1-24-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1454,
+          "name": "submission/query-p1-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1944,
+          "name": "submission/query-p1-3-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1469,
+          "name": "submission/query-p1-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1394,
+          "name": "submission/query-p1-5-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1463,
+          "name": "submission/query-p1-6-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1401,
+          "name": "submission/query-p1-7-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1390,
+          "name": "submission/query-p1-8-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T22:25:48.0000000+07:00",
+          "bytes": 1657,
+          "name": "submission/query-p1-9-qa.csv"
+        }
+      ],
+      "score": 8.6,
+      "role": "final_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p1-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V046\",\"6650\"]"
+        },
+        {
+          "query": "query-p1-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V013\",\"11276\"]"
+        },
+        {
+          "query": "query-p1-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V005\",\"4250\"]"
+        },
+        {
+          "query": "query-p1-12-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V029\",\"6261\"]"
+        },
+        {
+          "query": "query-p1-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V021\",\"6650\"]"
+        },
+        {
+          "query": "query-p1-14-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V171\",\"5504\"]"
+        },
+        {
+          "query": "query-p1-15-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V065\",\"292\",\"12\"]"
+        },
+        {
+          "query": "query-p1-16-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V009\",\"2480\",\"10912\",\"11036\"]"
+        },
+        {
+          "query": "query-p1-17-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V025\",\"1858\",\"Đèo Tằng Quái\"]"
+        },
+        {
+          "query": "query-p1-18-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V235\",\"6488\"]"
+        },
+        {
+          "query": "query-p1-19-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V035\",\"14910\"]"
+        },
+        {
+          "query": "query-p1-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V008\",\"5748\"]"
+        },
+        {
+          "query": "query-p1-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V026\",\"7710\"]"
+        },
+        {
+          "query": "query-p1-21-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V316\",\"4467\"]"
+        },
+        {
+          "query": "query-p1-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V041\",\"17025\"]"
+        },
+        {
+          "query": "query-p1-23-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V060\",\"26925\"]"
+        },
+        {
+          "query": "query-p1-24-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V001\",\"6949\"]"
+        },
+        {
+          "query": "query-p1-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V002\",\"11136\"]"
+        },
+        {
+          "query": "query-p1-3-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V068\",\"768\",\"600g\"]"
+        },
+        {
+          "query": "query-p1-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V021\",\"20940\"]"
+        },
+        {
+          "query": "query-p1-5-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V035\",\"5640\"]"
+        },
+        {
+          "query": "query-p1-6-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V023\",\"18675\"]"
+        },
+        {
+          "query": "query-p1-7-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V041\",\"6837\"]"
+        },
+        {
+          "query": "query-p1-8-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V171\",\"5504\"]"
+        },
+        {
+          "query": "query-p1-9-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V020\",\"8502\",\"2\"]"
+        }
+      ],
+      "bytes": 15073,
+      "csv_count": 25,
+      "zip_dates": [
+        "2026-08-21T22:25:48.0000000+07:00"
+      ],
+      "round": 1
+    },
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T13:17:54.3847512Z",
+      "byte_identical_baseline_paths": [],
+      "normalized_csv_identical_baseline_paths": [],
+      "path": "C:\\Users\\lehon\\Downloads\\THANH_NGHỆ_round1 (6,8).zip",
+      "sha256": "CD9BA6C32EA181907A2BBB652CD1DF9E07A4FA1165223F788E038BDBC311A5E2",
+      "modified_utc": "2026-09-09T13:17:54.9129688Z",
+      "entries": [
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1437,
+          "name": "submission/query-p1-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1449,
+          "name": "submission/query-p1-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1429,
+          "name": "submission/query-p1-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1451,
+          "name": "submission/query-p1-12-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1440,
+          "name": "submission/query-p1-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1390,
+          "name": "submission/query-p1-14-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1752,
+          "name": "submission/query-p1-15-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 2516,
+          "name": "submission/query-p1-16-trake.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 3352,
+          "name": "submission/query-p1-17-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1401,
+          "name": "submission/query-p1-18-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1458,
+          "name": "submission/query-p1-19-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1433,
+          "name": "submission/query-p1-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1440,
+          "name": "submission/query-p1-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1412,
+          "name": "submission/query-p1-21-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1448,
+          "name": "submission/query-p1-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1452,
+          "name": "submission/query-p1-23-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1462,
+          "name": "submission/query-p1-24-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1454,
+          "name": "submission/query-p1-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1469,
+          "name": "submission/query-p1-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1394,
+          "name": "submission/query-p1-5-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1463,
+          "name": "submission/query-p1-6-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1401,
+          "name": "submission/query-p1-7-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1390,
+          "name": "submission/query-p1-8-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-21T21:26:06.0000000+07:00",
+          "bytes": 1657,
+          "name": "submission/query-p1-9-qa.csv"
+        }
+      ],
+      "score": 6.8,
+      "role": "replay_candidate_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p1-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V046\",\"6650\"]"
+        },
+        {
+          "query": "query-p1-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V013\",\"11276\"]"
+        },
+        {
+          "query": "query-p1-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V005\",\"4250\"]"
+        },
+        {
+          "query": "query-p1-12-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V029\",\"6261\"]"
+        },
+        {
+          "query": "query-p1-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V021\",\"6650\"]"
+        },
+        {
+          "query": "query-p1-14-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V171\",\"5504\"]"
+        },
+        {
+          "query": "query-p1-15-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V065\",\"292\",\"12\"]"
+        },
+        {
+          "query": "query-p1-16-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V009\",\"2480\",\"10912\",\"11036\"]"
+        },
+        {
+          "query": "query-p1-17-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V025\",\"1858\",\"Đèo Tằng Quái\"]"
+        },
+        {
+          "query": "query-p1-18-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V235\",\"6488\"]"
+        },
+        {
+          "query": "query-p1-19-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V026\",\"3844\"]"
+        },
+        {
+          "query": "query-p1-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V008\",\"5748\"]"
+        },
+        {
+          "query": "query-p1-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L27_V004\",\"9637\"]"
+        },
+        {
+          "query": "query-p1-21-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V316\",\"4467\"]"
+        },
+        {
+          "query": "query-p1-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V053\",\"20426\"]"
+        },
+        {
+          "query": "query-p1-23-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V020\",\"15958\"]"
+        },
+        {
+          "query": "query-p1-24-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V024\",\"18576\"]"
+        },
+        {
+          "query": "query-p1-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V002\",\"11136\"]"
+        },
+        {
+          "query": "query-p1-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V021\",\"20940\"]"
+        },
+        {
+          "query": "query-p1-5-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V035\",\"1620\"]"
+        },
+        {
+          "query": "query-p1-6-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V023\",\"18675\"]"
+        },
+        {
+          "query": "query-p1-7-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V041\",\"6837\"]"
+        },
+        {
+          "query": "query-p1-8-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V171\",\"5504\"]"
+        },
+        {
+          "query": "query-p1-9-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V020\",\"8502\",\"2\"]"
+        }
+      ],
+      "bytes": 14605,
+      "csv_count": 24,
+      "zip_dates": [
+        "2026-08-21T21:26:06.0000000+07:00"
+      ],
+      "round": 1
+    },
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T14:27:14.1067911Z",
+      "byte_identical_baseline_paths": [
+        "submissions/round2/submission.zip"
+      ],
+      "normalized_csv_identical_baseline_paths": [
+        "submissions/round2/submission.zip"
+      ],
+      "path": "C:\\Users\\lehon\\Downloads\\Thanh_Nghệ_round2 (4,4).zip",
+      "sha256": "79FE2540BD8C6BB97ABF1E6D684C494C42EC2CFB26A0F6B3E4BBDFD47BF1DED7",
+      "modified_utc": "2026-09-09T14:27:14.7603350Z",
+      "entries": [
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1453,
+          "name": "submission/query-p2-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1396,
+          "name": "submission/query-p2-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1417,
+          "name": "submission/query-p2-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2295,
+          "name": "submission/query-p2-12-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1398,
+          "name": "submission/query-p2-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1394,
+          "name": "submission/query-p2-14-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1410,
+          "name": "submission/query-p2-15-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1467,
+          "name": "submission/query-p2-16-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1438,
+          "name": "submission/query-p2-17-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1417,
+          "name": "submission/query-p2-18-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 3700,
+          "name": "submission/query-p2-19-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1464,
+          "name": "submission/query-p2-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1443,
+          "name": "submission/query-p2-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 3075,
+          "name": "submission/query-p2-21-trake.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1404,
+          "name": "submission/query-p2-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2281,
+          "name": "submission/query-p2-23-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1420,
+          "name": "submission/query-p2-24-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1435,
+          "name": "submission/query-p2-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1461,
+          "name": "submission/query-p2-26-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2355,
+          "name": "submission/query-p2-27-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2263,
+          "name": "submission/query-p2-28-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2116,
+          "name": "submission/query-p2-29-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1457,
+          "name": "submission/query-p2-3-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2160,
+          "name": "submission/query-p2-30-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1431,
+          "name": "submission/query-p2-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1413,
+          "name": "submission/query-p2-5-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1466,
+          "name": "submission/query-p2-6-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 1905,
+          "name": "submission/query-p2-7-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2949,
+          "name": "submission/query-p2-8-trake.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2523,
+          "name": "submission/query-p2-9-qa.csv"
+        }
+      ],
+      "score": 4.4,
+      "role": "replay_candidate_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V002\",\"13952\"]"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V177\",\"4992\"]"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V019\",\"712\"]"
+        },
+        {
+          "query": "query-p2-12-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V192\",\"5376\",\"7 cái\"]"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V303\",\"6361\"]"
+        },
+        {
+          "query": "query-p2-14-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V015\",\"7300\"]"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V093\",\"1315\"]"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V014\",\"5249\"]"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V006\",\"8679\"]"
+        },
+        {
+          "query": "query-p2-18-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V002\",\"9789\"]"
+        },
+        {
+          "query": "query-p2-19-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V043\",\"1818\",\"Lý Thường Kiệt\"]"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V010\",\"7835\"]"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V076\",\"6750\"]"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V031\",\"2074\",\"2226\",\"2877\",\"2986\"]"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V010\",\"20333\"]"
+        },
+        {
+          "query": "query-p2-23-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V012\",\"14668\",\"15‰\"]"
+        },
+        {
+          "query": "query-p2-24-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V023\",\"8689\"]"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V022\",\"22075\"]"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V026\",\"2663\"]"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V005\",\"3100\",\"Số 2\"]"
+        },
+        {
+          "query": "query-p2-28-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V470\",\"3872\",\"Mực\"]"
+        },
+        {
+          "query": "query-p2-29-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V394\",\"1355\",\"100g\"]"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V028\",\"16455\"]"
+        },
+        {
+          "query": "query-p2-30-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V259\",\"2959\",\"Tôm\"]"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V003\",\"6405\"]"
+        },
+        {
+          "query": "query-p2-5-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V290\",\"5002\"]"
+        },
+        {
+          "query": "query-p2-6-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V081\",\"796\"]"
+        },
+        {
+          "query": "query-p2-7-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V016\",\"7821\",\"4\"]"
+        },
+        {
+          "query": "query-p2-8-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L27_V011\",\"3827\",\"3908\",\"4096\",\"4853\"]"
+        },
+        {
+          "query": "query-p2-9-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V360\",\"6565\",\"Cá chim\"]"
+        }
+      ],
+      "bytes": 19358,
+      "csv_count": 30,
+      "zip_dates": [
+        "2026-08-28T21:53:22.0000000+07:00"
+      ],
+      "round": 2
+    },
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T14:29:47.0222904Z",
+      "byte_identical_baseline_paths": [
+        "THANH_NGHE_round3.original.zip",
+        "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3.zip"
+      ],
+      "normalized_csv_identical_baseline_paths": [
+        "THANH_NGHE_round3.original.zip",
+        "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3.zip"
+      ],
+      "path": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3 (11,4).zip",
+      "sha256": "219433E34C99E53A4D3EB38D43F3C31ECAEA2104812BF0FE77B8C1DECA5C7BD8",
+      "modified_utc": "2026-09-09T14:29:47.9332193Z",
+      "entries": [
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1497,
+          "name": "submission/query-p2-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1561,
+          "name": "submission/query-p2-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1507,
+          "name": "submission/query-p2-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1499,
+          "name": "submission/query-p2-12-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1577,
+          "name": "submission/query-p2-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1511,
+          "name": "submission/query-p2-15-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1496,
+          "name": "submission/query-p2-16-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1504,
+          "name": "submission/query-p2-17-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1546,
+          "name": "submission/query-p2-19-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1561,
+          "name": "submission/query-p2-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1555,
+          "name": "submission/query-p2-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1579,
+          "name": "submission/query-p2-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1576,
+          "name": "submission/query-p2-23-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1499,
+          "name": "submission/query-p2-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1560,
+          "name": "submission/query-p2-26-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1529,
+          "name": "submission/query-p2-28-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1504,
+          "name": "submission/query-p2-29-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1500,
+          "name": "submission/query-p2-3-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1513,
+          "name": "submission/query-p2-30-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1521,
+          "name": "submission/query-p2-31-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1548,
+          "name": "submission/query-p2-32-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1506,
+          "name": "submission/query-p2-33-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1557,
+          "name": "submission/query-p2-36-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1523,
+          "name": "submission/query-p2-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:09:08.0000000+07:00",
+          "bytes": 1566,
+          "name": "submission/query-p2-7-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T21:30:06.0000000+07:00",
+          "bytes": 1417,
+          "name": "submission/query-p2-9-kis.csv"
+        }
+      ],
+      "score": 11.4,
+      "role": "intermediate_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V424\",\"5710\"]"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V003\",\"26225\"]"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V322\",\"3200\"]"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V175\",\"5680\"]"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V014\",\"18630\"]"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V480\",\"4619\"]"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V481\",\"5515\"]"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V234\",\"1920\"]"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V037\",\"9541\"]"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V026\",\"1581\"]"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V021\",\"14550\"]"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V012\",\"19530\"]"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V005\",\"24449\"]"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V155\",\"6144\"]"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V043\",\"7350\"]"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V091\",\"1500\"]"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V072\",\"6600\"]"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V390\",\"5985\"]"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V018\",\"9195\"]"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V023\",\"4752\"]"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V030\",\"15595\"]"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V009\",\"6710\"]"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V010\",\"14774\"]"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V075\",\"2190\"]"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V024\",\"20510\"]"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V005\",\"11530\"]"
+        }
+      ],
+      "bytes": 14767,
+      "csv_count": 26,
+      "zip_dates": [
+        "2026-09-04T21:09:08.0000000+07:00",
+        "2026-09-04T21:30:06.0000000+07:00"
+      ],
+      "round": 3
+    },
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T14:30:13.7619508Z",
+      "byte_identical_baseline_paths": [],
+      "normalized_csv_identical_baseline_paths": [],
+      "path": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3_v4 (11,8).zip",
+      "sha256": "1E60426C118A2BDDFB4CB95D58148038E08C5B7B716B831076832971CFD7055E",
+      "modified_utc": "2026-09-09T14:30:15.7772281Z",
+      "entries": [
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1397,
+          "name": "query-p2-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1461,
+          "name": "query-p2-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1507,
+          "name": "query-p2-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1399,
+          "name": "query-p2-12-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1477,
+          "name": "query-p2-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:24:44.0000000+07:00",
+          "bytes": 1717,
+          "name": "query-p2-14-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1411,
+          "name": "query-p2-15-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1396,
+          "name": "query-p2-16-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1504,
+          "name": "query-p2-17-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 5117,
+          "name": "query-p2-18-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:25:20.0000000+07:00",
+          "bytes": 1583,
+          "name": "query-p2-19-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1461,
+          "name": "query-p2-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1455,
+          "name": "query-p2-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 2938,
+          "name": "query-p2-21-trake.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1479,
+          "name": "query-p2-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1476,
+          "name": "query-p2-23-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 2500,
+          "name": "query-p2-24-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1399,
+          "name": "query-p2-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1560,
+          "name": "query-p2-26-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 2200,
+          "name": "query-p2-27-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1429,
+          "name": "query-p2-28-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1404,
+          "name": "query-p2-29-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1400,
+          "name": "query-p2-3-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1513,
+          "name": "query-p2-30-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1421,
+          "name": "query-p2-31-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1548,
+          "name": "query-p2-32-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1406,
+          "name": "query-p2-33-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 3061,
+          "name": "query-p2-34-trake.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 2569,
+          "name": "query-p2-35-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1457,
+          "name": "query-p2-36-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1423,
+          "name": "query-p2-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1900,
+          "name": "query-p2-5-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:24:44.0000000+07:00",
+          "bytes": 2693,
+          "name": "query-p2-6-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1466,
+          "name": "query-p2-7-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 3284,
+          "name": "query-p2-8-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:23:04.0000000+07:00",
+          "bytes": 1417,
+          "name": "query-p2-9-kis.csv"
+        }
+      ],
+      "score": 11.8,
+      "role": "final_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V424\",\"5710\"]"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V003\",\"26225\"]"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V322\",\"3200\"]"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V175\",\"5680\"]"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V014\",\"18630\"]"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V047\",\"5540\",\"5\"]"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V480\",\"4619\"]"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V481\",\"5515\"]"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V234\",\"1920\"]"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V010\",\"3550\",\"Trường tiểu học Công Hải\"]"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V032\",\"13392\"]"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V026\",\"3147\"]"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V021\",\"14550\"]"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V156\",\"3260\",\"3780\",\"4784\",\"6730\"]"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V012\",\"19530\"]"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V005\",\"24449\"]"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V311\",\"3675\",\"2 muỗng\"]"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V155\",\"6225\"]"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V043\",\"7350\"]"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V178\",\"5375\",\"1 màu\"]"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V091\",\"1500\"]"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V072\",\"6600\"]"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V390\",\"5985\"]"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V018\",\"9195\"]"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V023\",\"4800\"]"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V030\",\"15595\"]"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V009\",\"6710\"]"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V013\",\"9880\",\"10230\",\"10355\",\"10600\"]"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V014\",\"40519\",\"3\"]"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V010\",\"14880\"]"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V075\",\"2190\"]"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V024\",\"22950\",\"13\"]"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V018\",\"14150\",\"Tây Bắc\"]"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V024\",\"20510\"]"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V018\",\"21385\",\"SEGA\"]"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V005\",\"11530\"]"
+        }
+      ],
+      "bytes": 21591,
+      "csv_count": 36,
+      "zip_dates": [
+        "2026-09-04T22:23:04.0000000+07:00",
+        "2026-09-04T22:24:44.0000000+07:00",
+        "2026-09-04T22:25:20.0000000+07:00"
+      ],
+      "round": 3
+    },
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T14:27:16.6740515Z",
+      "byte_identical_baseline_paths": [
+        "C:\\Users\\lehon\\Downloads\\submission_THANH_ NGHỆ.zip"
+      ],
+      "normalized_csv_identical_baseline_paths": [
+        "C:\\Users\\lehon\\Downloads\\submission_THANH_ NGHỆ.zip"
+      ],
+      "path": "C:\\Users\\lehon\\Downloads\\submission_THANH_ NGHỆ (13,6).zip",
+      "sha256": "30753D4E28C1C50AA20F175794E56AC8A9011E767B7FD152A255D3DBFB3E3384",
+      "modified_utc": "2026-09-09T14:27:18.0940982Z",
+      "entries": [
+        {
+          "zip_time": "2026-08-28T22:20:28.0000000+07:00",
+          "bytes": 0,
+          "name": "submission/"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1419,
+          "name": "submission/query-p2-24-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1995,
+          "name": "submission/query-p2-7-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 2945,
+          "name": "submission/query-p2-8-trake.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1795,
+          "name": "submission/query-p2-12-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 2392,
+          "name": "submission/query-p2-28-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1414,
+          "name": "submission/query-p2-5-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1398,
+          "name": "submission/query-p2-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1430,
+          "name": "submission/query-p2-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1435,
+          "name": "submission/query-p2-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 2317,
+          "name": "submission/query-p2-9-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 2111,
+          "name": "submission/query-p2-30-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1467,
+          "name": "submission/query-p2-6-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1417,
+          "name": "submission/query-p2-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1417,
+          "name": "submission/query-p2-18-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1461,
+          "name": "submission/query-p2-26-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1396,
+          "name": "submission/query-p2-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T21:53:22.0000000+07:00",
+          "bytes": 2116,
+          "name": "submission/query-p2-29-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1410,
+          "name": "submission/query-p2-15-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1464,
+          "name": "submission/query-p2-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1403,
+          "name": "submission/query-p2-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 3073,
+          "name": "submission/query-p2-21-trake.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1661,
+          "name": "submission/query-p2-27-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1394,
+          "name": "submission/query-p2-14-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1455,
+          "name": "submission/query-p2-3-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1445,
+          "name": "submission/query-p2-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1453,
+          "name": "submission/query-p2-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 1466,
+          "name": "submission/query-p2-16-kis.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 3500,
+          "name": "submission/query-p2-19-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:25:36.0000000+07:00",
+          "bytes": 3164,
+          "name": "submission/query-p2-23-qa.csv"
+        },
+        {
+          "zip_time": "2026-08-28T22:23:50.0000000+07:00",
+          "bytes": 1439,
+          "name": "submission/query-p2-17-kis.csv"
+        }
+      ],
+      "score": 13.6,
+      "role": "final_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V035\",\"1700\"]"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V120\",\"5204\"]"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V392\",\"3860\"]"
+        },
+        {
+          "query": "query-p2-12-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V192\",\"4793\",\"7\"]"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V422\",\"4480\"]"
+        },
+        {
+          "query": "query-p2-14-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V010\",\"625\"]"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V486\",\"1230\"]"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V014\",\"13780\"]"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V026\",\"3109\"]"
+        },
+        {
+          "query": "query-p2-18-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V017\",\"2560\"]"
+        },
+        {
+          "query": "query-p2-19-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V043\",\"3740\",\"Lý Thường Kiệt\"]"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V013\",\"22880\"]"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V060\",\"34200\"]"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V031\",\"2105\",\"2130\",\"2220\",\"2230\"]"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V470\",\"2108\"]"
+        },
+        {
+          "query": "query-p2-23-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V012\",\"14818\",\"20 phần nghìn\"]"
+        },
+        {
+          "query": "query-p2-24-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V013\",\"4970\"]"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V045\",\"16441\"]"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V062\",\"13800\"]"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V016\",\"0\",\"5\"]"
+        },
+        {
+          "query": "query-p2-28-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V450\",\"6602\",\"Cá hồi\"]"
+        },
+        {
+          "query": "query-p2-29-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V394\",\"1355\",\"100g\"]"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V044\",\"230\"]"
+        },
+        {
+          "query": "query-p2-30-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V254\",\"384\",\"Nghêu\"]"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V072\",\"676\"]"
+        },
+        {
+          "query": "query-p2-5-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V022\",\"26300\"]"
+        },
+        {
+          "query": "query-p2-6-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V024\",\"20780\"]"
+        },
+        {
+          "query": "query-p2-7-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V009\",\"21172\",\"1204\"]"
+        },
+        {
+          "query": "query-p2-8-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L27_V011\",\"3855\",\"3880\",\"4030\",\"4105\"]"
+        },
+        {
+          "query": "query-p2-9-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V081\",\"2440\",\"cá he\"]"
+        }
+      ],
+      "bytes": 19072,
+      "csv_count": 30,
+      "zip_dates": [
+        "2026-08-28T21:53:22.0000000+07:00",
+        "2026-08-28T22:23:50.0000000+07:00",
+        "2026-08-28T22:25:36.0000000+07:00"
+      ],
+      "round": 2
+    },
+    {
+      "score_evidence": "user supplied filename-to-score mapping; no BTC receipt in ZIP",
+      "created_utc": "2026-09-09T14:38:13.6101307Z",
+      "byte_identical_baseline_paths": [],
+      "normalized_csv_identical_baseline_paths": [],
+      "path": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_submit2_round3 (11,2).zip",
+      "sha256": "26E098E85568D97588285EF7899167DA088460EC73A186489D9A5474D79416CF",
+      "modified_utc": "2026-09-09T14:38:14.2133560Z",
+      "entries": [
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-1-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-10-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1507,
+          "name": "query-p2-11-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-12-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-13-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1698,
+          "name": "query-p2-14-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-15-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-16-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1504,
+          "name": "query-p2-17-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 4994,
+          "name": "query-p2-18-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1596,
+          "name": "query-p2-19-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1485,
+          "name": "query-p2-2-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-20-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 3000,
+          "name": "query-p2-21-trake.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-22-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-23-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 3392,
+          "name": "query-p2-24-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-25-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1514,
+          "name": "query-p2-26-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1700,
+          "name": "query-p2-27-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1482,
+          "name": "query-p2-28-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-29-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1500,
+          "name": "query-p2-3-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:05:18.0000000+07:00",
+          "bytes": 1488,
+          "name": "query-p2-30-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1486,
+          "name": "query-p2-31-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1548,
+          "name": "query-p2-32-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1493,
+          "name": "query-p2-33-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 3309,
+          "name": "query-p2-34-trake.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1800,
+          "name": "query-p2-35-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-36-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1503,
+          "name": "query-p2-4-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1800,
+          "name": "query-p2-5-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 2686,
+          "name": "query-p2-6-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1600,
+          "name": "query-p2-7-kis.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 2100,
+          "name": "query-p2-8-qa.csv"
+        },
+        {
+          "zip_time": "2026-09-04T22:04:48.0000000+07:00",
+          "bytes": 1512,
+          "name": "query-p2-9-kis.csv"
+        }
+      ],
+      "score": 11.2,
+      "role": "replay_candidate_user_confirmed",
+      "query_summary": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V424\",\"5710\"]"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V003\",\"26225\"]"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V322\",\"3200\"]"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V175\",\"5680\"]"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L29_V014\",\"18630\"]"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V047\",\"5540\",\"5\"]"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V480\",\"4619\"]"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V481\",\"5515\"]"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V234\",\"1920\"]"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V010\",\"3550\",\"Trường tiểu học Công Hải\"]"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V032\",\"13392\"]"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V026\",\"3147\"]"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V021\",\"14550\"]"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V156\",\"3260\",\"3780\",\"4784\",\"6730\"]"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V012\",\"19530\"]"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V005\",\"24449\"]"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V448\",\"2816\",\"2 muỗng cà phê\"]"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V155\",\"6225\"]"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V043\",\"6900\"]"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V296\",\"5392\",\"3\"]"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V091\",\"1500\"]"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V072\",\"6600\"]"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L26_V390\",\"5985\"]"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V018\",\"1061\"]"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V023\",\"4800\"]"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V030\",\"15595\"]"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L23_V009\",\"6710\"]"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "row_count": 100,
+          "top1": "[\"L24_V013\",\"9880\",\"10230\",\"10355\",\"10600\"]"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V014\",\"40519\",\"3\"]"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L28_V010\",\"14880\"]"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V075\",\"2190\"]"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V024\",\"3509\",\"10\"]"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L25_V018\",\"14150\",\"Tây Bắc\"]"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L22_V024\",\"20510\"]"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "row_count": 100,
+          "top1": "[\"L21_V018\",\"21385\",\"SEGA\"]"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "row_count": 100,
+          "top1": "[\"L30_V015\",\"3451\"]"
+        }
+      ],
+      "bytes": 17255,
+      "csv_count": 36,
+      "zip_dates": [
+        "2026-09-04T22:04:48.0000000+07:00",
+        "2026-09-04T22:05:18.0000000+07:00"
+      ],
+      "round": 3
+    }
+  ],
+  "missing_requested_score": null,
+  "comparisons": [
+    {
+      "summary": [
+        {
+          "Name": "added_query",
+          "Count": 1
+        },
+        {
+          "Name": "rows_changed",
+          "Count": 6
+        },
+        {
+          "Name": "same_ordered_rows",
+          "Count": 18
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\Thanh Nghệ_round1 (8,6).zip",
+      "queries": [
+        {
+          "query": "query-p1-1-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-10-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-11-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-12-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-13-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-14-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-15-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-16-trake.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-17-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-18-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 11,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-2-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 11,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-21-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 17,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-23-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 12,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-24-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 9,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-25-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-3-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-4-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-5-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-6-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-7-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-8-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-9-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "C:\\Users\\lehon\\Downloads\\THANH_NGHỆ_round1 (6,8).zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "permutation_only",
+          "Count": 1
+        },
+        {
+          "Name": "rows_changed",
+          "Count": 28
+        },
+        {
+          "Name": "same_ordered_rows",
+          "Count": 1
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\submission_THANH_ NGHỆ (13,6).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 2,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-kis.csv",
+          "difference": "permutation_only",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 4,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 25,
+          "added_unique_rows": 2,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 3,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 2,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 4,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 3,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "C:\\Users\\lehon\\Downloads\\Thanh_Nghệ_round2 (4,4).zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "added_query",
+          "Count": 10
+        },
+        {
+          "Name": "rows_changed",
+          "Count": 5
+        },
+        {
+          "Name": "same_ordered_rows",
+          "Count": 21
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3_v4 (11,8).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 72,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3 (11,4).zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "added_query",
+          "Count": 3
+        },
+        {
+          "Name": "rows_changed",
+          "Count": 3
+        },
+        {
+          "Name": "same_ordered_rows",
+          "Count": 30
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3_v4 (11,8).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 72,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "difference": "added_query",
+          "before_rows": 0,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "submissions/THANH_NGHE_round3_corrected_v2.zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "missing_query",
+          "Count": 1
+        },
+        {
+          "Name": "rows_changed",
+          "Count": 24
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHỆ_round1 (6,8).zip",
+      "queries": [
+        {
+          "query": "query-p1-1-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 62,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-10-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 27,
+          "added_unique_rows": 57,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-11-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 79,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-12-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 62,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-13-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 63,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-14-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 17,
+          "added_unique_rows": 32,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-15-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-16-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-17-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 26,
+          "added_unique_rows": 40,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-18-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 43,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 54,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 65,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 80,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-21-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 50,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 55,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-23-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 60,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-24-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 70,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 64,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-3-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-4-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 60,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-5-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 2,
+          "added_unique_rows": 58,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-6-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 78,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-7-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 47,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-8-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 17,
+          "added_unique_rows": 32,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p1-9-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 66,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "submissions/sotuyen1_p1/submission.zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "rows_changed",
+          "Count": 36
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3_v4 (11,8).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 78,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 88,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 2,
+          "added_unique_rows": 86,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 91,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 83,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 37,
+          "added_unique_rows": 81,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 88,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 83,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 82,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 83,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 95,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 90,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 85,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 91,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 1,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 75,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "submissions/round3/submission.zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "rows_changed",
+          "Count": 36
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_submit2_round3 (11,2).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 2,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 66,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 97,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 37,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 95,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 96,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 91,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 97,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 97,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 87,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "submissions/round3/submission.zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "missing_query",
+          "Count": 10
+        },
+        {
+          "Name": "rows_changed",
+          "Count": 23
+        },
+        {
+          "Name": "same_ordered_rows",
+          "Count": 3
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3 (11,4).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 42,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 95,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 69,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 86,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 72,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 95,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 87,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "difference": "missing_query",
+          "before_rows": 100,
+          "after_rows": 0,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 13,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_submit2_round3 (11,2).zip"
+    },
+    {
+      "summary": [
+        {
+          "Name": "rows_changed",
+          "Count": 33
+        },
+        {
+          "Name": "same_ordered_rows",
+          "Count": 3
+        }
+      ],
+      "after": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_round3_v4 (11,8).zip",
+      "queries": [
+        {
+          "query": "query-p2-1-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-10-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-11-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-12-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-13-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-14-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 40,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-15-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-16-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-17-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-18-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 65,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-19-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 40,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-2-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-20-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 95,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-21-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-22-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 89,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-23-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 93,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-24-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-25-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-26-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 92,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-27-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-28-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-29-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-3-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-30-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 69,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-31-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 86,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-32-kis.csv",
+          "difference": "same_ordered_rows",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 0,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-33-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 72,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-34-trake.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-35-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 99,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-36-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 94,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-4-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 87,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-5-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 100,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-6-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 34,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-7-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-8-qa.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": 1,
+          "added_unique_rows": 98,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        },
+        {
+          "query": "query-p2-9-kis.csv",
+          "difference": "rows_changed",
+          "before_rows": 100,
+          "after_rows": 100,
+          "after_top1_rank_in_before": null,
+          "added_unique_rows": 13,
+          "human_rerank": "unknown",
+          "manual_discovery": "unknown",
+          "external_ai": "unknown",
+          "official_result": "unlinked"
+        }
+      ],
+      "before": "C:\\Users\\lehon\\Downloads\\THANH_NGHE_submit2_round3 (11,2).zip"
+    }
+  ]
+}

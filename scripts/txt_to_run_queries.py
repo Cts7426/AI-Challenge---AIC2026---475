@@ -34,7 +34,10 @@ from pathlib import Path
 
 TASK_TYPES = ("KIS", "QA", "TRAKE")
 _SENTENCE_SPLIT = re.compile(r"\s*\.\s+|\s*\.\s*$")
-_EVENT_LINE = re.compile(r"^E\d+\s*(.*)$")
+# `E1: mô tả` / `E1. mô tả` / `E1) mô tả` / `E1 mô tả` — dấu ngăn cách sau số
+# thứ tự KHÔNG phải nội dung, phải bỏ. Giữ lại thì mọi mô tả sự kiện gửi cho
+# LLM/CLIP đều mở đầu bằng ": " — không crash, chỉ làm bẩn query (lỗi im lặng).
+_EVENT_LINE = re.compile(r"^E\d+\s*[:.)\-–]?\s*(.*)$")
 _FILENAME_TASK = re.compile(r"-(kis|qa|trake)$", re.IGNORECASE)
 
 

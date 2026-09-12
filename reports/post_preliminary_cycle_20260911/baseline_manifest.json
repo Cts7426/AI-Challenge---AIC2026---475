@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "baseline_id": "PP-B0-20260911",
+  "label": "POST-PRELIMINARY / POST-COMPETITION INTERNAL EVALUATION",
+  "status": "source_and_evidence_frozen_live_rerun_blocked",
+  "stop_point": 1,
+  "production_implementation_approved": false,
+  "created_at_utc": "2026-09-11T06:52:12.471573+00:00",
+  "git": {
+    "commit": "8fee5fd07bfd03d945fe93d474ffe2c29a4b7106",
+    "tree": "7e2b6f70c6d74f9c7b7bd5a4d8e15776aab041e4",
+    "branch": "main",
+    "dirty_files": [
+      ".claude/launch.json",
+      "scripts/txt_to_run_queries.py"
+    ],
+    "identity": "commit_plus_frozen_source_zip",
+    "tag": null,
+    "tag_reason": "Recorded full commit reference; HEAD tag alone omits existing dirty changes and untracked historical report"
+  },
+  "runtime_selection": {
+    "system_python": "C:\\Python314\\python.exe",
+    "project_venv": "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "model_explicitly_selected_for_new_run": false,
+    "initial_process": {
+      "LLM_BACKEND": null,
+      "LLM_API_MODEL": null,
+      "LLM_GEMINI_MODEL": null,
+      "LLM_LOCAL_MODEL": null,
+      "QA_INFERENCE_MODE": null,
+      "VECTOR_BACKEND": null,
+      "LLM_CACHE_DIR": null,
+      "LLM_NO_CACHE": null,
+      "KEYFRAMES_DIR": null,
+      "DERIVED_KEYFRAMES_DIR": null
+    },
+    "preflight_model_after_import": "claude-sonnet-5",
+    "code_default_api_model": "claude-opus-5",
+    "env_side_effect_probe": "preflight_env_probe.json"
+  },
+  "modes": {
+    "kis": "single_anchor",
+    "kis_pool_per_branch": 1500,
+    "kis_branch_override": {
+      "vector_siglip2": false,
+      "ocr_probe": true
+    },
+    "slot_budget": [
+      [
+        50,
+        2
+      ]
+    ],
+    "qa": "legacy_default",
+    "qa_release_policy_proposed": "robust",
+    "qa_no_evidence": "placeholder TODO or 0 for operator review",
+    "trake": "per_event_search_dp_with_interpolation",
+    "trake_event_pool": 1000,
+    "trake_candidates_per_event": 20,
+    "trake_min_gap": 30,
+    "trake_max_videos": 20,
+    "trake_variants_per_video": 5,
+    "rerank_top50": true,
+    "video_prior": false,
+    "text_vi": false
+  },
+  "index_identity": {
+    "live_verified": false,
+    "milvus": {
+      "configured_url": "http://localhost:19530",
+      "configured_collection": "keyframes",
+      "configured_server_image": "milvusdb/milvus:v2.4.17",
+      "live_collection_id": null,
+      "live_entity_count": null,
+      "snapshot_uri": null,
+      "offline_meta_path": "data/derived/clip_index.meta.json"
+    },
+    "elasticsearch": {
+      "configured_url": "http://127.0.0.1:9200",
+      "configured_indices": [
+        "metadata",
+        "objects",
+        "ocr",
+        "asr"
+      ],
+      "configured_server_image": "docker.elastic.co/elasticsearch/elasticsearch:8.13.4",
+      "live_index_uuids": null,
+      "snapshot_uri": null
+    }
+  },
+  "prompt_catalog": [
+    {
+      "path": "backend/retrieval/text_query.py",
+      "function": "translate_to_english",
+      "line": 90,
+      "role": "active_single_anchor_translation",
+      "function_source_sha256": "f317b0d588692a7a49fa6743319873f515e4d5b54636d1d70d1a4083c71e05f7"
+    },
+    {
+      "path": "backend/tasks/qa.py",
+      "function": "_build_planner_prompt",
+      "line": 353,
+      "role": "qa_legacy_default_two_stage_gated",
+      "function_source_sha256": "99ae0fb48d169b79293a6f701e15faf00d0fbc74d7d74cbcdaeca0f10a9224ff"
+    },
+    {
+      "path": "backend/tasks/qa.py",
+      "function": "parse_question",
+      "line": 369,
+      "role": "qa_legacy_default_two_stage_gated",
+      "function_source_sha256": "2854d57011aaf55c0d1fc28d06e338bbe34c7aad31d539e5f2aa2b4221ca08be"
+    },
+    {
+      "path": "backend/tasks/qa.py",
+      "function": "ask_llm",
+      "line": 1271,
+      "role": "qa_legacy_default_two_stage_gated",
+      "function_source_sha256": "d945a7c6997e07bb7ebdf775eb98ed5a2f60cde6314492fc8d2df4ccdeb5877c"
+    },
+    {
+      "path": "backend/tasks/qa.py",
+      "function": "_infer_legacy",
+      "line": 1401,
+      "role": "qa_legacy_default_two_stage_gated",
+      "function_source_sha256": "197c25fb9ffb21b3bf1f97bf467eadd1f959e7220fcde3ca843328a44c0fe1cc"
+    },
+    {
+      "path": "backend/tasks/qa.py",
+      "function": "_infer_two_stage",
+      "line": 1426,
+      "role": "qa_legacy_default_two_stage_gated",
+      "function_source_sha256": "8ec52cb70baa1b727d9e8958a9e30b21c9c6a34a432de33a71c6255f9a1c1384"
+    },
+    {
+      "path": "backend/tasks/trake.py",
+      "function": "_parse_events_llm",
+      "line": 99,
+      "role": "trake_event_parsing",
+      "function_source_sha256": "6209e7e54d854db7d75b19679aff40cdd5f872335a3fba886b8c134c1eb2b8b3"
+    },
+    {
+      "path": "backend/tasks/trake.py",
+      "function": "parse_events",
+      "line": 161,
+      "role": "trake_event_parsing",
+      "function_source_sha256": "840af4c21e2f966949c2ffb64412333729122ef82f36760396032285d9277c90"
+    },
+    {
+      "path": "backend/retrieval/multi_anchor.py",
+      "function": "plan_query",
+      "line": 292,
+      "role": "multi_anchor_disabled",
+      "function_source_sha256": "743f56e4f48b4ca560574692c70c8d2cd035b583e4dd37a4c9bdb0fb3f8c0876"
+    },
+    {
+      "path": "backend/retrieval/query_understanding.py",
+      "function": "translate",
+      "line": 89,
+      "role": "available_not_default_search_path",
+      "function_source_sha256": "efc5ab34e285b01e4bfd352d51c56d0da4226a2d887b55829885b3fd385f9f1d"
+    },
+    {
+      "path": "backend/retrieval/query_understanding.py",
+      "function": "expand",
+      "line": 115,
+      "role": "available_not_default_search_path",
+      "function_source_sha256": "d7768fe7d36523112c82752b1359c8d9592db23d5e2ab4325fae07e8f07f15fa"
+    }
+  ],
+  "new_accuracy_run": null,
+  "independent_evaluation_set": null,
+  "test_status": {
+    "full_suite": {
+      "passed": 883,
+      "failed": 1,
+      "skipped": 1,
+      "seconds": 214.59
+    },
+    "selfcheck_exit_code": 1,
+    "development_preflight": {
+      "passed": 13,
+      "failed": 1,
+      "skipped": 7
+    },
+    "release_preflight": {
+      "passed": 13,
+      "failed": 6,
+      "skipped": 2
+    }
+  },
+  "competition_score_attribution": {
+    "round1": "8.6/13",
+    "round2": "13.6/15",
+    "round3": "11.8/17",
+    "scope": "FINAL COMPETITION WORKFLOW có retrieval nội bộ, người kiểm/xếp hạng/tìm thủ công và ChatGPT/Claude bên ngoài tùy query",
+    "not_an_autonomous_benchmark": true
+  },
+  "references": {
+    "baseline_capture/manifest.json": {
+      "path": "baseline_capture/manifest.json",
+      "sha256": "9ba151e5e612f5ade1a25f73bd56fd7d728b4a97223f86da532cd3b224b88518"
+    },
+    "baseline_capture/checksums.json": {
+      "path": "baseline_capture/checksums.json",
+      "sha256": "fdf47eb55c51181919afd7b0eaf3f0d7ba4b995bce87609a657b437e5607ff29"
+    },
+    "evidence_checksums.json": {
+      "path": "evidence_checksums.json",
+      "sha256": "6575bc26028e0acbca26f66941f2a2f137c6fc1f7b8bcd0f89ef9d172f7b20b6"
+    },
+    "runtime_data_inventory.json": {
+      "path": "runtime_data_inventory.json",
+      "sha256": "ab409b2706149ac84dff49d4331319c523c84772818f1751c2c5b69b973a924d"
+    },
+    "preflight_env_probe.json": {
+      "path": "preflight_env_probe.json",
+      "sha256": "48a37c13dfd9987a85e51bcd581737e631a25aabd9361bdfcf5b222349dedc73"
+    },
+    "export_diagnostics.json": {
+      "path": "export_diagnostics.json",
+      "sha256": "014454f2d80c309568f2de59ef1125907ee71bf6a86e535290d91ea831847cc1"
+    },
+    "checks/system_python_selfcheck.json": {
+      "path": "checks/system_python_selfcheck.json",
+      "sha256": "10b4c68cc1ab2a29689bb6fef57d640f81cba7e5f0ce2aa9855caf98041129a6"
+    },
+    "checks/project_venv_selfcheck.json": {
+      "path": "checks/project_venv_selfcheck.json",
+      "sha256": "bb021091c492b69274b27cfe71fa4ff1716ad8c403cacbe60ca5a1d4aa3edf58"
+    },
+    "checks/development_preflight.json": {
+      "path": "checks/development_preflight.json",
+      "sha256": "083ffd5b69bd58474197d9ebcf4a08d3fda83e831ea2d52b206412d82eaea453"
+    },
+    "checks/release_preflight.json": {
+      "path": "checks/release_preflight.json",
+      "sha256": "45d66fa58b966f19dacf96c34c667d13af789c5a547c9e67a7dca57079ff9219"
+    },
+    "checks/alpha_failure.json": {
+      "path": "checks/alpha_failure.json",
+      "sha256": "a1430cef76c1af962f28d47d2856732cc654d13f14c8df0c936439403d607044"
+    },
+    "translation_token_audit.json": {
+      "path": "translation_token_audit.json",
+      "sha256": "ffa4efe5a5dcb57167e1aeae52aa60f4f0eedf0d7654a6507aaf27ed9584aeeb"
+    },
+    "recomputed_diagnostics.json": {
+      "path": "recomputed_diagnostics.json",
+      "sha256": "4ea6f5f100a114df5a93c2ce46edece910470ed4a3696d7a0b1d2f906e430f9d"
+    },
+    "integrity_review.json": {
+      "path": "integrity_review.json",
+      "sha256": "10c5ad6f4d78bf36056f13d585af5f9b2e7da23ba222633c57140e78e756799b"
+    },
+    "evaluation_registry.json": {
+      "path": "evaluation_registry.json",
+      "sha256": "0207aa821359e857a91fd6cb4d5a3b141785abbb9d5a29398d3c88772d13ba01"
+    }
+  },
+  "gaps": [
+    "live_index_identity_and_backup",
+    "explicit_operator_model_selection",
+    "preflight_import_env_side_effect",
+    "one_failing_parameter_validation_test",
+    "independent_human_verified_GT",
+    "clean_full_baseline_run",
+    "immutable_model_weights_and_runtime_wheels",
+    "dirty_tree_clean_commit_mapping"
+  ],
+  "manifest_payload_sha256": "27377b3ecc3a661ba89f51bc030e19f5f70f09434da650a3f925a4bbd140d5ad"
+}

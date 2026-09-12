@@ -792,7 +792,12 @@ def trake_search(
             return []
 
     with ThreadPoolExecutor(max_workers=min(n, 8)) as pool:
-        per_event_hits = list(pool.map(_search_one, events))
+        # H01C: context riêng cho từng worker để giữ trace; thứ tự kết quả vẫn
+        # theo events như pool.map trước đây, không đổi thuật toán TRAKE.
+        from contextvars import copy_context
+        contexts = [copy_context() for _ in events]
+        per_event_hits = list(pool.map(lambda pair: pair[0].run(_search_one, pair[1]),
+                                       zip(contexts, events)))
 
     topk_per_event_video = [_topk_per_video(hits, candidates_per_event) for hits in per_event_hits]
     # Tính 1 LẦN cho cả lần gọi trake_search() này — token_weight cần nhìn

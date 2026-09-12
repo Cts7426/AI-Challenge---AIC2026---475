@@ -1,0 +1,40 @@
+{
+  "scope": "READ-ONLY DIAGNOSTIC; no production edit",
+  "answer_probes": {
+    "Không đủ căn cứ xác định": {
+      "qa_predicate": false,
+      "export_issues": []
+    },
+    "TODO": {
+      "qa_predicate": true,
+      "export_issues": []
+    },
+    "0": {
+      "qa_predicate": true,
+      "export_issues": []
+    }
+  },
+  "round3_placeholder_files": [
+    {
+      "query_id": "query-p2-14-qa",
+      "rows": 100,
+      "todo_rows": 99,
+      "issue_counts": {},
+      "sha256": "3564632d079fab0e7b979126335590247cb18257f9595cf59f8d6eee3ec97f4c"
+    },
+    {
+      "query_id": "query-p2-24-qa",
+      "rows": 100,
+      "todo_rows": 99,
+      "issue_counts": {},
+      "sha256": "a614d3b84f4420289db9287e338242c35650dae5e8e08cd263bd437726db61da"
+    },
+    {
+      "query_id": "query-p2-6-qa",
+      "rows": 100,
+      "todo_rows": 99,
+      "issue_counts": {},
+      "sha256": "786ab8e178c084d9f97e0f668ec8ee8896738c5ad36ac42ed26595cfd89352f4"
+    }
+  ]
+}

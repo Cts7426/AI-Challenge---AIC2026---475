@@ -1,0 +1,595 @@
+We are starting a NEW POST-PRELIMINARY DEVELOPMENT CYCLE for the AIC 2026 system.
+
+The goal is NOT merely to edit the existing technical report.
+
+The goal is:
+
+1. freeze the current historical baseline;
+2. identify the highest-value technical failures;
+3. improve the system using evidence-driven engineering;
+4. evaluate improvements under a controlled protocol;
+5. freeze a reproducible improved version;
+6. then produce a NEW technical report that clearly distinguishes:
+   - competition-time system/workflow;
+   - post-preliminary improvements.
+
+The existing technical report and all previous evidence audits remain historical sources of truth.
+
+Do NOT rewrite competition history to match the new code.
+
+==================================================
+NON-NEGOTIABLE ATTRIBUTION RULE
+==================================================
+
+The preliminary-round final scores:
+
+- Round 1: 8.6 / 13
+- Round 2: 13.6 / 15
+- Round 3: 11.8 / 17
+
+belong to the FINAL COMPETITION WORKFLOW.
+
+That workflow included, depending on query:
+
+- the team's internal retrieval system;
+- human inspection;
+- human reranking;
+- manual candidate discovery;
+- external ChatGPT/Claude assistance.
+
+Future code changes MUST NOT be retroactively described as having produced these scores.
+
+Any result produced after the preliminary rounds must be labelled as:
+
+POST-PRELIMINARY / POST-COMPETITION INTERNAL EVALUATION
+
+unless evidence proves otherwise.
+
+==================================================
+GLOBAL ENGINEERING PRINCIPLE
+==================================================
+
+Do not optimize for making the report sound stronger.
+
+Optimize for making the system actually stronger.
+
+The report will be derived from evidence afterward.
+
+Every important change should follow:
+
+Problem
+→ Evidence
+→ Hypothesis
+→ Implementation
+→ Measurement
+→ Decision
+
+A failed hypothesis is acceptable.
+
+An unmeasured improvement is not.
+
+==================================================
+PHASE 1 — FREEZE BASELINE
+==================================================
+
+Before modifying production behavior:
+
+Audit and record:
+
+- HEAD commit;
+- branch;
+- git status;
+- current architecture;
+- current KIS mode;
+- current Q&A mode;
+- TRAKE mode;
+- model names;
+- prompts;
+- retrieval configuration;
+- fusion configuration;
+- reranking configuration;
+- Milvus/index identity;
+- Elasticsearch/index identity;
+- frame map;
+- data version;
+- runtime/dependencies;
+- current test status;
+- current preflight status.
+
+Create a reproducible baseline manifest.
+
+Where practical, create an appropriate Git tag or clearly recorded commit reference for the baseline.
+
+DO NOT rewrite or delete historical competition artifacts.
+
+Keep the current technical report as historical report v1.
+
+Output:
+
+A. Baseline snapshot
+B. Reproducibility gaps
+C. Current known limitations
+D. Current reliable evaluation sets
+E. Evaluation sets that must NOT be treated as independent because they were used for tuning
+
+==================================================
+PHASE 2 — FAILURE-DRIVEN DIAGNOSIS
+==================================================
+
+Do NOT immediately implement new ideas.
+
+First analyze existing evaluation data, traces, query-level results and failure records.
+
+Classify failures for:
+
+KIS
+Q&A
+TRAKE
+
+Suggested taxonomy:
+
+- query-understanding failure;
+- translation/caption drift;
+- retrieval miss;
+- correct video but poor frame localization;
+- relevant candidate ranked too low;
+- fusion failure;
+- duplicate/shot-allocation issue;
+- OCR/ASR/object-signal failure;
+- temporal reasoning failure;
+- insufficient evidence;
+- incorrect Q&A answer;
+- refusal/sentinel behavior;
+- TRAKE missing-event interpolation;
+- latency bottleneck;
+- mapping/export failure;
+- runtime/configuration failure.
+
+Do not force every failure into this taxonomy if evidence suggests a better classification.
+
+For each major failure class estimate:
+
+- frequency if measurable;
+- severity;
+- affected task;
+- likely root cause;
+- confidence in root cause;
+- possible technical interventions.
+
+Then rank candidate improvements by:
+
+IMPACT × EVIDENCE × IMPLEMENTATION COST × REGRESSION RISK.
+
+Output a prioritized list of at most 5 primary improvement targets.
+
+==================================================
+PHASE 3 — DESIGN IMPROVEMENT HYPOTHESES
+==================================================
+
+For each selected target write:
+
+1. observed problem;
+2. evidence;
+3. hypothesis;
+4. proposed implementation;
+5. expected metric affected;
+6. possible regression;
+7. evaluation method;
+8. rollback condition.
+
+Potential areas include, but are not limited to:
+
+- better query decomposition/routing;
+- Vietnamese→English semantic preservation;
+- stronger multi-source retrieval;
+- improved candidate pool;
+- better fusion;
+- learned or heuristic reranking;
+- temporal/frame localization;
+- shot allocation;
+- evidence-first Q&A;
+- stronger visual evidence selection;
+- reducing unsupported Q&A generation;
+- TRAKE evidence confidence;
+- latency reduction;
+- caching policy;
+- reproducible manifests;
+- regression gates;
+- release rehearsal.
+
+Do NOT revive previously failed ideas such as multi-anchor merely because they sound sophisticated.
+
+If reconsidering a previously rejected approach, explicitly state:
+
+- what changed;
+- why the old evidence may no longer apply;
+- what experiment would falsify the new hypothesis.
+
+==================================================
+STOP POINT 1
+==================================================
+
+At this point STOP.
+
+Do not modify production code yet.
+
+Return:
+
+A. Baseline
+B. Failure taxonomy
+C. Top improvement priorities
+D. Proposed hypotheses
+E. Evaluation protocol
+F. Risks
+G. Recommended implementation order
+
+Wait for my approval.
+
+==================================================
+PHASE 4 — IMPLEMENTATION
+==================================================
+
+After approval, implement improvements incrementally.
+
+Rules:
+
+- prefer small, attributable changes;
+- write/update focused tests;
+- do not silently change scorer/evaluation protocol;
+- preserve old configurations where needed for baseline comparison;
+- do not modify historical submission artifacts;
+- do not fabricate missing ground truth;
+- do not tune against data then later call that same data unbiased.
+
+Each meaningful change must have an experiment ID or documented run.
+
+For every implementation keep:
+
+- commit;
+- config;
+- model;
+- data/index version;
+- command;
+- result;
+- query-level deltas;
+- regressions.
+
+If an experiment regresses important metrics:
+
+analyze → rollback or revise.
+
+Do not keep a change just because implementation effort was high.
+
+==================================================
+PHASE 5 — CONTROLLED EVALUATION
+==================================================
+
+Evaluate baseline and improved versions using the SAME protocol.
+
+Where evidence allows, measure:
+
+KIS:
+- R@1;
+- R@5;
+- R@20;
+- R@50;
+- R@100;
+- aggregate score;
+- frame localization quality if ground truth supports it.
+
+Q&A:
+- retrieval/evidence quality;
+- answer correctness where verified ground truth exists;
+- invalid/refusal rate;
+- unsupported-answer failure rate if measurable;
+- latency.
+
+TRAKE:
+- event retrieval;
+- temporal ordering;
+- evidence-backed vs interpolated positions;
+- correctness where verified ground truth exists;
+- latency.
+
+Engineering:
+- crash rate;
+- mapping violations;
+- export violations;
+- preflight failures;
+- reproducibility.
+
+Report query-level wins/losses, not only aggregate metrics.
+
+For any major gain, check whether improvement came from:
+
+- broader candidate pool;
+- reranking;
+- query processing;
+- model change;
+- data/index change;
+- evaluation leakage;
+- accidental configuration difference.
+
+Perform ablation when attribution matters.
+
+==================================================
+EVALUATION SAFETY
+==================================================
+
+Distinguish:
+
+TRAIN/TUNING DATA
+
+DIAGNOSTIC DATA
+
+VALIDATION DATA
+
+HELD-OUT DATA
+
+COMPETITION DATA
+
+A set used repeatedly for design decisions must not later be described as unbiased evaluation.
+
+If no truly independent set exists, say so.
+
+Do not fabricate one.
+
+==================================================
+REGRESSION GATE
+==================================================
+
+Before accepting the improved system:
+
+- run focused tests;
+- run full applicable test suite;
+- run preflight;
+- run clean evaluation;
+- inspect major query-level regressions;
+- verify mapping/export;
+- verify task routing;
+- verify model/config identities.
+
+A new system is not “better” merely because one aggregate metric increased.
+
+Document meaningful regressions.
+
+==================================================
+PHASE 6 — FREEZE IMPROVED SYSTEM
+==================================================
+
+Once the preferred system is selected:
+
+freeze:
+
+- commit/tag;
+- model;
+- prompt;
+- config;
+- index;
+- dataset version;
+- runtime/dependencies;
+- cache behavior;
+- scorer;
+- evaluation query sets.
+
+Create a final post-preliminary manifest.
+
+Run one clean rehearsal without changing parameters during the run.
+
+Produce:
+
+A. Final architecture
+B. Baseline vs improved comparison
+C. Ablation summary
+D. Query-level regression summary
+E. Latency/runtime summary
+F. Known remaining failures
+G. Reproducibility manifest
+H. Engineering decision ledger
+
+==================================================
+REPORT GATE
+==================================================
+
+Only after the improved system is frozen may we begin the new report.
+
+Before drafting, determine whether evidence supports a stronger report than v1.
+
+Do NOT rewrite the old preliminary-round workflow.
+
+The new report must clearly separate:
+
+==================================================
+A. COMPETITION-TIME SYSTEM / WORKFLOW
+==================================================
+
+Describe what was actually used during:
+
+21/08/2026
+28/08/2026
+04/09/2026
+
+Preserve disclosure that final competition results were produced by an operator-assisted workflow.
+
+External ChatGPT/Claude assistance remains outside the autonomous core.
+
+Do not replace historical system descriptions with post-preliminary features.
+
+==================================================
+B. POST-PRELIMINARY SYSTEM
+==================================================
+
+Describe improvements made after observing preliminary-round failures.
+
+Use language such as:
+
+“Sau Vòng Sơ tuyển, đội tiếp tục phát triển…”
+
+“Phiên bản phát triển sau sơ tuyển…”
+
+“Đánh giá nội bộ sau sơ tuyển…”
+
+Never imply these improvements generated historical competition scores.
+
+==================================================
+NEW REPORT NARRATIVE
+==================================================
+
+The desired narrative is:
+
+Competition revealed concrete failure modes.
+
+The team measured them.
+
+The team prioritized the most important bottlenecks.
+
+The team implemented targeted changes.
+
+Some hypotheses may have failed and been rolled back.
+
+The surviving improvements were selected through controlled evaluation.
+
+The resulting post-preliminary system is more mature, reproducible and autonomous than the version available during the competition.
+
+This narrative must be supported by actual evidence.
+
+==================================================
+DESIRED NEW REPORT STRUCTURE
+==================================================
+
+Propose an optimized structure, likely around:
+
+1. Problem and contribution
+2. Competition-time system
+3. Architecture
+4. Retrieval / Q&A / TRAKE pipeline
+5. Observed preliminary-round limitations
+6. Post-preliminary technical improvements
+7. Controlled evaluation
+8. Engineering decisions / ablations
+9. Competition workflow attribution
+10. Remaining limitations
+11. Roadmap / final conclusion
+
+Do not mechanically use all headings if page limits require compression.
+
+==================================================
+WHAT SHOULD BECOME STRONGER THAN REPORT V1
+==================================================
+
+The new report should ideally contain stronger evidence for:
+
+- autonomous retrieval capability;
+- frame localization;
+- Q&A evidence handling;
+- TRAKE reasoning;
+- reproducibility;
+- regression control;
+- latency;
+- quantitative before/after comparison;
+- technical maturity.
+
+Do not strengthen these sections rhetorically if the system did not actually improve.
+
+==================================================
+FIGURES
+==================================================
+
+Consider:
+
+Figure 1:
+Competition-time system and operator boundary.
+
+Figure 2, only if page budget permits:
+Post-preliminary architecture / improvement map.
+
+A useful alternative is one figure showing:
+
+competition baseline
+→ observed failures
+→ engineering improvements
+→ improved system
+
+Do not use decorative figures.
+
+==================================================
+TABLES
+==================================================
+
+High-value candidates:
+
+Table 1:
+Competition results, clearly labelled as final workflow results.
+
+Table 2:
+Baseline vs post-preliminary internal evaluation.
+
+Table 3:
+Selected engineering decisions / ablations.
+
+Page budget decides which survive.
+
+==================================================
+IMPORTANT SCORE RULE
+==================================================
+
+Do not calculate or imply:
+
+- human uplift;
+- ChatGPT uplift;
+- Claude uplift;
+- manual-search contribution percentage.
+
+Do not use competition final scores as autonomous-engine benchmarks.
+
+Post-preliminary autonomous evaluation must use its own clearly identified evaluation protocol.
+
+==================================================
+PERSONNEL
+==================================================
+
+Do not introduce personnel disputes into the report.
+
+Only mention engineering-capacity constraints if genuinely necessary and evidence-supported.
+
+No names.
+No blame.
+No score attribution.
+
+==================================================
+FINAL DRAFTING PROCESS
+==================================================
+
+Before writing the new PDF:
+
+1. produce the proposed new report strategy;
+2. produce the exact claim ledger;
+3. show baseline vs improved evidence;
+4. show proposed figures/tables;
+5. show page allocation;
+6. identify claims that became stronger than report v1;
+7. identify claims that remain unchanged;
+8. identify claims that must be weakened or removed.
+
+STOP again.
+
+Wait for my approval before producing the final report.
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+The new report should make a technical reviewer conclude:
+
+- the team built a real multimodal retrieval system;
+- the team understands its failure modes;
+- improvements were driven by measurement;
+- regressions were detected rather than hidden;
+- the post-preliminary system is demonstrably stronger where evidence supports it;
+- the team can distinguish historical competition results from later development;
+- the development process has become more reproducible;
+- the path toward a more autonomous system is concrete.
+
+The report must earn these conclusions through evidence.
+
+Do not simply state them.

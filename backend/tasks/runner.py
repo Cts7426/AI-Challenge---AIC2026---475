@@ -237,7 +237,7 @@ def runtime_manifest() -> dict[str, Any]:
     được hash theo đường dẫn tương đối đã sort để thay đổi knob cache-relevant
     luôn làm fingerprint đổi mà không đưa nội dung/credential vào trace.
     """
-    backend = str(os.environ.get("LLM_BACKEND") or "api").strip()
+    backend = str(os.environ.get("LLM_BACKEND") or "<unset>").strip()
     model_env = {
         "api": "LLM_API_MODEL",
         "gemini": "LLM_GEMINI_MODEL",

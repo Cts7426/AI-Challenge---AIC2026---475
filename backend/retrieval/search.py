@@ -427,6 +427,9 @@ def _rrf(rank: int) -> float:
 NHANH_MUC_KEYFRAME = ("vector", "vector_siglip2", "objects", "ocr", "ocr_probe")
 
 
+from backend.common.retrieval_trace import bind_call, current_call, record, record_error, traced_search
+
+
 def _search_core(
     query_vi: str,
     query_en: str | None = None,
@@ -446,10 +449,24 @@ def _search_core(
     AGENTS.md: VLM/local nặng không nằm trong đường chạy online, trừ Q&A qua
     `llm()` adapter).
     """
+    # H01A: lỗi cấu hình phải lộ trước dịch/DB, kể cả khi không có ứng viên.
+    from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON, VOTE_CAP
+    try:
+        alpha = float(VP_ALPHA if video_prior_alpha is None else video_prior_alpha)
+    except (TypeError, ValueError) as e:
+        raise ValueError("video_prior_alpha phải là số trong [0,1]") from e
+    if not 0.0 <= alpha <= 1.0:
+        raise ValueError(f"video_prior_alpha phải trong [0,1], nhận {alpha}")
+    if not VP_ON:
+        alpha = 0.0
+
     if query_en is None:
         from backend.retrieval.text_query import translate_to_english
+        from backend.llm.adapter import RuntimeSelectionError
         try:
             query_en = translate_to_english(query_vi)
+        except RuntimeSelectionError:
+            raise
         except Exception as e:
             # LLM chết (hết credit/mất mạng/429) KHÔNG được kéo sập cả truy vấn.
             # Trước bản vá này, bước dịch nằm NGOÀI _an_toan() nên một lỗi ở đây
@@ -457,10 +474,14 @@ def _search_core(
             # Rơi về query gốc: nhánh vector/objects yếu hẳn (CLIP là model tiếng
             # Anh), nhưng metadata/OCR/ASR vẫn chạy đúng trên tiếng Việt — điểm
             # giảm chứ không mất trắng.
+            record_error("translation", e)
             print(f"  [cảnh báo] dịch VI→EN lỗi ({e}) — dùng nguyên query tiếng Việt")
             query_en = query_vi
 
     bat = {**BRANCHES, **(branches or {})}
+    record("executed_query", {"query_vi": query_vi, "query_en": query_en,
+                              "filter_video_id": filter_video_id})
+    call = current_call()
     pool = top_k * (candidate_multiplier or CANDIDATE_MULTIPLIER)
 
     # Nhánh vector thứ hai luôn là encoder CÒN LẠI. Không hardcode 'siglip2':
@@ -473,13 +494,33 @@ def _search_core(
 
     def _an_toan(ten: str, fn, *args) -> list[dict]:
         """Một nhánh chết KHÔNG được kéo sập search — thi thì không có thời gian debug."""
+        start = time.perf_counter()
+        entry = {"status": "disabled", "candidates": []}
+        if call is not None:
+            call["branches"][ten] = entry
         if not bat.get(ten, True):
             return []
         try:
-            return fn(*args)
+            with bind_call(call):
+                rows = fn(*args)
+            if call is not None:
+                from copy import deepcopy
+                if entry.get("internally_disabled"):
+                    status = "disabled"
+                elif entry.get("probe_errors"):
+                    status = "partial_failure" if rows else "failed"
+                else:
+                    status = "success" if rows else "zero_hits"
+                entry.update(status=status, candidates=deepcopy(rows))
+            return rows
         except Exception as e:
+            if call is not None:
+                entry.update(status="failed", error={"type": type(e).__name__, "message": str(e)})
             print(f"  [cảnh báo] nhánh {ten} lỗi, bỏ qua: {e}")
             return []
+        finally:
+            if call is not None:
+                entry["seconds"] = time.perf_counter() - start
 
     # Các nhánh độc lập → bắn cùng lúc, đợi cái chậm nhất thay vì cộng dồn
     with ThreadPoolExecutor(max_workers=7) as pool_thread:
@@ -532,6 +573,7 @@ def _search_core(
                     "timestamp_ms": r.get("timestamp_ms"),
                 })
         except Exception as e:
+            record_error("asr_nomination", e)
             print(f"  [cảnh báo] ASR đề cử lỗi, bỏ qua: {e}")
 
     if not candidates:
@@ -540,6 +582,7 @@ def _search_core(
     try:
         _fill_from_milvus(candidates)
     except Exception as e:
+        record_error("fill_frame_mapping", e)
         print(f"  [cảnh báo] không điền được frame_idx/timestamp: {e}")
 
     # --- quy mọi nhánh về hạng theo keyframe
@@ -581,17 +624,6 @@ def _search_core(
     # --- tiên nghiệm mức video (video_prior). Xem data/config/video_prior.py.
     # Cộng dồn bằng chứng của MỌI nhánh theo video, chặn ở VOTE_CAP dòng đầu mỗi
     # nhánh để video dài không thắng bằng số lượng. alpha=0 -> không đổi gì.
-    from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON, VOTE_CAP
-    # Kiểm giá trị của CALLER trước, rồi mới áp cổng ENABLED: caller truyền 1.5
-    # là một bug của caller dù tính năng đang bật hay tắt. Kiểm sau cổng thì bug
-    # đó bị nuốt lặng và chỉ lộ ra vào ngày ai đó bật tính năng lên.
-    if video_prior_alpha is not None and not 0.0 <= float(video_prior_alpha) <= 1.0:
-        raise ValueError(
-            f"video_prior_alpha phải trong [0,1], nhận {video_prior_alpha}"
-        )
-    alpha = VP_ALPHA if video_prior_alpha is None else float(video_prior_alpha)
-    if not VP_ON:
-        alpha = 0.0
     video_vote: dict[str, float] = {}
     if alpha > 0.0:
         # Hai tín hiệu mức video, đo hai thứ KHÁC NHAU:
@@ -729,14 +761,20 @@ def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[d
     """
     from data.config.token_probe import ENABLED, MAX_HITS, MAX_PROBES
 
+    call = current_call()
+    probe_trace = call["branches"].get("ocr_probe") if call is not None else None
     if not ENABLED:
+        if probe_trace is not None:
+            probe_trace["internally_disabled"] = "data.config.token_probe.ENABLED=False"
         return []
     diem: dict[str, float] = {}
     thong_tin: dict[str, dict] = {}
     for tok in _ung_vien_probe(query_vi, query_en)[:MAX_PROBES]:
         try:
             rows = _branch_ocr(tok, MAX_HITS + 1)
-        except Exception:
+        except Exception as error:
+            if probe_trace is not None:
+                probe_trace.setdefault("probe_errors", []).append({"token": tok, "type": type(error).__name__, "message": str(error)})
             continue
         if not rows or len(rows) > MAX_HITS:
             continue
@@ -879,6 +917,7 @@ def _finalize(
     return ket_qua[:top_k]
 
 
+@traced_search
 def search(
     query_vi: str,
     query_en: str | None = None,
@@ -906,7 +945,9 @@ def search(
         query_vi, query_en, top_k, branches, filter_video_id, candidate_multiplier,
         video_prior_alpha,
     )
+    record("fused_ranking", ket_qua)
     kq = _finalize(ket_qua, shots, top_k, group_by_shot, video_prior_alpha)
+    record("finalized_ranking", kq)
 
     # Rerank chạy SAU khi gom shot và cắt top_k — nó xếp lại đúng những dòng sẽ
     # được nộp, không phải cả pool. Mặc định đọc config (đang TẮT, chờ cổng
@@ -914,6 +955,7 @@ def search(
     from backend.retrieval.rerank_top50 import rerank as _rerank_top50
 
     kq = _rerank_top50(kq, enabled=rerank_top50)
+    record("reranked_ranking", kq)
 
     # Xếp xen kẽ theo video LẦN CUỐI, sau rerank: rerank chọn KHUNG HÌNH tốt
     # trong mỗi shot (việc của nó), còn thứ tự nộp phải bảo đảm mỗi video được

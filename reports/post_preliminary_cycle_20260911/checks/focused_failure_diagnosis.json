@@ -1,0 +1,13 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "--tb=short",
+    "tests/test_warmup.py::test_kiem_milvus_bao_hong_khi_thieu_collection_siglip2",
+    "tests/test_video_prior_probe.py::test_alpha_ngoai_khoang_bi_tu_choi"
+  ],
+  "exit_code": 4,
+  "seconds": 4.696743011474609
+}

@@ -95,12 +95,18 @@ class Check:
 # ============================================================ A. MÔI TRƯỜNG
 
 def _try_import(module_name: str) -> tuple[bool, str]:
+    """Kiểm dependency nhưng không để import thay đổi environment vận hành."""
     import importlib
 
+    env_before = dict(os.environ)
     try:
         mod = importlib.import_module(module_name)
     except Exception as e:
         return False, f"{type(e).__name__}: {e}"
+    finally:
+        for key in set(os.environ) - set(env_before):
+            os.environ.pop(key, None)
+        os.environ.update(env_before)
     return True, getattr(mod, "__version__", "?")
 
 
@@ -198,26 +204,14 @@ def check_qa_runtime() -> tuple[bool | None, str]:
     in lại giá trị resolve để người vận hành nhìn thấy sai cấu hình mà không tốn
     thêm một network request.
     """
-    from backend.llm.adapter import (
-        DEFAULT_API_MODEL,
-        DEFAULT_GEMINI_MODEL,
-        DEFAULT_LOCAL_MODEL,
-    )
+    from backend.llm.adapter import selected_runtime
     from data.config.qa_inference import qa_runtime_config
 
     try:
         qa_runtime = qa_runtime_config()
+        backend, model = selected_runtime()
     except ValueError as e:
         return False, str(e)
-    backend = os.environ.get("LLM_BACKEND", "api")
-    if backend == "api":
-        model = os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL)
-    elif backend == "gemini":
-        model = os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
-    elif backend == "local":
-        model = os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL)
-    else:
-        return False, f"LLM_BACKEND={backend!r} không hợp lệ"
     env_file = REPO_ROOT / ".env"
 
     def has_secret(name: str) -> bool:

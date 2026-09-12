@@ -1,0 +1,480 @@
+{
+  "executable": "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+  "version": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+  "packages": [
+    {
+      "name": "annotated-doc",
+      "version": "0.0.5"
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0"
+    },
+    {
+      "name": "anthropic",
+      "version": "0.125.0"
+    },
+    {
+      "name": "anyio",
+      "version": "4.14.2"
+    },
+    {
+      "name": "cachetools",
+      "version": "7.1.7"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22"
+    },
+    {
+      "name": "cffi",
+      "version": "2.1.1"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.1"
+    },
+    {
+      "name": "click",
+      "version": "8.4.2"
+    },
+    {
+      "name": "cloudpickle",
+      "version": "3.1.2"
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6"
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.0"
+    },
+    {
+      "name": "distro",
+      "version": "1.9.0"
+    },
+    {
+      "name": "docstring_parser",
+      "version": "0.18.0"
+    },
+    {
+      "name": "elastic-transport",
+      "version": "8.19.0"
+    },
+    {
+      "name": "elasticsearch",
+      "version": "8.19.3"
+    },
+    {
+      "name": "fastapi",
+      "version": "0.141.1"
+    },
+    {
+      "name": "filelock",
+      "version": "3.32.3"
+    },
+    {
+      "name": "fsspec",
+      "version": "2026.7.0"
+    },
+    {
+      "name": "ftfy",
+      "version": "6.3.1"
+    },
+    {
+      "name": "google-auth",
+      "version": "2.56.3"
+    },
+    {
+      "name": "google-genai",
+      "version": "2.19.0"
+    },
+    {
+      "name": "grpcio",
+      "version": "1.83.0"
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0"
+    },
+    {
+      "name": "hf-xet",
+      "version": "1.6.0"
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.9"
+    },
+    {
+      "name": "httptools",
+      "version": "0.8.0"
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1"
+    },
+    {
+      "name": "huggingface_hub",
+      "version": "1.28.0"
+    },
+    {
+      "name": "idna",
+      "version": "3.19"
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.0"
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.6"
+    },
+    {
+      "name": "jiter",
+      "version": "0.16.0"
+    },
+    {
+      "name": "joblib",
+      "version": "1.6.0"
+    },
+    {
+      "name": "markdown-it-py",
+      "version": "4.2.0"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.3"
+    },
+    {
+      "name": "mdurl",
+      "version": "0.1.2"
+    },
+    {
+      "name": "mpmath",
+      "version": "1.3.0"
+    },
+    {
+      "name": "narwhals",
+      "version": "2.25.0"
+    },
+    {
+      "name": "networkx",
+      "version": "3.6.1"
+    },
+    {
+      "name": "numpy",
+      "version": "2.5.2"
+    },
+    {
+      "name": "open_clip_torch",
+      "version": "3.3.0"
+    },
+    {
+      "name": "orjson",
+      "version": "3.12.0"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3"
+    },
+    {
+      "name": "pandas",
+      "version": "3.0.5"
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0"
+    },
+    {
+      "name": "pip",
+      "version": "25.2"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "name": "protobuf",
+      "version": "7.36.0"
+    },
+    {
+      "name": "pyarrow",
+      "version": "25.0.1"
+    },
+    {
+      "name": "pyasn1",
+      "version": "0.6.4"
+    },
+    {
+      "name": "pyasn1_modules",
+      "version": "0.4.2"
+    },
+    {
+      "name": "pycparser",
+      "version": "3.0"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.4"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.46.4"
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0"
+    },
+    {
+      "name": "pymilvus",
+      "version": "3.0.1"
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1"
+    },
+    {
+      "name": "python-crfsuite",
+      "version": "0.9.12"
+    },
+    {
+      "name": "python-dateutil",
+      "version": "2.9.0.post0"
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.3"
+    },
+    {
+      "name": "pyvi",
+      "version": "0.1.1"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3"
+    },
+    {
+      "name": "regex",
+      "version": "2026.7.19"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2"
+    },
+    {
+      "name": "rich",
+      "version": "15.0.0"
+    },
+    {
+      "name": "safetensors",
+      "version": "0.8.0"
+    },
+    {
+      "name": "scikit-learn",
+      "version": "1.9.0"
+    },
+    {
+      "name": "scipy",
+      "version": "1.18.1"
+    },
+    {
+      "name": "sentence-transformers",
+      "version": "6.0.1"
+    },
+    {
+      "name": "setuptools",
+      "version": "78.1.0"
+    },
+    {
+      "name": "shellingham",
+      "version": "1.5.4"
+    },
+    {
+      "name": "six",
+      "version": "1.17.0"
+    },
+    {
+      "name": "sklearn-crfsuite",
+      "version": "0.5.0"
+    },
+    {
+      "name": "sniffio",
+      "version": "1.3.1"
+    },
+    {
+      "name": "starlette",
+      "version": "1.6.0"
+    },
+    {
+      "name": "sympy",
+      "version": "1.14.0"
+    },
+    {
+      "name": "tabulate",
+      "version": "0.10.0"
+    },
+    {
+      "name": "tenacity",
+      "version": "9.1.4"
+    },
+    {
+      "name": "threadpoolctl",
+      "version": "3.6.0"
+    },
+    {
+      "name": "timm",
+      "version": "1.0.28"
+    },
+    {
+      "name": "tokenizers",
+      "version": "0.23.1"
+    },
+    {
+      "name": "torch",
+      "version": "2.13.0+cpu"
+    },
+    {
+      "name": "torchvision",
+      "version": "0.28.0"
+    },
+    {
+      "name": "tqdm",
+      "version": "4.70.0"
+    },
+    {
+      "name": "transformers",
+      "version": "5.16.1"
+    },
+    {
+      "name": "typer",
+      "version": "0.27.2"
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.4"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0"
+    },
+    {
+      "name": "tzdata",
+      "version": "2026.3"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.7.0"
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.52.4"
+    },
+    {
+      "name": "watchfiles",
+      "version": "1.2.0"
+    },
+    {
+      "name": "wcwidth",
+      "version": "0.8.2"
+    },
+    {
+      "name": "websockets",
+      "version": "16.1.1"
+    }
+  ],
+  "tables": {
+    "data/derived/asr.parquet": {
+      "rows": 13415,
+      "row_groups": 1,
+      "schema": "video_id: large_string\nseg_id: int32\nstart_s: float\nend_s: float\nstart_frame: int64\nend_frame: int64\ntext_vi: large_string\ntext_vi_clean: large_string\ntext_vi_clean_source: large_string\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 1148",
+      "unique_videos": 783
+    },
+    "data/derived/clip_kf_map.parquet": {
+      "rows": 371702,
+      "row_groups": 1,
+      "schema": "kf_id: string\nvideo_id: string\nframe_idx: int64\nshot_id: string\nrow_id: int64\nclip_kf_id: string\nclip_frame_idx: double\nframe_drift: double\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 1011",
+      "unique_videos": 873
+    },
+    "data/derived/clip_row_index.parquet": {
+      "rows": 177321,
+      "row_groups": 1,
+      "schema": "row_id: int64\nvideo_id: string\nbtc_kf_ordinal: int64\nframe_idx_raw: int64\nkf_id: string\nnpy_file: string\nlocal_row: int64\nframe_idx: int64\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 1004",
+      "unique_videos": 873
+    },
+    "data/derived/docs_bm25.parquet": {
+      "rows": 371702,
+      "row_groups": 1,
+      "schema": "kf_id: string\nvideo_id: string\nshot_id: string\nframe_idx: int64\ndoc_text: string\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 646",
+      "unique_videos": 873
+    },
+    "data/derived/frame_map.parquet": {
+      "rows": 177321,
+      "row_groups": 1,
+      "schema": "video_id: string\nbtc_ordinal: int64\nframe_idx: int64\npts_time: double\nfps: double\nkf_id: string\nbtc_kf_ordinal: int64\nframe_idx_corrected: int64\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 1019",
+      "unique_videos": 873
+    },
+    "data/derived/keyframes.parquet": {
+      "rows": 371702,
+      "row_groups": 1,
+      "schema": "kf_id: string\nvideo_id: string\nshot_id: string\nframe_idx: int64\npath: string\nrow_id: int64\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 747",
+      "unique_videos": 873
+    },
+    "data/derived/ocr.parquet": {
+      "rows": 160393,
+      "row_groups": 1,
+      "schema": "video_id: string\nkf_id: string\nframe_idx: int64\ntext_raw: string\ntext_clean: string\nn_boxes: int32\navg_conf: float\nboxes: string\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 990",
+      "unique_videos": 872
+    },
+    "data/derived/shots.parquet": {
+      "rows": 100810,
+      "row_groups": 1,
+      "schema": "shot_id: string\nvideo_id: string\nshot_seq: int32\nstart_frame: int64\nend_frame: int64\nn_frames: int32\nduration_s: double\nis_force_split: bool\nn_raw_shots_merged: int32\ndetector_confidence: float\ndetector: string\nconfig_hash: string\nsplit_reason: string\nrep_kf_id: string\nrep_source: string\nrep_offset: double\nkeyframes_config_hash: string\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 2144",
+      "unique_videos": 873
+    },
+    "data/derived/text_vi_bgem3.parquet": {
+      "rows": 13415,
+      "row_groups": 1,
+      "schema": "video_id: large_string\nseg_id: int32\nstart_s: float\nend_s: float\nembedding: list<element: float>\n  child 0, element: float\n-- schema metadata --\npandas: '{\"index_columns\": [{\"kind\": \"range\", \"name\": null, \"start\": 0, \"' + 852",
+      "unique_videos": 783
+    },
+    "data/derived/text_vi_dangvantuan.parquet": {
+      "rows": 13415,
+      "row_groups": 1,
+      "schema": "video_id: large_string\nseg_id: int32\nstart_s: float\nend_s: float\nembedding: list<element: float>\n  child 0, element: float\n-- schema metadata --\npandas: '{\"index_columns\": [{\"kind\": \"range\", \"name\": null, \"start\": 0, \"' + 852",
+      "unique_videos": 783
+    },
+    "data/derived/video_info.parquet": {
+      "rows": 873,
+      "row_groups": 1,
+      "schema": "video_id: string\nfps_num: int64\nfps_den: int64\nnb_frames_decoded: int64\npath: string\nduration_sec: double\nhas_audio: bool\nis_vfr: bool\nn_frames: int64\n-- schema metadata --\npandas: '{\"index_columns\": [], \"column_indexes\": [], \"columns\": [{\"name\":' + 1110",
+      "unique_videos": 873
+    }
+  },
+  "frame_map_structural": {
+    "key_column": "kf_id",
+    "rows": 177321,
+    "duplicate_keys": 0,
+    "null_keys": 0,
+    "negative_frames": 0,
+    "keyframe_set_sha256": "59b8edeab10345113e49c46365dbd2177916c66767b0b745fcbc604126c7c5ce"
+  },
+  "asset_inventory": {
+    "data/raw/btc/keyframes": {
+      "exists": true,
+      "jpg_count": 177321,
+      "image_directories": 873
+    },
+    "data/derived/keyframes": {
+      "exists": false,
+      "jpg_count": 0,
+      "image_directories": 0
+    }
+  },
+  "local_tcp": {
+    "9200": "TimeoutError",
+    "19530": "TimeoutError",
+    "9091": "TimeoutError",
+    "8000": "TimeoutError"
+  }
+}

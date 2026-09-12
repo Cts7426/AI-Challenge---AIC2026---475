@@ -1,0 +1,51 @@
+{
+  "checks": [
+    {
+      "scope": "source_files",
+      "n_files": 273,
+      "mismatches": []
+    },
+    {
+      "scope": "historical_files",
+      "n_files": 37,
+      "mismatches": []
+    },
+    {
+      "scope": "data_files",
+      "n_files": 28,
+      "mismatches": []
+    },
+    {
+      "scope": "baseline_capture/checksums.json",
+      "n_files": 7,
+      "mismatches": []
+    },
+    {
+      "scope": "evidence_checksums.json",
+      "n_files": 3885,
+      "mismatches": []
+    },
+    {
+      "scope": "baseline_capture/source_snapshot.zip",
+      "n_files": 273,
+      "bad_zip_member": null
+    },
+    {
+      "scope": "baseline_capture/historical_report_v1_and_audits.zip",
+      "n_files": 37,
+      "bad_zip_member": null
+    },
+    {
+      "scope": "evidence_and_cache_snapshot.zip",
+      "n_files": 3884,
+      "bad_zip_member": null
+    },
+    {
+      "scope": "document_links",
+      "missing": []
+    }
+  ],
+  "production_behavior_changed_by_this_turn": false,
+  "selfcheck_status": "exit_1_known_baseline_failures",
+  "scope": "snapshot integrity only; not system completion"
+}

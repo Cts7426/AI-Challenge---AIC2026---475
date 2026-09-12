@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="470" viewBox="0 0 1000 470">
+  <rect width="1000" height="470" fill="white"/>
+  <g font-family="Arial" font-size="19" fill="#152f45" stroke-linejoin="round">
+    <rect x="2" y="2" width="996" height="274" rx="8" fill="#f6f9fc" stroke="#37556d" stroke-width="2"/>
+    <text x="20" y="29" font-weight="bold">HỆ THỐNG LÕI   Core Retrieval System</text>
+    <g fill="white" stroke="#52718b" stroke-width="1.5">
+      <rect x="20" y="52" width="140" height="72" rx="5"/>
+      <rect x="190" y="52" width="230" height="72" rx="5"/>
+      <rect x="450" y="52" width="250" height="72" rx="5"/>
+      <rect x="730" y="52" width="250" height="72" rx="5"/>
+      <rect x="450" y="159" width="250" height="90" rx="5"/>
+      <rect x="190" y="159" width="230" height="90" rx="5"/>
+      <rect x="20" y="159" width="140" height="90" rx="5"/>
+    </g>
+    <g text-anchor="middle" font-size="18">
+      <text x="90" y="82" font-weight="bold">Query</text><text x="90" y="108">+ loại task</text>
+      <text x="305" y="76" font-weight="bold">Xử lý và routing</text><text x="305" y="98" font-size="17">LLM/VLM adapter</text><text x="305" y="119" font-size="17">tích hợp trong pipeline</text>
+      <text x="575" y="82" font-weight="bold">Retrieval đa nguồn</text><text x="575" y="108">vector và text</text>
+      <text x="855" y="76" font-weight="bold">Dữ liệu BTC và index</text><text x="855" y="98">Milvus / Elasticsearch</text><text x="855" y="119" font-size="14">CLIP · OCR · ASR · nhãn · metadata</text>
+      <text x="575" y="186" font-weight="bold">Weighted RRF</text><text x="575" y="211">Gom shot / xếp ứng viên</text><text x="575" y="235">Giữ thứ hạng theo nguồn</text>
+      <text x="305" y="186" font-weight="bold">Xử lý theo task</text><text x="305" y="211">KIS / Q&amp;A / TRAKE</text><text x="305" y="235" font-size="16">frame · answer · chuỗi sự kiện</text>
+      <text x="90" y="182" font-weight="bold">Map / export</text><text x="90" y="204" font-size="16">Frame tuyệt đối</text><text x="90" y="224" font-size="16">Validator</text><text x="90" y="244" font-size="16">CSV / ZIP</text>
+    </g>
+    <g fill="none" stroke="#37556d" stroke-width="2">
+      <path d="M160 88H188 M182 84L188 88L182 92 M420 88H448 M442 84L448 88L442 92 M730 88H702 M708 84L702 88L708 92 M575 124V157 M571 151L575 157L579 151 M450 204H422 M428 200L422 204L428 208 M190 204H162 M168 200L162 204L168 208"/>
+    </g>
+    <rect x="2" y="307" width="650" height="157" rx="8" fill="#fafafa" stroke="#5c6670" stroke-width="2"/>
+    <text x="20" y="331" font-size="17" font-weight="bold">LỚP VẬN HÀNH THI   Operator-assisted workflow</text>
+    <rect x="20" y="347" width="300" height="96" rx="5" fill="white" stroke="#5c6670"/>
+    <text x="170" y="371" text-anchor="middle" font-weight="bold">Người vận hành</text>
+    <text x="170" y="394" text-anchor="middle" font-size="17">Xem ảnh · kiểm chứng · rerank</text>
+    <text x="170" y="418" text-anchor="middle" font-size="17">Tìm kiếm bổ sung thủ công</text>
+    <rect x="365" y="364" width="265" height="67" rx="5" fill="#e8eef4" stroke="#5c6670"/>
+    <text x="497" y="391" text-anchor="middle" font-size="18" font-weight="bold">Người vận hành lựa chọn</text>
+    <text x="497" y="417" text-anchor="middle">Hoàn thiện submission</text>
+    <g fill="none" stroke="#5c6670" stroke-width="2">
+      <path d="M90 249V287H10V395H18 M13 391L18 395L13 399 M320 398H363 M357 394L363 398L357 402"/>
+    </g>
+    <rect x="700" y="342" width="280" height="100" rx="8" fill="#fbf8fc" stroke="#79548b" stroke-width="2" stroke-dasharray="7 4"/>
+    <text x="840" y="368" text-anchor="middle" font-weight="bold" fill="#634276">EXTERNAL AI</text>
+    <text x="840" y="393" text-anchor="middle">ChatGPT / Claude</text>
+    <text x="840" y="418" text-anchor="middle" font-size="16">Suy luận · đề xuất answer / frame</text>
+    <path d="M840 442V456H340V420H322 M328 416L322 420L328 424" fill="none" stroke="#79548b" stroke-width="2" stroke-dasharray="7 4"/>
+    <text x="688" y="316" font-size="16" fill="#634276">Tùy query</text>
+  </g>
+</svg>

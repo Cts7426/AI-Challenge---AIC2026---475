@@ -1,0 +1,18 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "scripts/preflight_check.py",
+    "--profile",
+    "development",
+    "--json"
+  ],
+  "exit_code": 1,
+  "seconds": 57.659610986709595,
+  "diagnostic_environment_overrides": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TEMP": "C:\\dev\\aic2026\\reports\\post_preliminary_cycle_20260911\\checks\\runtime_tmp",
+    "TMP": "C:\\dev\\aic2026\\reports\\post_preliminary_cycle_20260911\\checks\\runtime_tmp",
+    "PYTHONIOENCODING": "utf-8"
+  }
+}

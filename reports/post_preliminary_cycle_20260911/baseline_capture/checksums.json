@@ -1,0 +1,37 @@
+[
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/git_diff.patch",
+    "bytes": 1359,
+    "sha256": "fcdea4b25307a6a4f616fd1b20ab58a217ddf927b5ac1c5e61eb279b10456931"
+  },
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/git_log.txt",
+    "bytes": 4119,
+    "sha256": "5c48476126b03a6501484aa6019a0ee8014d5c85bd064edca269214b434b212c"
+  },
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/git_staged.patch",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/git_status.txt",
+    "bytes": 460697,
+    "sha256": "8cf7cdd46cc7aea38aba49c982662c3e6f39d0ebb2e0bcaf3c600bbe52fc11a3"
+  },
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/historical_report_v1_and_audits.zip",
+    "bytes": 5018039,
+    "sha256": "9f51e8f40107251ec196ea8eb86d1ace1bd460756fdc7f8b3520d57faa913ed0"
+  },
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/manifest.json",
+    "bytes": 77554,
+    "sha256": "9ba151e5e612f5ade1a25f73bd56fd7d728b4a97223f86da532cd3b224b88518"
+  },
+  {
+    "path": "reports/post_preliminary_cycle_20260911/baseline_capture/source_snapshot.zip",
+    "bytes": 923717,
+    "sha256": "182f1c68be437ab441b189c5757e5ca9165dffa80f56fa325dacebc86d696e11"
+  }
+]

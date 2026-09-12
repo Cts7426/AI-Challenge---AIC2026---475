@@ -1,0 +1,25 @@
+{
+  "scope": "read-only isolated-process probe; no LLM call",
+  "before": {
+    "LLM_BACKEND": null,
+    "LLM_API_MODEL": null,
+    "LLM_GEMINI_MODEL": null,
+    "QA_INFERENCE_MODE": null,
+    "VECTOR_BACKEND": null
+  },
+  "check_core_libs": [
+    true,
+    "đủ: pandas, pyarrow, numpy, elasticsearch, pymilvus"
+  ],
+  "after": {
+    "LLM_BACKEND": "api",
+    "LLM_API_MODEL": "claude-sonnet-5",
+    "LLM_GEMINI_MODEL": null,
+    "QA_INFERENCE_MODE": null,
+    "VECTOR_BACKEND": null
+  },
+  "changed_fields": [
+    "LLM_BACKEND",
+    "LLM_API_MODEL"
+  ]
+}

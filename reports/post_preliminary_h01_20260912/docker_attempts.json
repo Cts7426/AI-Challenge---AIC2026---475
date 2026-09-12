@@ -1,0 +1,20 @@
+{
+  "scope": "PP-H01 runtime recovery, post-competition",
+  "initial_state": "Docker engine pipe absent; ES/Milvus unavailable",
+  "operations": [
+    {"action": "Start Docker Desktop hidden", "result": "process started, backend failed before engine startup"},
+    {"action": "Read docker ps -a and docker volume ls", "result": "engine unavailable; no container or volume identity obtained"},
+    {"action": "Read tail of com.docker.backend.exe.log", "result": "starting services: initializing Inference manager: listening on unix://C:/Users/lehon/AppData/Local/Docker/run/dockerInference: remove C:/Users/lehon/AppData/Local/Docker/run/dockerInference: The file cannot be accessed by the system. (listener: The filename, directory name, or volume label syntax is incorrect.)"},
+    {"action": "Inspect dockerInference", "result": "Archive, ReparsePoint; created 2026-07-18; last write 2026-08-31"},
+    {"action": "Stop processes started by this task, move socket to .pp-h01-backup-20260912", "result": "Move failed: The file cannot be accessed by the system; no backup created"},
+    {"action": "Read reparse point using fsutil query", "result": "Error 1920: The file cannot be accessed by the system"},
+    {"action": "Stop Docker processes from this task and remove only stale socket", "result": "Remove failed: The file cannot be accessed by the system; engine restart after that command did not execute"}
+  ],
+  "docker_factory_reset": false,
+  "compose_up": false,
+  "volumes_deleted": false,
+  "reindex_executed": false,
+  "restored_baseline_created": false,
+  "final_status": "blocked_by_windows_socket_access",
+  "approval_review_rejection": false
+}

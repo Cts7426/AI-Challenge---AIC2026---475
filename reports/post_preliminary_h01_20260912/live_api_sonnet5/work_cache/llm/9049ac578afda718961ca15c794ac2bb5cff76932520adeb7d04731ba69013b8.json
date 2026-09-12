@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không xác định được vì không thấy xe trong khung hình\",\"answer_vi\":\"Không xác định được vì không thấy xe trong khung hình\",\"answer_en\":\"Cannot be determined as no vehicle is visible in the frame\",\"evidence_frame_idx\":21195,\"confidence\":0.05}",
+    "{\"answer\":\"Không thấy xe màu trắng nào trong hình để xác định số\",\"answer_vi\":\"Không thấy xe màu trắng nào trong hình để xác định số\",\"answer_en\":\"No white vehicle visible in the frames to determine the number\",\"evidence_frame_idx\":21195,\"confidence\":0.05}",
+    "{\"answer\":\"Không xác định được vì không thấy số trên xe trong khung hình\",\"answer_vi\":\"Không xác định được vì không thấy số trên xe trong khung hình\",\"answer_en\":\"Cannot be determined as no car number is visible in the frame\",\"evidence_frame_idx\":21195,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:16:25"
+}

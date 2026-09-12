@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":19890,\"confidence\":0.1}",
+    "{\"answer\":\"6\",\"answer_vi\":\"6 vị trí\",\"answer_en\":\"6 locations\",\"evidence_frame_idx\":19890,\"confidence\":0.3}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":19890,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:16:59"
+}

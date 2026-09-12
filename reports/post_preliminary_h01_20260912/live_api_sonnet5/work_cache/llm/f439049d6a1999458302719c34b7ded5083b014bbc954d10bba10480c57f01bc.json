@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không rõ \\\"X\\\" chỉ con gì, nhưng nguyên liệu chính là sườn non (thường là sườn heo)\",\"answer_vi\":\"Không đủ căn cứ để xác định rõ \\\"X\\\" là con gì, tuy nhiên trong món ăn có \\\"sườn non\\\" - thường là sườn heo (lợn)\",\"answer_en\":\"Not enough evidence to clearly identify what animal \\\"X\\\" refers to, but the dish uses \\\"sườn non\\\" (baby ribs), typically pork ribs\",\"evidence_frame_idx\":5608,\"confidence\":0.25}",
+    "{\"answer\":\"Sườn non (thịt heo)\",\"answer_vi\":\"Sườn non là sườn heo\",\"answer_en\":\"The ribs used are pork ribs\",\"evidence_frame_idx\":5608,\"confidence\":0.3}",
+    "{\"answer\":\"Sườn non (thịt heo)\",\"answer_vi\":\"Sườn non làm từ thịt heo (lợn)\",\"answer_en\":\"The 'sườn non' (baby ribs) are pork ribs\",\"evidence_frame_idx\":5608,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:15:06"
+}

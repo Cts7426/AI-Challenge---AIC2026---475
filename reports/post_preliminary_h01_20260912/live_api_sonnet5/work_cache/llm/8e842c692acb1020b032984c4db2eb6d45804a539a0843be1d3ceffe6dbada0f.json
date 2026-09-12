@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cháo đậu chà bông cá hồi\",\"answer_vi\":\"Cháo đậu chà bông cá hồi\",\"answer_en\":\"Bean porridge with salmon floss\",\"evidence_frame_idx\":884,\"confidence\":0.9}",
+    "{\"answer\":\"Cháo đậu chà bông cá hồi\",\"answer_vi\":\"Cháo đậu chà bông cá hồi\",\"answer_en\":\"Mung bean porridge with salmon floss\",\"evidence_frame_idx\":884,\"confidence\":0.9}",
+    "{\"answer\":\"Cháo đậu chà bông cá hồi\",\"answer_vi\":\"Cháo đậu chà bông cá hồi\",\"answer_en\":\"Bean porridge with salmon floss\",\"evidence_frame_idx\":884,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:13:37"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ xác định\",\"answer_vi\":\"Không đủ căn cứ xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":2532,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định tên trường tiểu học\",\"answer_vi\":\"Không đủ căn cứ để xác định tên trường tiểu học\",\"answer_en\":\"Not enough evidence to identify the primary school name\",\"evidence_frame_idx\":2532,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin\",\"answer_en\":\"No information provided\",\"evidence_frame_idx\":2532,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:52:38"
+}

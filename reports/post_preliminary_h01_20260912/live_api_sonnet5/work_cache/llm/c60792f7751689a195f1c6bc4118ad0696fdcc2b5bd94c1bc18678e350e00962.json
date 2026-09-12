@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Bao tử khìa xá xị\",\"answer_vi\":\"Bao tử khìa xá xị\",\"answer_en\":\"Pork stomach braised in root beer (xa xi)\",\"evidence_frame_idx\":3840,\"confidence\":0.9}",
+    "{\"answer\":\"Bao tử khìa xá xị\",\"answer_vi\":\"Bao tử khìa xá xị\",\"answer_en\":\"Braised pork stomach with sarsaparilla soda (xá xị)\",\"evidence_frame_idx\":3840,\"confidence\":0.9}",
+    "{\"answer\":\"Bao tử khìa xá xị\",\"answer_vi\":\"Bao tử khìa xá xị\",\"answer_en\":\"Braised pork stomach with sarsaparilla soda\",\"evidence_frame_idx\":3840,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:55:21"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không có thông tin rõ ràng trong nội dung để xác định trường tiểu học nơi giáo viên dạy chính\",\"answer_en\":\"There is insufficient evidence to determine which elementary school the teachers primarily teach at\",\"evidence_frame_idx\":14445,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không có thông tin về trường tiểu học trong dữ liệu được cung cấp\",\"answer_en\":\"No information about a primary school is available in the given evidence\",\"evidence_frame_idx\":14445,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định giáo viên dạy chính ở trường tiểu học nào\",\"answer_en\":\"Insufficient evidence to determine which elementary school the teachers primarily teach at\",\"evidence_frame_idx\":14445,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:53:25"
+}

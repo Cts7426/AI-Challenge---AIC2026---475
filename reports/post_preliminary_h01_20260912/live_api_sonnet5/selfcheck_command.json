@@ -1,0 +1,9 @@
+{
+  "command": ".venv/Scripts/python.exe scripts/selfcheck.py",
+  "finished_at": "2026-09-12T14:02:10.7043105+07:00",
+  "LLM_API_MODEL": "claude-sonnet-5",
+  "started_at": "2026-09-12T13:57:59.7236415+07:00",
+  "LLM_BACKEND": "api",
+  "exit_code": 1,
+  "notes": "TEMP/TMP trong workspace; HF offline; source không đổi từ checkpoint."
+}

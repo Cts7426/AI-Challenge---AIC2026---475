@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"BRAZIL TỔ CHỨC QUỐC TANG 3 NGÀY TƯỞNG NIỆM 61 NẠN NHÂN RƠI MÁY BAY\",\"answer_vi\":\"Dòng chữ: \\\"Brazil tổ chức quốc tang 3 ngày tưởng niệm 61 nạn nhân rơi máy bay\\\"\",\"answer_en\":\"The text reads: \\\"Brazil holds 3 days of national mourning for 61 plane crash victims\\\"\",\"evidence_frame_idx\":20677,\"confidence\":0.55}",
+    "{\"answer\":\"Brazil tổ chức quốc tang 3 ngày tưởng niệm 61 nạn nhân rơi máy bay\",\"answer_vi\":\"Brazil tổ chức quốc tang 3 ngày tưởng niệm 61 nạn nhân rơi máy bay\",\"answer_en\":\"Brazil holds 3 days of national mourning for 61 plane crash victims\",\"evidence_frame_idx\":20677,\"confidence\":0.4}",
+    "{\"answer\":\"Brazil tổ chức quốc tang 3 ngày tưởng niệm 61 nạn nhân rơi máy bay\",\"answer_vi\":\"Brazil tổ chức quốc tang 3 ngày tưởng niệm 61 nạn nhân rơi máy bay\",\"answer_en\":\"Brazil holds 3-day national mourning for 61 plane crash victims\",\"evidence_frame_idx\":20677,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:34:00"
+}

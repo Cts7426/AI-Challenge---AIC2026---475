@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không đủ căn cứ để xác định loài cá\", \"answer_vi\": \"Không đủ căn cứ để xác định loài cá\", \"answer_en\": \"Not enough evidence to determine the fish species\", \"evidence_frame_idx\": 4501, \"confidence\": 0.1}",
+    "{\"answer\":\"Không có căn cứ xác định loài cá cụ thể trong hình/lời thoại\",\"answer_vi\":\"Không có căn cứ xác định loài cá cụ thể trong hình/lời thoại\",\"answer_en\":\"No evidence to identify a specific fish species in the frame/dialogue\",\"evidence_frame_idx\":4501,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định loài cá\",\"answer_vi\":\"Không đủ căn cứ để xác định loài cá\",\"answer_en\":\"Not enough evidence to identify the fish species\",\"evidence_frame_idx\":4501,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:24:42"
+}

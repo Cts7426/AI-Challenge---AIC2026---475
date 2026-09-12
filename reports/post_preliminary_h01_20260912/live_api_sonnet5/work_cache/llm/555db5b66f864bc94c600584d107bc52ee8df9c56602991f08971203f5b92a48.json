@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có đủ căn cứ trong dữ liệu để xác định\",\"answer_vi\":\"Không có đủ căn cứ trong dữ liệu để xác định\",\"answer_en\":\"Not enough evidence in the provided data to determine\",\"evidence_frame_idx\":10050,\"confidence\":0.05}",
+    "{\"answer\":\"Không có căn cứ trong dữ liệu\",\"answer_vi\":\"Không có căn cứ trong dữ liệu để xác định đề tài miền núi\",\"answer_en\":\"No evidence in the data to determine the mountainous region topic\",\"evidence_frame_idx\":10050,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ trong bằng chứng để xác định\",\"answer_vi\":\"Không đủ căn cứ trong bằng chứng để xác định\",\"answer_en\":\"Insufficient evidence to determine\",\"evidence_frame_idx\":10050,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:26:29"
+}

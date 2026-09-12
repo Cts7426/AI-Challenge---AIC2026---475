@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"7 cái\",\"answer_vi\":\"Mỗi lần khuôn làm được khoảng 7 cái bánh\",\"answer_en\":\"The mold makes about 7 cakes at a time\",\"evidence_frame_idx\":7040,\"confidence\":0.35}",
+    "{\"answer\":\"8 cái\",\"answer_vi\":\"Mỗi lần khuôn làm được 8 cái bánh\",\"answer_en\":\"The mold makes 8 pieces at a time\",\"evidence_frame_idx\":7040,\"confidence\":0.35}",
+    "{\"answer\":\"8 cái\",\"answer_vi\":\"Mỗi lần khuôn làm được 8 cái bánh\",\"answer_en\":\"The mold makes 8 pieces per batch\",\"evidence_frame_idx\":7040,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:41:09"
+}

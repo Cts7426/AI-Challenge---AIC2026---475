@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Bacon: 300g\",\"answer_vi\":\"Bacon: 300g\",\"answer_en\":\"Bacon: 300g\",\"evidence_frame_idx\":7808,\"confidence\":0.9}",
+    "{\"answer\": \"300g bacon\", \"answer_vi\": \"Bacon 300g\", \"answer_en\": \"300g bacon\", \"evidence_frame_idx\": 7808, \"confidence\": 0.9}",
+    "{\"answer\":\"300g\",\"answer_vi\":\"300g bacon\",\"answer_en\":\"300g bacon\",\"evidence_frame_idx\":7808,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:10:04"
+}

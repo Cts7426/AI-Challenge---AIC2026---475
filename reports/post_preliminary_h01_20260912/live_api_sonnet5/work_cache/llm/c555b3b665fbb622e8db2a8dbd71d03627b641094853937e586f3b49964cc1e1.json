@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có căn cứ trong tài liệu\",\"answer_vi\":\"Không có căn cứ trong tài liệu\",\"answer_en\":\"No evidence found in the material\",\"evidence_frame_idx\":24000,\"confidence\":0.05}",
+    "{\"answer\": \"Không có căn cứ trong video\", \"answer_vi\": \"Không đủ căn cứ trong video để xác định độ mặn cụ thể\", \"answer_en\": \"Not enough evidence in the video to determine the specific salinity level\", \"evidence_frame_idx\": 24000, \"confidence\": 0.05}",
+    "{\"answer\":\"Không có căn cứ trong video\",\"answer_vi\":\"Không có căn cứ trong video\",\"answer_en\":\"No evidence found in the video\",\"evidence_frame_idx\":24000,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:58:49"
+}

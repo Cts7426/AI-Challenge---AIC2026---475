@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá bóng\",\"answer_vi\":\"Cá bóng\",\"answer_en\":\"Goby fish\",\"evidence_frame_idx\":6416,\"confidence\":0.85}",
+    "{\"answer\":\"Cá bống\",\"answer_vi\":\"Cá bống\",\"answer_en\":\"Goby fish\",\"evidence_frame_idx\":6416,\"confidence\":0.8}",
+    "{\"answer\":\"Cá bống trứng\",\"answer_vi\":\"Cá bống trứng\",\"answer_en\":\"Goby fish with roe\",\"evidence_frame_idx\":6416,\"confidence\":0.85}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:06:57"
+}

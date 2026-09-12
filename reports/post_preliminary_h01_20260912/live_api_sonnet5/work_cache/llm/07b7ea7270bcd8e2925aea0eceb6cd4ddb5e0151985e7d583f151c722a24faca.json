@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Thịt hàu\",\"answer_vi\":\"Thịt hàu\",\"answer_en\":\"Oyster meat\",\"evidence_frame_idx\":2976,\"confidence\":0.55}",
+    "{\"answer\":\"Hàu\",\"answer_vi\":\"Hàu\",\"answer_en\":\"Oyster\",\"evidence_frame_idx\":2976,\"confidence\":0.6}",
+    "{\"answer\":\"Hàu\",\"answer_vi\":\"Hàu\",\"answer_en\":\"Oyster\",\"evidence_frame_idx\":2976,\"confidence\":0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:05:40"
+}

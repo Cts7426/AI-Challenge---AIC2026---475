@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":1101,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":1101,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định trường tiểu học cụ thể mà các giáo viên dạy chính\",\"answer_en\":\"Not enough evidence to determine the specific elementary school where the teachers primarily teach\",\"evidence_frame_idx\":1101,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:54:56"
+}

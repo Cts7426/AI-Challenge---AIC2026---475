@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Trường Quốc tế Á Châu\",\"answer_vi\":\"Trường Quốc tế Á Châu\",\"answer_en\":\"Asian International School\",\"evidence_frame_idx\":15040,\"confidence\":0.6}",
+    "{\"answer\":\"Trường Quốc tế Á Châu\",\"answer_vi\":\"Trường Quốc tế Á Châu\",\"answer_en\":\"Asian International School\",\"evidence_frame_idx\":15040,\"confidence\":0.6}",
+    "{\"answer\":\"Trường Quốc tế Á Châu\",\"answer_vi\":\"Trường Quốc tế Á Châu\",\"answer_en\":\"Asian International School\",\"evidence_frame_idx\":15039,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:54:06"
+}

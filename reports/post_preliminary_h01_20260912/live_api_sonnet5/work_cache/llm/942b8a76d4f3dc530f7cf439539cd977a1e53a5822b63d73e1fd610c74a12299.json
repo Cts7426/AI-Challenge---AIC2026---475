@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Alanin (đáp án C)\",\"answer_vi\":\"X là alanin (đáp án C)\",\"answer_en\":\"X is alanine (answer C)\",\"evidence_frame_idx\":27450,\"confidence\":0.6}",
+    "{\"answer\":\"X là alanin (đáp án C), do M(X) = 12,55/0,1 - 36,5 = 89 g/mol, phù hợp với alanin.\",\"answer_vi\":\"X là alanin (đáp án C), vì M(X) = 125,5 - 36,5 = 89 g/mol, khối lượng mol tương ứng với alanin.\",\"answer_en\":\"X is alanine (answer C), since M(X) = 12.55/0.1 - 36.5 = 89 g/mol, matching alanine's molar mass.\",\"evidence_frame_idx\":27450,\"confidence\":0.75}",
+    "{\"answer\":\"Alanin (đáp án C)\",\"answer_vi\":\"X là alanin, đáp án C\",\"answer_en\":\"X is alanine, answer C\",\"evidence_frame_idx\":27450,\"confidence\":0.85}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:16:30"
+}

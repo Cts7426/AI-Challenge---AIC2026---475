@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Chữ 'JAG' (có thể là tên console Atari Jaguar) trên hộp đồ chơi phát sáng đèn neon đỏ\",\"answer_vi\":\"Chữ 'JAG' (có thể là tên máy chơi game Atari Jaguar) trên hộp đồ chơi phát sáng đèn neon đỏ trong tủ trưng bày\",\"answer_en\":\"The glowing text reads 'JAG' (likely part of 'Jaguar', an Atari game console) visible on a box in the display cabinet\",\"evidence_frame_idx\":21101,\"confidence\":0.35}",
+    "{\"answer\":\"Chữ đỏ neon phía sau ghi \\\"JAG\\\" (có thể là logo Atari Jaguar) và một số biểu tượng khác, không xác định rõ toàn bộ nội dung\",\"answer_vi\":\"Chữ đỏ neon phía sau ghi \\\"JAG\\\" (có thể là logo Atari Jaguar), không xác định rõ toàn bộ nội dung\",\"answer_en\":\"The red neon-style text in the background reads \\\"JAG\\\" (possibly the Atari Jaguar logo), full text unclear\",\"evidence_frame_idx\":21101,\"confidence\":0.3}",
+    "{\"answer\":\"Không đủ căn cứ để xác định rõ chữ neon, có thể là \\\"JAG\\\" (Jaguar) và \\\"U-BOAT\\\"\",\"answer_vi\":\"Không đủ căn cứ để xác định rõ chữ neon, có thể là \\\"JAG\\\" (Jaguar) và \\\"U-BOAT\\\"\",\"answer_en\":\"Not enough evidence to clearly identify the neon text, possibly \\\"JAG\\\" (Jaguar) and \\\"U-BOAT\\\"\",\"evidence_frame_idx\":21101,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:37:22"
+}

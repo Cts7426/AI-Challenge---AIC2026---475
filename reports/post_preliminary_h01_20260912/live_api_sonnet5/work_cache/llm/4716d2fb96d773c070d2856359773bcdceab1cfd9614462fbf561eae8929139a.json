@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Tôm\",\"answer_vi\":\"Tôm\",\"answer_en\":\"Shrimp\",\"evidence_frame_idx\":4883,\"confidence\":0.75}",
+    "{\"answer\":\"Tôm\",\"answer_vi\":\"Tôm\",\"answer_en\":\"Shrimp\",\"evidence_frame_idx\":4883,\"confidence\":0.75}",
+    "{\"answer\":\"Tôm\",\"answer_vi\":\"Tôm\",\"answer_en\":\"Shrimp\",\"evidence_frame_idx\":4883,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:04:46"
+}

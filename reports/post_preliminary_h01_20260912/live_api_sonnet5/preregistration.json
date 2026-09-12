@@ -1,0 +1,154 @@
+{
+  "frozen_at": "2026-09-12T06:54:36.066355+00:00",
+  "role": "diagnostic_regression_consumed_tune",
+  "independent_accuracy_claim": false,
+  "human_verified_dataset_created": false,
+  "sources": {
+    "dev_set/queries/tune_kis.jsonl": {
+      "sha256": "11d8bf8acdfc03bc7054be2628a1f9dc3459bf8b0d921d583f445e228825daae",
+      "role": "tuning_consumed"
+    },
+    "dev_set/queries/tune_qa.jsonl": {
+      "sha256": "bf28a3b4954f0fdad82600f342e4efcca742f00d3dfae5008b57c64a049248cc",
+      "role": "tuning_consumed"
+    },
+    "dev_set/queries/tune_trake.jsonl": {
+      "sha256": "cd9a526246fb3254c23256106de7dff725e1d7c0952c73fa693ece9b623286ef",
+      "role": "tuning_consumed"
+    }
+  },
+  "queries": [
+    {
+      "query_id": "Q1",
+      "sha256": "c5035c4382af9b58c2a9bc7156edd993918f952a4b0678b57a0ea02b10b78600"
+    },
+    {
+      "query_id": "Q2",
+      "sha256": "799de1ebe05a80aa3f66aa8f364962f797798e71845c1334d0e7e71b028aa355"
+    },
+    {
+      "query_id": "Q3",
+      "sha256": "74cfe8c82398a9a08c0036b7192c3d8a96101741e89eb76e99d088288c3e26a5"
+    },
+    {
+      "query_id": "Q4",
+      "sha256": "e2330951c96595b7c56f9da4af7f660c0a77d5cb26223d458cf38a1a86bb7700"
+    },
+    {
+      "query_id": "Q5",
+      "sha256": "e102d452ff2e6db92710512dc2568ba62bce34f1401da68f11a24940e7dad144"
+    },
+    {
+      "query_id": "K01",
+      "sha256": "36dd5c92f57bbbe611cb749255394a119fc0bc1c007259a84ba281de263f325a"
+    },
+    {
+      "query_id": "K02",
+      "sha256": "f1b43747ec3e480e309fe18a9ad35e8b4030fd8dd0fcd5331b028aa2075ab2d8"
+    },
+    {
+      "query_id": "K03",
+      "sha256": "9dfdcd250e486785498fd668974dacaf992be4012e30fce2a3236571856aaf6d"
+    },
+    {
+      "query_id": "K04",
+      "sha256": "9b65c1559d462b40dc67e212dc4d75fd06fc58cfdcdb94b710d271c77399e3a5"
+    },
+    {
+      "query_id": "K05",
+      "sha256": "60192240eee51fecbec5e9ae17880a8dc28743830e63fe93e552ed6db12d7664"
+    },
+    {
+      "query_id": "K06",
+      "sha256": "186da8eac3507a4f9cdb9e80ad11b212b086c311f2a9ebed35f4c0d7a34dabb9"
+    },
+    {
+      "query_id": "K07",
+      "sha256": "b34c68fc6f4816a001fafbf73d4074fe96ffb350a38c19047b79e7bffb41e79d"
+    },
+    {
+      "query_id": "K08",
+      "sha256": "e347c35b7efce173992e5ceaabe621427a623a9b8b95dea5c91fe658c70a1b73"
+    },
+    {
+      "query_id": "K09",
+      "sha256": "a4be3614f17b66f66c36f930bba5f705f7ec0705cf0590d1804cd30ef4635293"
+    },
+    {
+      "query_id": "K10",
+      "sha256": "e71e18d1eafb2ee490b227aa298ee748f3e4cfedf156b1606ce8afd892d39fed"
+    },
+    {
+      "query_id": "K11",
+      "sha256": "649903096a3553dc54d6f1073f3b28224c874be0ffd89b9b70ade8b482087e76"
+    },
+    {
+      "query_id": "K12",
+      "sha256": "3238c05141066e1ae97eb47340c60c5722e99f0e37d916254145a0f4e9c997a2"
+    },
+    {
+      "query_id": "K13",
+      "sha256": "f48fee3ef8dfc3322c22314211166d61f5a35912966c7bc1d6acf0d2ab2abcc8"
+    },
+    {
+      "query_id": "K14",
+      "sha256": "343aebce4d08786b6f4d4934122992a71b59684e2816e642f4cfaa3b081c5ce6"
+    },
+    {
+      "query_id": "K15",
+      "sha256": "88852a4eb156b8fd5a54ce49c1c2fc0df8e52e4c17847ebc05207905b783a0fd"
+    },
+    {
+      "query_id": "K16",
+      "sha256": "8def3b7118b6c31a39a392af864c8fa0dc99afb2afcdf330425e478667a4689c"
+    },
+    {
+      "query_id": "K17",
+      "sha256": "1620bd27c775173c3a8c88e4d8178c12479bfc1174d707eb45a73d788293a03d"
+    },
+    {
+      "query_id": "K18",
+      "sha256": "718d21b0835fa43713343190418efb6fc4b3b4b09b7f61310cd8018483354869"
+    },
+    {
+      "query_id": "QA01",
+      "sha256": "21ca82feac6da637827614301f7d5d1e70c2ecdd8e38f0d8c9376d99ff83b023"
+    },
+    {
+      "query_id": "QA02",
+      "sha256": "5577792fe6964fe0ea6a139afb270434eab71743230a6fad8015b7b605803c5e"
+    },
+    {
+      "query_id": "QA03",
+      "sha256": "b1e26962bbc668dd5cbb4a7d7b0b0b35fb898874027356fa835d2ffedde41496"
+    },
+    {
+      "query_id": "QA04",
+      "sha256": "1ae1d5ea1573c61315a86f6f23de1b9bb8029ef170a7de59aea6eece9ab8d3d5"
+    },
+    {
+      "query_id": "QA05",
+      "sha256": "91e0c3769d3fdedb40e02f59739cf9ca84fa5fd663c6c8feee663682b7f5e8b4"
+    },
+    {
+      "query_id": "TR01",
+      "sha256": "e461c30fafc4f1521bba7808b9f89f2ac1a2c6c84766a38909b73ecbf55f5455"
+    },
+    {
+      "query_id": "TR02",
+      "sha256": "6c4d984368d2eb54d3638e72abf841e0b2fb93f5569bc7df03950806dfebe83a"
+    }
+  ],
+  "counts": {
+    "KIS": 23,
+    "QA": 5,
+    "TRAKE": 2
+  },
+  "model_selection": {
+    "backend": "api",
+    "model": "claude-sonnet-5",
+    "source": "User explicitly selected api and named claude-sonnet-5 in reply; LLM_API_KEY spelling interpreted as LLM_API_MODEL, not a secret."
+  },
+  "label": "PP-B0-RESTORED",
+  "label_reason": "Current existing volumes reachable; full external recovery history and historical live state not proven. No reindex or restore performed by this task."
+}

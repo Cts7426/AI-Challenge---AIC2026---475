@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá saba (cá thu Sapa)\",\"answer_vi\":\"Cá saba (cá thu Sapa)\",\"answer_en\":\"Saba fish (mackerel)\",\"evidence_frame_idx\":4965,\"confidence\":0.8}",
+    "{\"answer\":\"Cá Sa Pa\",\"answer_vi\":\"Cá Sa Pa\",\"answer_en\":\"Sa Pa fish\",\"evidence_frame_idx\":4965,\"confidence\":0.8}",
+    "{\"answer\":\"Cá Sapa\",\"answer_vi\":\"Cá Sapa\",\"answer_en\":\"Sapa fish\",\"evidence_frame_idx\":4965,\"confidence\":0.8}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:23:11"
+}

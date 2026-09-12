@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ thông tin để xác định\",\"answer_vi\":\"Không đủ thông tin để xác định\",\"answer_en\":\"Not enough information to determine\",\"evidence_frame_idx\":14445,\"confidence\":0.2}",
+    "{\"answer\":\"Không có thông tin trong video về việc các giáo viên này dạy chính ở trường tiểu học nào.\",\"answer_vi\":\"Không có thông tin trong video về việc các giáo viên này dạy chính ở trường tiểu học nào.\",\"answer_en\":\"There is no information in the video about which primary school these teachers primarily teach at.\",\"evidence_frame_idx\":14445,\"confidence\":0.15}",
+    "{\"answer\":\"Trường Quốc tế Á Châu\",\"answer_vi\":\"Trường Quốc tế Á Châu\",\"answer_en\":\"Asian International School\",\"evidence_frame_idx\":14445,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:53:41"
+}

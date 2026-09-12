@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Những chiếc xe ô tô lội nước, chiếc xe màu vàng, màu đỏ và màu đen lần lượt chuẩn bị đi qua cầu\",\"question_vi\":\"Con số được ghi trên biển báo bên trái của cây cầu là bao nhiêu?\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:35:35"
+}

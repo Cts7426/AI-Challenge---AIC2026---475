@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Hai người đàn ông đứng trên chiếc ghe chất đầy lá dừa nước vừa chặt, di chuyển trên con rạch nước đục giữa hai bờ dừa nước xanh um\",\"question_vi\":\"Theo lời thoại, giá tàu lá được nhắc đến là bao nhiêu?\",\"answer_mode\":\"asr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:05:12"
+}

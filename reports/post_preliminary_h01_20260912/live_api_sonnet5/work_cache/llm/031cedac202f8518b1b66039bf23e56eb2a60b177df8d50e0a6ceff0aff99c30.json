@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"C. Alanin\",\"answer_vi\":\"Amino axit X là alanin (đáp án C)\",\"answer_en\":\"Amino acid X is alanine (answer C)\",\"evidence_frame_idx\":27300,\"confidence\":0.55}",
+    "{\"answer\":\"C (alanin)\",\"answer_vi\":\"Đáp án C - alanin\",\"answer_en\":\"Answer C - alanine\",\"evidence_frame_idx\":27300,\"confidence\":0.5}",
+    "{\"answer\":\"Không đủ căn cứ để xác định số của \\\"nhóm X\\\"; đây là amino axit X có công thức H2N-CxHy-COOH trong câu hỏi trắc nghiệm số 2 (đáp án về tên gọi X, không phải một con số cụ thể cho X).\",\"answer_vi\":\"Không đủ căn cứ để xác định số của \\\"nhóm X\\\"; đây là amino axit X dạng H2N-CxHy-COOH trong câu hỏi số 2, không có số cụ thể cho X.\",\"answer_en\":\"Insufficient evidence to determine a specific number for \\\"group X\\\"; X is an amino acid of form H2N-CxHy-COOH in question 2, no explicit numeric value given.\",\"evidence_frame_idx\":27300,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:16:03"
+}

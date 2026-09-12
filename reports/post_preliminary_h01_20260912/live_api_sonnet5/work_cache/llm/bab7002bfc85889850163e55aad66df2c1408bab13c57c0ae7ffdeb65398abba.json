@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"36.000 (LBS)\",\"answer_vi\":\"Số 36.000 (LBS)\",\"answer_en\":\"The number 36,000 (LBS)\",\"evidence_frame_idx\":14700,\"confidence\":0.55}",
+    "{\"answer\":\"36.000 LBS (16.363 kg) – dung tích tối đa của thùng chứa Coulson RADS-XXL\",\"answer_vi\":\"Trên hông thùng màu trắng ghi số 36.000 LBS (tương đương 16.363 kg), là dung tích tối đa của thùng chứa Coulson RADS-XXL.\",\"answer_en\":\"The white tank's side shows 36,000 LBS (16,363 KG), the maximum capacity of the Coulson RADS-XXL tank.\",\"evidence_frame_idx\":14700,\"confidence\":0.6}",
+    "{\"answer\":\"30.000 (lbs)\",\"answer_vi\":\"Con số 30.000 (lbs) - dung tích tối đa\",\"answer_en\":\"The number 30,000 (lbs) - maximum capacity\",\"evidence_frame_idx\":14700,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:20:38"
+}

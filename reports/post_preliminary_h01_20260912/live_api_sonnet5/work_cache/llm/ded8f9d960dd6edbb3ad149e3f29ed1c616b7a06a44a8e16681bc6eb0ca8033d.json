@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"20‰\",\"answer_vi\":\"Loài (II) đạt tốc độ sinh trưởng tốt nhất khi độ mặn khoảng 20‰\",\"answer_en\":\"Species (II) reaches its best growth rate at a salinity of about 20‰\",\"evidence_frame_idx\":17900,\"confidence\":0.5}",
+    "{\"answer\":\"15‰\",\"answer_vi\":\"Độ mặn khoảng 15‰\",\"answer_en\":\"Salinity of about 15‰\",\"evidence_frame_idx\":17900,\"confidence\":0.5}",
+    "{\"answer\":\"15%o\",\"answer_vi\":\"Loài cây (II) đạt tốc độ sinh trưởng tốt nhất khi độ mặn khoảng 15‰\",\"answer_en\":\"Species (II) reaches its best growth rate at a salinity of about 15‰\",\"evidence_frame_idx\":17900,\"confidence\":0.45}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:58:21"
+}

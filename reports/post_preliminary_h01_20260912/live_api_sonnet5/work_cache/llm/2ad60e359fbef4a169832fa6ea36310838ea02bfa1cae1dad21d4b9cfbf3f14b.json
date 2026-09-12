@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Tuổi Trẻ\",\"answer_vi\":\"Tuổi Trẻ\",\"answer_en\":\"Tuoi Tre\",\"evidence_frame_idx\":4895,\"confidence\":0.4}",
+    "{\"answer\": \"Tuổi Trẻ HCT\", \"answer_vi\": \"Tuổi Trẻ HCT\", \"answer_en\": \"Tuoi Tre HCT\", \"evidence_frame_idx\": 4895, \"confidence\": 0.3}",
+    "{\"answer\": \"TUOI TRE\", \"answer_vi\": \"TUOI TRE\", \"answer_en\": \"TUOI TRE\", \"evidence_frame_idx\": 4895, \"confidence\": 0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:35:43"
+}

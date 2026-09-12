@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong video để xác định\",\"answer_vi\":\"Không đủ căn cứ trong video để xác định\",\"answer_en\":\"Insufficient evidence in the video to determine this\",\"evidence_frame_idx\":22200,\"confidence\":0.03}",
+    "{\"answer\":\"Không đủ căn cứ trong dữ liệu để xác định\",\"answer_vi\":\"Không đủ căn cứ trong dữ liệu để xác định\",\"answer_en\":\"Insufficient evidence to determine\",\"evidence_frame_idx\":22200,\"confidence\":0.02}",
+    "{\"answer\":\"Không đủ căn cứ trong video để trả lời\",\"answer_vi\":\"Không có bằng chứng nào trong video đề cập đến tác giả có duyên nợ với đề tài miền núi\",\"answer_en\":\"There is no evidence in the video about an author connected to a mountain-region topic\",\"evidence_frame_idx\":22200,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:30:27"
+}

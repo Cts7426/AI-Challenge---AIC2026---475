@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"2\",\"answer_vi\":\"2 màu bột khác nhau\",\"answer_en\":\"2 different colored batters\",\"evidence_frame_idx\":4215,\"confidence\":0.35}",
+    "{\"answer\":\"2\",\"answer_vi\":\"2 màu bột\",\"answer_en\":\"2 colors of flour/powder\",\"evidence_frame_idx\":4215,\"confidence\":0.35}",
+    "{\"answer\":\"2\",\"answer_vi\":\"2 màu bột khác nhau\",\"answer_en\":\"2 different colors of flour\",\"evidence_frame_idx\":4215,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:04:21"
+}

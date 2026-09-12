@@ -1,0 +1,12 @@
+{
+  "verified_at": "2026-09-12T06:27:16.985514+00:00",
+  "source_snapshot_files_verified": 199,
+  "source_zip_integrity": "passed",
+  "runtime_source_config_match": "passed",
+  "report_links": "passed",
+  "full_suite": "922 passed, 1 skipped, 2 warnings",
+  "selfcheck_exit": 1,
+  "baseline_accepted": false,
+  "h02_started": false,
+  "note": "Đây là kiểm tra artifact; không thay selfcheck và không nhận baseline."
+}

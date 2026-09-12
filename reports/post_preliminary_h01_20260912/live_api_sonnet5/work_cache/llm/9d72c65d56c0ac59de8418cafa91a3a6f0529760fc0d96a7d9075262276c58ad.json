@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Dòng chữ neon trên màn hình LED hiển thị \\\"HÀ NỘI - HỒ CHÍ MINH\\\"\",\"answer_vi\":\"Dòng chữ neon trên màn hình LED hiển thị \\\"HÀ NỘI - HỒ CHÍ MINH\\\"\",\"answer_en\":\"The neon/LED display shows \\\"HÀ NỘI - HỒ CHÍ MINH\\\"\",\"evidence_frame_idx\":9869,\"confidence\":0.5}",
+    "{\"answer\":\"Hà Nội - Hồ Chí Minh\",\"answer_vi\":\"Hà Nội - Hồ Chí Minh\",\"answer_en\":\"Ha Noi - Ho Chi Minh\",\"evidence_frame_idx\":9869,\"confidence\":0.5}",
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác, có thể liên quan đến 'Hà Nội' và 'Hồ Chí Minh'\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác, có thể liên quan đến 'Hà Nội' và 'Hồ Chí Minh'\",\"answer_en\":\"Not enough evidence to determine exactly, possibly related to 'Hà Nội' and 'Hồ Chí Minh'\",\"evidence_frame_idx\":9869,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:38:26"
+}

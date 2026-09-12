@@ -1,0 +1,602 @@
+{
+  "captured_at": "2026-09-12T06:23:51.474766+00:00",
+  "identity": {
+    "elasticsearch": {
+      "server": {
+        "name": "dd8f60b48a0d",
+        "cluster_name": "docker-cluster",
+        "cluster_uuid": "GwlZMwmcSiCOP_9CWKVxrQ",
+        "version": {
+          "number": "8.13.4",
+          "build_flavor": "default",
+          "build_type": "docker",
+          "build_hash": "da95df118650b55a500dcc181889ac35c6d8da7c",
+          "build_date": "2024-05-06T22:04:45.107454559Z",
+          "build_snapshot": false,
+          "lucene_version": "9.10.0",
+          "minimum_wire_compatibility_version": "7.17.0",
+          "minimum_index_compatibility_version": "7.0.0"
+        },
+        "tagline": "You Know, for Search"
+      },
+      "indexes": {
+        "metadata": {
+          "status": "available",
+          "metadata": {
+            "metadata": {
+              "aliases": {},
+              "mappings": {
+                "properties": {
+                  "author": {
+                    "type": "keyword"
+                  },
+                  "channel_id": {
+                    "type": "keyword"
+                  },
+                  "channel_url": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "description": {
+                    "type": "text",
+                    "fields": {
+                      "vi": {
+                        "type": "text",
+                        "analyzer": "standard"
+                      }
+                    },
+                    "analyzer": "vi_folded"
+                  },
+                  "keywords": {
+                    "type": "text",
+                    "fields": {
+                      "vi": {
+                        "type": "text",
+                        "analyzer": "standard"
+                      }
+                    },
+                    "analyzer": "vi_folded"
+                  },
+                  "length": {
+                    "type": "integer"
+                  },
+                  "publish_date": {
+                    "type": "date",
+                    "format": "yyyy-MM-dd||dd/MM/yyyy||epoch_millis"
+                  },
+                  "thumbnail_url": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "title": {
+                    "type": "text",
+                    "fields": {
+                      "vi": {
+                        "type": "text",
+                        "analyzer": "standard"
+                      }
+                    },
+                    "analyzer": "vi_folded"
+                  },
+                  "video_id": {
+                    "type": "keyword"
+                  },
+                  "watch_url": {
+                    "type": "keyword",
+                    "index": false
+                  }
+                }
+              },
+              "settings": {
+                "index": {
+                  "routing": {
+                    "allocation": {
+                      "include": {
+                        "_tier_preference": "data_content"
+                      }
+                    }
+                  },
+                  "number_of_shards": "1",
+                  "provided_name": "metadata",
+                  "creation_date": "1787152379328",
+                  "analysis": {
+                    "analyzer": {
+                      "vi_folded": {
+                        "filter": [
+                          "lowercase",
+                          "asciifolding"
+                        ],
+                        "tokenizer": "standard"
+                      }
+                    }
+                  },
+                  "number_of_replicas": "1",
+                  "uuid": "QZQCX9LyR2CWobTAABhoFg",
+                  "version": {
+                    "created": "8503000"
+                  }
+                }
+              }
+            }
+          },
+          "count": 873,
+          "content_sha256": "fddb0922f3322cfc16deb03316db539a7d89d508a3ca2410587b9b624284e380",
+          "hashed_count": 873
+        },
+        "objects": {
+          "status": "available",
+          "metadata": {
+            "objects": {
+              "aliases": {},
+              "mappings": {
+                "properties": {
+                  "detections": {
+                    "type": "nested",
+                    "properties": {
+                      "label": {
+                        "type": "keyword",
+                        "normalizer": "lowercase"
+                      },
+                      "score": {
+                        "type": "float"
+                      }
+                    }
+                  },
+                  "keyframe_id": {
+                    "type": "keyword"
+                  },
+                  "labels": {
+                    "type": "keyword",
+                    "normalizer": "lowercase",
+                    "fields": {
+                      "txt": {
+                        "type": "text",
+                        "analyzer": "english"
+                      }
+                    }
+                  },
+                  "video_id": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "settings": {
+                "index": {
+                  "routing": {
+                    "allocation": {
+                      "include": {
+                        "_tier_preference": "data_content"
+                      }
+                    }
+                  },
+                  "number_of_shards": "1",
+                  "provided_name": "objects",
+                  "creation_date": "1787152496835",
+                  "number_of_replicas": "1",
+                  "uuid": "5rqdQz8vRh--OnMA8m8Oqg",
+                  "version": {
+                    "created": "8503000"
+                  }
+                }
+              }
+            }
+          },
+          "count": 177321,
+          "content_sha256": "3420101a621d303877a19d10f74dd3c1f85acbb90eef62cf5ba3755bde6e66ab",
+          "hashed_count": 177321
+        },
+        "ocr": {
+          "status": "available",
+          "metadata": {
+            "ocr": {
+              "aliases": {},
+              "mappings": {
+                "properties": {
+                  "keyframe_id": {
+                    "type": "keyword"
+                  },
+                  "raw_text": {
+                    "type": "text",
+                    "index": false
+                  },
+                  "text": {
+                    "type": "text",
+                    "fields": {
+                      "vi": {
+                        "type": "text",
+                        "analyzer": "standard"
+                      }
+                    },
+                    "analyzer": "vi_folded"
+                  },
+                  "video_id": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "settings": {
+                "index": {
+                  "routing": {
+                    "allocation": {
+                      "include": {
+                        "_tier_preference": "data_content"
+                      }
+                    }
+                  },
+                  "number_of_shards": "1",
+                  "provided_name": "ocr",
+                  "creation_date": "1787123514596",
+                  "analysis": {
+                    "analyzer": {
+                      "vi_folded": {
+                        "filter": [
+                          "lowercase",
+                          "asciifolding"
+                        ],
+                        "tokenizer": "standard"
+                      }
+                    }
+                  },
+                  "number_of_replicas": "1",
+                  "uuid": "2n_IfabORTC2ikUXxdRCHA",
+                  "version": {
+                    "created": "8503000"
+                  }
+                }
+              }
+            }
+          },
+          "count": 160393,
+          "content_sha256": "83061dc2fe48e635ee8ce36a33d0728630a834db81a6fdb6e47eaeea7efe1aa7",
+          "hashed_count": 160393
+        },
+        "asr": {
+          "status": "available",
+          "metadata": {
+            "asr": {
+              "aliases": {},
+              "mappings": {
+                "properties": {
+                  "end_ms": {
+                    "type": "long"
+                  },
+                  "start_ms": {
+                    "type": "long"
+                  },
+                  "text": {
+                    "type": "text",
+                    "fields": {
+                      "vi": {
+                        "type": "text",
+                        "analyzer": "standard"
+                      }
+                    },
+                    "analyzer": "vi_folded"
+                  },
+                  "video_id": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "settings": {
+                "index": {
+                  "routing": {
+                    "allocation": {
+                      "include": {
+                        "_tier_preference": "data_content"
+                      }
+                    }
+                  },
+                  "number_of_shards": "1",
+                  "provided_name": "asr",
+                  "creation_date": "1787123544613",
+                  "analysis": {
+                    "analyzer": {
+                      "vi_folded": {
+                        "filter": [
+                          "lowercase",
+                          "asciifolding"
+                        ],
+                        "tokenizer": "standard"
+                      }
+                    }
+                  },
+                  "number_of_replicas": "1",
+                  "uuid": "sxhXO5sSSGO6O7CD9c424g",
+                  "version": {
+                    "created": "8503000"
+                  }
+                }
+              }
+            }
+          },
+          "count": 13415,
+          "content_sha256": "186ca41cad525f23781b758341ecb34204b8e3da6674d416cfc4d1f2b5905b50",
+          "hashed_count": 13415
+        }
+      },
+      "status": "available"
+    },
+    "milvus": {
+      "collections": {
+        "asr_text_vi": {
+          "status": "available",
+          "schema": {
+            "collection_name": "asr_text_vi",
+            "auto_id": false,
+            "num_shards": 1,
+            "description": "",
+            "fields": [
+              {
+                "field_id": 100,
+                "name": "segment_id",
+                "description": "",
+                "type": 21,
+                "params": {
+                  "max_length": 64
+                },
+                "is_primary": true
+              },
+              {
+                "field_id": 101,
+                "name": "video_id",
+                "description": "",
+                "type": 21,
+                "params": {
+                  "max_length": 32
+                }
+              },
+              {
+                "field_id": 102,
+                "name": "seg_id",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 103,
+                "name": "start_ms",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 104,
+                "name": "end_ms",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 105,
+                "name": "embedding",
+                "description": "",
+                "type": 101,
+                "params": {
+                  "dim": 768
+                }
+              }
+            ],
+            "functions": [],
+            "aliases": [],
+            "collection_id": 468758346054749750,
+            "consistency_level": 2,
+            "consistency_level_name": "Bounded",
+            "properties": {},
+            "num_partitions": 1,
+            "enable_dynamic_field": false,
+            "enable_namespace": false,
+            "schema_version": 0,
+            "created_timestamp": 468833355042652162
+          },
+          "stats": {
+            "row_count": 13415
+          },
+          "indexes": {
+            "embedding": {
+              "M": "16",
+              "efConstruction": "200",
+              "metric_type": "COSINE",
+              "index_type": "HNSW",
+              "field_name": "embedding",
+              "index_name": "embedding",
+              "total_rows": 13415,
+              "indexed_rows": 13415,
+              "pending_index_rows": 0,
+              "state": "Finished"
+            }
+          },
+          "content_sha256": "f38f303b0436a898197b2359c1ca5363579a6b013eff21be8bd30ebfd66f197c",
+          "hashed_count": 13415
+        },
+        "asr_text_vi_bgem3": {
+          "status": "available",
+          "schema": {
+            "collection_name": "asr_text_vi_bgem3",
+            "auto_id": false,
+            "num_shards": 1,
+            "description": "",
+            "fields": [
+              {
+                "field_id": 100,
+                "name": "segment_id",
+                "description": "",
+                "type": 21,
+                "params": {
+                  "max_length": 64
+                },
+                "is_primary": true
+              },
+              {
+                "field_id": 101,
+                "name": "video_id",
+                "description": "",
+                "type": 21,
+                "params": {
+                  "max_length": 32
+                }
+              },
+              {
+                "field_id": 102,
+                "name": "seg_id",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 103,
+                "name": "start_ms",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 104,
+                "name": "end_ms",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 105,
+                "name": "embedding",
+                "description": "",
+                "type": 101,
+                "params": {
+                  "dim": 1024
+                }
+              }
+            ],
+            "functions": [],
+            "aliases": [],
+            "collection_id": 468758346055166202,
+            "consistency_level": 2,
+            "consistency_level_name": "Bounded",
+            "properties": {},
+            "num_partitions": 1,
+            "enable_dynamic_field": false,
+            "enable_namespace": false,
+            "schema_version": 0,
+            "created_timestamp": 468834167763763202
+          },
+          "stats": {
+            "row_count": 13415
+          },
+          "indexes": {
+            "embedding": {
+              "M": "16",
+              "efConstruction": "200",
+              "metric_type": "COSINE",
+              "index_type": "HNSW",
+              "field_name": "embedding",
+              "index_name": "embedding",
+              "total_rows": 13415,
+              "indexed_rows": 13415,
+              "pending_index_rows": 0,
+              "state": "Finished"
+            }
+          },
+          "content_sha256": "8a44b4e52014799e6be15eea9ca879e970522a60855782f50cb96291dfca7ad2",
+          "hashed_count": 13415
+        },
+        "keyframes": {
+          "status": "available",
+          "schema": {
+            "collection_name": "keyframes",
+            "auto_id": false,
+            "num_shards": 1,
+            "description": "",
+            "fields": [
+              {
+                "field_id": 100,
+                "name": "keyframe_id",
+                "description": "",
+                "type": 21,
+                "params": {
+                  "max_length": 64
+                },
+                "is_primary": true
+              },
+              {
+                "field_id": 101,
+                "name": "video_id",
+                "description": "",
+                "type": 21,
+                "params": {
+                  "max_length": 32
+                }
+              },
+              {
+                "field_id": 102,
+                "name": "frame_idx",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 103,
+                "name": "timestamp_ms",
+                "description": "",
+                "type": 5,
+                "params": {}
+              },
+              {
+                "field_id": 104,
+                "name": "embedding",
+                "description": "",
+                "type": 101,
+                "params": {
+                  "dim": 512
+                }
+              }
+            ],
+            "functions": [],
+            "aliases": [],
+            "collection_id": 468480499968244985,
+            "consistency_level": 2,
+            "consistency_level_name": "Bounded",
+            "properties": {},
+            "num_partitions": 1,
+            "enable_dynamic_field": false,
+            "enable_namespace": false,
+            "schema_version": 0,
+            "created_timestamp": 468509575187529736
+          },
+          "stats": {
+            "row_count": 177321
+          },
+          "indexes": {
+            "embedding": {
+              "M": "16",
+              "efConstruction": "200",
+              "metric_type": "COSINE",
+              "index_type": "HNSW",
+              "field_name": "embedding",
+              "index_name": "embedding",
+              "total_rows": 177321,
+              "indexed_rows": 177321,
+              "pending_index_rows": 0,
+              "state": "Finished"
+            }
+          },
+          "content_sha256": "d9fd0a78a641d45260cb2400fb1d05976f60d324d6adcd9a7d1acfac46cfa6d7",
+          "hashed_count": 177321
+        }
+      },
+      "status": "available"
+    }
+  },
+  "manifest_id": "b5363462080965febf587cf7ce7de0ff252e722259bd0c432e8e38d3d528fd94",
+  "seconds": 204.83064070000182,
+  "operation": "read-only full document/entity digest; no reindex, restore or flush"
+}

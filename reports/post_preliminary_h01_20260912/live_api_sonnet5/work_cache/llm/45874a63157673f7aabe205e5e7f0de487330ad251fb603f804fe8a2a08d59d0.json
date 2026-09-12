@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Vietnam's Minerals Collection\",\"answer_vi\":\"Bộ sưu tập khoáng vật Việt Nam\",\"answer_en\":\"Vietnam's Minerals Collection\",\"evidence_frame_idx\":5663,\"confidence\":0.3}",
+    "{\"answer\":\"THE SEVEN CRYSTAL SYSTEM\",\"answer_vi\":\"THE SEVEN CRYSTAL SYSTEM (Hệ Tinh Thể Thứ Bảy)\",\"answer_en\":\"THE SEVEN CRYSTAL SYSTEM\",\"evidence_frame_idx\":5663,\"confidence\":0.35}",
+    "{\"answer\":\"THE SEVEN CRYSTAL SYSTEM\",\"answer_vi\":\"HỆ THỐNG BẢY TINH THỂ\",\"answer_en\":\"THE SEVEN CRYSTAL SYSTEM\",\"evidence_frame_idx\":5663,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:32:49"
+}

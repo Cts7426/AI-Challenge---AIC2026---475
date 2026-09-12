@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"7\",\"answer_vi\":\"7 tỉnh, thành\",\"answer_en\":\"7 provinces/cities\",\"evidence_frame_idx\":4259,\"confidence\":0.6}",
+    "{\"answer\":\"11 tỉnh, thành (6/7 tỉnh thành trong vùng KTTĐ)\",\"answer_vi\":\"Vùng gồm 11 tỉnh, thành (trong đó 6/7 tỉnh thành thuộc vùng kinh tế trọng điểm phía Bắc)\",\"answer_en\":\"The region includes 11 provinces/cities (6 out of 7 belong to the key economic zone)\",\"evidence_frame_idx\":4259,\"confidence\":0.5}",
+    "{\"answer\":\"11 tỉnh, thành (6/7 tỉnh thuộc vùng kinh tế trọng điểm)\",\"answer_vi\":\"11 tỉnh, thành (6/7 tỉnh thuộc vùng kinh tế trọng điểm)\",\"answer_en\":\"11 provinces/cities (6/7 provinces in the key economic zone)\",\"evidence_frame_idx\":4259,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:19:11"
+}

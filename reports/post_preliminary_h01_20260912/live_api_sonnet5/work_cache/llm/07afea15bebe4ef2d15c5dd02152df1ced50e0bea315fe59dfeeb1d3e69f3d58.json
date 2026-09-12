@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không đủ căn cứ\", \"answer_vi\": \"Không đủ căn cứ trong dữ liệu cung cấp\", \"answer_en\": \"Not enough evidence provided\", \"evidence_frame_idx\": 22492, \"confidence\": 0.05}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Insufficient evidence to determine\",\"evidence_frame_idx\":22492,\"confidence\":0.05}",
+    "{\"answer\":\"Không có bằng chứng\",\"answer_vi\":\"Không đủ bằng chứng trong nội dung được cung cấp để xác định độ mặn tối ưu cho loài cây (II)\",\"answer_en\":\"Insufficient evidence provided to determine the optimal salinity for plant species (II)\",\"evidence_frame_idx\":22492,\"confidence\":0.03}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:54:38"
+}

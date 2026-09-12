@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Trường tiểu học Công Hải\",\"answer_vi\":\"Trường tiểu học Công Hải\",\"answer_en\":\"Cong Hai Primary School\",\"evidence_frame_idx\":3037,\"confidence\":0.9}",
+    "{\"answer\":\"Trường tiểu học Công Hải\",\"answer_vi\":\"Trường tiểu học Công Hải\",\"answer_en\":\"Cong Hai Primary School\",\"evidence_frame_idx\":3037,\"confidence\":0.9}",
+    "{\"answer\":\"Trường tiểu học Công Hải\",\"answer_vi\":\"Trường tiểu học Công Hải\",\"answer_en\":\"Cong Hai Primary School\",\"evidence_frame_idx\":3037,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:51:22"
+}

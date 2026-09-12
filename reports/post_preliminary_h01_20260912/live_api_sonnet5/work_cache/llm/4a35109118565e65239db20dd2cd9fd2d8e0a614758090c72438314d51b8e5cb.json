@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"1 màu\",\"answer_en\":\"1 color\",\"evidence_frame_idx\":1805,\"confidence\":0.35}",
+    "{\"answer\":\"1 màu (trắng)\",\"answer_vi\":\"1 màu (trắng)\",\"answer_en\":\"1 color (white)\",\"evidence_frame_idx\":1805,\"confidence\":0.3}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":1748,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:01:45"
+}

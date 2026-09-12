@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không có thông tin liên quan đến động đất trong video này\", \"answer_vi\": \"Không có thông tin liên quan đến động đất trong video này\", \"answer_en\": \"No information about earthquakes is present in this video\", \"evidence_frame_idx\": 26433, \"confidence\": 0.05}",
+    "{\"answer\": \"Không có thông tin liên quan trong video này\", \"answer_vi\": \"Không có thông tin liên quan trong video này\", \"answer_en\": \"No relevant information in this video\", \"evidence_frame_idx\": 26433, \"confidence\": 0.05}",
+    "{\"answer\": \"Không có thông tin về động đất trong video này\", \"answer_vi\": \"Không có thông tin về động đất trong video này\", \"answer_en\": \"No information about earthquakes in this video\", \"evidence_frame_idx\": 26433, \"confidence\": 0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:21:32"
+}

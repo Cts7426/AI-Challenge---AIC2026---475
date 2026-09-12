@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ xác định tên đèo (có thể là đèo Ô Quy Hồ, đoạn Sa Pa - Lai Châu)\",\"answer_vi\":\"Không đủ căn cứ xác định tên đèo (có thể là đèo Ô Quy Hồ, đoạn Sa Pa - Lai Châu)\",\"answer_en\":\"Not enough evidence to confirm the pass name (possibly O Quy Ho Pass, Sa Pa - Lai Chau section)\",\"evidence_frame_idx\":1708,\"confidence\":0.25}",
+    "{\"answer\":\"Không có thông tin tên đèo cụ thể trong bằng chứng\",\"answer_vi\":\"Không có thông tin tên đèo cụ thể trong bằng chứng\",\"answer_en\":\"No specific pass name mentioned in the evidence\",\"evidence_frame_idx\":1708,\"confidence\":0.2}",
+    "{\"answer\":\"Không xác định được tên đèo (chỉ biết đoạn đường từ Sa Pa đi Lai Châu)\",\"answer_vi\":\"Không xác định được tên đèo, chỉ biết là đoạn đường từ Sa Pa đi Lai Châu\",\"answer_en\":\"The name of the pass is not stated, only that it's the road from Sa Pa to Lai Chau\",\"evidence_frame_idx\":1708,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:25:24"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có căn cứ trong video cho biết trường tiểu học mà các giáo viên dạy chính\",\"answer_vi\":\"Không có căn cứ trong video cho biết trường tiểu học mà các giáo viên dạy chính\",\"answer_en\":\"There is no evidence in the video about which primary school the teachers primarily teach at\",\"evidence_frame_idx\":3355,\"confidence\":0.2}",
+    "{\"answer\": \"Không có căn cứ trong video/metadata về việc giáo viên dạy chính ở trường tiểu học nào\", \"answer_vi\": \"Không có căn cứ trong video/metadata về việc giáo viên dạy chính ở trường tiểu học nào\", \"answer_en\": \"There is no evidence in the video/metadata about which primary school the teachers mainly teach at\", \"evidence_frame_idx\": 3355, \"confidence\": 0.1}",
+    "{\"answer\":\"Không có căn cứ trong video để xác định trường tiểu học chính nơi giáo viên giảng dạy\",\"answer_vi\":\"Không có căn cứ trong video để xác định trường tiểu học chính nơi giáo viên giảng dạy\",\"answer_en\":\"There is no evidence in the video to determine which primary school the teachers mainly teach at\",\"evidence_frame_idx\":3355,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:51:58"
+}

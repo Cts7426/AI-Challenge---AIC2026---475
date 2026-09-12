@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có đủ bằng chứng rõ ràng để xác định chính xác, nhưng theo đề gốc, loài (II) đạt tốc độ sinh trưởng tốt nhất ở độ mặn khoảng 25‰\",\"answer_vi\":\"Không có đủ bằng chứng rõ ràng để xác định chính xác, nhưng theo đề gốc, loài (II) đạt tốc độ sinh trưởng tốt nhất ở độ mặn khoảng 25 phần nghìn\",\"answer_en\":\"Insufficient clear evidence to confirm exactly, but based on the original exam, species (II) grows best at about 25 ppt salinity\",\"evidence_frame_idx\":14668,\"confidence\":0.25}",
+    "{\"answer\":\"22,5‰\",\"answer_vi\":\"22,5 phần nghìn\",\"answer_en\":\"22.5 per mille\",\"evidence_frame_idx\":14668,\"confidence\":0.4}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định vì đồ thị tốc độ sinh trưởng của loài (II) không được mô tả rõ trong dữ liệu OCR/ASR có sẵn\",\"answer_en\":\"Insufficient evidence to determine, as the growth rate graph for species (II) is not described in the available OCR/ASR data\",\"evidence_frame_idx\":14668,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:53:51"
+}

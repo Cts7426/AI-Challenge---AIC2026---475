@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Insufficient evidence to determine\",\"evidence_frame_idx\":30751,\"confidence\":0.1}",
+    "{\"answer\":\"Không xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định nhóm X\",\"answer_en\":\"Not enough evidence to determine group X\",\"evidence_frame_idx\":30751,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định 'Nhóm X'\",\"answer_vi\":\"Không đủ căn cứ để xác định 'Nhóm X' trong bằng chứng đã cho\",\"answer_en\":\"Insufficient evidence to determine 'Group X'\",\"evidence_frame_idx\":30751,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:08:57"
+}

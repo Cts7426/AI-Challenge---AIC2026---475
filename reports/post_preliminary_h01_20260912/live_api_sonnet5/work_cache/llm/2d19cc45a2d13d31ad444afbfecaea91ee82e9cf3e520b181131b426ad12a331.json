@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Nguyễn Minh Châu\",\"answer_vi\":\"Nguyễn Minh Châu\",\"answer_en\":\"Nguyen Minh Chau\",\"evidence_frame_idx\":31800,\"confidence\":0.9}",
+    "{\"answer\":\"Nguyễn Minh Châu\",\"answer_vi\":\"Nguyễn Minh Châu\",\"answer_en\":\"Nguyen Minh Chau\",\"evidence_frame_idx\":31800,\"confidence\":0.95}",
+    "{\"answer\":\"Nguyễn Minh Châu\",\"answer_vi\":\"Nguyễn Minh Châu\",\"answer_en\":\"Nguyen Minh Chau\",\"evidence_frame_idx\":31800,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:49:25"
+}

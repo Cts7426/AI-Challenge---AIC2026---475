@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Đoạn video mô tả quá trình làm bánh, bánh được tạo ra có màu tím, nguyên liệu bên trong có giá, cà rốt, và bên trong mỗi bánh đều có 1 hạt sen\",\"question_vi\":\"Mỗi lần khuôn này làm được bao nhiêu cái bánh?\",\"answer_mode\":\"visual_count\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:39:19"
+}

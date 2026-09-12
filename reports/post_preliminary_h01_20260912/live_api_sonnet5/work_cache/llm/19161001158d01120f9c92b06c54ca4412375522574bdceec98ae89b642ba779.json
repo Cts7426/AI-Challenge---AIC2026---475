@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"SUBMARINE\",\"answer_vi\":\"SUBMARINE\",\"answer_en\":\"SUBMARINE\",\"evidence_frame_idx\":21220,\"confidence\":0.6}",
+    "{\"answer\":\"SUBMARINE\",\"answer_vi\":\"SUBMARINE\",\"answer_en\":\"SUBMARINE\",\"evidence_frame_idx\":21220,\"confidence\":0.6}",
+    "{\"answer\":\"SUBMARINE\",\"answer_vi\":\"SUBMARINE\",\"answer_en\":\"SUBMARINE\",\"evidence_frame_idx\":21220,\"confidence\":0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:34:35"
+}

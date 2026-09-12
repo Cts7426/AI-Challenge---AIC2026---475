@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cảnh quay lớp học: sư cô quan sát cậu bé áo xanh lá ngồi học, cảnh cận trang vở môn Toán, giáo viên nữ áo hồng đứng lớp chính, sư cô di chuyển hỗ trợ học sinh\",\"question_vi\":\"Các giáo viên tham gia giảng dạy tại lớp học này là giáo viên dạy chính ở trường tiểu học nào?\",\"answer_mode\":\"asr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:50:34"
+}

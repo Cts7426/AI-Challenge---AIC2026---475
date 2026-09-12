@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định tên trường tiểu học cụ thể\",\"answer_vi\":\"Không đủ căn cứ để xác định tên trường tiểu học cụ thể\",\"answer_en\":\"Not enough evidence to identify the specific primary school\",\"evidence_frame_idx\":1012,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ thông tin để xác định trường tiểu học cụ thể của giáo viên\",\"answer_vi\":\"Không đủ thông tin để xác định trường tiểu học cụ thể của giáo viên\",\"answer_en\":\"Not enough information to identify the specific elementary school of the teachers\",\"evidence_frame_idx\":1012,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định trường tiểu học cụ thể\",\"answer_vi\":\"Không đủ căn cứ để xác định trường tiểu học cụ thể\",\"answer_en\":\"Insufficient evidence to determine the specific elementary school\",\"evidence_frame_idx\":1012,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:55:24"
+}

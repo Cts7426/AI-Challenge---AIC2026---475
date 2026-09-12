@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Amethyst\",\"answer_vi\":\"Amethyst (Thạch anh tím)\",\"answer_en\":\"Amethyst\",\"evidence_frame_idx\":3282,\"confidence\":0.3}",
+    "{\"answer\":\"amethyst ninh thuan, viet nam\",\"answer_vi\":\"amethyst ninh thuận, việt nam\",\"answer_en\":\"amethyst ninh thuan, vietnam\",\"evidence_frame_idx\":3282,\"confidence\":0.3}",
+    "{\"answer\":\"amethyst\",\"answer_vi\":\"amethyst\",\"answer_en\":\"amethyst\",\"evidence_frame_idx\":3282,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:35:18"
+}

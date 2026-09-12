@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định trường tiểu học chính của giáo viên\",\"answer_vi\":\"Không đủ căn cứ để xác định trường tiểu học chính của giáo viên\",\"answer_en\":\"Not enough evidence to determine the elementary school where the teachers primarily teach\",\"evidence_frame_idx\":2171,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin cụ thể về tên trường tiểu học nơi các giáo viên dạy chính\",\"answer_en\":\"No specific information about the primary school where the teachers mainly teach\",\"evidence_frame_idx\":2171,\"confidence\":0.1}",
+    "{\"answer\":\"Không có căn cứ trong dữ liệu để xác định tên trường tiểu học cụ thể\",\"answer_vi\":\"Không có căn cứ trong dữ liệu để xác định tên trường tiểu học cụ thể\",\"answer_en\":\"There is no evidence in the data to identify a specific primary school\",\"evidence_frame_idx\":2171,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:52:08"
+}

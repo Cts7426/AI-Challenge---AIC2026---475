@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_vi\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_en\":\"Not enough evidence to determine what animal X is\",\"evidence_frame_idx\":5632,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định X\",\"answer_vi\":\"Không đủ căn cứ để xác định X\",\"answer_en\":\"Insufficient evidence to determine X\",\"evidence_frame_idx\":5632,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_vi\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_en\":\"Not enough evidence to determine what animal X is\",\"evidence_frame_idx\":5632,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:13:41"
+}

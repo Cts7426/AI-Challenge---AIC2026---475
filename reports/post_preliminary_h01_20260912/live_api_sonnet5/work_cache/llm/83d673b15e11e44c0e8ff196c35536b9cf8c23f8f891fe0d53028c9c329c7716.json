@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không có thông tin liên quan trong video\", \"answer_vi\": \"Không có thông tin liên quan trong video\", \"answer_en\": \"No relevant information found in the video\", \"evidence_frame_idx\": 4135, \"confidence\": 0.05}",
+    "{\"answer\":\"Không đủ căn cứ trong video để trả lời\",\"answer_vi\":\"Không đủ căn cứ trong video để trả lời\",\"answer_en\":\"Not enough evidence in the video to answer\",\"evidence_frame_idx\":4135,\"confidence\":0.03}",
+    "{\"answer\":\"Không có căn cứ trong video\",\"answer_vi\":\"Không có căn cứ trong video\",\"answer_en\":\"No evidence found in the video\",\"evidence_frame_idx\":4135,\"confidence\":0.02}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:20:17"
+}

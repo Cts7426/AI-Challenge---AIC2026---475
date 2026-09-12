@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Mực\",\"answer_vi\":\"Mực\",\"answer_en\":\"Squid\",\"evidence_frame_idx\":3872,\"confidence\":0.9}",
+    "{\"answer\":\"Mực\",\"answer_vi\":\"Mực\",\"answer_en\":\"Squid\",\"evidence_frame_idx\":3872,\"confidence\":0.9}",
+    "{\"answer\":\"Mực\",\"answer_vi\":\"Mực\",\"answer_en\":\"Squid\",\"evidence_frame_idx\":3872,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:06:25"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin rõ tên đèo, chỉ đề cập Tỉnh Lộ 717\",\"answer_vi\":\"Không có thông tin rõ tên đèo, chỉ đề cập Tỉnh Lộ 717\",\"answer_en\":\"No clear name of the pass mentioned, only Provincial Road 717 is referenced\",\"evidence_frame_idx\":5860,\"confidence\":0.3}",
+    "{\"answer\":\"Không có thông tin về tên đèo trong dữ liệu, chỉ đề cập Tỉnh Lộ 717\",\"answer_vi\":\"Không có thông tin về tên đèo, chỉ đề cập Tỉnh Lộ 717 nối Bình Thuận - Lâm Đồng\",\"answer_en\":\"No pass name mentioned, only Provincial Road 717 connecting Binh Thuan - Lam Dong\",\"evidence_frame_idx\":5860,\"confidence\":0.2}",
+    "{\"answer\":\"Không có thông tin xác định tên đèo, chỉ đề cập Tỉnh Lộ 717 nối Bình Thuận - Lâm Đồng\",\"answer_vi\":\"Không có thông tin xác định tên đèo, chỉ đề cập Tỉnh Lộ 717 nối Bình Thuận - Lâm Đồng\",\"answer_en\":\"No information identifies the pass's name; only Provincial Road 717 connecting Binh Thuan and Lam Dong is mentioned\",\"evidence_frame_idx\":5860,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:24:48"
+}

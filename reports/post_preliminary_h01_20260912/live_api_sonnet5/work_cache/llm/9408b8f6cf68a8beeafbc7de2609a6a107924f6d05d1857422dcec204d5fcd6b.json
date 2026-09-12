@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại đề cập đến việc nuôi gà\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại đề cập đến việc nuôi gà\",\"answer_en\":\"No evidence in the transcript mentions raising chickens\",\"evidence_frame_idx\":21180,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_en\":\"Not enough evidence in the dialogue to determine\",\"evidence_frame_idx\":21180,\"confidence\":0.1}",
+    "{\"answer\": \"Không đủ căn cứ\", \"answer_vi\": \"Không đủ căn cứ trong lời thoại để xác định\", \"answer_en\": \"Not enough evidence in the dialogue to determine\", \"evidence_frame_idx\": 21180, \"confidence\": 0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:03:41"
+}

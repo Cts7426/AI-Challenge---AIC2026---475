@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Người đầu bếp lần lượt cho các loại hương liệu gồm tiêu xanh, lá chanh và sả vào bên trong bụng của tổng cộng 4 con cá\",\"question_vi\":\"Đây là loài cá gì?\",\"answer_mode\":\"visual_attribute\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:22:07"
+}

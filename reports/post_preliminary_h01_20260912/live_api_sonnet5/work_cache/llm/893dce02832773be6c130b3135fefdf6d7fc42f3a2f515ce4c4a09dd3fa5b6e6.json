@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_vi\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_en\":\"Not enough evidence to determine what X is\",\"evidence_frame_idx\":6333,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_vi\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_en\":\"Not enough evidence to determine what X refers to\",\"evidence_frame_idx\":6333,\"confidence\":0.1}",
+    "{\"answer\":\"Con heo (lợn)\",\"answer_vi\":\"Con heo (lợn)\",\"answer_en\":\"Pig (pork)\",\"evidence_frame_idx\":6333,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:15:18"
+}

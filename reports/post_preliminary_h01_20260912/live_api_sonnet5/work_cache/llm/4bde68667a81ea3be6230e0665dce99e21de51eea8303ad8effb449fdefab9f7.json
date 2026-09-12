@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu nuôi gà\",\"answer_en\":\"Insufficient evidence in the dialogue to determine the goal of raising chickens\",\"evidence_frame_idx\":11070,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ trong bằng chứng để xác định\",\"answer_en\":\"Insufficient evidence to determine\",\"evidence_frame_idx\":11070,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để trả lời\",\"answer_vi\":\"Không có thông tin về việc nuôi gà trong đoạn lời thoại được cung cấp\",\"answer_en\":\"No information about raising chickens found in the provided dialogue\",\"evidence_frame_idx\":11070,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:00:17"
+}

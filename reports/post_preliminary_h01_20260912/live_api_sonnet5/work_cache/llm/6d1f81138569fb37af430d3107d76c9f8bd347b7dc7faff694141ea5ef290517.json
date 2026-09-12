@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Mực (mực ống - squid)\",\"answer_vi\":\"Mực ống (một loại hải sản)\",\"answer_en\":\"Squid (a type of seafood)\",\"evidence_frame_idx\":5120,\"confidence\":0.6}",
+    "{\"answer\":\"Mực (con mực ống)\",\"answer_vi\":\"Mực ống\",\"answer_en\":\"Squid\",\"evidence_frame_idx\":5120,\"confidence\":0.4}",
+    "{\"answer\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_vi\":\"Không đủ căn cứ để xác định X là con gì\",\"answer_en\":\"Not enough evidence to determine what X is\",\"evidence_frame_idx\":5120,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:14:15"
+}

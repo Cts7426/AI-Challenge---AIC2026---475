@@ -16,4 +16,6 @@ Tự rà soát còn bắt được: trace bị mất ở worker TRAKE, lỗi OCR
 
 Xác nhận cuối của reviewer: hai findings cuối đã được xử lý trong phạm vi sửa; không còn finding cụ thể ở hai phần này. Reviewer không chạy lại suite và không xác nhận baseline live. Không thấy đổi thuật toán ranking trong diff đã đọc.
 
-Verdict baseline: **DO NOT PROMOTE** cho đến khi operator chọn model và có run live dưới identity đủ điều kiện.
+Verdict baseline: **DO NOT PROMOTE** cho đến khi operator chọn model và có run live dưới identity đủ điều kiện. DB đã truy cập được ở lượt bàn giao, nhưng chưa có baseline query run.
+
+Bổ sung tự review sau xác nhận của reviewer: adapter từ chối tham số `model` khác lựa chọn trong process trước đọc cache. `model_override_red.log` tái hiện lỗi, `final_focused.log` kiểm 43 ca; full suite mới nhất được chạy qua `selfcheck_delivery.log`. Không gán phần bổ sung này cho reviewer độc lập.

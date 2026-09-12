@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại\",\"answer_en\":\"Insufficient evidence in the transcript\",\"evidence_frame_idx\":995,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại được cung cấp\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại được cung cấp\",\"answer_en\":\"Insufficient evidence in the provided transcript\",\"evidence_frame_idx\":995,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại\",\"answer_en\":\"Not enough evidence in the transcript\",\"evidence_frame_idx\":995,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:58:32"
+}

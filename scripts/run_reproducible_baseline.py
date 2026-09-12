@@ -153,6 +153,13 @@ def execute_query(query: dict, out: Path, runtime_id: str, *, instrumentation: b
               "export_status": "not_exported", "export_ranking": [], "frame_mapping": [],
               "mapping_violations": None, "export_violations": None, "errors": [],
               "usage_delta": {k: usage_report()[k] - v for k, v in before_usage.items()}}
+    if misses := record["usage_delta"].get("cache_only_misses", 0):
+        # Caller có thể bắt lỗi dịch/suy luận để fallback; không nhận output đó
+        # thành baseline đầy đủ evidence khi operator chỉ cho replay cache.
+        record["export_status"] = "blocked_cache_miss"
+        record["errors"] = [{"stage": "llm_cache_only", "missing_calls": misses}]
+        record["seconds"] = time.perf_counter() - started
+        return runner._json_safe(record)
     if result.status == "success":
         answers = (apply_qa_submission_policy(result.answers, qa_policy)
                    if result.task_type == "QA" else result.answers)

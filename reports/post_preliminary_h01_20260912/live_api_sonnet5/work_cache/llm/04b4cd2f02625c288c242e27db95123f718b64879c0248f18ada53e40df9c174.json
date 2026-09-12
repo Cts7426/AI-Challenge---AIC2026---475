@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không đủ căn cứ để xác định\", \"answer_vi\": \"Không đủ căn cứ để xác định\", \"answer_en\": \"Not enough evidence to determine\", \"evidence_frame_idx\": 8441, \"confidence\": 0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định con số trên biển báo\",\"answer_vi\":\"Không đủ căn cứ để xác định con số trên biển báo\",\"answer_en\":\"Insufficient evidence to determine the number on the sign\",\"evidence_frame_idx\":8441,\"confidence\":0.1}",
+    "{\"answer\": \"Không đủ căn cứ để xác định\", \"answer_vi\": \"Không đủ căn cứ để xác định\", \"answer_en\": \"Not enough evidence to determine\", \"evidence_frame_idx\": 8441, \"confidence\": 0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:38:11"
+}

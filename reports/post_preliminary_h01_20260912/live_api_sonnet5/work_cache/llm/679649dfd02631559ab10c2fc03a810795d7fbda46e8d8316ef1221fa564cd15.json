@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không có dòng chữ neon nào xuất hiện trong khung hình\", \"answer_vi\": \"Không có dòng chữ neon nào xuất hiện trong khung hình\", \"answer_en\": \"There is no neon text visible in the frame\", \"evidence_frame_idx\": 21368, \"confidence\": 0.3}",
+    "{\"answer\":\"Không thấy dòng chữ neon phát sáng trong khung hình này\",\"answer_vi\":\"Không thấy dòng chữ neon phát sáng trong khung hình này\",\"answer_en\":\"No glowing neon text is visible in this frame\",\"evidence_frame_idx\":21368,\"confidence\":0.2}",
+    "{\"answer\":\"Không có bằng chứng về dòng chữ neon phát sáng trong khung hình hoặc OCR/ASR đã cho\",\"answer_vi\":\"Không có bằng chứng về dòng chữ neon phát sáng trong khung hình hoặc OCR/ASR đã cho\",\"answer_en\":\"There is no evidence of any glowing neon text in the given frame or OCR/ASR\",\"evidence_frame_idx\":21368,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:35:05"
+}

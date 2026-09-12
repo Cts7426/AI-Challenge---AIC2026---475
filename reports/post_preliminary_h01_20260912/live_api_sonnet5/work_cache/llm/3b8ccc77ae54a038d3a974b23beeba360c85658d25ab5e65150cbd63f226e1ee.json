@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"600g (cá lăng)\",\"answer_vi\":\"600g cá lăng\",\"answer_en\":\"600g of catfish (cá lăng)\",\"evidence_frame_idx\":7936,\"confidence\":0.6}",
+    "{\"answer\":\"600g\",\"answer_vi\":\"600g (cá lăng)\",\"answer_en\":\"600g (catfish)\",\"evidence_frame_idx\":7936,\"confidence\":0.55}",
+    "{\"answer\":\"600g\",\"answer_vi\":\"600g cá lăng\",\"answer_en\":\"600g of catfish (cá lăng)\",\"evidence_frame_idx\":7936,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:12:06"
+}

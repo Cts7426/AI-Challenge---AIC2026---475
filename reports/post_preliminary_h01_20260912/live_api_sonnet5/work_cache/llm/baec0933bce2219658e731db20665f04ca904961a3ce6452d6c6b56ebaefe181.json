@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về độ mặn trong nội dung này\",\"answer_vi\":\"Không có thông tin về độ mặn trong nội dung này; nội dung đang trình bày về ảnh hưởng của chặt phá rừng đến thất thoát khoáng, không liên quan đến loài cây (II) và độ mặn\",\"answer_en\":\"No information about salinity in this content; the material shown discusses deforestation's effect on mineral loss, not about plant species (II) and salinity levels\",\"evidence_frame_idx\":22492,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin trong đoạn video này\",\"answer_vi\":\"Không có thông tin trong đoạn video này về độ mặn hay loài cây (II)\",\"answer_en\":\"No information available in this video segment about salinity or plant species (II)\",\"evidence_frame_idx\":22492,\"confidence\":0.05}",
+    "{\"answer\": \"Không có thông tin về độ mặn trong dữ liệu\", \"answer_vi\": \"Không có thông tin về độ mặn trong dữ liệu\", \"answer_en\": \"No information about salinity in the data\", \"evidence_frame_idx\": 22492, \"confidence\": 0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:54:57"
+}

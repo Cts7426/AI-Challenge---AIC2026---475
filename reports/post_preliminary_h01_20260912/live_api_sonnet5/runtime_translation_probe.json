@@ -1,0 +1,22 @@
+{
+  "started_at": "2026-09-12T06:55:15.381663+00:00",
+  "runtime": [
+    "api",
+    "claude-sonnet-5"
+  ],
+  "stage": "production_translation_QA01",
+  "query_vi": "công thức canh sườn mít non cần bao nhiêu gam sườn non",
+  "preflight": false,
+  "status": "failed",
+  "error_type": "APIConnectionError",
+  "status_code": null,
+  "error": "Connection error.",
+  "seconds": 9.999959799999488,
+  "usage": {
+    "calls": 0,
+    "cache_hits": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0
+  }
+}

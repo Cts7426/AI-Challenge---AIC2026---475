@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong nội dung để xác định tên con đèo\",\"answer_vi\":\"Không đủ căn cứ trong nội dung để xác định tên con đèo\",\"answer_en\":\"Not enough evidence in the content to determine the name of the pass\",\"evidence_frame_idx\":4050,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin về tên con đèo trong dữ liệu\",\"answer_en\":\"No information about the pass's name in the given data\",\"evidence_frame_idx\":4050,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về tên con đèo trong nội dung video\",\"answer_vi\":\"Không có thông tin về tên con đèo trong nội dung video\",\"answer_en\":\"No information about the name of the mountain pass is provided in the video content\",\"evidence_frame_idx\":4050,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:27:39"
+}

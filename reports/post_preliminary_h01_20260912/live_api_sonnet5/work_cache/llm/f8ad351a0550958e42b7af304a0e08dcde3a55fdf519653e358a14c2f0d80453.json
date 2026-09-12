@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về \\\"Nhóm X\\\" trong nội dung video này\",\"answer_vi\":\"Không có thông tin về \\\"Nhóm X\\\" trong nội dung video này\",\"answer_en\":\"No information about \\\"Group X\\\" found in this video content\",\"evidence_frame_idx\":13085,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về \\\"Nhóm X\\\" trong các khung hình này\",\"answer_vi\":\"Không có thông tin về \\\"Nhóm X\\\" trong các khung hình này\",\"answer_en\":\"No information about \\\"Group X\\\" appears in these frames\",\"evidence_frame_idx\":13085,\"confidence\":0.05}",
+    "{\"answer\":\"Không có căn cứ về \\\"nhóm X\\\" trong nội dung video\",\"answer_vi\":\"Không có căn cứ về \\\"nhóm X\\\" trong nội dung video\",\"answer_en\":\"No evidence about \\\"group X\\\" in the video content\",\"evidence_frame_idx\":13085,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:12:40"
+}

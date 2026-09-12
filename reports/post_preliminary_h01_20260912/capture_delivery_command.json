@@ -1,0 +1,7 @@
+{
+  "command": ".venv/Scripts/python.exe -m scripts.run_reproducible_baseline --out reports/post_preliminary_h01_20260912/identity_delivery --capture-only --qa-submission-policy robust --baseline-label PP-B0",
+  "finished_at": "2026-09-12T13:19:10.6500112+07:00",
+  "exit_code": 0,
+  "notes": "Capture-only; không chạy query; nhãn dự kiến PP-B0 chưa phải baseline được nhận. Pixel hashes lưu riêng trong asset_identity.json.",
+  "started_at": "2026-09-12T13:17:41.5914942+07:00"
+}

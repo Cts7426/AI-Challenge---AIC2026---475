@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Hàu xào bông cải\",\"answer_vi\":\"Hàu xào bông cải\",\"answer_en\":\"Stir-fried oysters with broccoli\",\"evidence_frame_idx\":5760,\"confidence\":0.9}",
+    "{\"answer\":\"Hàu xào bông cải\",\"answer_vi\":\"Hàu xào bông cải\",\"answer_en\":\"Stir-fried oysters with broccoli/cauliflower\",\"evidence_frame_idx\":5760,\"confidence\":0.95}",
+    "{\"answer\":\"Hàu xào bông cải\",\"answer_vi\":\"Hàu xào bông cải\",\"answer_en\":\"Stir-fried oysters with broccoli\",\"evidence_frame_idx\":5760,\"confidence\":0.95}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:54:41"
+}

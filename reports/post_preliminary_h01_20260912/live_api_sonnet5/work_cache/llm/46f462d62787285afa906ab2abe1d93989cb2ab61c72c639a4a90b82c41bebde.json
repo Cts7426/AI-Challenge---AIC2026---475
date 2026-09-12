@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Chữ 'tuoitre TV' (logo watermark của kênh) ở góc trên bên phải khung hình\",\"answer_vi\":\"Chữ 'tuoitre TV' (logo watermark của kênh) ở góc trên bên phải khung hình\",\"answer_en\":\"The glowing text is the 'tuoitre TV' channel watermark logo in the top right corner of the frame\",\"evidence_frame_idx\":3219,\"confidence\":0.4}",
+    "{\"answer\":\"Không có căn cứ về chữ neon phát sáng trong khung hình này, chỉ thấy các nhãn mẫu khoáng vật (Amethyst, Amethyst cluster, Ferruginous quartz) và logo Tuổi Trẻ TV.\",\"answer_vi\":\"Không có căn cứ về chữ neon phát sáng trong khung hình này, chỉ thấy các nhãn mẫu khoáng vật và logo Tuổi Trẻ TV.\",\"answer_en\":\"No evidence of glowing neon text in this frame; only mineral specimen labels and the Tuoi Tre TV logo are visible.\",\"evidence_frame_idx\":3219,\"confidence\":0.15}",
+    "{\"answer\":\"Không có căn cứ rõ về dòng chữ neon; chỉ thấy logo 'tuoitre TV' và nhãn tên khoáng vật trong khung hình\",\"answer_vi\":\"Không có căn cứ rõ về dòng chữ neon phát sáng; chỉ thấy logo 'tuoitre TV' và nhãn tên khoáng vật trong khung hình\",\"answer_en\":\"No clear evidence of a glowing neon sign; only the 'tuoitre TV' logo and mineral name labels are visible in the frame\",\"evidence_frame_idx\":3219,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:35:35"
+}

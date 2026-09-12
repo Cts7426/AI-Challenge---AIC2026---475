@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định rõ dòng chữ neon\",\"answer_vi\":\"Không đủ căn cứ để xác định rõ dòng chữ neon\",\"answer_en\":\"Not enough evidence to determine the exact neon text\",\"evidence_frame_idx\":5540,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ để xác định rõ nội dung chữ neon\",\"answer_vi\":\"Không đủ căn cứ để xác định rõ nội dung chữ neon\",\"answer_en\":\"Not enough evidence to clearly determine the neon sign text\",\"evidence_frame_idx\":5540,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ xác định rõ nội dung chữ neon\",\"answer_vi\":\"Không đủ căn cứ xác định rõ nội dung chữ neon\",\"answer_en\":\"Not enough evidence to determine the exact neon sign text\",\"evidence_frame_idx\":5540,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:32:00"
+}

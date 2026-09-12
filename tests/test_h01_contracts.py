@@ -92,3 +92,39 @@ def test_llm_cannot_override_operator_model_inside_run(monkeypatch):
     monkeypatch.setattr(adapter, "_cache_get", lambda key: pytest.fail("model khác chưa bị chặn trước cache"))
     with pytest.raises(ValueError, match="model"):
         adapter.llm("query", model="different-model")
+
+
+@pytest.mark.parametrize("use_cache,cached", [(True, None), (False, ["cached"]), (True, ["invalid"])])
+def test_cache_only_never_dispatches_provider_on_miss(monkeypatch, use_cache, cached):
+    """Cache thiếu/tắt/hỏng đều phải dừng trước API, giữ ngân sách mới bằng 0."""
+    from backend.llm import adapter
+    monkeypatch.setenv("LLM_BACKEND", "api")
+    monkeypatch.setenv("LLM_API_MODEL", "claude-sonnet-5")
+    monkeypatch.setenv("LLM_CACHE_ONLY", "1")
+    monkeypatch.setattr(adapter, "_usage", dict(adapter.usage_report()))
+    before = adapter.usage_report().get("cache_only_misses", 0)
+    monkeypatch.setattr(adapter, "_cache_get", lambda key: cached)
+    monkeypatch.setattr(adapter, "_mot_lan", lambda *a: pytest.fail("cache-only đã gọi provider"))
+    with pytest.raises(RuntimeError, match="cache-only"):
+        adapter.llm("query", use_cache=use_cache, validate=lambda text: "bad" if text == "invalid" else None)
+    assert adapter.usage_report()["cache_only_misses"] == before + 1
+
+
+def test_cache_only_returns_same_cached_output(monkeypatch):
+    from backend.llm import adapter
+    monkeypatch.setenv("LLM_BACKEND", "api")
+    monkeypatch.setenv("LLM_API_MODEL", "claude-sonnet-5")
+    monkeypatch.setenv("LLM_CACHE_ONLY", "1")
+    monkeypatch.setattr(adapter, "_cache_get", lambda key: ["original answer"])
+    monkeypatch.setattr(adapter, "_mot_lan", lambda *a: pytest.fail("cache hit đã gọi provider"))
+    assert adapter.llm("query") == "original answer"
+
+
+def test_cache_only_policy_changes_runtime_identity(monkeypatch):
+    from backend.tasks.runner import runtime_fingerprint
+    from data.config.experiment import RUNTIME_ENV_KEYS
+    monkeypatch.setenv("LLM_CACHE_ONLY", "0")
+    regular = runtime_fingerprint()
+    monkeypatch.setenv("LLM_CACHE_ONLY", "1")
+    assert runtime_fingerprint() != regular
+    assert "LLM_CACHE_ONLY" in RUNTIME_ENV_KEYS

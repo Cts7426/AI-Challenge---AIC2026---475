@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Hình ảnh một con cá được đặt lên cân, sau đó có cảnh một con cá khác cùng loại bị một người cầm đuôi.\",\"question_vi\":\"Con số hiển thị cuối cùng trên cân là bao nhiêu?\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:29:50"
+}

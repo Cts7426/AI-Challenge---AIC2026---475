@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không có bằng chứng về cân trong video\", \"answer_vi\": \"Không có bằng chứng về cân trong video này, nội dung nói về cá voi xuất hiện ở Phú Yên\", \"answer_en\": \"There is no evidence of a scale in this video; the content is about whales appearing in Phu Yen\", \"evidence_frame_idx\": 11700, \"confidence\": 0.05}",
+    "{\"answer\": \"Không có cân xuất hiện trong video\", \"answer_vi\": \"Không có cân xuất hiện trong video\", \"answer_en\": \"No scale appears in the video\", \"evidence_frame_idx\": 11700, \"confidence\": 0.1}",
+    "{\"answer\": \"Không có cân trong video, chỉ có cá voi và thuyền\", \"answer_vi\": \"Không có cân trong video, chỉ có cá voi và thuyền\", \"answer_en\": \"There is no scale shown in the video, only whales and a boat\", \"evidence_frame_idx\": 11700, \"confidence\": 0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:31:27"
+}

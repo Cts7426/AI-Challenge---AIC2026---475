@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Bò áp chảo\",\"answer_vi\":\"Bò áp chảo\",\"answer_en\":\"Pan-seared beef\",\"evidence_frame_idx\":4840,\"confidence\":0.9}",
+    "{\"answer\":\"Bò áp chảo\",\"answer_vi\":\"Bò áp chảo\",\"answer_en\":\"Pan-seared beef\",\"evidence_frame_idx\":4840,\"confidence\":0.9}",
+    "{\"answer\": \"Bò Áp Chảo\", \"answer_vi\": \"Bò Áp Chảo\", \"answer_en\": \"Pan-seared Beef\", \"evidence_frame_idx\": 4840, \"confidence\": 0.85}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:56:15"
+}

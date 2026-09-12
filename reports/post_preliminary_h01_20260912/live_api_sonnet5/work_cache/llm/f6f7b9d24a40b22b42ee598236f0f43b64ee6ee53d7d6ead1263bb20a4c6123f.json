@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Nhóm giải đề THPTQG 2018 gồm 4 câu hỏi trắc nghiệm 4 đáp án A, B, C, D, trong đó đáp án 4 câu không trùng nhau và đều chứa chữ số 0\", \"question_vi\":\"Nhóm X là số mấy?\", \"answer_mode\":\"ocr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:08:34"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Đèo Tằng Quái\", \"answer_vi\": \"Đèo Tằng Quái\", \"answer_en\": \"Tang Quai Pass\", \"evidence_frame_idx\": 11483, \"confidence\": 0.6}",
+    "{\"answer\":\"Đèo Tăng Quái\",\"answer_vi\":\"Đèo Tăng Quái\",\"answer_en\":\"Tang Quai Pass\",\"evidence_frame_idx\":11483,\"confidence\":0.4}",
+    "{\"answer\": \"Đèo Tằng Quái\", \"answer_vi\": \"Đèo Tằng Quái\", \"answer_en\": \"Tang Quai Pass\", \"evidence_frame_idx\": 11483, \"confidence\": 0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:23:59"
+}

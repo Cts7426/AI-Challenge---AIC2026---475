@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"tuoi tretv\", \"answer_vi\": \"tuoi tretv\", \"answer_en\": \"tuoi tretv\", \"evidence_frame_idx\": 5601, \"confidence\": 0.6}",
+    "{\"answer\":\"tuoi tretv\",\"answer_vi\":\"tuoi tretv\",\"answer_en\":\"tuoi tretv\",\"evidence_frame_idx\":5601,\"confidence\":0.6}",
+    "{\"answer\":\"tuoi tretv\",\"answer_vi\":\"tuoi tretv\",\"answer_en\":\"tuoi tretv\",\"evidence_frame_idx\":5601,\"confidence\":0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:32:35"
+}

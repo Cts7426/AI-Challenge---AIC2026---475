@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"600g\",\"answer_vi\":\"600g\",\"answer_en\":\"600g\",\"evidence_frame_idx\":768,\"confidence\":0.4}",
+    "{\"answer\":\"600g\",\"answer_vi\":\"600g\",\"answer_en\":\"600g\",\"evidence_frame_idx\":768,\"confidence\":0.3}",
+    "{\"answer\":\"600g\",\"answer_vi\":\"600g\",\"answer_en\":\"600g\",\"evidence_frame_idx\":768,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:30:41"
+}

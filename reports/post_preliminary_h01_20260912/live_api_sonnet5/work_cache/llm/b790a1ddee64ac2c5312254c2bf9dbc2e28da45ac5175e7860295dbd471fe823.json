@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có đủ căn cứ để xác định\",\"answer_vi\":\"Không có đủ căn cứ để xác định nhóm X\",\"answer_en\":\"Not enough evidence to determine group X\",\"evidence_frame_idx\":22200,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin về 'Nhóm X' trong nội dung video\",\"answer_vi\":\"Không có thông tin về 'Nhóm X' trong nội dung video\",\"answer_en\":\"No information about 'Group X' found in the video content\",\"evidence_frame_idx\":22200,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định số của nhóm X\",\"answer_en\":\"Insufficient evidence to determine the number of group X\",\"evidence_frame_idx\":22200,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:15:04"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không có căn cứ\", \"answer_vi\": \"Không có căn cứ trong nội dung được cung cấp\", \"answer_en\": \"No evidence in provided content\", \"evidence_frame_idx\": 4200, \"confidence\": 0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":4200,\"confidence\":0.05}",
+    "{\"answer\": \"Không có thông tin\", \"answer_vi\": \"Không có thông tin về tên con đèo trong dữ liệu\", \"answer_en\": \"No information about the pass's name in the given evidence\", \"evidence_frame_idx\": 4200, \"confidence\": 0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:28:31"
+}

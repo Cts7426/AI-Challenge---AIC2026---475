@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_en\":\"Not enough evidence in the dialogue to determine\",\"evidence_frame_idx\":16470,\"confidence\":0.2}",
+    "{\"answer\":\"Không có thông tin về việc nuôi gà trong lời thoại\",\"answer_vi\":\"Không có thông tin về việc nuôi gà trong lời thoại này, nội dung chỉ nói về nuôi chồn hương làm thú cưng\",\"answer_en\":\"No information about raising chickens is found; the dialogue only discusses keeping a civet cat as a pet\",\"evidence_frame_idx\":16470,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_en\":\"Not enough evidence in the dialogue to determine\",\"evidence_frame_idx\":16470,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:58:18"
+}

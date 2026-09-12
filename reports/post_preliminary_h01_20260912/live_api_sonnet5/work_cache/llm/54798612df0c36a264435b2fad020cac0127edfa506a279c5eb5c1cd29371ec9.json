@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Số 7\",\"answer_vi\":\"Số 7 không xuất hiện trên màn hình\",\"answer_en\":\"Number 7 is not visible on screen\",\"evidence_frame_idx\":12630,\"confidence\":0.5}",
+    "{\"answer\":\"7\",\"answer_vi\":\"7\",\"answer_en\":\"7\",\"evidence_frame_idx\":12630,\"confidence\":0.2}",
+    "{\"answer\":\"7\",\"answer_vi\":\"7\",\"answer_en\":\"7\",\"evidence_frame_idx\":12630,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:02:13"
+}

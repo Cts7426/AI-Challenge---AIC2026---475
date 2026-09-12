@@ -1,0 +1,9 @@
+{
+  "command": ".venv/Scripts/python.exe -u -m scripts.run_reproducible_baseline --out reports/post_preliminary_h01_20260912/live_api_sonnet5/resource_capture --capture-only --content-digests --qa-submission-policy robust --baseline-label PP-B0-RESTORED",
+  "exit_code": 0,
+  "started_at": "2026-09-12T13:57:48.2872714+07:00",
+  "LLM_BACKEND": "api",
+  "calls_provider": false,
+  "LLM_API_MODEL": "claude-sonnet-5",
+  "finished_at": "2026-09-12T14:07:09.1592801+07:00"
+}

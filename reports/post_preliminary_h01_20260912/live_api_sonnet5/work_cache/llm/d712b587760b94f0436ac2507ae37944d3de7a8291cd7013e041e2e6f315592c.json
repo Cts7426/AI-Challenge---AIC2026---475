@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung video này\",\"answer_en\":\"No information about earthquakes found in this video content\",\"evidence_frame_idx\":31439,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin về động đất cấp độ 4 trong nội dung video\",\"answer_en\":\"No information about magnitude 4 earthquake locations found in the video content\",\"evidence_frame_idx\":31439,\"confidence\":0.03}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung được cung cấp\",\"answer_en\":\"No information about earthquakes found in the provided content\",\"evidence_frame_idx\":31439,\"confidence\":0.03}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:18:36"
+}

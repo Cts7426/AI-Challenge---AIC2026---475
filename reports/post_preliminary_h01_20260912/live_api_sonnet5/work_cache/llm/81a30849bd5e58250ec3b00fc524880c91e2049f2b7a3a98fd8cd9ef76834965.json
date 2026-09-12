@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"7 cái\",\"answer_vi\":\"7 cái\",\"answer_en\":\"7 pieces\",\"evidence_frame_idx\":5376,\"confidence\":0.95}",
+    "{\"answer\":\"7 cái\",\"answer_vi\":\"7 cái\",\"answer_en\":\"7 pieces\",\"evidence_frame_idx\":5376,\"confidence\":0.95}",
+    "{\"answer\":\"7 cái\",\"answer_vi\":\"7 cái\",\"answer_en\":\"7 pieces\",\"evidence_frame_idx\":5376,\"confidence\":0.95}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:42:35"
+}

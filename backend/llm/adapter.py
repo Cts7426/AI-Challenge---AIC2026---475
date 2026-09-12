@@ -99,7 +99,8 @@ GEMINI_THINKING_HEADROOM = 2048
 
 _api_client = None
 _gemini_client_singleton = None
-_usage = {"calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "usd": 0.0}
+_usage = {"calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "usd": 0.0,
+          "cache_only_misses": 0}
 
 
 # ----------------------------------------------------------------------- cache
@@ -188,6 +189,10 @@ def _nap_dotenv() -> None:
 
 class RuntimeSelectionError(ValueError):
     """Lỗi operator chưa chọn runtime, không phải lỗi dịch để fallback sang VI."""
+
+
+class CacheOnlyMissError(RuntimeError):
+    """Thiếu phản hồi đã lưu; replay ngân sách 0 không được chạm provider."""
 
 
 def selected_runtime() -> tuple[str, str]:
@@ -547,6 +552,12 @@ def llm(
                 _usage["cache_hits"] += 1
                 return cached[0] if n == 1 else cached
             print(f"[llm] bỏ qua cache hỏng ({ly_do}) — gọi lại thật")
+
+    # Guard nằm trước mọi dispatch, kể cả use_cache=False/cache bị validator loại.
+    # Counter giúp harness phát hiện caller đã nuốt lỗi rồi dùng fallback.
+    if os.environ.get("LLM_CACHE_ONLY", "0").strip() == "1":
+        _usage["cache_only_misses"] = _usage.get("cache_only_misses", 0) + 1
+        raise CacheOnlyMissError(f"cache-only: thiếu phản hồi hợp lệ cho {model}, key={key}")
 
     ket_qua: list[str] = []
     for _ in range(n):

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin trong lời thoại về việc nuôi gà\",\"answer_vi\":\"Không có thông tin trong lời thoại về việc nuôi gà\",\"answer_en\":\"No information in the dialogue about raising chickens\",\"evidence_frame_idx\":22310,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":22310,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin về việc nuôi gà trong đoạn này\",\"answer_vi\":\"Không có thông tin về việc nuôi gà trong đoạn lời thoại được cung cấp\",\"answer_en\":\"There is no information about raising chickens in the given dialogue\",\"evidence_frame_idx\":22310,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:02:56"
+}

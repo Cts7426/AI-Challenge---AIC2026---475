@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ để xác định trọng lượng phần thịt trong bảng nguyên liệu\",\"answer_en\":\"Insufficient evidence to determine the meat weight listed in the ingredient table\",\"evidence_frame_idx\":2761,\"confidence\":0.05}",
+    "{\"answer\": \"Không đủ căn cứ\", \"answer_vi\": \"Không đủ căn cứ để xác định\", \"answer_en\": \"Not enough evidence to determine\", \"evidence_frame_idx\": 2761, \"confidence\": 0.05}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":2761,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:07:38"
+}

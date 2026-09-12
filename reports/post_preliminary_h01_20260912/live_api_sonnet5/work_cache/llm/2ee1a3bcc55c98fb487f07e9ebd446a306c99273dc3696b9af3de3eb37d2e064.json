@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin liên quan trong video\",\"answer_vi\":\"Không có thông tin liên quan trong video, câu hỏi không phù hợp với nội dung (video về Sinh học, không liên quan động đất)\",\"answer_en\":\"No relevant information found; the question does not match the video content (this video is about Biology exam prep, not earthquakes)\",\"evidence_frame_idx\":15600,\"confidence\":0.05}",
+    "{\"answer\":\"Không có căn cứ trong video\",\"answer_vi\":\"Không có căn cứ trong video để trả lời câu hỏi này\",\"answer_en\":\"No evidence in the video to answer this question\",\"evidence_frame_idx\":15600,\"confidence\":0.02}",
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung video này\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung video này\",\"answer_en\":\"No information about earthquakes is present in this video content\",\"evidence_frame_idx\":15600,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:14:29"
+}

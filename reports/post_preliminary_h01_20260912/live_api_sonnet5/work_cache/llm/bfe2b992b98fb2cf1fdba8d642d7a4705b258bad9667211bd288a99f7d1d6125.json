@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Game Boy\",\"answer_vi\":\"Game Boy\",\"answer_en\":\"Game Boy\",\"evidence_frame_idx\":20154,\"confidence\":0.6}",
+    "{\"answer\":\"GAME BOY\",\"answer_vi\":\"GAME BOY\",\"answer_en\":\"GAME BOY\",\"evidence_frame_idx\":20154,\"confidence\":0.7}",
+    "{\"answer\":\"GAME BOY\",\"answer_vi\":\"GAME BOY\",\"answer_en\":\"GAME BOY\",\"evidence_frame_idx\":20154,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:36:54"
+}

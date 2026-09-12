@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Art of Crystals — it's not just a science, it's an enchanting art\",\"answer_vi\":\"Art of Crystals — không chỉ là khoa học, đó là một nghệ thuật đầy cuốn hút\",\"answer_en\":\"Art of Crystals — it's not just a science, it's an enchanting art\",\"evidence_frame_idx\":5715,\"confidence\":0.75}",
+    "{\"answer\":\"\\\"Art of crystals: it's not just a science, it's an enchanting art\\\"\",\"answer_vi\":\"\\\"Nghệ thuật của tinh thể: không chỉ là khoa học, mà là một loại nghệ thuật đầy mê hoặc\\\"\",\"answer_en\":\"\\\"Art of crystals: it's not just a science, it's an enchanting art\\\"\",\"evidence_frame_idx\":5715,\"confidence\":0.8}",
+    "{\"answer\":\"\\\"Art of crystals: it's not just a science, it's an enchanting art\\\"\",\"answer_vi\":\"\\\"Art of crystals: it's not just a science, it's an enchanting art\\\"\",\"answer_en\":\"\\\"Art of crystals: it's not just a science, it's an enchanting art\\\"\",\"evidence_frame_idx\":5715,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:33:11"
+}

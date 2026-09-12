@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong nội dung được cung cấp\",\"answer_vi\":\"Không đủ căn cứ trong nội dung được cung cấp\",\"answer_en\":\"Not enough evidence in the provided content\",\"evidence_frame_idx\":19050,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin\",\"answer_en\":\"No information found\",\"evidence_frame_idx\":19050,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin trong bằng chứng\",\"answer_vi\":\"Không có thông tin trong bằng chứng\",\"answer_en\":\"No information found in the evidence\",\"evidence_frame_idx\":19050,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:28:43"
+}

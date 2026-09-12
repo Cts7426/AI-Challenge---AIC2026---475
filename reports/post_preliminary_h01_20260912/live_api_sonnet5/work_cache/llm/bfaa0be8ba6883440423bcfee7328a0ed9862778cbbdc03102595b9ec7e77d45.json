@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Canh cá bống mú\",\"answer_vi\":\"Canh cá bống mú\",\"answer_en\":\"Grouper fish soup\",\"evidence_frame_idx\":3332,\"confidence\":0.9}",
+    "{\"answer\": \"Canh cá bống mú\", \"answer_vi\": \"Canh cá bống mú\", \"answer_en\": \"Grouper fish soup\", \"evidence_frame_idx\": 3332, \"confidence\": 0.9}",
+    "{\"answer\":\"Canh cá bống mú\",\"answer_vi\":\"Canh cá bống mú\",\"answer_en\":\"Grouper fish soup\",\"evidence_frame_idx\":3332,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:13:57"
+}

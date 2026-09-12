@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"6\",\"answer_vi\":\"6 vị trí\",\"answer_en\":\"6 locations\",\"evidence_frame_idx\":19500,\"confidence\":0.4}",
+    "{\"answer\":\"7 vị trí\",\"answer_vi\":\"Có khoảng 7 vị trí ghi nhận độ động đất cấp 4 trên bản đồ (không tính bảng chú giải).\",\"answer_en\":\"There are about 7 locations marked with intensity level 4 on the map (excluding the legend).\",\"evidence_frame_idx\":19500,\"confidence\":0.3}",
+    "{\"answer\":\"Khoảng 9 vị trí ghi nhận độ 4\",\"answer_vi\":\"Khoảng 9 vị trí ghi nhận độ 4 trên bản đồ (không tính bảng chú giải)\",\"answer_en\":\"About 9 locations recorded intensity 4 (excluding the legend)\",\"evidence_frame_idx\":19500,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:16:45"
+}

@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Một đầu bếp đang chuẩn bị một món ăn từ một miếng thực phẩm màu cam, băm nhỏ nguyên liệu, tách hạt khỏi cành, trộn hỗn hợp gia vị, thêm nhiều loại gia vị và phủ lên cả hai mặt nguyên liệu chính trước khi thêm chất lỏng\",\"question_vi\":\"Trong quá trình nêm gia vị, lượng nước tương được sử dụng là bao nhiêu?\",\"answer_mode\":\"visual_read\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:57:57"
+}

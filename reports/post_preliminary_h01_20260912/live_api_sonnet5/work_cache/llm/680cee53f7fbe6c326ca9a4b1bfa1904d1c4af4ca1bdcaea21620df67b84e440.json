@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá chim\",\"answer_vi\":\"Cá chim\",\"answer_en\":\"Pomfret fish\",\"evidence_frame_idx\":6565,\"confidence\":0.95}",
+    "{\"answer\":\"Cá chim\",\"answer_vi\":\"Cá chim\",\"answer_en\":\"Pomfret fish\",\"evidence_frame_idx\":6565,\"confidence\":0.9}",
+    "{\"answer\":\"Cá chim\",\"answer_vi\":\"Cá chim\",\"answer_en\":\"Pomfret fish\",\"evidence_frame_idx\":6565,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:24:02"
+}

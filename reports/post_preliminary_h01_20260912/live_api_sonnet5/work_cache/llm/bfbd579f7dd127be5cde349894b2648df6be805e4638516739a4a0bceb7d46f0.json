@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về nuôi gà trong lời thoại; nội dung liên quan đến trồng nho.\",\"answer_vi\":\"Không có thông tin về nuôi gà trong lời thoại; nội dung liên quan đến trồng nho.\",\"answer_en\":\"There is no information about raising chickens in the dialogue; the content is about grape growing.\",\"evidence_frame_idx\":24574,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà\",\"answer_en\":\"Not enough evidence in the dialogue to determine the initial goal of raising chickens\",\"evidence_frame_idx\":24574,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà, vì đoạn thoại chỉ nói về trồng nho\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà, vì đoạn thoại chỉ nói về trồng nho\",\"answer_en\":\"There is not enough evidence in the dialogue to determine the initial goal of raising chickens, as the dialogue only discusses grape cultivation\",\"evidence_frame_idx\":24574,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:04:19"
+}

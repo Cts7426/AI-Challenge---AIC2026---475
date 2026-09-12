@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định nội dung chữ neon phát sáng\",\"answer_en\":\"Not enough evidence to determine the glowing neon text\",\"evidence_frame_idx\":5914,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định nội dung chữ neon phát sáng\",\"answer_vi\":\"Không đủ căn cứ để xác định nội dung chữ neon phát sáng\",\"answer_en\":\"Insufficient evidence to determine the glowing neon text content\",\"evidence_frame_idx\":5914,\"confidence\":0.1}",
+    "{\"answer\":\"Nam thanh niên tử vong do đâm vào điểm chờ xe buýt trên quốc lộ 5, đoạn huyện Cẩm Giàng\",\"answer_vi\":\"Nam thanh niên tử vong do đâm vào điểm chờ xe buýt trên quốc lộ 5, đoạn huyện Cẩm Giàng\",\"answer_en\":\"A young man died after crashing into a bus stop on National Highway 5, in Cam Giang district\",\"evidence_frame_idx\":5914,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:36:30"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về \\\"nhóm X\\\" trong nội dung slide/lời thoại này.\",\"answer_vi\":\"Không có thông tin về \\\"nhóm X\\\" trong nội dung slide/lời thoại này.\",\"answer_en\":\"There is no information about \\\"group X\\\" in this slide/transcript content.\",\"evidence_frame_idx\":21600,\"confidence\":0.1}",
+    "{\"answer\":\"Không tìm thấy thông tin về 'Nhóm X' trong nội dung slide\",\"answer_vi\":\"Không có dữ liệu nào đề cập đến 'Nhóm X' trong khung hình này\",\"answer_en\":\"No information about 'Group X' found in this frame's content\",\"evidence_frame_idx\":21600,\"confidence\":0.1}",
+    "{\"answer\":\"Không tìm thấy thông tin về 'nhóm X' trong nội dung slide/lời thoại này\",\"answer_vi\":\"Không tìm thấy thông tin về 'nhóm X' trong nội dung slide hoặc lời thoại được cung cấp\",\"answer_en\":\"No information about 'group X' found in the provided slide or transcript content\",\"evidence_frame_idx\":21600,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:10:38"
+}

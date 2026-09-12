@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Canh đầu cá bớp\",\"answer_vi\":\"Canh đầu cá bớp\",\"answer_en\":\"Fish head soup with mahi-mahi (cá bớp)\",\"evidence_frame_idx\":4383,\"confidence\":0.9}",
+    "{\"answer\":\"Canh đầu cá bớp\",\"answer_vi\":\"Canh đầu cá bớp\",\"answer_en\":\"Fish head soup (cobia)\",\"evidence_frame_idx\":4383,\"confidence\":0.9}",
+    "{\"answer\":\"Canh đầu cá bớp\",\"answer_vi\":\"Canh đầu cá bớp\",\"answer_en\":\"Fish head soup (cobia)\",\"evidence_frame_idx\":4383,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:57:01"
+}

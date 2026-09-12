@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"1 màu bột (màu vàng cam) trong chén, còn lại là tương cà, không phải bột\",\"answer_vi\":\"Trên đĩa chỉ có 1 màu bột (màu vàng cam), phần màu đỏ là tương cà không phải bột\",\"answer_en\":\"There is only 1 color of powder (orange) on the plate; the red is ketchup, not powder\",\"evidence_frame_idx\":1601,\"confidence\":0.4}",
+    "{\"answer\":\"2 màu (vàng cam và đỏ)\",\"answer_vi\":\"2 màu (vàng cam và đỏ)\",\"answer_en\":\"2 colors (orange and red)\",\"evidence_frame_idx\":1601,\"confidence\":0.5}",
+    "{\"answer\":\"2 màu\",\"answer_vi\":\"2 màu\",\"answer_en\":\"2 colors\",\"evidence_frame_idx\":1601,\"confidence\":0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:00:46"
+}

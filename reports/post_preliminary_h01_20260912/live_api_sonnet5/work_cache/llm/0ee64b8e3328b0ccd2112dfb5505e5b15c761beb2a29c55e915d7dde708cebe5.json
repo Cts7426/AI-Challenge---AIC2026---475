@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin\",\"answer_en\":\"No information\",\"evidence_frame_idx\":2581,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định\",\"answer_en\":\"Not enough evidence in the dialogue to determine\",\"evidence_frame_idx\":2581,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại\",\"answer_en\":\"Not enough evidence in the dialogue\",\"evidence_frame_idx\":2581,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:10:02"
+}

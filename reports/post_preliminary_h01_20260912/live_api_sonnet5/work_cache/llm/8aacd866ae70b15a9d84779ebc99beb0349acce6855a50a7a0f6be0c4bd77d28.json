@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Mạnh thường quân hỗ trợ một quán trọ dành cho người cao tuổi, sau đó chuyển sang cảnh một cụ ông trò chuyện với nhóm người nước ngoài\",\"question_vi\":\"Quán trọ được nhắc đến trong đoạn phim nằm trên đường nào?\",\"answer_mode\":\"ocr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:43:55"
+}

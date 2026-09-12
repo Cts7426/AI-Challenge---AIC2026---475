@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"Chỉ thấy 1 màu bột (màu trắng ngà) trên đĩa\",\"answer_en\":\"Only 1 color of dough visible on the plate (off-white)\",\"evidence_frame_idx\":4435,\"confidence\":0.4}",
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"1 màu\",\"answer_en\":\"1 color\",\"evidence_frame_idx\":4435,\"confidence\":0.4}",
+    "{\"answer\":\"1 màu (trắng)\",\"answer_vi\":\"Chỉ có 1 màu bột (trắng)\",\"answer_en\":\"Only 1 color (white)\",\"evidence_frame_idx\":4435,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:00:17"
+}

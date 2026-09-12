@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Hà Nội - Kỷ niệm 70 năm Ngày Giải phóng Thủ đô (10/10/1954-10/10/2024)\",\"answer_vi\":\"Hà Nội - Kỷ niệm 70 năm Ngày Giải phóng Thủ đô (10/10/1954-10/10/2024)\",\"answer_en\":\"Hanoi - 70th Anniversary of the Liberation of the Capital (October 10, 1954 - October 10, 2024)\",\"evidence_frame_idx\":9687,\"confidence\":0.45}",
+    "{\"answer\":\"Chào mừng kỷ niệm 70 năm Ngày Giải phóng Thủ đô (10/10/1954-10/10/2024)\",\"answer_vi\":\"Chào mừng kỷ niệm 70 năm Ngày Giải phóng Thủ đô (10/10/1954-10/10/2024)\",\"answer_en\":\"Celebrating the 70th anniversary of the Liberation of the Capital (10/10/1954-10/10/2024)\",\"evidence_frame_idx\":9687,\"confidence\":0.5}",
+    "{\"answer\":\"Tự hào kỷ niệm 70 năm ngày giải phóng Thủ đô (10/10/1954-10/10/2024)\",\"answer_vi\":\"Tự hào kỷ niệm 70 năm ngày giải phóng Thủ đô (10/10/1954-10/10/2024)\",\"answer_en\":\"Proudly celebrating the 70th anniversary of the Liberation of the Capital (10/10/1954-10/10/2024)\",\"evidence_frame_idx\":9687,\"confidence\":0.55}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:38:02"
+}

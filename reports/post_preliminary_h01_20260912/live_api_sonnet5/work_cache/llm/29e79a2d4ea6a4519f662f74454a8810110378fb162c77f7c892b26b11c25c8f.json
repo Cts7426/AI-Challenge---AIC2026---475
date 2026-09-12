@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":11850,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ để xác định số tỉnh, thành\",\"answer_en\":\"Not enough evidence to determine the number of provinces\",\"evidence_frame_idx\":11850,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ thông tin\",\"answer_vi\":\"Không đủ thông tin để xác định số tỉnh, thành\",\"answer_en\":\"Not enough information to determine the number of provinces\",\"evidence_frame_idx\":11850,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:20:12"
+}

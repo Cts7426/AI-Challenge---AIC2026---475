@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cận cảnh gương mặt nghiêng của một người đàn ông mặc áo xám đứng nhìn ra mặt sông rộng, phía xa là hàng cây và nhà cửa ven bờ, góc trên trái có logo HTV Online\",\"question_vi\":\"Nhà văn được nhắc đến trong đoạn này tên gì?\",\"answer_mode\":\"asr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:47:46"
+}

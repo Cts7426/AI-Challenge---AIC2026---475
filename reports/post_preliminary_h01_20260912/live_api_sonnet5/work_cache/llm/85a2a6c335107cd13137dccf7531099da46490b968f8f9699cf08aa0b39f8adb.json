@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có căn cứ trong video/metadata để xác định\",\"answer_vi\":\"Không có căn cứ trong video/metadata để xác định\",\"answer_en\":\"No evidence in the video/metadata to determine this\",\"evidence_frame_idx\":1389,\"confidence\":0.1}",
+    "{\"answer\":\"Không có căn cứ trong video để xác định trường tiểu học cụ thể\",\"answer_vi\":\"Không có căn cứ trong video để xác định trường tiểu học cụ thể\",\"answer_en\":\"No evidence in the video specifies the exact elementary school\",\"evidence_frame_idx\":1389,\"confidence\":0.1}",
+    "{\"answer\":\"Không có căn cứ trong video để xác định trường tiểu học cụ thể\",\"answer_vi\":\"Không có căn cứ trong video để xác định trường tiểu học cụ thể\",\"answer_en\":\"There is no evidence in the video to identify the specific elementary school\",\"evidence_frame_idx\":1389,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:56:20"
+}

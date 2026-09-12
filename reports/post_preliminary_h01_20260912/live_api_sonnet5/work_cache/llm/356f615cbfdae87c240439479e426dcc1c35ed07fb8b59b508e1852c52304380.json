@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Gỏi bốn mùa\",\"answer_vi\":\"Gỏi bốn mùa\",\"answer_en\":\"Four Seasons Salad\",\"evidence_frame_idx\":6662,\"confidence\":0.9}",
+    "{\"answer\":\"Gỏi bốn mùa\",\"answer_vi\":\"Gỏi bốn mùa\",\"answer_en\":\"Four-season salad (Gỏi bốn mùa)\",\"evidence_frame_idx\":6662,\"confidence\":0.9}",
+    "{\"answer\":\"Gỏi bốn mùa\",\"answer_vi\":\"Gỏi bốn mùa\",\"answer_en\":\"Four-season salad (Gỏi bốn mùa)\",\"evidence_frame_idx\":6662,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:55:12"
+}

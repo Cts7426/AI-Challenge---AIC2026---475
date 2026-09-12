@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá lòng tong rim nước mắm\",\"answer_vi\":\"Cá lòng tong rim nước mắm\",\"answer_en\":\"Braised long tong fish in fish sauce\",\"evidence_frame_idx\":7812,\"confidence\":0.9}",
+    "{\"answer\":\"Cá lòng tong rim nước mắm\",\"answer_vi\":\"Cá lòng tong rim nước mắm\",\"answer_en\":\"Braised long tong fish with fish sauce\",\"evidence_frame_idx\":7812,\"confidence\":0.9}",
+    "{\"answer\":\"Cá lòng tong rim nước mắm\",\"answer_vi\":\"Cá lòng tong rim nước mắm\",\"answer_en\":\"Braised long tong fish in fish sauce\",\"evidence_frame_idx\":7812,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:54:32"
+}

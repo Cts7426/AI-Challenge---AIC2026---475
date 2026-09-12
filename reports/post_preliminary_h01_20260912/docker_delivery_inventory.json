@@ -1,0 +1,16 @@
+{
+  "operation": "read-only inventory after live ES/Milvus became reachable; no restore/reindex by this task",
+  "containers": [
+    "dd8f60b48a0d\telasticsearch\tUp 5 hours (healthy)\tdocker.elastic.co/elasticsearch/elasticsearch:8.13.4",
+    "675bb888ef6c\tmilvus-standalone\tUp 5 hours (healthy)\tmilvusdb/milvus:v2.4.17"
+  ],
+  "volumes_exit": 0,
+  "captured_at": "2026-09-12T13:20:58.5025885+07:00",
+  "containers_exit": 0,
+  "volumes": [
+    "ai-challenge---aic2026---475-main_es_data\tlocal",
+    "ai-challenge---aic2026---475-main_milvus_data\tlocal",
+    "aic2026_es_data\tlocal",
+    "aic2026_milvus_data\tlocal"
+  ]
+}

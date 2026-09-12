@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cận cảnh đĩa sứ trắng đựng món lòng/mề heo xào với hành lá cắt khúc, hành tây, gừng và ớt sừng thái sợi, đặt trên bàn trắng cạnh đĩa rau xà lách và rau thơm, góc trên trái có logo HTV Online\",\"question_vi\":\"Món ăn được giới thiệu trong đoạn video có tên là gì?\",\"answer_mode\":\"asr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:53:45"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ - không có bảng nguyên liệu ghi số liệu\",\"answer_vi\":\"Không đủ căn cứ - không có bảng nguyên liệu ghi số liệu\",\"answer_en\":\"Insufficient evidence - no ingredient table with weight shown\",\"evidence_frame_idx\":1818,\"confidence\":0.1}",
+    "{\"answer\":\"Không xác định được vì không có bảng nguyên liệu với số liệu trọng lượng trong hình\",\"answer_vi\":\"Không xác định được vì không có bảng nguyên liệu với số liệu trọng lượng trong hình\",\"answer_en\":\"Cannot be determined as there is no ingredient table with weight shown in the frame\",\"evidence_frame_idx\":1818,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định trọng lượng thịt trong bảng nguyên liệu\",\"answer_en\":\"Not enough evidence to determine the weight of the pork listed in the ingredients\",\"evidence_frame_idx\":1818,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:09:05"
+}

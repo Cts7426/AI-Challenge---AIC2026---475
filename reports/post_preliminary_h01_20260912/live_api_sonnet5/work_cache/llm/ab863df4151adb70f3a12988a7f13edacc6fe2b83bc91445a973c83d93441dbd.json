@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"13 tỉnh, thành\",\"answer_vi\":\"Đồng bằng sông Cửu Long gồm 13 tỉnh, thành phố\",\"answer_en\":\"The Mekong Delta region includes 13 provinces/cities\",\"evidence_frame_idx\":20394,\"confidence\":0.4}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Nội dung trong bài giảng không đề cập số lượng tỉnh, thành cụ thể của vùng.\",\"answer_en\":\"The lecture content does not mention the specific number of provinces/cities in the region.\",\"evidence_frame_idx\":20394,\"confidence\":0.2}",
+    "{\"answer\":\"Không đủ căn cứ - không đề cập số tỉnh, thành\",\"answer_vi\":\"Không đủ căn cứ - không đề cập số tỉnh, thành\",\"answer_en\":\"Not enough evidence - number of provinces not mentioned\",\"evidence_frame_idx\":20394,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:23:46"
+}

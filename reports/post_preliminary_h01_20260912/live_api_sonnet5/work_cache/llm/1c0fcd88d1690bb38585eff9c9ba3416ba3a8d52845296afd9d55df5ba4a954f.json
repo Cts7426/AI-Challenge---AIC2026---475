@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"RSF tấn công một ngôi làng ở miền Trung Sudan, ít nhất 80 người thiệt mạng\",\"answer_vi\":\"RSF tấn công một ngôi làng ở miền Trung Sudan, ít nhất 80 người thiệt mạng\",\"answer_en\":\"RSF attacked a village in central Sudan, at least 80 people killed\",\"evidence_frame_idx\":21101,\"confidence\":0.45}",
+    "{\"answer\":\"Không đủ căn cứ xác định rõ nội dung chữ neon\",\"answer_vi\":\"Không đủ căn cứ xác định rõ nội dung chữ neon\",\"answer_en\":\"Not enough evidence to determine the neon text content\",\"evidence_frame_idx\":21101,\"confidence\":0.2}",
+    "{\"answer\":\"RSF tấn công một ngôi làng ở miền trung Sudan, ít nhất 80 người thiệt mạng\",\"answer_vi\":\"RSF tấn công một ngôi làng ở miền trung Sudan, ít nhất 80 người thiệt mạng\",\"answer_en\":\"RSF attacked a village in central Sudan, at least 80 people killed\",\"evidence_frame_idx\":21101,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:37:07"
+}

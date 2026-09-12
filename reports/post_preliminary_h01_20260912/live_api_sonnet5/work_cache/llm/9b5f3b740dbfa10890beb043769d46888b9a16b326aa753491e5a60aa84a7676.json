@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Canh đầu cá bớp\",\"answer_vi\":\"Canh đầu cá bớp\",\"answer_en\":\"Sour soup with cobia fish head\",\"evidence_frame_idx\":4224,\"confidence\":0.9}",
+    "{\"answer\":\"Canh đầu cá bớp\",\"answer_vi\":\"Canh đầu cá bớp\",\"answer_en\":\"Fish head soup (grouper head)\",\"evidence_frame_idx\":4224,\"confidence\":0.95}",
+    "{\"answer\":\"Canh đầu cá bớp\",\"answer_vi\":\"Canh đầu cá bớp\",\"answer_en\":\"Cobia fish head soup\",\"evidence_frame_idx\":4224,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:56:48"
+}

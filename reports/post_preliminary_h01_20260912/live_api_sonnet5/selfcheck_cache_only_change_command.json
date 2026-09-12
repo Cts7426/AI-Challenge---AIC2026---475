@@ -1,0 +1,10 @@
+{
+  "finished_at": "2026-09-12T14:16:49.3322155+07:00",
+  "started_at": "2026-09-12T14:14:01.0824634+07:00",
+  "notes": "Suite kiểm cả hai policy bằng fixture riêng; diagnostic production chạy policy=1 ở process khác.",
+  "LLM_BACKEND": "api",
+  "LLM_API_MODEL": "claude-sonnet-5",
+  "LLM_CACHE_ONLY": "0",
+  "exit_code": 1,
+  "command": ".venv/Scripts/python.exe scripts/selfcheck.py"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"2 màu\",\"answer_vi\":\"2 màu\",\"answer_en\":\"2 colors\",\"evidence_frame_idx\":4180,\"confidence\":0.3}",
+    "{\"answer\":\"2\",\"answer_vi\":\"2 màu bột\",\"answer_en\":\"2 colors of flour\",\"evidence_frame_idx\":4180,\"confidence\":0.55}",
+    "{\"answer\":\"1 màu (bột trắng)\",\"answer_vi\":\"1 màu (bột trắng)\",\"answer_en\":\"1 color (white flour)\",\"evidence_frame_idx\":4180,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:04:39"
+}

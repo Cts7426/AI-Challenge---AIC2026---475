@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định dòng chữ neon\",\"answer_vi\":\"Không đủ căn cứ để xác định dòng chữ neon\",\"answer_en\":\"Not enough evidence to identify the neon text\",\"evidence_frame_idx\":20677,\"confidence\":0.1}",
+    "{\"answer\": \"Không đủ căn cứ để xác định dòng chữ neon\", \"answer_vi\": \"Không đủ căn cứ để xác định dòng chữ neon\", \"answer_en\": \"Not enough evidence to determine the neon text\", \"evidence_frame_idx\": 20677, \"confidence\": 0.1}",
+    "{\"answer\": \"Không có căn cứ về dòng chữ neon phát sáng trong bằng chứng cung cấp\", \"answer_vi\": \"Không có căn cứ về dòng chữ neon phát sáng trong bằng chứng cung cấp\", \"answer_en\": \"No evidence of a glowing neon sign is found in the provided evidence\", \"evidence_frame_idx\": 20677, \"confidence\": 0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:34:10"
+}

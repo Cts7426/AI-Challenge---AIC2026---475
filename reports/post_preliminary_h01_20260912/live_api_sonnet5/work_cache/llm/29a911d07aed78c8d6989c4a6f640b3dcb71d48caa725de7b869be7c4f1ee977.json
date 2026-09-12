@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cảnh hai con gà lông đen, mào và đầu đỏ hồng đang mổ ăn thức ăn hạt màu vàng trong chậu đất tròn đặt trên nền đất, có logo HTV9 và thanh tin tức chạy phía dưới\",\"question_vi\":\"Theo lời thoại, mục tiêu ban đầu khi nuôi gà của người này là gì?\",\"answer_mode\":\"asr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:57:15"
+}

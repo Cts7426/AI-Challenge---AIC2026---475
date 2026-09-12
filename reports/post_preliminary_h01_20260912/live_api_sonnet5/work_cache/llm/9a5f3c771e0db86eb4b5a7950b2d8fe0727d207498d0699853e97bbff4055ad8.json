@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Bắp bò xào đậu rồng\",\"answer_vi\":\"Bắp bò xào đậu rồng\",\"answer_en\":\"Stir-fried beef shank with winged beans\",\"evidence_frame_idx\":5860,\"confidence\":0.9}",
+    "{\"answer\":\"Bắp bò xào đậu rồng\",\"answer_vi\":\"Bắp bò xào đậu rồng\",\"answer_en\":\"Stir-fried beef shank with winged beans\",\"evidence_frame_idx\":5860,\"confidence\":0.9}",
+    "{\"answer\":\"Bắp bò xào đậu rồng\",\"answer_vi\":\"Bắp bò xào đậu rồng\",\"answer_en\":\"Stir-fried beef shank with winged beans\",\"evidence_frame_idx\":5860,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:55:03"
+}

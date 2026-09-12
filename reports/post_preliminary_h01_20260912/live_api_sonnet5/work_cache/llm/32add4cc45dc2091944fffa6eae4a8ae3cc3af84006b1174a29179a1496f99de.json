@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Một cô gái đeo tạp dề màu trắng, bên cạnh là một lọ hoa riềng tía. Cô gái đặt lên 1 dĩa trắng 4 con X, sau đó cầm lên 2 con X, rồi đối thoại với người đối diện để xem hôm nay nấu món gì\",\"question_vi\":\"X là con gì?\",\"answer_mode\":\"visual_attribute\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:12:25"
+}

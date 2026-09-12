@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Đó là các bảng tên khoáng vật/tinh thể phát sáng dưới đèn UV, ghi tên và xuất xứ như Fluorite, Calcite, Topaz, Spinel, Wollastonite, Wavellite, Eucryptite...\",\"answer_vi\":\"Đó là các bảng tên khoáng vật/tinh thể phát sáng dưới đèn UV, ghi tên và xuất xứ như Fluorite, Calcite, Topaz, Spinel, Wollastonite, Wavellite, Eucryptite...\",\"answer_en\":\"They are glowing mineral/crystal name labels under UV light showing the mineral name and origin, such as Fluorite, Calcite, Topaz, Spinel, Wollastonite, Wavellite, Eucryptite...\",\"evidence_frame_idx\":5540,\"confidence\":0.55}",
+    "{\"answer\":\"Đó là các bảng tên khoáng vật (như Fluorite, Calcite, Topaz, Spinel...) kèm nơi xuất xứ, phát sáng dưới đèn UV để chú thích cho từng mẫu tinh thể trưng bày.\",\"answer_vi\":\"Đó là các bảng tên khoáng vật (như Fluorite, Calcite, Topaz, Spinel...) kèm nơi xuất xứ, phát sáng dưới đèn UV để chú thích cho từng mẫu tinh thể trưng bày.\",\"answer_en\":\"They are glowing UV labels naming each mineral specimen (e.g. Fluorite, Calcite, Topaz, Spinel) along with its origin.\",\"evidence_frame_idx\":5540,\"confidence\":0.7}",
+    "{\"answer\":\"Dòng chữ neon là logo \\\"tuoitre TV\\\" ở góc trên bên phải khung hình\",\"answer_vi\":\"Đó là dòng chữ logo \\\"tuoitre TV\\\" phát sáng ở góc trên bên phải màn hình\",\"answer_en\":\"It's the glowing \\\"tuoitre TV\\\" logo text in the top right corner of the frame\",\"evidence_frame_idx\":5540,\"confidence\":0.55}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:32:27"
+}

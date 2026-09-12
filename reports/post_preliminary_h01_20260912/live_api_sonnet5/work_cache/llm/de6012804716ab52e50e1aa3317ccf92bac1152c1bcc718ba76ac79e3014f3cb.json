@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"1 màu\",\"answer_en\":\"1 color\",\"evidence_frame_idx\":4656,\"confidence\":0.5}",
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"1 màu\",\"answer_en\":\"1 color\",\"evidence_frame_idx\":4656,\"confidence\":0.6}",
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"1 màu\",\"answer_en\":\"1 color\",\"evidence_frame_idx\":4656,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:03:41"
+}

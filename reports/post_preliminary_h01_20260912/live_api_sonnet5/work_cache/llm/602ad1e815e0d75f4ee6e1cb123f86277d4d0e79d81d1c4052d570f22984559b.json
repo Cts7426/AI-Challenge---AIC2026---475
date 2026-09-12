@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ\",\"answer_en\":\"Not enough evidence\",\"evidence_frame_idx\":15150,\"confidence\":0.0}",
+    "{\"answer\": \"Không đủ căn cứ\", \"answer_vi\": \"Không đủ căn cứ để trả lời\", \"answer_en\": \"Insufficient evidence to answer\", \"evidence_frame_idx\": 15150, \"confidence\": 0.0}",
+    "{\"answer\": \"Không đủ căn cứ\", \"answer_vi\": \"Không đủ căn cứ\", \"answer_en\": \"Not enough evidence\", \"evidence_frame_idx\": 15150, \"confidence\": 0.0}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:55:36"
+}

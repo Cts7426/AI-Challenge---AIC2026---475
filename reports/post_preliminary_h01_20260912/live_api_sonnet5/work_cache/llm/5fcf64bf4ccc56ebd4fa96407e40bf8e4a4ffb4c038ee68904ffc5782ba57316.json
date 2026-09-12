@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"1 màu (bột phô mai)\",\"answer_vi\":\"1 màu (bột phô mai)\",\"answer_en\":\"1 color (cheese powder)\",\"evidence_frame_idx\":4864,\"confidence\":0.6}",
+    "{\"answer\":\"1 màu (bột phô mai)\",\"answer_vi\":\"1 màu (bột phô mai)\",\"answer_en\":\"1 color (cheese powder)\",\"evidence_frame_idx\":4864,\"confidence\":0.6}",
+    "{\"answer\":\"1 màu (bột phô mai)\",\"answer_vi\":\"1 màu (bột phô mai)\",\"answer_en\":\"1 color (cheese powder)\",\"evidence_frame_idx\":4864,\"confidence\":0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:04:07"
+}

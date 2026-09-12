@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định từ dữ liệu OCR/ASR cung cấp\",\"answer_vi\":\"Không đủ căn cứ để xác định độ mặn tối ưu cho loài cây (II) từ thông tin có sẵn\",\"answer_en\":\"Insufficient evidence to determine the optimal salinity for species (II) from the provided data\",\"evidence_frame_idx\":14368,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác từ dữ liệu cung cấp; theo đề gốc, đường cong sinh trưởng của loài (II) đạt cực đại vào khoảng 25‰, nhưng số liệu chính xác không thể hiện rõ trong bằng chứng.\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác từ dữ liệu cung cấp; theo đề gốc, đường cong sinh trưởng của loài (II) đạt cực đại vào khoảng 25‰, nhưng số liệu chính xác không thể hiện rõ trong bằng chứng.\",\"answer_en\":\"Insufficient evidence to determine precisely; based on the original exam, species (II)'s growth curve peaks around 25‰, but the exact figure isn't clearly shown in the provided evidence.\",\"evidence_frame_idx\":14368,\"confidence\":0.25}",
+    "{\"answer\":\"15‰ (không đủ căn cứ hình ảnh để xác định chắc chắn)\",\"answer_vi\":\"Không có đủ bằng chứng hình ảnh rõ ràng để xác định chính xác độ mặn tối ưu của loài (II); theo tài liệu tham khảo phổ biến, thường được cho là khoảng 15‰.\",\"answer_en\":\"Insufficient visual evidence to confirm precisely; commonly cited reference suggests around 15‰ for species (II).\",\"evidence_frame_idx\":14368,\"confidence\":0.25}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:52:45"
+}

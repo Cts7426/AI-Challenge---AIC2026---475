@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà\",\"answer_en\":\"There is not enough evidence in the dialogue to determine the initial goal of raising chickens\",\"evidence_frame_idx\":9061,\"confidence\":0.2}",
+    "{\"answer\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà\",\"answer_vi\":\"Không đủ căn cứ trong lời thoại để xác định mục tiêu ban đầu khi nuôi gà\",\"answer_en\":\"There is not enough evidence in the dialogue to determine the initial goal of raising chickens\",\"evidence_frame_idx\":9061,\"confidence\":0.2}",
+    "{\"answer\":\"Không đủ căn cứ để xác định mục tiêu ban đầu khi nuôi gà, vì lời thoại chỉ nói về việc nuôi chồn hương bằng chuối và cá tươi.\",\"answer_vi\":\"Không đủ căn cứ để xác định mục tiêu ban đầu khi nuôi gà, vì lời thoại chỉ nói về việc nuôi chồn hương bằng chuối và cá tươi.\",\"answer_en\":\"Not enough evidence to determine the initial goal of raising chickens, as the dialogue only discusses feeding civets bananas and fresh fish.\",\"evidence_frame_idx\":9061,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:57:51"
+}

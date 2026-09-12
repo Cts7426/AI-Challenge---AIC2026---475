@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"50H-360.39\", \"answer_vi\": \"50H-360.39\", \"answer_en\": \"50H-360.39\", \"evidence_frame_idx\": 13839, \"confidence\": 0.9}",
+    "{\"answer\": \"50H-360.39\", \"answer_vi\": \"50H-360.39\", \"answer_en\": \"50H-360.39\", \"evidence_frame_idx\": 13839, \"confidence\": 0.9}",
+    "{\"answer\":\"50H-360.39\",\"answer_vi\":\"50H-360.39\",\"answer_en\":\"50H-360.39\",\"evidence_frame_idx\":13839,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:21:35"
+}

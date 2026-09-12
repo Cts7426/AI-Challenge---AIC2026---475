@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không xác định được tên đèo\",\"answer_vi\":\"Không xác định được tên đèo từ dữ liệu\",\"answer_en\":\"The name of the pass cannot be determined from the given evidence\",\"evidence_frame_idx\":1708,\"confidence\":0.1}",
+    "{\"answer\":\"Đèo Ô Quy Hồ\",\"answer_vi\":\"Đèo Ô Quy Hồ\",\"answer_en\":\"O Quy Ho Pass\",\"evidence_frame_idx\":1708,\"confidence\":0.25}",
+    "{\"answer\":\"Không xác định rõ tên đèo trong dữ liệu (có thể là đèo Ô Quy Hồ)\",\"answer_vi\":\"Không xác định rõ tên đèo trong dữ liệu (có thể là đèo Ô Quy Hồ)\",\"answer_en\":\"Pass name not clearly stated in evidence (possibly Ô Quy Hồ Pass)\",\"evidence_frame_idx\":1708,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:25:04"
+}

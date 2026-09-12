@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không đủ căn cứ để xác định\", \"answer_vi\": \"Không đủ căn cứ để xác định tên con đèo trong bằng chứng cung cấp\", \"answer_en\": \"Insufficient evidence to determine the name of the pass\", \"evidence_frame_idx\": 5850, \"confidence\": 0.05}",
+    "{\"answer\": \"Không có thông tin\", \"answer_vi\": \"Không có thông tin về tên con đèo trong nội dung video\", \"answer_en\": \"No information about the pass's name in the video content\", \"evidence_frame_idx\": 5850, \"confidence\": 0.05}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin về tên con đèo trong dữ liệu video\",\"answer_en\":\"No information about the pass's name found in the video data\",\"evidence_frame_idx\":5850,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:22:12"
+}

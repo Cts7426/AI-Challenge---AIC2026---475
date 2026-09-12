@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có căn cứ xác định trường tiểu học cụ thể\",\"answer_vi\":\"Không có căn cứ xác định trường tiểu học cụ thể mà giáo viên đang dạy chính\",\"answer_en\":\"No evidence identifies the specific primary school where the teachers mainly teach\",\"evidence_frame_idx\":1101,\"confidence\":0.1}",
+    "{\"answer\":\"Không có căn cứ xác định trường tiểu học cụ thể\",\"answer_vi\":\"Không có căn cứ xác định trường tiểu học cụ thể\",\"answer_en\":\"No evidence identifies the specific primary school\",\"evidence_frame_idx\":1101,\"confidence\":0.15}",
+    "{\"answer\":\"Không có căn cứ trong video cho thấy giáo viên dạy chính ở trường tiểu học nào\",\"answer_vi\":\"Không có căn cứ trong video cho thấy giáo viên dạy chính ở trường tiểu học nào\",\"answer_en\":\"There is no evidence in the video indicating which primary school the teachers regularly teach at\",\"evidence_frame_idx\":1101,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:55:06"
+}

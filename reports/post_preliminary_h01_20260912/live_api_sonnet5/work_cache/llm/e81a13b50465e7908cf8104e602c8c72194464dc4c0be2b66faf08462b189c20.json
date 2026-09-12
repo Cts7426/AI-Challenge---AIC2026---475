@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không xác định rõ tên đèo trong đoạn thông tin\",\"answer_vi\":\"Không có thông tin rõ ràng về tên con đèo trong đoạn tin, chỉ biết đoạn sạt lở nằm trên đường từ thị xã Sapa lên tỉnh Lai Châu\",\"answer_en\":\"The name of the pass is not clearly stated; only mentioned that the landslide occurred on the road from Sapa town to Lai Chau province\",\"evidence_frame_idx\":1558,\"confidence\":0.2}",
+    "{\"answer\":\"Không có thông tin cụ thể tên đèo trong dữ liệu (đoạn Sapa - Lai Châu)\",\"answer_vi\":\"Không có thông tin cụ thể tên đèo, chỉ biết là đoạn đường từ Sapa lên Lai Châu\",\"answer_en\":\"No specific pass name given, only that it's the road section from Sapa to Lai Chau\",\"evidence_frame_idx\":1558,\"confidence\":0.2}",
+    "{\"answer\":\"Không đủ căn cứ xác định tên đèo\",\"answer_vi\":\"Không đủ căn cứ xác định tên đèo\",\"answer_en\":\"Not enough evidence to identify the pass's name\",\"evidence_frame_idx\":1558,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:26:22"
+}

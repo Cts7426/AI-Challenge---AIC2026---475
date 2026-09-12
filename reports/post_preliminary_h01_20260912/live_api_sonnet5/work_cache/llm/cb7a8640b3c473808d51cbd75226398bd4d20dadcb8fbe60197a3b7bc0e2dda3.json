@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định số màu bột trên dĩa\",\"answer_en\":\"Not enough evidence to determine the number of flour colors on the plate\",\"evidence_frame_idx\":2148,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định số màu bột trên dĩa\",\"answer_en\":\"Not enough evidence to determine the number of flour colors on the plate\",\"evidence_frame_idx\":2148,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định số màu bột trên dĩa\",\"answer_en\":\"Not enough evidence to determine the number of flour colors on the plate\",\"evidence_frame_idx\":2148,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:05:47"
+}

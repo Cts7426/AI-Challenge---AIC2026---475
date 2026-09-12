@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin trong lời thoại về việc nuôi gà, chỉ đề cập đến nuôi chồn hương.\",\"answer_vi\":\"Không có thông tin trong lời thoại về việc nuôi gà, chỉ đề cập đến nuôi chồn hương.\",\"answer_en\":\"There is no information in the dialogue about raising chickens, only about raising civets.\",\"evidence_frame_idx\":10395,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin về việc nuôi gà trong lời thoại; nội dung nói về nuôi chồn hương.\",\"answer_vi\":\"Không có thông tin về việc nuôi gà trong lời thoại; nội dung nói về nuôi chồn hương.\",\"answer_en\":\"There is no information about raising chickens in the dialogue; the content discusses raising civet cats.\",\"evidence_frame_idx\":10395,\"confidence\":0.1}",
+    "{\"answer\":\"Không có bằng chứng trong lời thoại về việc nuôi gà; nội dung nói về nuôi chồn hương.\",\"answer_vi\":\"Không có bằng chứng trong lời thoại về việc nuôi gà; nội dung nói về nuôi chồn hương.\",\"answer_en\":\"There is no evidence in the dialogue about raising chickens; the content is about raising civet cats.\",\"evidence_frame_idx\":10395,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:01:57"
+}

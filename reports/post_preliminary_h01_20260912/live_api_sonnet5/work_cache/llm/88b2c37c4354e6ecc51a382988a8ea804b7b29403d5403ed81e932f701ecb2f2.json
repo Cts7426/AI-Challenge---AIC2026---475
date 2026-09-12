@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cảnh quay từ trong xe tự lái với vô lăng xoay để rẽ phải, sau đó góc quay chuyển ra ngoài cho thấy chiếc xe màu trắng rẽ trái, phía trên có biển hiệu đỏ với 6 ký tự chữ Hán\",\"question_vi\":\"Con số được viết trên phần hông xe màu trắng là số mấy?\",\"answer_mode\":\"ocr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:15:31"
+}

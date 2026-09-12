@@ -1,0 +1,12 @@
+{
+  "action": "Dịch query QA01 bằng backend production api, model claude-sonnet-5, qua adapter hiện có",
+  "payload_example": "công thức canh sườn mít non cần bao nhiêu gam sườn non",
+  "destination": "Anthropic API",
+  "first_sandbox_attempt": "APIConnectionError; không nhận phản hồi thành công, usage ghi 0 calls/0 tokens",
+  "escalated_attempt": "rejected_before_process_start",
+  "approval_review_rejection": true,
+  "reason": "The action sends an internal Vietnamese query to an external Anthropic API; selecting the API/model authorizes the backend choice but does not explicitly authorize this sensitive payload’s egress to that destination.",
+  "pending_user_question": "Cho phép 30 query đã khóa cùng evidence cần thiết (keyframe, OCR/ASR/metadata) được gửi tới Anthropic để chạy baseline H01 bằng model đã chọn hay chỉ tiếp tục cục bộ?",
+  "work_without_egress": "Khóa query/protocol, capture-only đầy đủ tài nguyên, preflight và selfcheck. Không đổi model/key, không thử đường gọi gián tiếp.",
+  "baseline_accepted": false
+}

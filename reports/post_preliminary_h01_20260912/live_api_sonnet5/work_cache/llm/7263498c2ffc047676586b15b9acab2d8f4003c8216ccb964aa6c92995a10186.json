@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"15‰\",\"answer_vi\":\"Khoảng 15 phần nghìn\",\"answer_en\":\"About 15 per mille\",\"evidence_frame_idx\":14668,\"confidence\":0.35}",
+    "{\"answer\":\"15‰\",\"answer_vi\":\"15 phần nghìn (‰)\",\"answer_en\":\"15 per mille (‰)\",\"evidence_frame_idx\":14668,\"confidence\":0.35}",
+    "{\"answer\":\"Khoảng 15‰\",\"answer_vi\":\"Khoảng 15 phần nghìn (‰)\",\"answer_en\":\"About 15‰\",\"evidence_frame_idx\":14668,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:54:23"
+}

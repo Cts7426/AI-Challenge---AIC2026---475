@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có bằng chứng về bột trên dĩa trong các khung hình\",\"answer_vi\":\"Không thấy bột trên dĩa; chỉ có bacon, phô mai và hành tây trong các khung hình được cung cấp\",\"answer_en\":\"No evidence of flour/powder on a plate; only bacon, cheese, and onion are visible in the given frames\",\"evidence_frame_idx\":4992,\"confidence\":0.1}",
+    "{\"answer\":\"Không có bằng chứng về bột trên dĩa trong khoảnh khắc này\",\"answer_vi\":\"Không có bằng chứng về bột trên dĩa trong khoảnh khắc này\",\"answer_en\":\"No evidence of any powder/flour colors on the plate in this moment\",\"evidence_frame_idx\":4992,\"confidence\":0.1}",
+    "{\"answer\":\"Không rõ, không thấy bột trên dĩa trong khung hình\",\"answer_vi\":\"Không rõ, không thấy bột trên dĩa trong khung hình\",\"answer_en\":\"Unclear, no powder/flour visible on the plate in the frame\",\"evidence_frame_idx\":4992,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:02:13"
+}

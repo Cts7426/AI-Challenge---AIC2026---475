@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không xác định rõ\",\"answer_vi\":\"Không xác định rõ\",\"answer_en\":\"Not clearly identifiable\",\"evidence_frame_idx\":7868,\"confidence\":0.2}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":7868,\"confidence\":0.2}",
+    "{\"answer\":\"Không xác định được\",\"answer_vi\":\"Không xác định được\",\"answer_en\":\"Cannot be determined\",\"evidence_frame_idx\":7868,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:18:47"
+}

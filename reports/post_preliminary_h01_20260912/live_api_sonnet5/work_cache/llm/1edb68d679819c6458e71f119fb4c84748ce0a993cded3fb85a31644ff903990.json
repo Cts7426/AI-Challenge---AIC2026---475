@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Câu hỏi môn Sinh học số 11 trong đề thi THPTQG 2022 có biểu đồ so sánh tốc độ sinh trưởng của các loài thực vật trong các hệ sinh thái ven biển\",\"question_vi\":\"Loài cây (II) đạt được tốc độ sinh trưởng tốt nhất khi môi trường sống có độ mặn là bao nhiêu phần nghìn?\",\"answer_mode\":\"ocr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:51:11"
+}

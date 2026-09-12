@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có căn cứ trong video\",\"answer_vi\":\"Không có căn cứ trong video để xác định số vị trí ghi nhận động đất cấp độ 4\",\"answer_en\":\"There is no evidence in the video to determine the number of locations recording magnitude 4 earthquakes\",\"evidence_frame_idx\":27000,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":27000,\"confidence\":0.0}",
+    "{\"answer\":\"Không có đủ thông tin để xác định\",\"answer_vi\":\"Không có đủ thông tin để xác định\",\"answer_en\":\"Not enough information to determine\",\"evidence_frame_idx\":27000,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:19:29"
+}

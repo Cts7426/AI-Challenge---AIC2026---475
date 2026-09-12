@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về tên đèo trong bằng chứng\",\"answer_vi\":\"Không có thông tin về tên đèo trong bằng chứng\",\"answer_en\":\"No information about the name of the pass in the evidence\",\"evidence_frame_idx\":11398,\"confidence\":0.1}",
+    "{\"answer\": \"Không có thông tin về tên đèo trong dữ liệu\", \"answer_vi\": \"Không có thông tin về tên đèo trong dữ liệu\", \"answer_en\": \"No information about the pass's name in the data\", \"evidence_frame_idx\": 11398, \"confidence\": 0.15}",
+    "{\"answer\":\"Không có thông tin về tên đèo trong bằng chứng\",\"answer_vi\":\"Không có thông tin về tên đèo trong bằng chứng\",\"answer_en\":\"No information about the mountain pass name in the evidence\",\"evidence_frame_idx\":11398,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:25:49"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Số 2\",\"answer_vi\":\"Số 2\",\"answer_en\":\"Number 2\",\"evidence_frame_idx\":3100,\"confidence\":0.25}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":2483,\"confidence\":0.2}",
+    "{\"answer\":\"Số 2\",\"answer_vi\":\"Số 2 không được nhìn thấy vì bị lân che khuất\",\"answer_en\":\"Number 2 is not visible as it's blocked by the lion figure\",\"evidence_frame_idx\":2976,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:03:28"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":11190,\"confidence\":0.1}",
+    "{\"answer\":\"5\",\"answer_vi\":\"5\",\"answer_en\":\"5\",\"evidence_frame_idx\":11190,\"confidence\":0.25}",
+    "{\"answer\":\"Trong khung hình có các số 0,1,2,3,4,6,9 (giờ 06:39:42, logo HTV9, '160', '2024', áo số 11) nhưng không thấy số 5, 7 và 8.\",\"answer_vi\":\"Không thấy các số 5, 7 và 8 trong 16 giây đầu của video.\",\"answer_en\":\"The numbers 5, 7, and 8 are not visible in the first 16 seconds of the video.\",\"evidence_frame_idx\":11190,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:02:48"
+}

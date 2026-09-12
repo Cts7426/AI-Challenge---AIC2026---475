@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Canh mồng tơi nấm\",\"answer_vi\":\"Canh mồng tơi nấm\",\"answer_en\":\"Malabar spinach and mushroom soup\",\"evidence_frame_idx\":5122,\"confidence\":0.9}",
+    "{\"answer\":\"Canh mồng tơi nấm tôm\",\"answer_vi\":\"Canh mồng tơi nấm tôm\",\"answer_en\":\"Malabar spinach and mushroom soup with shrimp\",\"evidence_frame_idx\":5122,\"confidence\":0.9}",
+    "{\"answer\":\"Canh mồng tơi nấm\",\"answer_vi\":\"Canh mồng tơi nấm\",\"answer_en\":\"Spinach and mushroom soup\",\"evidence_frame_idx\":5122,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:13:23"
+}

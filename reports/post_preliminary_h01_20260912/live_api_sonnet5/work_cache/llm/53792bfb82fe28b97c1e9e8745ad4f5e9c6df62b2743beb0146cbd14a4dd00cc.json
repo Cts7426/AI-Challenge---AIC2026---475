@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Salad tôm đậu hủ\",\"answer_vi\":\"Salad tôm đậu hủ\",\"answer_en\":\"Shrimp and tofu salad\",\"evidence_frame_idx\":6515,\"confidence\":0.9}",
+    "{\"answer\":\"Salad tôm đậu hủ\",\"answer_vi\":\"Salad tôm đậu hủ\",\"answer_en\":\"Shrimp and tofu salad\",\"evidence_frame_idx\":6515,\"confidence\":0.9}",
+    "{\"answer\":\"Salad tôm đậu hủ\",\"answer_vi\":\"Salad tôm đậu hủ\",\"answer_en\":\"Shrimp and tofu salad\",\"evidence_frame_idx\":6515,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:54:54"
+}

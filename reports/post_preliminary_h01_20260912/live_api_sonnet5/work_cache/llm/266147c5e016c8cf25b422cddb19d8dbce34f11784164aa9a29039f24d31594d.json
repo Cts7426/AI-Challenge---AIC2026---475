@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Một bé gái mặc áo bơi họa tiết hoa lá đang trả lời phỏng vấn bên cạnh một hồ bơi. Tiếp theo là hình ảnh cháu bé bơi trong hồ nước, đội mũ bơi màu tím.\",\"question_vi\":\"Bé gái này sắp lên học lớp mấy?\",\"answer_mode\":\"asr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:47:07"
+}

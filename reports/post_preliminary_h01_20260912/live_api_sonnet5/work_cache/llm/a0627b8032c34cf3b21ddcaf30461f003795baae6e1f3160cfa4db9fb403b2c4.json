@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Tự cung tự cấp cho gia đình\",\"answer_vi\":\"Tự cung tự cấp cho gia đình\",\"answer_en\":\"Self-sufficiency for the family\",\"evidence_frame_idx\":26904,\"confidence\":0.9}",
+    "{\"answer\":\"Tự cung tự cấp cho gia đình\",\"answer_vi\":\"Tự cung tự cấp cho gia đình\",\"answer_en\":\"Self-sufficiency for the family\",\"evidence_frame_idx\":26904,\"confidence\":0.9}",
+    "{\"answer\":\"Tự cung tự cấp cho gia đình\",\"answer_vi\":\"Tự cung tự cấp cho gia đình\",\"answer_en\":\"Self-sufficiency for the family\",\"evidence_frame_idx\":26904,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:00:07"
+}

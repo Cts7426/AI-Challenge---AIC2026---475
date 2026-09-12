@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không đủ căn cứ trong bằng chứng để xác định đề tài miền núi cụ thể\", \"answer_vi\": \"Không đủ căn cứ trong bằng chứng để xác định đề tài miền núi cụ thể\", \"answer_en\": \"There is not enough evidence to determine the specific mountainous-themed subject mentioned\", \"evidence_frame_idx\": 29700, \"confidence\": 0.1}",
+    "{\"answer\":\"Không có căn cứ trong bằng chứng để xác định đề tài miền núi cụ thể\",\"answer_vi\":\"Không đủ căn cứ trong bằng chứng để xác định đề tài miền núi cụ thể được nhắc đến\",\"answer_en\":\"There is insufficient evidence to determine the specific mountainous region theme mentioned\",\"evidence_frame_idx\":29700,\"confidence\":0.05}",
+    "{\"answer\": \"Không có căn cứ trong bằng chứng để xác định đề tài miền núi cụ thể\", \"answer_vi\": \"Không có căn cứ trong bằng chứng để xác định đề tài miền núi cụ thể\", \"answer_en\": \"There is no evidence to determine the specific mountainous region theme\", \"evidence_frame_idx\": 29700, \"confidence\": 0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:28:17"
+}

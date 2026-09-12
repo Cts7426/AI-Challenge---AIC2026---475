@@ -264,6 +264,7 @@ def runtime_manifest() -> dict[str, Any]:
     return {
         "schema_version": 1,
         "llm": {"backend": backend, "model": model},
+        "llm_cache_only": os.environ.get("LLM_CACHE_ONLY", "0"),
         "qa_inference_mode": str(os.environ.get("QA_INFERENCE_MODE") or "<unset>"),
         "config_sha256": config_hashes,
         "critical_sources_sha256": critical_hashes,

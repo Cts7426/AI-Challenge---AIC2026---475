@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cuộc phỏng vấn một người đàn ông đam mê sưu tầm game, chia sẻ rằng niềm đam mê của anh được truyền cảm hứng từ món đồ chơi của bà mình, xuất hiện một dòng chữ neon phát sáng\",\"question_vi\":\"Dòng chữ neon phát sáng đó là gì?\",\"answer_mode\":\"ocr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:31:24"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có hình ảnh cân trong các khung hình này, chỉ có bảng nguyên liệu; số cuối cùng hiển thị là 600g (cá lăng)\",\"answer_vi\":\"Không có cân được hiển thị, chỉ có bảng nguyên liệu; số cuối cùng thấy là 600g (cá lăng)\",\"answer_en\":\"No scale is shown in these frames, only an ingredient list; the last number visible is 600g (catfish)\",\"evidence_frame_idx\":896,\"confidence\":0.2}",
+    "{\"answer\":\"Không có cân hiển thị trong khung hình được cung cấp\",\"answer_vi\":\"Không có cân hiển thị trong khung hình được cung cấp, chỉ thấy bảng nguyên liệu ghi Cá lăng 600g\",\"answer_en\":\"No scale is shown in the provided frames; only an ingredient list showing Cá lăng 600g is visible\",\"evidence_frame_idx\":896,\"confidence\":0.2}",
+    "{\"answer\":\"Không có bằng chứng về cân trong các khung hình\",\"answer_vi\":\"Không có bằng chứng về cân trong các khung hình\",\"answer_en\":\"No evidence of a scale shown in the frames\",\"evidence_frame_idx\":768,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:31:00"
+}

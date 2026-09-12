@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"Không có thông tin trong video về việc này (đây là bài giảng THPT về Toán, không liên quan trường tiểu học)\", \"answer_vi\": \"Không có thông tin trong video về việc này (đây là bài giảng THPT về Toán, không liên quan trường tiểu học)\", \"answer_en\": \"No information available in the video (this is a high school math lesson, unrelated to elementary school teaching)\", \"evidence_frame_idx\": 26250, \"confidence\": 0.05}",
+    "{\"answer\":\"Không có căn cứ - đây là trường THPT (THPT Nguyễn Hiền), không phải giáo viên tiểu học\",\"answer_vi\":\"Không có căn cứ - đây là trường THPT (THPT Nguyễn Hiền), không phải giáo viên tiểu học\",\"answer_en\":\"No evidence - this is a high school (Nguyen Hien High School), not elementary school teachers\",\"evidence_frame_idx\":26250,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin về việc dạy tiểu học trong nội dung này; giáo viên là thầy Lê Minh Huy, Trường THPT Nguyễn Hiền, TP.HCM\",\"answer_vi\":\"Không có thông tin về việc dạy tiểu học; giáo viên là thầy Lê Minh Huy, dạy tại Trường THPT Nguyễn Hiền, TP.HCM\",\"answer_en\":\"No information about teaching at a primary school; the teacher is Mr. Le Minh Huy from Nguyen Hien High School, HCM City\",\"evidence_frame_idx\":26250,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:51:09"
+}

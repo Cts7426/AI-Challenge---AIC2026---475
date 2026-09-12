@@ -1,0 +1,7 @@
+{
+  "command": ".venv/Scripts/python.exe scripts/preflight_check.py --profile release --json",
+  "finished_at": "2026-09-12T13:22:02.4456736+07:00",
+  "exit_code": 1,
+  "started_at": "2026-09-12T13:21:24.8285441+07:00",
+  "notes": "Live DB reachable; model/backend chưa được operator đặt trong process; HF offline."
+}

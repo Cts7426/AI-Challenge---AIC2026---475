@@ -1,0 +1,7 @@
+{
+  "exit_code": 0,
+  "started_at": "2026-09-12T14:13:49.4912391+07:00",
+  "command": "reports/post_preliminary_h01_20260912/live_api_sonnet5/run_cache_only_diagnostic.ps1",
+  "finished_at": "2026-09-12T14:16:59.8089366+07:00",
+  "new_api_budget_usd": 0
+}

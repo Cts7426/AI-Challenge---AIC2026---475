@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định tên nhà văn\",\"answer_vi\":\"Không đủ căn cứ để xác định tên nhà văn được nhắc đến\",\"answer_en\":\"Not enough evidence to identify the writer's name mentioned\",\"evidence_frame_idx\":35202,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin về tên nhà văn trong đoạn này\",\"answer_vi\":\"Không có thông tin về tên nhà văn được nhắc đến trong đoạn này\",\"answer_en\":\"No writer's name is mentioned in this segment\",\"evidence_frame_idx\":35202,\"confidence\":0.3}",
+    "{\"answer\":\"Không đủ căn cứ để xác định tên nhà văn\",\"answer_vi\":\"Không đủ căn cứ để xác định tên nhà văn\",\"answer_en\":\"Insufficient evidence to identify the writer's name\",\"evidence_frame_idx\":35202,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:52:45"
+}

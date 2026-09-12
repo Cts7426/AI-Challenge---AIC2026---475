@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Một giáo viên nam đứng bên trái màn hình giảng bài ôn tập môn Địa lí, nội dung trình chiếu giới thiệu khái quát một vùng kinh tế, vị trí địa lí, phạm vi lãnh thổ và ý nghĩa phát triển, sau đó một bản đồ khí hậu Việt Nam được đưa lên minh họa\",\"question_vi\":\"Theo nội dung bài giảng, vùng được nhắc đến gồm bao nhiêu tỉnh, thành?\",\"answer_mode\":\"ocr\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:18:02"
+}

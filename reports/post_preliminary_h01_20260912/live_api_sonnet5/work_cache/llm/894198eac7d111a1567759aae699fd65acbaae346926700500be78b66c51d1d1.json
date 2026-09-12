@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"15 phần ngàn\",\"answer_vi\":\"15 phần ngàn\",\"answer_en\":\"15 per thousand (ppt)\",\"evidence_frame_idx\":18892,\"confidence\":0.6}",
+    "{\"answer\":\"10‰\",\"answer_vi\":\"10 phần nghìn (độ mặn thấp nhất, vì tốc độ sinh trưởng loài II tỉ lệ nghịch với độ mặn)\",\"answer_en\":\"10 ppt (the lowest salinity value shown, since species II's growth rate is inversely proportional to salinity)\",\"evidence_frame_idx\":18892,\"confidence\":0.35}",
+    "{\"answer\":\"15%o\",\"answer_vi\":\"15 phần nghìn (ở bãi lầy C)\",\"answer_en\":\"15 per mille (marsh C)\",\"evidence_frame_idx\":18892,\"confidence\":0.55}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:57:21"
+}

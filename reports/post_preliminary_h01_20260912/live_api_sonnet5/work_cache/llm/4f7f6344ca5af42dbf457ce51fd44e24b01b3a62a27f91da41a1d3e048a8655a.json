@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"10 tỉnh, thành\",\"answer_vi\":\"10 tỉnh, thành\",\"answer_en\":\"10 provinces/cities\",\"evidence_frame_idx\":4109,\"confidence\":0.85}",
+    "{\"answer\":\"10 tỉnh, thành\",\"answer_vi\":\"10 tỉnh, thành\",\"answer_en\":\"10 provinces/cities\",\"evidence_frame_idx\":4109,\"confidence\":0.9}",
+    "{\"answer\":\"10 tỉnh, thành\",\"answer_vi\":\"10 tỉnh, thành\",\"answer_en\":\"10 provinces/cities\",\"evidence_frame_idx\":4109,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:18:59"
+}

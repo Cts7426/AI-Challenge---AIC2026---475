@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Trương Chí Hùng\",\"answer_vi\":\"Trương Chí Hùng\",\"answer_en\":\"Truong Chi Hung\",\"evidence_frame_idx\":13095,\"confidence\":0.6}",
+    "{\"answer\": \"Trương Chí Hùng\", \"answer_vi\": \"Trương Chí Hùng\", \"answer_en\": \"Truong Chi Hung\", \"evidence_frame_idx\": 13095, \"confidence\": 0.7}",
+    "{\"answer\": \"Trương Chí Hùng\", \"answer_vi\": \"Trương Chí Hùng\", \"answer_en\": \"Truong Chi Hung\", \"evidence_frame_idx\": 13095, \"confidence\": 0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 15:52:55"
+}

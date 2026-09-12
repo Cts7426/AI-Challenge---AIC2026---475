@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định dòng chữ neon phát sáng\",\"answer_vi\":\"Không đủ căn cứ để xác định dòng chữ neon phát sáng\",\"answer_en\":\"Not enough evidence to determine the glowing neon text\",\"evidence_frame_idx\":4895,\"confidence\":0.2}",
+    "{\"answer\":\"Không có bằng chứng rõ ràng về dòng chữ neon phát sáng trong khung hình\",\"answer_vi\":\"Không có bằng chứng rõ ràng về dòng chữ neon phát sáng trong khung hình\",\"answer_en\":\"No clear evidence of a glowing neon text in the frame\",\"evidence_frame_idx\":4895,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ xác định, có thể là logo \\\"tuoitre TV\\\"\",\"answer_vi\":\"Không đủ căn cứ xác định rõ, có thể là logo \\\"tuoitre TV\\\" ở góc màn hình\",\"answer_en\":\"Not enough evidence to confirm, possibly the \\\"tuoitre TV\\\" logo in the corner\",\"evidence_frame_idx\":4895,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:35:56"
+}

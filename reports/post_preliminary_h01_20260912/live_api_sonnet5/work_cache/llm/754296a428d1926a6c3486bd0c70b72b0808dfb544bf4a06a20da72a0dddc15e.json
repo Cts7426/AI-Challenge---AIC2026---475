@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cảnh quay một chú lân đang biểu diễn từ đầu video, các cột để chú lân biểu diễn được dán những con số, phía sau có 1 mô hình con rồng uốn lượn hình xoắn ốc\",\"question_vi\":\"Trong 16 giây đầu tiên của video, số nào từ 1-8 không được nhìn thấy từ góc nhìn của camera?\",\"answer_mode\":\"visual_read\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:59:54"
+}

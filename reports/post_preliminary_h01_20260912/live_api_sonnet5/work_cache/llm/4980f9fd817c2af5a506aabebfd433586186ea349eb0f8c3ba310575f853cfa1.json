@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá Sapa\",\"answer_vi\":\"Cá Sapa\",\"answer_en\":\"Sapa fish\",\"evidence_frame_idx\":4736,\"confidence\":0.9}",
+    "{\"answer\":\"Cá Sapa\",\"answer_vi\":\"Cá Sapa\",\"answer_en\":\"Sapa fish\",\"evidence_frame_idx\":4736,\"confidence\":0.8}",
+    "{\"answer\":\"Cá Sapa\",\"answer_vi\":\"Cá Sapa\",\"answer_en\":\"Sapa fish\",\"evidence_frame_idx\":4736,\"confidence\":0.8}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:22:18"
+}

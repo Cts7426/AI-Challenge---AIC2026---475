@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định rõ\",\"answer_vi\":\"Không đủ căn cứ để xác định rõ\",\"answer_en\":\"Not enough evidence to determine clearly\",\"evidence_frame_idx\":2073,\"confidence\":0.2}",
+    "{\"answer\":\"Không đủ căn cứ để xác định rõ\",\"answer_vi\":\"Không đủ căn cứ để xác định rõ\",\"answer_en\":\"Not enough evidence to determine clearly\",\"evidence_frame_idx\":2073,\"confidence\":0.15}",
+    "{\"answer\":\"Không xác định được từ hình ảnh\",\"answer_vi\":\"Không xác định được từ hình ảnh\",\"answer_en\":\"Cannot be determined from the image\",\"evidence_frame_idx\":2073,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:01:18"
+}

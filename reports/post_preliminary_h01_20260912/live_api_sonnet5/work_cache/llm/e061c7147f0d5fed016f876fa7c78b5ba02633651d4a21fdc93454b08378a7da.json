@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có bằng chứng nhắc đến việc nuôi gà trong lời thoại; nội dung chỉ đề cập đến nuôi chồn hương.\",\"answer_vi\":\"Không có bằng chứng nhắc đến việc nuôi gà trong lời thoại; nội dung chỉ đề cập đến nuôi chồn hương.\",\"answer_en\":\"No evidence about raising chickens is found in the dialogue; the content only discusses raising civets.\",\"evidence_frame_idx\":10395,\"confidence\":0.05}",
+    "{\"answer\":\"Không có bằng chứng về việc nuôi gà; lời thoại chỉ nói về nuôi chồn hương.\",\"answer_vi\":\"Không có bằng chứng về việc nuôi gà; lời thoại chỉ nói về nuôi chồn hương.\",\"answer_en\":\"No evidence about raising chickens; the dialogue only discusses raising civets.\",\"evidence_frame_idx\":10395,\"confidence\":0.1}",
+    "{\"answer\":\"Không có căn cứ trong lời thoại về việc nuôi gà, nội dung nói về nuôi chồn hương\",\"answer_vi\":\"Không có căn cứ trong lời thoại về việc nuôi gà, nội dung nói về nuôi chồn hương\",\"answer_en\":\"No evidence in the dialogue about raising chickens, the content discusses raising civets\",\"evidence_frame_idx\":10395,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:01:41"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung này\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung này\",\"answer_en\":\"There is no information about earthquakes in this content\",\"evidence_frame_idx\":33239,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung này\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung này\",\"answer_en\":\"No information about earthquakes found in this content\",\"evidence_frame_idx\":33239,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung này\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung này\",\"answer_en\":\"No information about earthquakes in this content\",\"evidence_frame_idx\":33239,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:19:15"
+}

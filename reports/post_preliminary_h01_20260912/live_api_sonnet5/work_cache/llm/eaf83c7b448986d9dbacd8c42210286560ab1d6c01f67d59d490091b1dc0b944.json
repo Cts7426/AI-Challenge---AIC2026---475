@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá bống trứng\",\"answer_vi\":\"Cá bống trứng\",\"answer_en\":\"Goby fish with roe\",\"evidence_frame_idx\":5805,\"confidence\":0.9}",
+    "{\"answer\":\"Cá bống trứng\",\"answer_vi\":\"Cá bống trứng\",\"answer_en\":\"Goby fish with roe\",\"evidence_frame_idx\":5805,\"confidence\":0.85}",
+    "{\"answer\":\"Cá bống trứng\",\"answer_vi\":\"Cá bống trứng\",\"answer_en\":\"Goby fish with eggs\",\"evidence_frame_idx\":5805,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:06:36"
+}

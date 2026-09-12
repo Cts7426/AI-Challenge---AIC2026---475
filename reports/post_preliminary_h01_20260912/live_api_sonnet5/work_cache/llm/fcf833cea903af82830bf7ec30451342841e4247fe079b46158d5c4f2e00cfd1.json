@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"6 cái\",\"answer_vi\":\"Mỗi lần khuôn làm được khoảng 6 cái bánh\",\"answer_en\":\"Each time, the mold makes about 6 cakes\",\"evidence_frame_idx\":5153,\"confidence\":0.35}",
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác, ước lượng khoảng 10 cái mỗi lần đổ khuôn\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác, ước lượng khoảng 10 cái mỗi lần đổ khuôn\",\"answer_en\":\"Not clearly determinable, roughly around 10 cakes per batch based on the visible mold\",\"evidence_frame_idx\":5153,\"confidence\":0.3}",
+    "{\"answer\":\"7 cái\",\"answer_vi\":\"Mỗi lần khuôn làm được khoảng 7 cái bánh\",\"answer_en\":\"The mold makes about 7 cakes at a time\",\"evidence_frame_idx\":5153,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:43:05"
+}

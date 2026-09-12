@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"4\",\"answer_vi\":\"4\",\"answer_en\":\"4\",\"evidence_frame_idx\":7821,\"confidence\":0.9}",
+    "{\"answer\":\"4\",\"answer_vi\":\"4\",\"answer_en\":\"4\",\"evidence_frame_idx\":7821,\"confidence\":0.9}",
+    "{\"answer\":\"4\",\"answer_vi\":\"4\",\"answer_en\":\"4\",\"evidence_frame_idx\":7821,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:19:35"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Khoai tây viên chiên xù\",\"answer_vi\":\"Khoai tây viên chiên xù\",\"answer_en\":\"Crispy fried potato balls\",\"evidence_frame_idx\":3918,\"confidence\":0.95}",
+    "{\"answer\":\"Khoai tây viên chiên xù\",\"answer_vi\":\"Khoai tây viên chiên xù\",\"answer_en\":\"Crispy fried potato balls\",\"evidence_frame_idx\":3918,\"confidence\":0.9}",
+    "{\"answer\":\"Khoai tây viên chiên xù\",\"answer_vi\":\"Khoai tây viên chiên xù\",\"answer_en\":\"Fried breaded potato balls\",\"evidence_frame_idx\":3918,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-27 16:14:32"
+}

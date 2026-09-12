@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Đèo Tăng Quái\",\"answer_vi\":\"Đèo Tăng Quái\",\"answer_en\":\"Tang Quai Pass\",\"evidence_frame_idx\":11483,\"confidence\":0.4}",
+    "{\"answer\":\"Đèo Cao Pha (Sơn La) và Đèo Tăng Quái (Điện Biên)\",\"answer_vi\":\"Đèo Cao Pha (Sơn La) và Đèo Tăng Quái (Điện Biên)\",\"answer_en\":\"Cao Pha Pass (Son La) and Tang Quai Pass (Dien Bien)\",\"evidence_frame_idx\":11483,\"confidence\":0.4}",
+    "{\"answer\":\"Đèo Cao Pha (Sơn La) và đèo Tăng Quái (Điện Biên)\",\"answer_vi\":\"Đèo Cao Pha (Sơn La) và đèo Tăng Quái (Điện Biên)\",\"answer_en\":\"Cao Pha Pass (Son La) and Tang Quai Pass (Dien Bien)\",\"evidence_frame_idx\":11483,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:23:43"
+}

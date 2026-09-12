@@ -10,7 +10,7 @@ MODEL_GLOBS = (".cache/huggingface/hub/models--timm--vit_base_patch32_clip_224.o
 ES_INDEXES = ("metadata", "objects", "ocr", "asr")
 # Chỉ whitelist knob/path công khai; không thu os.environ toàn bộ hoặc secret.
 RUNTIME_ENV_KEYS = ("LLM_BACKEND", "LLM_API_MODEL", "LLM_GEMINI_MODEL", "LLM_LOCAL_MODEL",
-                    "VECTOR_BACKEND", "QA_INFERENCE_MODE", "LLM_NO_CACHE", "LLM_CACHE_DIR",
+                    "VECTOR_BACKEND", "QA_INFERENCE_MODE", "LLM_NO_CACHE", "LLM_CACHE_ONLY", "LLM_CACHE_DIR",
                     "QA_HYPOTHESIS_CACHE_DIR", "KEYFRAMES_DIR", "DERIVED_KEYFRAMES_DIR",
                     "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "OMP_NUM_THREADS",
                     "MKL_NUM_THREADS", "PYTHONHASHSEED")

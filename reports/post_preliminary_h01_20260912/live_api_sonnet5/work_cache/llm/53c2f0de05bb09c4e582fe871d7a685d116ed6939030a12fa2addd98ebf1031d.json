@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\": \"0,03 mol\", \"answer_vi\": \"0,03 mol\", \"answer_en\": \"0.03 mol\", \"evidence_frame_idx\": 34350, \"confidence\": 0.7}",
+    "{\"answer\":\"0,03\",\"answer_vi\":\"0,03\",\"answer_en\":\"0.03\",\"evidence_frame_idx\":34350,\"confidence\":0.75}",
+    "{\"answer\":\"0,03 mol\",\"answer_vi\":\"x = 0,03 mol\",\"answer_en\":\"x = 0.03 mol\",\"evidence_frame_idx\":34350,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:14:11"
+}

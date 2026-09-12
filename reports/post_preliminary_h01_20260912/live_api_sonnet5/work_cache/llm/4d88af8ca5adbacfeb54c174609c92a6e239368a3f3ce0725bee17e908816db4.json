@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"15‰\",\"answer_vi\":\"Loài (II) sinh trưởng tốt nhất ở độ mặn 15‰ (thấp nhất trong các mức được khảo sát)\",\"answer_en\":\"Species (II) grows best at a salinity of 15‰ (the lowest level tested)\",\"evidence_frame_idx\":17900,\"confidence\":0.35}",
+    "{\"answer\":\"15‰\",\"answer_vi\":\"15 phần nghìn\",\"answer_en\":\"15 ppt\",\"evidence_frame_idx\":17900,\"confidence\":0.35}",
+    "{\"answer\":\"10‰\",\"answer_vi\":\"10 phần nghìn\",\"answer_en\":\"10 per mille\",\"evidence_frame_idx\":17900,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:57:57"
+}

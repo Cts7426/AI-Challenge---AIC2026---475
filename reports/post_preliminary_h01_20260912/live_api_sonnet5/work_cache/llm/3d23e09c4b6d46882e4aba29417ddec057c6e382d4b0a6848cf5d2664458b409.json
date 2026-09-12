@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"13 tỉnh, thành\",\"answer_vi\":\"13 tỉnh, thành\",\"answer_en\":\"13 provinces/cities\",\"evidence_frame_idx\":20394,\"confidence\":0.4}",
+    "{\"answer\":\"13 tỉnh, thành\",\"answer_vi\":\"Vùng đồng bằng sông Cửu Long gồm 13 tỉnh, thành\",\"answer_en\":\"The Mekong River Delta region consists of 13 provinces/cities\",\"evidence_frame_idx\":20394,\"confidence\":0.35}",
+    "{\"answer\":\"13 tỉnh, thành\",\"answer_vi\":\"13 tỉnh, thành\",\"answer_en\":\"13 provinces/cities\",\"evidence_frame_idx\":20394,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:23:24"
+}

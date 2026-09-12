@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ thông tin để xác định tên con đèo\",\"answer_vi\":\"Không đủ thông tin để xác định tên con đèo\",\"answer_en\":\"Not enough information to determine the pass's name\",\"evidence_frame_idx\":11398,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ xác định tên đèo\",\"answer_vi\":\"Không đủ căn cứ xác định tên đèo\",\"answer_en\":\"Not enough evidence to identify the pass's name\",\"evidence_frame_idx\":11398,\"confidence\":0.1}",
+    "{\"answer\": \"Không đủ căn cứ xác định tên đèo\", \"answer_vi\": \"Không đủ căn cứ xác định tên đèo\", \"answer_en\": \"Insufficient evidence to identify the pass's name\", \"evidence_frame_idx\": 11398, \"confidence\": 0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:25:36"
+}

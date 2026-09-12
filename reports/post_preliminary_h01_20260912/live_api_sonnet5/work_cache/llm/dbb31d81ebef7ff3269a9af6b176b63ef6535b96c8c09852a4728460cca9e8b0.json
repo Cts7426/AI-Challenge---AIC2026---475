@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cảnh quay 2 người đang nắn những cục bột nhỏ thành hình dẹt, 1 người nắn cục bột màu trắng, người còn lại nắn cục bột màu khác, sau đó đặt nhân vào giữa và cuộn lớp bột bao quanh, trước khi đặt lên dĩa họ đặt thành phẩm lên 1 miếng lá nhỏ\",\"question_vi\":\"Trên dĩa có mấy màu bột khác nhau?\",\"answer_mode\":\"visual_count\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:59:41"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Mỡ heo (tóp mỡ)\",\"answer_vi\":\"Thịt heo (tóp mỡ)\",\"answer_en\":\"Pork (crispy pork fat/cracklings)\",\"evidence_frame_idx\":4050,\"confidence\":0.55}",
+    "{\"answer\":\"Mỡ heo (tóp mỡ)\",\"answer_vi\":\"Mỡ heo (tóp mỡ)\",\"answer_en\":\"Pork fat (crispy fat/lard bits)\",\"evidence_frame_idx\":4050,\"confidence\":0.75}",
+    "{\"answer\":\"Cá bống trứng\",\"answer_vi\":\"Cá bống trứng\",\"answer_en\":\"Goby fish with roe\",\"evidence_frame_idx\":4050,\"confidence\":0.85}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:06:49"
+}

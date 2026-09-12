@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"2\",\"answer_vi\":\"2\",\"answer_en\":\"2\",\"evidence_frame_idx\":4656,\"confidence\":0.55}",
+    "{\"answer\":\"2\",\"answer_vi\":\"2 màu bột (muối và phô mai)\",\"answer_en\":\"2 colors of coating powder (salt and cheese)\",\"evidence_frame_idx\":4656,\"confidence\":0.4}",
+    "{\"answer\":\"2\",\"answer_vi\":\"2 màu bột\",\"answer_en\":\"2 colors of powder\",\"evidence_frame_idx\":4656,\"confidence\":0.4}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:03:25"
+}

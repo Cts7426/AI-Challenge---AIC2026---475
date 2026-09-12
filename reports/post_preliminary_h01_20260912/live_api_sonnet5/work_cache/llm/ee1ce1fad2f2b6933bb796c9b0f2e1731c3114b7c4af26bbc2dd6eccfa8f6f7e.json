@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ dữ liệu để xác định chính xác (ước đoán khoảng 20‰ dựa trên biểu đồ tốc độ sinh trưởng ba loài cây ngập mặn)\",\"answer_vi\":\"Không đủ dữ liệu để xác định chính xác (ước đoán khoảng 20‰ dựa trên biểu đồ tốc độ sinh trưởng ba loài cây ngập mặn)\",\"answer_en\":\"Insufficient data to determine precisely (estimated around 20‰ based on the mangrove species growth-rate graph)\",\"evidence_frame_idx\":15568,\"confidence\":0.25}",
+    "{\"answer\":\"22,5‰\",\"answer_vi\":\"Loài cây (II) đạt tốc độ sinh trưởng tốt nhất ở độ mặn khoảng 22,5‰\",\"answer_en\":\"Species (II) grows best at a salinity of about 22.5‰\",\"evidence_frame_idx\":15568,\"confidence\":0.35}",
+    "{\"answer\":\"22,5‰\",\"answer_vi\":\"Loài cây (II) đạt tốc độ sinh trưởng tốt nhất ở độ mặn khoảng 22,5 phần nghìn.\",\"answer_en\":\"Species (II) reaches its best growth rate at a salinity of about 22.5‰.\",\"evidence_frame_idx\":15568,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:56:31"
+}

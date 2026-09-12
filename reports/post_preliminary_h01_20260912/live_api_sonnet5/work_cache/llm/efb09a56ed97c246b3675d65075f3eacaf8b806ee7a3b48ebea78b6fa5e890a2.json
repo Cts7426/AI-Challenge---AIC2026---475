@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không phải thịt động vật, đó là \\\"tép cam\\\" (múi cam tách sợi) dùng làm sốt.\",\"answer_vi\":\"Đây không phải thịt con gì, mà là tép cam (múi cam) dùng để pha sốt cam ăn cùng mực chiên.\",\"answer_en\":\"It's not meat from an animal; it's orange pulp/segments (\\\"tép cam\\\") used to make the orange sauce.\",\"evidence_frame_idx\":6016,\"confidence\":0.9}",
+    "{\"answer\":\"Mực\",\"answer_vi\":\"Mực\",\"answer_en\":\"Squid\",\"evidence_frame_idx\":6016,\"confidence\":0.85}",
+    "{\"answer\":\"Mực\",\"answer_vi\":\"Mực\",\"answer_en\":\"Squid\",\"evidence_frame_idx\":6016,\"confidence\":0.9}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:06:17"
+}

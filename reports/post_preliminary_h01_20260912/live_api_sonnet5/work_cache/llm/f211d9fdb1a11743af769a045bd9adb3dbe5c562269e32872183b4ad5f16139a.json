@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung này\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung này\",\"answer_en\":\"No information about earthquakes in this content\",\"evidence_frame_idx\":4135,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin liên quan đến động đất trong video này; nội dung video là về sinh học (thể ba/tam bội).\",\"answer_vi\":\"Không có thông tin liên quan đến động đất trong video này; nội dung video là về sinh học (thể ba/tam bội).\",\"answer_en\":\"No information about earthquakes is present in this video; the content is about biology (triploid/trisomy).\",\"evidence_frame_idx\":4135,\"confidence\":0.05}",
+    "{\"answer\":\"Không có bằng chứng về động đất trong video này, nội dung là về Sinh học (thể ba, tam bội)\",\"answer_vi\":\"Không có bằng chứng về động đất trong video này, nội dung là về Sinh học (thể ba, tam bội)\",\"answer_en\":\"There is no evidence of earthquakes in this video, the content is about Biology (trisomy, triploidy)\",\"evidence_frame_idx\":4135,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:20:31"
+}

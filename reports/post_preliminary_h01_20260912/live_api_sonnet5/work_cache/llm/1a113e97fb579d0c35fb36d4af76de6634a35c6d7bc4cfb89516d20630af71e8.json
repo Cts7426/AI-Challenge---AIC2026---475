@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Hàu\",\"answer_vi\":\"Hàu\",\"answer_en\":\"Oyster\",\"evidence_frame_idx\":7168,\"confidence\":0.9}",
+    "{\"answer\":\"Hàu\",\"answer_vi\":\"Hàu\",\"answer_en\":\"Oyster\",\"evidence_frame_idx\":7168,\"confidence\":0.9}",
+    "{\"answer\":\"Hàu\",\"answer_vi\":\"Hàu\",\"answer_en\":\"Oyster\",\"evidence_frame_idx\":7168,\"confidence\":0.85}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:04:07"
+}

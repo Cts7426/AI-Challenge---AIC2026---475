@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"51A-1518\",\"answer_vi\":\"51A-1518\",\"answer_en\":\"51A-1518\",\"evidence_frame_idx\":3330,\"confidence\":0.85}",
+    "{\"answer\":\"51A-1518\",\"answer_vi\":\"51A-1518\",\"answer_en\":\"51A-1518\",\"evidence_frame_idx\":3330,\"confidence\":0.85}",
+    "{\"answer\":\"51A-1518\",\"answer_vi\":\"51A-1518\",\"answer_en\":\"51A-1518\",\"evidence_frame_idx\":3330,\"confidence\":0.85}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:19:52"
+}

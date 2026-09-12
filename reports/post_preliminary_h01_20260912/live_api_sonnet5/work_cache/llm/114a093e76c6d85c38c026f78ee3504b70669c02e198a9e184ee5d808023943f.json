@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ xác định nội dung chữ neon\",\"answer_vi\":\"Không đủ căn cứ xác định nội dung chữ neon\",\"answer_en\":\"Insufficient evidence to determine the neon text content\",\"evidence_frame_idx\":20810,\"confidence\":0.1}",
+    "{\"answer\":\"60 GIÂY\",\"answer_vi\":\"Dòng chữ neon phát sáng là \\\"60 GIÂY\\\" (tên chương trình).\",\"answer_en\":\"The glowing neon text reads \\\"60 GIÂY\\\" (the show's title).\",\"evidence_frame_idx\":20810,\"confidence\":0.3}",
+    "{\"answer\":\"Không đủ căn cứ để xác định nội dung chữ neon\",\"answer_vi\":\"Không đủ căn cứ để xác định nội dung chữ neon\",\"answer_en\":\"Not enough evidence to identify the neon text\",\"evidence_frame_idx\":20810,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:33:25"
+}

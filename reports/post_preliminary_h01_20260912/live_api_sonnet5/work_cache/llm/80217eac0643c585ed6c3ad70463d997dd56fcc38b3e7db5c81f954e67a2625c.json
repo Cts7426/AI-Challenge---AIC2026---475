@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không rõ, không thấy số trên biển báo\",\"answer_vi\":\"Không rõ, không thấy số nào rõ ràng trên biển báo bên trái cầu\",\"answer_en\":\"Unclear, no visible number on the sign to the left of the bridge\",\"evidence_frame_idx\":4725,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ để xác định con số trên biển báo\",\"answer_vi\":\"Không đủ căn cứ để xác định con số trên biển báo\",\"answer_en\":\"Not enough evidence to determine the number on the sign\",\"evidence_frame_idx\":4725,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":4725,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:38:35"
+}

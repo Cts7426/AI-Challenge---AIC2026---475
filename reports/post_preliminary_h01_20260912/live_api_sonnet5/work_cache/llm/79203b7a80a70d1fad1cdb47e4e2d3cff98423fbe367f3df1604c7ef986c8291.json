@@ -1,0 +1,7 @@
+{
+  "output": [
+    "{\"event_vi\":\"Cảnh quay một tô cháo đã được nấu và trang trí hoàn chỉnh, kế bên có 1 chén nhỏ màu đen chứa 1 loại topping màu cam kết cấu hơi giống những sợi nhỏ, xung quanh là rau, hành\", \"question_vi\":\"Topping trong video là thịt của con gì?\", \"answer_mode\":\"visual_attribute\"}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:03:56"
+}

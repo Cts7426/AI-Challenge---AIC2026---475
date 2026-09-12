@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Glixin (đáp án C)\",\"answer_vi\":\"Glixin (đáp án C)\",\"answer_en\":\"Glycine (option C)\",\"evidence_frame_idx\":33600,\"confidence\":0.5}",
+    "{\"answer\":\"C. Glixin\",\"answer_vi\":\"X là glixin (đáp án C)\",\"answer_en\":\"X is glycine (answer C)\",\"evidence_frame_idx\":33600,\"confidence\":0.6}",
+    "{\"answer\":\"C (Glixin)\",\"answer_vi\":\"Đáp án C, X là Glixin\",\"answer_en\":\"Answer C, X is Glycine\",\"evidence_frame_idx\":33600,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:15:29"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định số lượng bánh mỗi lần khuôn làm được\",\"answer_en\":\"Not enough evidence to determine the number of cakes made per mold use\",\"evidence_frame_idx\":5376,\"confidence\":0.1}",
+    "{\"answer\": \"Không đủ căn cứ\", \"answer_vi\": \"Không đủ căn cứ để xác định số lượng bánh mỗi lần khuôn làm được\", \"answer_en\": \"Not enough evidence to determine how many cakes the mold makes each time\", \"evidence_frame_idx\": 5376, \"confidence\": 0.1}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ để xác định số lượng bánh mỗi lần khuôn làm được\",\"answer_en\":\"Not enough evidence to determine how many cakes the mold makes each time\",\"evidence_frame_idx\":5376,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:42:25"
+}

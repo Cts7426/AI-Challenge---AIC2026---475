@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ trong dữ liệu để xác định\",\"answer_vi\":\"Không đủ căn cứ trong dữ liệu để xác định\",\"answer_en\":\"Not enough evidence in the provided data to determine\",\"evidence_frame_idx\":14850,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ\",\"answer_en\":\"Not enough evidence\",\"evidence_frame_idx\":14850,\"confidence\":0.03}",
+    "{\"answer\":\"Không đủ căn cứ\",\"answer_vi\":\"Không đủ căn cứ để trả lời\",\"answer_en\":\"Insufficient evidence to answer\",\"evidence_frame_idx\":14850,\"confidence\":0.03}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:59:27"
+}

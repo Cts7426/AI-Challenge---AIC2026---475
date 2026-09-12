@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Con heo (lợn) - sườn non là sườn heo\",\"answer_vi\":\"Con heo (lợn) - sườn non là sườn heo\",\"answer_en\":\"Pig - the ribs (sườn non) are pork ribs\",\"evidence_frame_idx\":3645,\"confidence\":0.35}",
+    "{\"answer\":\"Con heo (heo non)\",\"answer_vi\":\"Con heo (sườn non là từ heo)\",\"answer_en\":\"A pig (the ribs are pork ribs)\",\"evidence_frame_idx\":3645,\"confidence\":0.3}",
+    "{\"answer\":\"Không xác định được X là con gì từ ngữ cảnh video (nội dung là sả và bột mì, không phải con vật)\",\"answer_vi\":\"Không xác định được X là con gì từ ngữ cảnh video (nội dung là sả và bột mì, không phải con vật)\",\"answer_en\":\"Cannot determine what animal X refers to from the context (content is about lemongrass and flour, not an animal)\",\"evidence_frame_idx\":3645,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:14:43"
+}

@@ -13,8 +13,8 @@
 ## Ràng buộc và protocol thay thế
 
 - H01 là hạ tầng đo, không phải cải thiện accuracy. Các điểm thi cũ chỉ thuộc quy trình thi có người hỗ trợ.
-- Sửa correctness đăng ký trước: alpha sai luôn ValueError trước dịch/DB; import không điền environment; thiếu backend/model tường minh phải báo lỗi trước gọi LLM.
-- Với đầu vào hợp lệ và cùng resource/model/cache: answers, thứ tự và điểm retrieval phải bằng nhau khi bật/tắt instrumentation. Sai khác ngoài ba sửa correctness trên phải điều tra.
+- Sửa correctness đăng ký trước: alpha sai luôn ValueError trước dịch/DB; import không điền environment; thiếu backend/model tường minh phải báo lỗi trước gọi LLM; lời gọi không được dùng model khác model đã chọn trong process.
+- Với đầu vào hợp lệ và cùng resource/model/cache: answers, thứ tự và điểm retrieval phải bằng nhau khi bật/tắt instrumentation. Sai khác ngoài các sửa correctness trên phải điều tra.
 - **Thay thế** quy tắc chung “+0.02 OR >=2 queries” ở đề xuất cũ: mỗi H02–H05 phải có ngưỡng quality/regression/latency riêng, đóng trước khi xem kết quả. Chưa đăng ký ngưỡng cụ thể hoặc chạy thử các họ này.
 - H03 phải bảo toàn video recall, kiểm moved-out-top100 và mapping=0; H04 bảo toàn recall/order và mẫu số; H05 bảo toàn chất lượng/coverage, không tăng unsupported/refusal. Đây là yêu cầu thiết kế, chưa phải giấy phép triển khai.
 - Dataset mới dự kiến validation 12/6/4 và sealed 12/6/4 KIS/QA/TRAKE. Chỉ đóng manifest khi có query/split/GT hashes, trạng thái người kiểm, evidence, timestamp/version và kiểm leakage. Hiện chưa có dataset mới; không chạy hay tuyên bố độc lập trên dữ liệu chưa đóng. Mọi sửa annotation sau quan sát phải thành phiên bản mới kèm lý do.
@@ -25,11 +25,11 @@
 
 Files: `scripts/preflight_check.py`, `backend/llm/adapter.py`, `backend/retrieval/search.py`, `tests/test_h01_contracts.py`.
 
-- [ ] Thêm test alpha (-.1, 1.5, NaN, infinity, text) chặn trước translation/retrieval; giữ nguyên test cũ.
-- [ ] Test preflight trong process mới với `.env` giả không được đổi env; test secret loader không nạp model; test llm thiếu lựa chọn không đọc cache/gọi provider.
-- [ ] Chạy RED bằng `.venv/Scripts/python -m pytest tests/test_h01_contracts.py -q` và lưu log.
-- [ ] Sửa tối thiểu: validate alpha đầu `_search_core`; import preflight giữ nguyên environment; `_nap_dotenv` chỉ nạp secret; `llm` và preflight dùng lựa chọn tường minh.
-- [ ] Chạy focused gồm test mới, alpha cũ, preflight, milvus env, llm adapter, runner/run; lưu GREEN trước full suite.
+- [x] Thêm test alpha (-.1, 1.5, NaN, infinity, text) chặn trước translation/retrieval; giữ nguyên test cũ.
+- [x] Test preflight trong process mới với `.env` giả không được đổi env; test secret loader không nạp model; test llm thiếu lựa chọn không đọc cache/gọi provider.
+- [x] Chạy RED bằng `.venv/Scripts/python -m pytest tests/test_h01_contracts.py -q` và lưu log.
+- [x] Sửa tối thiểu: validate alpha đầu `_search_core`; import preflight giữ nguyên environment; `_nap_dotenv` chỉ nạp secret; `llm` và preflight dùng lựa chọn tường minh.
+- [x] Chạy focused gồm test mới, alpha cũ, preflight, milvus env, llm adapter, runner/run; lưu GREEN trước full suite.
 
 ## H01B — identity
 
@@ -37,10 +37,10 @@ Files: `backend/common/resource_identity.py`, `data/config/experiment.py`, `test
 
 Interface: `capture_manifest(root: Path, live: bool) -> dict`, `manifest_id(manifest: dict) -> str`.
 
-- [ ] Test đổi source/config/data/cache làm đổi hash, lỗi resource ghi trạng thái unavailable và không được coi paired-equivalent; không thu secret.
-- [ ] Manifest gồm source bytes/commit, mọi config và function/prompt source, model/vector backend, data/map hashes, model metadata/weights có sẵn, dependencies, scorer, cache trước/sau; live ES UUID/mapping/count và Milvus ID/schema/entity count qua client tập trung.
-- [ ] Chụp Docker trước khi start, chỉ dùng volume hiện có; ghi thao tác restore nếu cần. Không tự bật encoder/nhánh khác.
-- [ ] Xét paired identity: manifest ID chính xác, resource payload tương đương, không dùng timestamp thay content identity; ghi gaps nếu chỉ có schema/count chưa có snapshot nội dung DB.
+- [x] Test đổi source/config/data/cache làm đổi hash, lỗi resource ghi trạng thái unavailable và không được coi paired-equivalent; không thu secret.
+- [x] Collector và snapshot phần khả dụng gồm source bytes/commit, mọi config và function/prompt source, model/vector backend, data/map hashes, model metadata/weights có sẵn, dependencies, scorer, cache trước/sau; collector live ES UUID/mapping/count và Milvus schema/entity count qua client tập trung. **Đã thu schema/count live ở lượt bàn giao; content digest ghi riêng. Baseline chưa đủ điều kiện khi thiếu model/paired run.**
+- [x] Ghi lỗi Docker trước khi start và mọi lần thử khôi phục; inventory container/volume hiện đã đọc được ở lượt bàn giao, chưa restore/reindex trong task này. Không tự bật encoder/nhánh khác.
+- [x] Xét paired identity: manifest ID chính xác, resource payload tương đương, không dùng timestamp thay content identity; ghi gaps nếu chỉ có schema/count chưa có snapshot nội dung DB.
 
 ## H01C — harness production
 
@@ -48,9 +48,13 @@ Files: `backend/common/retrieval_trace.py`, `backend/retrieval/search.py`, `scri
 
 Interface: context manager `capture_retrieval()` thu search calls; mỗi call chứa query thật, branches/status/raw candidates, fused/reranked/final ranking, errors/timing. Harness gọi `backend.tasks.runner.solve_query`, exporter thật, xuất JSONL append+flush và manifest.
 
-- [ ] Test cùng fixture deterministic bật/tắt trace có output giống hệt; disabled/failed/zero_hits/success khác nhau; lỗi task vẫn lưu trace.
-- [ ] Trace đặt ở ranh giới hiện có, snapshot copy để không bị mutation ranking sau đó; không sửa thuật toán fusion/rerank/allocation.
-- [ ] Harness chặn thiếu model và input/manifest không hợp lệ trước external I/O; output dir mới không ghi đè baseline.
-- [ ] Freeze tập query diagnostic trước chạy, không đọc sealed. Chạy cặp bật/tắt dưới model operator chọn; mapping/export violations phải 0 để nhận.
-- [ ] Chạy full suite, dev/release preflight, `scripts/selfcheck.py`; lưu stdout/stderr, command, exit và phân loại mọi failure.
-- [ ] Tự code-review diff và tái kiểm sau sửa; lưu source snapshot/commit và báo checkpoint A–L, PROMOTE hoặc DO NOT PROMOTE. Dừng trước H02.
+- [x] Test cùng fixture deterministic bật/tắt trace có output giống hệt; disabled/failed/zero_hits/success khác nhau; lỗi task vẫn lưu trace.
+- [x] Trace đặt ở ranh giới hiện có, snapshot copy để không bị mutation ranking sau đó; không sửa thuật toán fusion/rerank/allocation.
+- [x] Harness chặn thiếu model và input/manifest không hợp lệ trước external I/O; output dir mới không ghi đè baseline.
+- [ ] Freeze tập query diagnostic trước chạy, không đọc sealed. Chạy cặp bật/tắt dưới model operator chọn; mapping/export violations phải 0 để nhận. **Chưa chạy live: thiếu model operator chọn; DB hiện đã truy cập được, chưa có paired run.**
+- [x] Chạy full suite, dev/release preflight, `scripts/selfcheck.py`; lưu stdout/stderr, command, exit và phân loại mọi failure.
+- [x] Tự code-review diff và tái kiểm sau sửa; lưu source snapshot/commit và báo checkpoint A–L, PROMOTE hoặc DO NOT PROMOTE. Dừng trước H02.
+
+## Checkpoint bàn giao
+
+Mã và kiểm tra H01 đã có bằng chứng trong `CHECKPOINT_H01.md`; acceptance gate baseline còn mở. Các checkbox collector/test không có nghĩa tài nguyên live đã khả dụng. Không nhận baseline, không mở H02. Source commit hiện tại là checkpoint có sẵn `704bb09a07e3290945a9d50e0806352d237f67c5`, gồm cả thay đổi ngoài H01; không viết lại commit đó.

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định (nội dung video nói về đất đai, không phải động đất)\",\"answer_vi\":\"Không đủ căn cứ để xác định (nội dung video nói về đất đai, không phải động đất)\",\"answer_en\":\"Insufficient evidence to determine (the video content is about soil types, not earthquakes)\",\"evidence_frame_idx\":22025,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung video này\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung video này\",\"answer_en\":\"There is no information about earthquakes in this video content\",\"evidence_frame_idx\":22025,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung được cung cấp\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung được cung cấp\",\"answer_en\":\"No information about earthquakes is present in the given content\",\"evidence_frame_idx\":22025,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:13:53"
+}

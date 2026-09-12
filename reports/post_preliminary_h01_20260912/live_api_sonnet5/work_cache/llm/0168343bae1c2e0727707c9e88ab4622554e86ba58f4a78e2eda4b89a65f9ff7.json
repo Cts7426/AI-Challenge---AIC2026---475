@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác số vị trí\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác số vị trí cấp độ 4\",\"answer_en\":\"Insufficient evidence to determine the exact number of level 4 locations\",\"evidence_frame_idx\":19500,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác số lượng\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác số lượng\",\"answer_en\":\"Not enough evidence to determine the exact number\",\"evidence_frame_idx\":19500,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác số vị trí cấp độ 4\",\"answer_en\":\"Not enough evidence to determine the exact number of level 4 locations\",\"evidence_frame_idx\":19500,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:16:13"
+}

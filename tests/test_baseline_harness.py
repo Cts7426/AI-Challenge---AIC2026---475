@@ -131,3 +131,22 @@ def test_resume_protects_cache_generated_after_first_query(tmp_path):
     changed = {"cache": {"files": {"generated.json": {"sha256": "replaced"}}}}
     with pytest.raises(ValueError, match="cache"):
         harness.read_checkpoint(tmp_path, [query], "id", current_cache=changed)
+
+
+def test_cache_miss_hidden_by_task_fallback_cannot_export_baseline(monkeypatch, tmp_path):
+    """Task success không được che việc thiếu LLM evidence trong replay miễn phí."""
+    from types import SimpleNamespace
+    from backend.llm import adapter
+    from backend.tasks import runner
+    harness = importlib.import_module("scripts.run_reproducible_baseline")
+    completed = []
+    def solve(*args, **kwargs):
+        completed.append(True)
+        return SimpleNamespace(status="success", task_type="KIS", query_id="q", answers=[], n_trake=None,
+                               to_trace_dict=lambda: {"status": "success"})
+    monkeypatch.setattr(runner, "solve_query", solve)
+    monkeypatch.setattr(adapter, "usage_report", lambda: {"cache_only_misses": int(bool(completed))})
+    monkeypatch.setattr(harness, "audit_mapping", lambda answers: pytest.fail("thiếu cache mà đã đi export"))
+    record = harness.execute_query({"query_id": "q"}, tmp_path, "id", instrumentation=False, qa_policy="robust")
+    assert record["export_status"] == "blocked_cache_miss"
+    assert record["errors"][0]["stage"] == "llm_cache_only"

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"1 màu (trắng ngà)\",\"answer_vi\":\"Chỉ có 1 màu bột (trắng ngà), dĩa xanh vẫn còn trống\",\"answer_en\":\"Only 1 color (off-white/cream), the blue plate is empty\",\"evidence_frame_idx\":3200,\"confidence\":0.55}",
+    "{\"answer\":\"1 màu\",\"answer_vi\":\"1 màu\",\"answer_en\":\"1 color\",\"evidence_frame_idx\":3200,\"confidence\":0.4}",
+    "{\"answer\": \"1 màu\", \"answer_vi\": \"1 màu\", \"answer_en\": \"1 color\", \"evidence_frame_idx\": 3200, \"confidence\": 0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:05:02"
+}

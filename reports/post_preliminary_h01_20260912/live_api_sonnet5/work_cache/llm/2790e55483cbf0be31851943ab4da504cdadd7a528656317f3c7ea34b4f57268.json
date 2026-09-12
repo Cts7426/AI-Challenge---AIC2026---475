@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"HTVC HD\",\"answer_vi\":\"Chữ neon phát sáng là logo \\\"HTVC HD\\\"\",\"answer_en\":\"The glowing neon text reads \\\"HTVC HD\\\"\",\"evidence_frame_idx\":21368,\"confidence\":0.5}",
+    "{\"answer\":\"HTVC HD\",\"answer_vi\":\"HTVC HD\",\"answer_en\":\"HTVC HD\",\"evidence_frame_idx\":21368,\"confidence\":0.25}",
+    "{\"answer\":\"HTVC HD\",\"answer_vi\":\"Chữ neon phát sáng là logo kênh \\\"HTVC HD\\\"\",\"answer_en\":\"The glowing neon text is the channel logo \\\"HTVC HD\\\"\",\"evidence_frame_idx\":21368,\"confidence\":0.35}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:34:54"
+}

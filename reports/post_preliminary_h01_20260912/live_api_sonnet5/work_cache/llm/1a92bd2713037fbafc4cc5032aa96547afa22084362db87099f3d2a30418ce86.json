@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có đủ bằng chứng về dòng chữ neon trong khung hình này\",\"answer_vi\":\"Không có đủ bằng chứng về dòng chữ neon trong khung hình này\",\"answer_en\":\"There is not enough evidence of a neon sign in this frame\",\"evidence_frame_idx\":21131,\"confidence\":0.05}",
+    "{\"answer\":\"Không có bằng chứng về dòng chữ neon phát sáng trong khung hình hoặc lời thoại\",\"answer_vi\":\"Không có bằng chứng về dòng chữ neon phát sáng trong khung hình hoặc lời thoại\",\"answer_en\":\"No evidence of a glowing neon text in the frame or transcript\",\"evidence_frame_idx\":21131,\"confidence\":0.05}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định dòng chữ neon phát sáng\",\"answer_en\":\"Not enough evidence to determine the glowing neon text\",\"evidence_frame_idx\":21131,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:37:47"
+}

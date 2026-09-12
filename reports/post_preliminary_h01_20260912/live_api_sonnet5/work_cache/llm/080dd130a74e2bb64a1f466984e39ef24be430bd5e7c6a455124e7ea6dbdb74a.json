@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định loài cá trong video\",\"answer_vi\":\"Không đủ căn cứ để xác định loài cá trong video\",\"answer_en\":\"Not enough evidence to determine the fish species in the video\",\"evidence_frame_idx\":3678,\"confidence\":0.05}",
+    "{\"answer\":\"Không có căn cứ rõ ràng trong video để xác định loài cá cụ thể; đây là món chả cuộn trong bánh phở, không thấy nhắc tên loại cá.\",\"answer_vi\":\"Không có căn cứ rõ ràng để xác định loài cá; hình ảnh và lời thoại chỉ cho thấy bánh phở, chả, hành lá, giá đỗ và đậu hủ, không nêu tên loại cá cụ thể.\",\"answer_en\":\"There is no clear evidence to identify a specific fish species; the footage and transcript only show phở sheets, chả (cake), scallions, bean sprouts, and tofu, without naming a particular fish.\",\"evidence_frame_idx\":3678,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ để xác định loài cá cụ thể\",\"answer_vi\":\"Không đủ căn cứ để xác định loài cá cụ thể\",\"answer_en\":\"Not enough evidence to identify the specific fish species\",\"evidence_frame_idx\":3678,\"confidence\":0.2}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:24:20"
+}

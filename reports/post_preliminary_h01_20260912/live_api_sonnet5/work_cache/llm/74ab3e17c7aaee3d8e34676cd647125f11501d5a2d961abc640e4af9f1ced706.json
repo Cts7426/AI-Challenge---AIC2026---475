@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về tên đèo trong đoạn video này\",\"answer_vi\":\"Không có thông tin về tên đèo trong đoạn video này\",\"answer_en\":\"No information about a mountain pass name in this video segment\",\"evidence_frame_idx\":22910,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về tên con đèo trong đoạn tin\",\"answer_vi\":\"Không có thông tin về tên con đèo trong đoạn tin này\",\"answer_en\":\"No information about a mountain pass name is mentioned in this segment\",\"evidence_frame_idx\":22910,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về đèo trong video này\",\"answer_vi\":\"Không có thông tin về đèo trong video này\",\"answer_en\":\"No information about a mountain pass in this video\",\"evidence_frame_idx\":22910,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:27:06"
+}

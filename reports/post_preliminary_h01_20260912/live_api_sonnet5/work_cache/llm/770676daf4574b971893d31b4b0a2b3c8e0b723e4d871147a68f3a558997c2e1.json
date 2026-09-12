@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ xác định rõ nội dung chữ neon\",\"answer_vi\":\"Không đủ căn cứ xác định rõ nội dung chữ neon\",\"answer_en\":\"Not enough evidence to determine the neon text content\",\"evidence_frame_idx\":21220,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ để xác định chính xác (OCR không rõ, có thể là 'monsi bmarine')\",\"answer_vi\":\"Không đủ căn cứ để xác định chính xác dòng chữ neon, OCR chỉ đọc được ký tự mờ dạng 'monsi bmarine'\",\"answer_en\":\"Not enough evidence to determine the exact neon text; OCR only captured unclear characters like 'monsi bmarine'\",\"evidence_frame_idx\":21220,\"confidence\":0.15}",
+    "{\"answer\":\"Không đủ căn cứ xác định\",\"answer_vi\":\"Không đủ căn cứ xác định\",\"answer_en\":\"Insufficient evidence to determine\",\"evidence_frame_idx\":21220,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:34:24"
+}

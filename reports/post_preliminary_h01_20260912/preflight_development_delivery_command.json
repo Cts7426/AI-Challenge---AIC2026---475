@@ -1,0 +1,7 @@
+{
+  "notes": "Live DB reachable; model/backend chưa được operator đặt trong process; HF offline.",
+  "started_at": "2026-09-12T13:21:24.5496545+07:00",
+  "exit_code": 1,
+  "command": ".venv/Scripts/python.exe scripts/preflight_check.py --profile development --json",
+  "finished_at": "2026-09-12T13:22:02.4287535+07:00"
+}

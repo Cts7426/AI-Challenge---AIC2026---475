@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Cá mú nâu\",\"answer_vi\":\"Cá mú nâu\",\"answer_en\":\"Brown grouper\",\"evidence_frame_idx\":31935,\"confidence\":0.6}",
+    "{\"answer\":\"Cá mú nâu\",\"answer_vi\":\"Cá mú nâu\",\"answer_en\":\"Brown grouper\",\"evidence_frame_idx\":31935,\"confidence\":0.6}",
+    "{\"answer\":\"Cá mú nâu (mérou brun)\",\"answer_vi\":\"Cá mú nâu\",\"answer_en\":\"Brown grouper (mérou brun)\",\"evidence_frame_idx\":31935,\"confidence\":0.6}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 21:22:57"
+}

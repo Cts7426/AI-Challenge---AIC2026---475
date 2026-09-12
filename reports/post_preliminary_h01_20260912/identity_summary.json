@@ -1,0 +1,86 @@
+{
+  "captured_at": "2026-09-12T06:26:38.407209+00:00",
+  "source_commit": "704bb09a07e3290945a9d50e0806352d237f67c5",
+  "runtime_capture_id": "362474960c25a277b0cc169f0a30b4c111f612d53a992da1e238194d516a0a68",
+  "index_content_id": "b5363462080965febf587cf7ce7de0ff252e722259bd0c432e8e38d3d528fd94",
+  "asset_content_id": "709ac08cbfb6481e689b59ea7f7c56ded47b8544955300813b9817ca916d08d5",
+  "llm_backend": null,
+  "llm_api_model": null,
+  "frame_map": {
+    "status": "available",
+    "size_bytes": 2349500,
+    "sha256": "37cc71f672f0e93c78c0de4930659e2ffdb16cc3e7ff9c2dfabf9867f911ec22"
+  },
+  "model_weights": {
+    ".cache/huggingface/hub/models--timm--vit_base_patch32_clip_224.openai/blobs/e6d1bd7789aa45192b3bf90570a789b478bae1b74ebcce7eddd908e83a2b7c31": {
+      "status": "available",
+      "size_bytes": 605143284,
+      "sha256": "e6d1bd7789aa45192b3bf90570a789b478bae1b74ebcce7eddd908e83a2b7c31"
+    }
+  },
+  "cache_files": {
+    "C:\\dev\\aic2026\\data\\cache\\llm": 2921,
+    "C:\\dev\\aic2026\\data\\cache\\qa_hypotheses": 759
+  },
+  "asset_file_count": 177321,
+  "elasticsearch": {
+    "metadata": {
+      "count": 873,
+      "hashed_count": 873,
+      "sha256": "fddb0922f3322cfc16deb03316db539a7d89d508a3ca2410587b9b624284e380",
+      "uuid": "QZQCX9LyR2CWobTAABhoFg"
+    },
+    "objects": {
+      "count": 177321,
+      "hashed_count": 177321,
+      "sha256": "3420101a621d303877a19d10f74dd3c1f85acbb90eef62cf5ba3755bde6e66ab",
+      "uuid": "5rqdQz8vRh--OnMA8m8Oqg"
+    },
+    "ocr": {
+      "count": 160393,
+      "hashed_count": 160393,
+      "sha256": "83061dc2fe48e635ee8ce36a33d0728630a834db81a6fdb6e47eaeea7efe1aa7",
+      "uuid": "2n_IfabORTC2ikUXxdRCHA"
+    },
+    "asr": {
+      "count": 13415,
+      "hashed_count": 13415,
+      "sha256": "186ca41cad525f23781b758341ecb34204b8e3da6674d416cfc4d1f2b5905b50",
+      "uuid": "sxhXO5sSSGO6O7CD9c424g"
+    }
+  },
+  "milvus": {
+    "asr_text_vi": {
+      "count": 13415,
+      "hashed_count": 13415,
+      "sha256": "f38f303b0436a898197b2359c1ca5363579a6b013eff21be8bd30ebfd66f197c",
+      "collection_id": 468758346054749750
+    },
+    "asr_text_vi_bgem3": {
+      "count": 13415,
+      "hashed_count": 13415,
+      "sha256": "8a44b4e52014799e6be15eea9ca879e970522a60855782f50cb96291dfca7ad2",
+      "collection_id": 468758346055166202
+    },
+    "keyframes": {
+      "count": 177321,
+      "hashed_count": 177321,
+      "sha256": "d9fd0a78a641d45260cb2400fb1d05976f60d324d6adcd9a7d1acfac46cfa6d7",
+      "collection_id": 468480499968244985
+    }
+  },
+  "fixture": {
+    "queries": 1,
+    "export_rows": 100,
+    "mapping_status_counts": {
+      "matched": 1,
+      "no_keyframe_reference": 99
+    },
+    "mapping_violations": 0,
+    "export_violations": 0,
+    "independent_accuracy_claim": false
+  },
+  "live_baseline_queries": 0,
+  "decision": "DO NOT PROMOTE",
+  "caveat": "Separate read-only component captures, not an accepted atomic baseline run. Milvus scan used client timestamp fallback; no historical state equivalence claim."
+}

@@ -1,0 +1,16 @@
+{
+  "cache_root": "data\\cache\\llm",
+  "counts_by_recorded_model": {
+    "gemini-3.6-flash": 1888,
+    "claude-sonnet-5": 913,
+    "claude-haiku-4-5": 52,
+    "claude-opus-5": 50,
+    "gemini-3.5-flash": 8,
+    "qwen3:8b": 10
+  },
+  "unreadable": 0,
+  "api_calls": 0,
+  "new_spend_authorized": false,
+  "user_balance_usd": 5.52,
+  "next_step": "cache-only diagnostic through production runner; never substitute another model response"
+}

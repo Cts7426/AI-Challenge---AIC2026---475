@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Tuổi Trẻ TV\",\"answer_vi\":\"Tuổi Trẻ TV\",\"answer_en\":\"Tuoi Tre TV\",\"evidence_frame_idx\":4592,\"confidence\":0.6}",
+    "{\"answer\":\"Tuổi Trẻ TV\",\"answer_vi\":\"Tuổi Trẻ TV\",\"answer_en\":\"Tuoi Tre TV\",\"evidence_frame_idx\":4592,\"confidence\":0.6}",
+    "{\"answer\":\"Tuổi Trẻ TV\",\"answer_vi\":\"Tuổi Trẻ TV\",\"answer_en\":\"Tuoi Tre TV\",\"evidence_frame_idx\":4592,\"confidence\":0.7}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:36:14"
+}

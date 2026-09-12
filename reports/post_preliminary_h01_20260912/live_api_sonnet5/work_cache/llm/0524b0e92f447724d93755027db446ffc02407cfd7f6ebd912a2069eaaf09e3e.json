@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Trường THPT Nguyễn Hiền, TP.HCM (không phải tiểu học)\",\"answer_vi\":\"Giáo viên (thầy Lê Minh Huy) dạy chính tại Trường THPT Nguyễn Hiền, TP.HCM, không phải trường tiểu học.\",\"answer_en\":\"The teacher (Mr. Le Minh Huy) mainly teaches at Nguyen Hien High School, Ho Chi Minh City, not an elementary school.\",\"evidence_frame_idx\":26250,\"confidence\":0.6}",
+    "{\"answer\":\"Không đủ căn cứ; giáo viên dạy tại đây (thầy Lê Minh Huy) là giáo viên Trường THPT Nguyễn Hiền, TP.HCM, không phải trường tiểu học.\",\"answer_vi\":\"Không đủ căn cứ; giáo viên dạy tại đây (thầy Lê Minh Huy) là giáo viên Trường THPT Nguyễn Hiền, TP.HCM, không phải trường tiểu học.\",\"answer_en\":\"Insufficient evidence; the teacher (Mr. Lê Minh Huy) teaches at Nguyễn Hiền High School, HCMC, not a primary school.\",\"evidence_frame_idx\":26250,\"confidence\":0.2}",
+    "{\"answer\":\"Không có thông tin về trường tiểu học; giáo viên (thầy Lê Minh Huy) dạy chính tại Trường THPT Nguyễn Hiền, TP.HCM\",\"answer_vi\":\"Không có thông tin về trường tiểu học; giáo viên (thầy Lê Minh Huy) dạy chính tại Trường THPT Nguyễn Hiền, TP.HCM\",\"answer_en\":\"No information about an elementary school; the teacher (Mr. Le Minh Huy) is a full-time teacher at Nguyen Hien High School, HCMC\",\"evidence_frame_idx\":26250,\"confidence\":0.3}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:50:55"
+}

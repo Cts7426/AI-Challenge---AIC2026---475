@@ -1,0 +1,7 @@
+{
+  "started_at": "2026-09-12T13:16:51.3004667+07:00",
+  "finished_at": "2026-09-12T13:20:43.5073024+07:00",
+  "command": ".venv/Scripts/python.exe scripts/selfcheck.py",
+  "exit_code": 1,
+  "notes": "TEMP/TMP trong workspace; HF_HUB_OFFLINE=1; TRANSFORMERS_OFFLINE=1; không tự chọn backend/model."
+}

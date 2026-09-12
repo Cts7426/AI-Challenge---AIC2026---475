@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định lớp mấy\",\"answer_en\":\"Not enough evidence to determine the grade\",\"evidence_frame_idx\":4634,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin\",\"answer_vi\":\"Không có thông tin\",\"answer_en\":\"No information\",\"evidence_frame_idx\":4634,\"confidence\":0.1}",
+    "{\"answer\":\"Không đủ căn cứ để xác định\",\"answer_vi\":\"Không đủ căn cứ để xác định\",\"answer_en\":\"Not enough evidence to determine\",\"evidence_frame_idx\":4634,\"confidence\":0.1}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:48:54"
+}

@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về quán trọ trong đoạn phim\",\"answer_vi\":\"Không có thông tin về quán trọ trong đoạn phim\",\"answer_en\":\"No information about a guesthouse mentioned in the video\",\"evidence_frame_idx\":3330,\"confidence\":0.05}",
+    "{\"answer\": \"Không có thông tin\", \"answer_vi\": \"Không có thông tin\", \"answer_en\": \"No information provided\", \"evidence_frame_idx\": 3330, \"confidence\": 0.05}",
+    "{\"answer\":\"Không có căn cứ trong đoạn phim\",\"answer_vi\":\"Không có căn cứ trong đoạn phim\",\"answer_en\":\"No evidence in the clip\",\"evidence_frame_idx\":3330,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-28 20:44:39"
+}

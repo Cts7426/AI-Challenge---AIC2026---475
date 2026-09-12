@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin về động đất trong video này\",\"answer_vi\":\"Không có thông tin về động đất trong video này\",\"answer_en\":\"No information about earthquakes found in this video\",\"evidence_frame_idx\":22025,\"confidence\":0.05}",
+    "{\"answer\":\"Không có thông tin về động đất trong nội dung video, chỉ có bản đồ các loại đất ở ĐBSCL\",\"answer_vi\":\"Không có thông tin về động đất trong nội dung video, chỉ có bản đồ các loại đất ở ĐBSCL\",\"answer_en\":\"No information about earthquakes in this video content, only a map of soil types in the Mekong Delta\",\"evidence_frame_idx\":22025,\"confidence\":0.1}",
+    "{\"answer\":\"Không có thông tin về động đất trong video này (nội dung nói về các nhóm đất ở ĐBSCL).\",\"answer_vi\":\"Không có thông tin về động đất trong video này (nội dung nói về các nhóm đất ở ĐBSCL).\",\"answer_en\":\"No earthquake information appears in this video (content covers soil types in the Mekong Delta).\",\"evidence_frame_idx\":22025,\"confidence\":0.05}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-08-21 20:14:14"
+}

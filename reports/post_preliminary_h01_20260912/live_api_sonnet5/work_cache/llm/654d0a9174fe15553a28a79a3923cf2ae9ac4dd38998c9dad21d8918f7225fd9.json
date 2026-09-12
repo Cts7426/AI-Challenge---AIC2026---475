@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Không có thông tin đề cập đến nước tương trong đoạn nêm gia vị.\",\"answer_vi\":\"Không có thông tin đề cập đến nước tương trong đoạn nêm gia vị.\",\"answer_en\":\"There is no information mentioning soy sauce amount in the seasoning process.\",\"evidence_frame_idx\":4736,\"confidence\":0.2}",
+    "{\"answer\":\"Không có thông tin rõ về lượng nước tương trong đoạn ghi âm này.\",\"answer_vi\":\"Không có thông tin rõ về lượng nước tương được sử dụng khi nêm gia vị.\",\"answer_en\":\"There is no clear information about the amount of soy sauce used during seasoning.\",\"evidence_frame_idx\":4736,\"confidence\":0.15}",
+    "{\"answer\":\"Không thấy đề cập nước tương trong lời thoại, chỉ có nước cốt chanh, nước cam, đường, muối, tiêu.\",\"answer_vi\":\"Không có bằng chứng về lượng nước tương; lời thoại chỉ nhắc nước cốt chanh, nước cam, đường, muối, tiêu.\",\"answer_en\":\"No evidence of soy sauce amount; the dialogue only mentions lemon juice, orange juice, sugar, salt, and pepper.\",\"evidence_frame_idx\":4736,\"confidence\":0.15}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 19:59:11"
+}

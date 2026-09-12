@@ -1,0 +1,9 @@
+{
+  "output": [
+    "{\"answer\":\"Qua những miền di sản Việt Bắc\",\"answer_vi\":\"Qua những miền di sản Việt Bắc\",\"answer_en\":\"Through the heritage lands of Viet Bac\",\"evidence_frame_idx\":10264,\"confidence\":0.5}",
+    "{\"answer\":\"Qua những miền di sản Việt Bắc\",\"answer_vi\":\"Qua những miền di sản Việt Bắc\",\"answer_en\":\"Through the heritage lands of Viet Bac\",\"evidence_frame_idx\":10264,\"confidence\":0.5}",
+    "{\"answer\":\"Qua những miền di sản Việt Bắc\",\"answer_vi\":\"Qua những miền di sản Việt Bắc\",\"answer_en\":\"Through the heritage lands of Viet Bac\",\"evidence_frame_idx\":10264,\"confidence\":0.5}"
+  ],
+  "model": "claude-sonnet-5",
+  "at": "2026-09-04 20:33:46"
+}

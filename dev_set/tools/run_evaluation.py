@@ -279,6 +279,28 @@ def _record_succeeded(record: dict) -> bool:
     return record.get("failure_class") != "F0_CRASH"
 
 
+def _resume_supported_ids(scores_path: Path, candidates_path: Path, queries) -> set[str]:
+    """Resume QA kiểm cả trace evidence; điểm cũ không đủ chứng minh output hợp lệ."""
+    from backend.common.qa_contract import autonomous_qa_trace
+    latest_scores, latest_traces = {}, {}
+    for path, dest in ((scores_path, latest_scores), (candidates_path, latest_traces)):
+        if path.exists():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    record = json.loads(line)
+                    dest[record["query_id"]] = record
+    supported = set()
+    for query in queries:
+        if not _record_succeeded(latest_scores.get(query.query_id, {"status": "failed"})):
+            continue
+        if query.task_type == "QA":
+            trace = autonomous_qa_trace({**latest_traces.get(query.query_id, {}), "task_type": "QA"})
+            if trace["status"] != "success":
+                continue
+        supported.add(query.query_id)
+    return supported
+
+
 def get_git_commit() -> str:
     import subprocess
     try:
@@ -303,9 +325,13 @@ def _solve_for_evaluation(
     query: object, *, total: int, query_runtime_fingerprint: str
 ) -> QueryRun:
     """Evaluator dùng đúng dispatch production và ghim fingerprint run hiện có."""
-    return solve_query(
+    result = solve_query(
         query, total=total, runtime_fingerprint=query_runtime_fingerprint,
     )
+    if result.task_type == "QA" and result.status == "success" and not result.autonomous_eligible:
+        result.status = "needs_review"
+        result.__post_init__()
+    return result
 
 
 def _answer_to_dict(a: Answer) -> dict:
@@ -314,6 +340,7 @@ def _answer_to_dict(a: Answer) -> dict:
         "frame_ids": list(a.frame_ids),
         "answer_text": a.answer_text,
         "keyframe_id": a.keyframe_id,
+        "provenance": a.provenance, "evidence_hash": a.evidence_hash,
     }
 
 
@@ -323,6 +350,7 @@ def _answer_from_dict(d: dict) -> Answer:
         frame_ids=tuple(d["frame_ids"]),
         answer_text=d.get("answer_text"),
         keyframe_id=d.get("keyframe_id"),
+        provenance=d.get("provenance"), evidence_hash=d.get("evidence_hash"),
     )
 
 
@@ -550,14 +578,7 @@ def run_evaluation(argv: list[str] | None = None):
 
     # Tiến độ cũ: CHỈ coi "đã xong" các câu THÀNH CÔNG — câu từng crash được
     # thử lại (lỗi lần trước có thể chỉ là ES/Milvus chập chờn, không phải bug).
-    done_qids: set[str] = set()
-    if scores_jsonl_path.exists():
-        for line in scores_jsonl_path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            rec = json.loads(line)
-            if _record_succeeded(rec):
-                done_qids.add(rec["query_id"])
+    done_qids = _resume_supported_ids(scores_jsonl_path, candidates_jsonl_path, queries)
     if done_qids:
         print(f"Đã có {len(done_qids)} câu hoàn thành từ trước, sẽ bỏ qua.")
 
@@ -683,7 +704,8 @@ def run_evaluation(argv: list[str] | None = None):
                     "r_at_100": r_100,
                     "final": fin,
                     "score_by_qa_policy": score_by_qa_policy,
-                    "status": "success",
+                    "status": query_run.status,
+                    "result_state": query_run.result_state,
                     "failure_class": fc,
                     "ranks": best_hit_ranks,
                     "runtime_fingerprint": query_run.runtime_fingerprint,
@@ -833,6 +855,12 @@ def run_evaluation(argv: list[str] | None = None):
     # `task_of` đã dựng ở bước nạp ground truth phía trên — dùng lại, không dựng
     # bản thứ hai (hai bản của cùng một bảng tra là cách chắc nhất để chúng lệch).
     subs: list[QuerySubmission] = []
+    export_traces = {}
+    if candidates_jsonl_path.exists():
+        for line in candidates_jsonl_path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                trace = json.loads(line)
+                export_traces[trace["query_id"]] = trace
     for line in answers_jsonl_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -847,6 +875,7 @@ def run_evaluation(argv: list[str] | None = None):
             query_id=qid,
             task_type=task_of.get(qid, per_query_by_id[qid]["task_type"]),
             answers=tuple(_answer_from_dict(d) for d in rec["answers"]),
+            autonomous=True, output_contract=export_traces.get(qid),
         ))
 
     if subs:

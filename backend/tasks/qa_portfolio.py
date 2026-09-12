@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+from backend.common.qa_contract import hypothesis_supported
+
 from backend.indexing.frame_map import load_frame_map
 from backend.slot import ShotHit, allocate, shot_bounds
 from backend.tasks.qa import QAHypothesis, is_valid_qa_answer
@@ -55,6 +58,7 @@ def _alternative_rows(hypothesis: QAHypothesis) -> list[Answer]:
             video_id=video_id,
             frame_ids=(frame_idx,),
             answer_text=hypothesis.answer_text,
+            provenance=hypothesis.provenance, evidence_hash=hypothesis.evidence_hash,
             keyframe_id=keyframe_id,
         )
         for frame_idx, keyframe_id in candidates[:QA_HYPOTHESIS_ALTERNATIVES_PER_HYPOTHESIS]
@@ -75,6 +79,8 @@ def allocate_qa_portfolio(
     """
     if total < 1:
         raise ValueError("total Q&A phải là số nguyên dương")
+    if any(not hypothesis_supported(h.to_dict()) for h in hypotheses):
+        raise RuntimeError("Q&A portfolio nhận placeholder/refusal hoặc thiếu evidence")
     ranked = _rank_hypotheses(hypotheses)
     if not ranked:
         raise RuntimeError("Q&A không có hypothesis hợp lệ để cấp portfolio")
@@ -106,6 +112,7 @@ def allocate_qa_portfolio(
             video_id=hypothesis.video_id,
             frame_ids=(hypothesis.evidence_frame_idx,),
             answer_text=hypothesis.answer_text,
+            provenance=hypothesis.provenance, evidence_hash=hypothesis.evidence_hash,
             keyframe_id=hypothesis.keyframe_id,
         ))
     if len(rows) >= total:
@@ -132,7 +139,7 @@ def allocate_qa_portfolio(
             total=total - len(rows),
         )
         for row in tail:
-            append(row)
+            append(replace(row, provenance=ranked[0].provenance, evidence_hash=ranked[0].evidence_hash))
     if len(rows) != total:
         raise RuntimeError(
             f"Q&A portfolio chỉ tạo được {len(rows)}/{total}; từ chối partial success"

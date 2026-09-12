@@ -25,6 +25,14 @@ def _client() -> TestClient:
     return TestClient(main_mod.app, raise_server_exceptions=False)
 
 
+def _supported_trace(answer):
+    """Evidence giả tường minh cho kiểm API; không xác minh GT."""
+    return {"hypotheses": [{"answer_text": answer, "video_id": "L21_V001",
+        "shot_id": "L21_V001#s1", "keyframe_id": "L21_V001#k10",
+        "evidence_frame_idx": 10, "confidence": .8, "evidence_hash": "fixture",
+        "provenance": "test:llm:legacy", "answer_mode": "visual_attribute"}]}
+
+
 def test_qa_search_khong_500_khi_qa_pipeline_thanh_cong(real_videos):
     """Bằng chứng trực tiếp của bug: mock qa_pipeline() trả đúng kiểu thật nó
     trả (list[ShotHit], str) — trước bản sửa, dòng này luôn ra 500."""
@@ -34,7 +42,7 @@ def test_qa_search_khong_500_khi_qa_pipeline_thanh_cong(real_videos):
     shot_id = next(iter(_shots()))
     fake_shots = [ShotHit(shot_id, 0.9, None)]
 
-    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "400g")):
+    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "400g", _supported_trace("400g"))):
         resp = _client().post(
             "/search",
             json={"query": "câu hỏi bất kỳ", "task_type": "QA", "query_en": "any question"},
@@ -58,7 +66,7 @@ def test_qa_search_giu_dung_thu_hang_shot(real_videos):
     shot_ids = list(_shots())[:3]
     fake_shots = [ShotHit(sid, 1.0 - i * 0.1, None) for i, sid in enumerate(shot_ids)]
 
-    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "câu trả lời")):
+    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "câu trả lời", _supported_trace("câu trả lời"))):
         resp = _client().post(
             "/search", json={"query": "q", "task_type": "QA", "query_en": "q"},
         )

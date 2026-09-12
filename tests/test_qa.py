@@ -399,7 +399,8 @@ def test_two_stage_cap_42_phu_text_main_image_va_expansion(monkeypatch, fake_fra
     )
     def fake_collect(hit, *args, **kwargs):
         evidence = Evidence(
-            hit.shot_id, hit.shot_id.split("#")[0], [], [], "", None, [], 10,
+            # H02: kiểm budget trên evidence có nội dung; không infer payload rỗng.
+            hit.shot_id, hit.shot_id.split("#")[0], ["fixture evidence"], [], "", None, [], 10,
             hashlib.sha256(hit.shot_id.encode("utf-8")).hexdigest(),
         )
         attempt = Q._qa_attempt_ctx.get()

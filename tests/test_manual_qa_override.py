@@ -138,6 +138,7 @@ def test_apply_append_record_va_trace_day_du(tmp_path: Path):
         encoding="utf-8"
     ).splitlines()]
     assert traces[-1]["status"] == "success"
+    assert traces[-1]["output_origin"] == "operator_assisted"
     assert traces[-1]["query_id"] == "query-p2-19-qa"
 
 

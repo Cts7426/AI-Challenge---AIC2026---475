@@ -260,6 +260,8 @@ class Checkpoint:
                 continue
             try:
                 rec = json.loads(dong)
+                from backend.common.qa_contract import reconcile_qa_trace
+                rec = reconcile_qa_trace(rec)
                 ra[rec["query_id"]] = rec        # dòng sau đè dòng trước: lần chạy mới thắng
             except Exception:
                 print(f"  [cảnh báo] checkpoint dòng {so} hỏng, bỏ qua")
@@ -289,12 +291,15 @@ class Checkpoint:
 
 def _answer_to_dict(a: Answer) -> dict:
     return {"video_id": a.video_id, "frame_ids": list(a.frame_ids),
-            "answer_text": a.answer_text, "keyframe_id": a.keyframe_id}
+            "answer_text": a.answer_text, "keyframe_id": a.keyframe_id,
+            **({"provenance": a.provenance} if a.provenance is not None else {}),
+            **({"evidence_hash": a.evidence_hash} if a.evidence_hash is not None else {})}
 
 
 def _answer_from_dict(d: dict) -> Answer:
     return Answer(video_id=d["video_id"], frame_ids=tuple(d["frame_ids"]),
-                  answer_text=d.get("answer_text"), keyframe_id=d.get("keyframe_id"))
+                  answer_text=d.get("answer_text"), keyframe_id=d.get("keyframe_id"),
+                  provenance=d.get("provenance"), evidence_hash=d.get("evidence_hash"))
 
 
 # ================================================================ thanh tiến độ
@@ -501,8 +506,12 @@ def main() -> int:
         rec = cu.get(q["query_id"])
         if not rec:
             continue
+        from backend.common.qa_contract import reconcile_qa_trace
+        if q["task_type"] == "QA":
+            rec = reconcile_qa_trace({**rec, "task_type": "QA"})
         if (
-            rec.get("query_hash") != _query_hash(q)
+            rec.get("status", "success") != "success"
+            or rec.get("query_hash") != _query_hash(q)
             or rec.get("runtime_fingerprint") != current_runtime_fingerprint
         ):
             het_han.append(q["query_id"])
@@ -594,11 +603,21 @@ def main() -> int:
                     n_trake=phu.get("n_trake"),
                 )
             trace_log.ghi(query_run.to_trace_dict())
+            if query_run.status != "success":
+                hong.append((qid, query_run.result_state))
+                log(f"  ! {qid}: {query_run.result_state}; đã lưu ứng viên/evidence để duyệt")
+                if bar:
+                    bar.cap_nhat(f"! {qid}")
+                continue
+            answers = query_run.answers
             # "Thật" = có keyframe_id (bằng chứng thật), phần còn lại là dòng đệm.
             that = sum(1 for a in answers if a.keyframe_id is not None)
             rec = {
                 "query_id": qid, "task_type": task, "query_hash": _query_hash(q),
                 "runtime_fingerprint": query_run.runtime_fingerprint,
+                "status": query_run.status, "result_state": query_run.result_state,
+                "output_origin": query_run.output_origin, "process_status": query_run.process_status,
+                "autonomous_eligible": query_run.autonomous_eligible,
                 "n_answers": len(answers), "n_real": that, "seconds": round(giay, 2),
                 "at": datetime.now().isoformat(timespec="seconds"),
                 "answer_text": phu.get("answer_text"),

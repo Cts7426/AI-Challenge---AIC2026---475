@@ -206,7 +206,7 @@ def _parse_scores(
             or task_type not in ("KIS", "QA", "TRAKE")
             or isinstance(final, bool) or not isinstance(final, (int, float))
             or not math.isfinite(float(final)) or not 0.0 <= float(final) <= 1.0
-            or status not in ("success", "failed")
+            or status not in ("success", "needs_review", "abstain", "failed")
         ):
             raise ValueError(f"{label} record sai schema: {query_id!r}")
         if query_id in parsed:

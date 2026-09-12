@@ -86,6 +86,9 @@ def apply_qa_submission_policy(answers: list[Answer], policy: str) -> list[Answe
     """
     if policy not in QA_SUBMISSION_POLICIES:
         raise ValueError(f"policy phải là một trong {QA_SUBMISSION_POLICIES}, nhận {policy!r}")
+    from backend.common.qa_contract import answer_rejection_reason
+    if any(answer_rejection_reason(a.answer_text, a.provenance, a.evidence_hash) for a in answers):
+        raise ValueError("Q&A policy không nhận placeholder/refusal")
     if not answers or policy == "semantic":
         return list(answers)
 

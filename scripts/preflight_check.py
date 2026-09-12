@@ -828,9 +828,21 @@ def check_submit_format() -> tuple[bool | None, str]:
                   f"answer ≤ {submit_format.ANSWER_MAX_CHARS} ký tự")
 
 
+def check_qa_output_contract() -> tuple[bool | None, str]:
+    """Smoke offline cùng shared contract, không dò provider hoặc tạo evidence thật."""
+    from backend.common.qa_contract import answer_rejection_reason, autonomous_qa_trace
+    rejected = all(answer_rejection_reason(text) for text in ("TODO", "Không đủ căn cứ"))
+    preserved = all(answer_rejection_reason(text) is None for text in ("0", "Không có người trong ảnh", "Không thấy mưa"))
+    placeholder = answer_rejection_reason("0", "placeholder:no_answer") is not None
+    missing = autonomous_qa_trace({"task_type": "QA", "status": "success", "answer_text": "đỏ"})
+    passed = rejected and preserved and placeholder and missing["status"] == "needs_review"
+    return bool(passed), "H02: sentinel/placeholder/missing evidence bị chặn; zero/negative giữ; không gọi LLM"
+
+
 # ============================================================ CHECKLIST
 
 CHECKLIST: list[Check] = [
+    Check("G. Cấu hình", "QA output contract", check_qa_output_contract),
     Check("A. Môi trường", "interpreter Python", check_python),
     Check("A. Môi trường", "thư viện lõi", check_core_libs),
     Check("A. Môi trường", "runtime Q&A", check_qa_runtime),

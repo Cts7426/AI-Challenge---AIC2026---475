@@ -200,7 +200,7 @@ def test_pipeline_bo_refusal_ngan_va_chon_answer_hop_le_phia_sau(monkeypatch):
     assert [item["shot_id"] for item in trace["hypotheses"]] == ["L21_V002#s2"]
 
 
-def test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel(monkeypatch):
+def test_pipeline_toan_refusal_ngan_thi_needs_review_khong_nop_sentinel(monkeypatch):
     """Hết đáp án thật thì nộp CHỖ TRỐNG — nhưng tuyệt đối không nộp câu từ chối.
 
     ⚠️ Test này đổi hợp đồng khi gộp hai nhánh 03/09. Bản của Thạch
@@ -232,16 +232,11 @@ def test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel(monkeyp
 
     _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
 
-    # Câu từ chối không được trở thành đáp án nộp — ý gốc của phép kiểm.
-    assert qa.is_valid_qa_answer(answer) is False or answer == "TODO"
-    assert "không rõ" not in str(answer).lower()
-    # Và phải là chỗ trống có nhãn, không phải im lặng trả rỗng.
-    assert answer == "TODO"
-    # Chỗ trống vẫn sinh hypothesis để bài nộp có dòng, nhưng MỌI dòng phải là
-    # chỗ trống — không được lẫn một dòng nào mang câu từ chối.
-    gia_thuyet = trace.get("hypotheses") or []
-    assert gia_thuyet, "chỗ trống vẫn phải có dòng để nộp, không được rỗng"
-    assert all(h["answer_text"] == "TODO" for h in gia_thuyet)
+    # H02 thay hợp đồng placeholder cũ: giữ lần thử, không tạo answer giả.
+    assert not answer
+    assert trace["result_state"] == "needs_review"
+    assert trace["hypotheses"] == []
+    assert trace["attempts"]
 
 
 def test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel():
@@ -742,15 +737,15 @@ def test_runner_dung_hypotheses_va_fail_missing_evidence(monkeypatch):
     assert result.query_plan["answer_mode"] == "visual_attribute"
 
     monkeypatch.setattr(qa, "qa_pipeline", lambda *a, **kw: ([hit], "", {"hypotheses": []}))
-    with pytest.raises(runner.SolveQueryError) as exc:
-        runner.solve_query(
-            {"query_id": "empty", "task_type": "QA", "query_vi": "gì?"},
-            total=1,
-            runtime_fingerprint="fp",
-        )
-    assert exc.value.query_run.failure_class == "missing_evidence"
-    assert exc.value.query_run.retryable is True
-    assert exc.value.query_run.answers == []
+    unsupported = runner.solve_query(
+        {"query_id": "empty", "task_type": "QA", "query_vi": "gì?"},
+        total=1, runtime_fingerprint="fp",
+    )
+    assert unsupported.status == "needs_review"
+    assert unsupported.failure_class is None
+    assert unsupported.retryable is False
+    assert unsupported.answers == []
+    assert unsupported.search_rows[0]["shot_id"] == hit.shot_id
 
 
 def test_runtime_fingerprint_phu_code_qa_portfolio(monkeypatch):

@@ -83,7 +83,12 @@ def chay(monkeypatch, tmp_path, viet_queries, video):
                          answer_text="5" if q["task_type"] == "QA" else None,
                          n_trake=max(n, 2) if q["task_type"] == "TRAKE" else 1),
                 {"answer_text": "5" if q["task_type"] == "QA" else None,
-                 "n_trake": max(n, 2) if q["task_type"] == "TRAKE" else None},
+                 "n_trake": max(n, 2) if q["task_type"] == "TRAKE" else None,
+                 # H02: fixture success phải có provenance/evidence rõ ràng.
+                 "qa_trace": {"hypotheses": [{"answer_text": "5", "video_id": vid,
+                     "shot_id": vid + "#s1", "keyframe_id": "kf0", "evidence_frame_idx": 0,
+                     "confidence": .8, "provenance": "test:llm:legacy", "evidence_hash": "fixture-evidence",
+                     "answer_mode": "visual_count", "evidence_type": "image"}]} if q["task_type"] == "QA" else None},
             )
 
         monkeypatch.setattr(R, "giai_mot_query", _gia)
@@ -318,7 +323,8 @@ def test_fresh_bo_qua_checkpoint(chay):
 def test_checkpoint_ghi_ngay_sau_moi_cau(chay, monkeypatch, tmp_path, viet_queries, video):
     """Chết giữa chừng KHÔNG được mất câu đã xong — kiểm bằng cách chết thật."""
     vid, n_frames = video
-    qs = [KIS, QA, TRAKE]
+    # Phép kiểm durability độc lập suy luận QA: hai KIS thành công trước ngắt.
+    qs = [KIS, {**KIS, "query_id": "q2"}, TRAKE]
 
     def _gia(q, tong):
         if q["query_id"] == "q3":

@@ -77,6 +77,9 @@ class Answer:
     frame_ids: tuple[int, ...]
     answer_text: str | None = None
     keyframe_id: str | None = None
+    # Provenance chỉ dùng kiểm hợp đồng, không ghi thêm cột vào CSV BTC.
+    provenance: str | None = None
+    evidence_hash: str | None = None
 
     def __post_init__(self) -> None:
         """Chuẩn hoá frame_ids về tuple[int].

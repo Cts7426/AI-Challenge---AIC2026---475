@@ -65,6 +65,9 @@ class QuerySubmission:
     query_id: str
     task_type: str
     answers: tuple[Answer, ...]
+    # Export format/assisted vẫn dùng được độc lập; autonomous bắt buộc trace.
+    autonomous: bool = False
+    output_contract: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -271,6 +274,23 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
                 q,
             ))
 
+    if task == "QA" and sub.autonomous:
+        from backend.common.qa_contract import autonomous_qa_trace
+        checked = autonomous_qa_trace({**(sub.output_contract or {}), "task_type": "QA"})
+        if checked.get("status") != "success":
+            out.append(Issue("answer_unsupported", "Autonomous Q&A cần supported evidence và provenance tự động", q))
+        else:
+            from backend.export.qa_variants import answer_surface_forms
+            supported_rows = {
+                (answer.get("video_id"), tuple(answer.get("frame_ids", [])), answer.get("keyframe_id"),
+                 answer.get("provenance"), answer.get("evidence_hash"), form)
+                for answer in checked.get("answers", [])
+                for form in answer_surface_forms(answer.get("answer_text") or "")
+            }
+            if any((answer.video_id, answer.frame_ids, answer.keyframe_id,
+                    answer.provenance, answer.evidence_hash, answer.answer_text) not in supported_rows
+                   for answer in sub.answers):
+                out.append(Issue("answer_unsupported", "Answer xuất khác answer/evidence đã kiểm", q))
     for i, a in enumerate(sub.answers, 1):
         if task in ("KIS", "QA"):
             if len(a.frame_ids) != 1:
@@ -295,6 +315,10 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
                     f"frame phải tăng dần ngặt, đang là {a.frame_ids}", q, i,
                 ))
 
+        if task == "QA":
+            from backend.common.qa_contract import answer_rejection_reason
+            if answer_rejection_reason(a.answer_text, a.provenance, a.evidence_hash):
+                out.append(Issue("answer_unsupported", "Q&A placeholder/refusal không được xuất tự động", q, i))
         if task == "QA" and not (a.answer_text or "").strip():
             out.append(Issue(
                 "answer_empty",

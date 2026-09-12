@@ -126,6 +126,11 @@ def test_evaluator_frozen_artifact_di_thang_den_promotion_eligible(
             query_id=query.query_id, task_type=query.task_type, answers=answers,
             query_plan={"query_vi": query.query_vi},
             runtime_fingerprint=query_runtime_fingerprint,
+            # Success QA của fixture cũng phải có evidence, không miễn contract.
+            qa_hypotheses=[{"answer_text": "đỏ", "video_id": gt.video_id,
+                "shot_id": gt.video_id + "#s1", "keyframe_id": "kf", "evidence_frame_idx": 10,
+                "confidence": .8, "evidence_hash": "fixture", "provenance": "test:llm",
+                "answer_mode": "visual_attribute"}] if query.task_type == "QA" else [],
         )
 
     monkeypatch.setattr(evaluation, "_solve_for_evaluation", solve)

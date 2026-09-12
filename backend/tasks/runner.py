@@ -55,6 +55,7 @@ def _answer_to_dict(answer: Answer) -> dict[str, Any]:
         "frame_ids": list(answer.frame_ids),
         "answer_text": answer.answer_text,
         "keyframe_id": answer.keyframe_id,
+        "provenance": answer.provenance, "evidence_hash": answer.evidence_hash,
     }
 
 
@@ -143,9 +144,9 @@ def _query_plan(query: object) -> dict[str, Any]:
 class QueryRun:
     """Kết quả một query cùng provenance đủ để scorer không search lại.
 
-    `answers` chỉ có ở trạng thái success. `failure_class` chỉ có ở trạng thái
-    failed và luôn thuộc sáu nhãn product spec; caller vẫn được quyền ném lại
-    exception để retry, nhưng có thể ghi `to_trace_dict()` trước khi làm vậy.
+    `answers` chỉ có ở trạng thái success; QA còn phải kiểm autonomous_eligible
+    để phân biệt output tự động với assisted/unknown. `failure_class` chỉ dành
+    cho lỗi task; needs_review/abstain vẫn giữ search_rows và evidence.
     """
 
     query_id: str
@@ -158,7 +159,14 @@ class QueryRun:
     qa_hypotheses: list[dict[str, Any]] = field(default_factory=list)
     timings: dict[str, float] = field(default_factory=dict, compare=False)
     failure_class: FailureClass | None = None
-    status: Literal["success", "failed"] = "success"
+    status: Literal["success", "needs_review", "abstain", "failed"] = "success"
+    result_state: str = "supported_answer"
+    review_answers: list[dict[str, Any]] = field(default_factory=list)
+    review_answer_text: str | None = None
+    output_contract_reason: str | None = None
+    output_origin: str | None = None
+    autonomous_eligible: bool = False
+    process_status: str = "completed"
     runtime_fingerprint: str = ""
     task_metadata: dict[str, Any] = field(default_factory=dict)
     answer_text: str | None = None
@@ -177,6 +185,25 @@ class QueryRun:
         if self.status == "failed" and self.answers:
             raise ValueError("QueryRun failed không được chứa partial/fake answers")
 
+        if self.task_type == "QA":
+            from backend.common.qa_contract import reconcile_qa_trace
+            checked = reconcile_qa_trace(self.to_trace_dict())
+            self.status = checked["status"]
+            self.result_state = checked["result_state"]
+            self.output_origin = checked.get("output_origin")
+            self.autonomous_eligible = checked["autonomous_eligible"]
+            self.process_status = checked["process_status"]
+            if self.status in ("needs_review", "abstain"):
+                self.answers = []
+                self.answer_text = ""
+                self.review_answers = checked.get("review_answers", [])
+                self.review_answer_text = checked.get("review_answer_text")
+                self.output_contract_reason = checked.get("output_contract_reason")
+                self.retryable = False
+        elif self.status == "failed":
+            self.result_state = "task_failure"
+            self.process_status = "failed"
+
     def compatibility_metadata(self) -> dict[str, Any]:
         """Giữ tuple contract cũ của run.py trong lúc caller chuyển dần."""
         return {
@@ -192,6 +219,13 @@ class QueryRun:
             "query_id": self.query_id,
             "task_type": self.task_type,
             "status": self.status,
+            "result_state": self.result_state,
+            "output_origin": self.output_origin,
+            "autonomous_eligible": self.autonomous_eligible,
+            "process_status": self.process_status,
+            "review_answers": self.review_answers,
+            "review_answer_text": self.review_answer_text,
+            "output_contract_reason": self.output_contract_reason,
             "failure_class": self.failure_class,
             "error": self.error,
             "retryable": self.retryable,
@@ -254,6 +288,7 @@ def runtime_manifest() -> dict[str, Any]:
             "backend/retrieval/multi_anchor.py",
             "backend/retrieval/search.py",
             "backend/common/answer_match.py",
+            "backend/common/qa_contract.py",
             "backend/slot/allocator.py",
             "backend/tasks/qa.py",
             "backend/tasks/qa_portfolio.py",
@@ -420,8 +455,6 @@ def solve_query(
                 anchors=_query_value(query, "anchors") or None,
             )
             timings["qa_seconds"] = round(time.perf_counter() - stage_started, 6)
-            if not str(answer_text or "").strip():
-                raise RuntimeError("qa_pipeline() không suy ra được answer_text")
             rows = [
                 {
                     "shot_id": hit.shot_id,
@@ -438,6 +471,17 @@ def solve_query(
                 )
                 if key in qa_trace
             })
+            # Kiểm trước allocation để placeholder không thành câu trả lời tự động.
+            probe = QueryRun(
+                query_id=str(_query_value(query, "query_id", "")), task_type="QA",
+                answers=[], query_plan=plan, search_rows=rows, timings=timings,
+                runtime_fingerprint=fingerprint, task_metadata={"hits": rows},
+                answer_text=answer_text, qa_trace=qa_trace,
+                qa_hypotheses=qa_trace.get("hypotheses") or [],
+            )
+            if probe.status != "success":
+                timings["total_seconds"] = round(time.perf_counter() - started, 6)
+                return probe
             hypothesis_rows = qa_trace.get("hypotheses")
             if hypothesis_rows is not None:
                 if not isinstance(hypothesis_rows, list) or not hypothesis_rows:
@@ -539,4 +583,13 @@ def solve_query(
             timings=timings,
             retryable=task_type == "QA" and not isinstance(error, ValueError),
         )
+        if task_type == "QA":
+            payload = getattr(error, "qa_review", None)
+            if payload is not None:
+                trace.qa_trace = payload
+                trace.search_rows = payload.get("candidates", [])
+            elif "qa_trace" in locals():
+                trace.qa_trace = qa_trace
+                trace.search_rows = rows
+                trace.qa_hypotheses = qa_trace.get("hypotheses") or []
         raise SolveQueryError(str(error), trace) from error

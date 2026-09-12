@@ -369,7 +369,10 @@ def test_qa_va_trake_khong_mat_metadata_hien_co(monkeypatch):
         {"query_id": "q-qa", "task_type": "QA", "query_vi": "màu gì?"}, total=1
     )
     assert qa_run.qa_trace == {"answer_shot_id": hit.shot_id}
-    assert qa_run.answer_text == "đỏ"
+    # Trace cũ thiếu evidence vẫn được giữ để duyệt, không tự coi là success.
+    assert qa_run.status == "needs_review"
+    assert qa_run.answer_text == ""
+    assert qa_run.review_answer_text == "đỏ"
 
     candidate = type(
         "Candidate",

@@ -152,6 +152,10 @@ class SearchHit(BaseModel):
 class SearchResponse(BaseModel):
     hits: list[SearchHit]
     answer_text: str | None = None
+    result_state: str | None = None
+    qa_trace: dict | None = None
+    output_origin: str | None = None
+    autonomous_eligible: bool = False
 
 
 def _thumbnail_url(result: dict) -> str:
@@ -177,6 +181,8 @@ def _thumbnail_url(result: dict) -> str:
 def post_search(req: SearchRequest) -> SearchResponse:
     try:
         answer_text = None
+        result_state = None
+        qa_trace = None
         if req.task_type == "QA":
             from backend.slot.allocator import shot_bounds
             from backend.tasks.qa import qa_pipeline
@@ -194,7 +200,12 @@ def post_search(req: SearchRequest) -> SearchResponse:
             # video_id/frame_idx không có sẵn trong ShotHit — tra qua
             # shot_bounds() (allocator, API công khai) và load_frame_map()
             # (đã lru_cache, tra lại không tốn gì).
-            shots, answer_text = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en)
+            shots, answer_text, qa_trace = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en, return_trace=True)
+            from backend.common.qa_contract import reconcile_qa_trace
+            checked = reconcile_qa_trace({"task_type": "QA", "qa_trace": qa_trace,
+                                          "answer_text": answer_text,
+                                          "search_rows": [{"shot_id": h.shot_id} for h in shots]})
+            answer_text, result_state = checked["answer_text"], checked["result_state"]
             fm = load_frame_map()
             results = []
             for h in shots:
@@ -235,6 +246,11 @@ def post_search(req: SearchRequest) -> SearchResponse:
         else:
             results = fused_search(req.query, query_en=req.query_en, top_k=req.top_k)
     except RuntimeError as e:
+        if req.task_type == "QA" and hasattr(e, "qa_review"):
+            raise HTTPException(status_code=503, detail={
+                "result_state": "task_failure", "process_status": "failed",
+                "answer_text": "", "error": str(e), "qa_trace": e.qa_review,
+            }) from e
         # Thiếu API key khi cần dịch — lỗi phía cấu hình người dùng → 400 kèm cách khắc phục
         raise HTTPException(
             status_code=400,
@@ -242,6 +258,11 @@ def post_search(req: SearchRequest) -> SearchResponse:
         )
     except Exception as e:
         # Milvus/ES chết cả → 503 để frontend phân biệt "hệ thống sập" với "query sai"
+        if req.task_type == "QA" and hasattr(e, "qa_review"):
+            raise HTTPException(status_code=503, detail={
+                "result_state": "task_failure", "process_status": "failed",
+                "answer_text": "", "error": str(e), "qa_trace": e.qa_review,
+            }) from e
         raise HTTPException(status_code=503, detail=f"Search thất bại: {e}")
 
     hits = [
@@ -259,7 +280,9 @@ def post_search(req: SearchRequest) -> SearchResponse:
         )
         for r in results
     ]
-    return SearchResponse(hits=hits, answer_text=answer_text)
+    return SearchResponse(hits=hits, answer_text=answer_text, result_state=result_state, qa_trace=qa_trace,
+                          output_origin=checked["output_origin"] if req.task_type == "QA" else None,
+                          autonomous_eligible=checked["autonomous_eligible"] if req.task_type == "QA" else False)
 
 
 class SubmitItem(BaseModel):

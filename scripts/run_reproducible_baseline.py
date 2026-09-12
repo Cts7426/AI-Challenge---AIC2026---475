@@ -64,6 +64,11 @@ def read_checkpoint(out: Path, queries: list[dict], runtime_id: str, *, current_
                 for name, identity in files.items():
                     if Path(name).name != name or file_identity(out / "submission" / name) != identity:
                         raise ValueError("CSV trong checkpoint đã đổi hoặc mất")
+            from backend.common.qa_contract import autonomous_qa_trace
+            if "task_output" in row and row["input"].get("task_type") == "QA":
+                row["task_output"] = autonomous_qa_trace({**row["task_output"], "task_type": row["input"].get("task_type")})
+                if row["task_output"].get("status") in ("needs_review", "abstain"):
+                    row["export_status"] = "blocked_output_contract"
             records[query_id] = row
         except (KeyError, TypeError, json.JSONDecodeError) as error:
             raise ValueError("checkpoint bị hỏng; giữ nguyên để điều tra") from error
@@ -147,6 +152,9 @@ def execute_query(query: dict, out: Path, runtime_id: str, *, instrumentation: b
             result = runner.solve_query(query, total=100, runtime_fingerprint=runtime_id)
         except runner.SolveQueryError as error:
             result = error.query_run
+    if result.task_type == "QA" and result.status == "success" and not result.autonomous_eligible:
+        result.status = "needs_review"
+        result.__post_init__()
     record = {"input": query, "query_sha256": query_identity(query), "runtime_manifest_id": runtime_id,
               "task_output": result.to_trace_dict(), "search_calls": calls,
               "instrumentation": instrumentation, "qa_submission_policy": qa_policy,
@@ -168,7 +176,8 @@ def execute_query(query: dict, out: Path, runtime_id: str, *, instrumentation: b
             record["frame_mapping"], record["mapping_violations"] = audit_mapping(answers)
             record["candidate_mapping"], candidate_errors = audit_candidate_mapping(record["task_output"])
             record["mapping_violations"] += candidate_errors
-            sub = QuerySubmission(result.query_id, result.task_type, tuple(answers))
+            sub = QuerySubmission(result.query_id, result.task_type, tuple(answers),
+                                  autonomous=True, output_contract=result.to_trace_dict())
             issues = validate_submission(sub, expected_n=result.n_trake)
             record["export_violations"] = len(issues)
             record["errors"] = [asdict(issue) for issue in issues]

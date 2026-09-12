@@ -181,17 +181,9 @@ def _latest_trace_by_query(traces: Sequence[Mapping[str, Any]]) -> dict[str, Map
 
 
 def _valid_hypothesis(hypothesis: Mapping[str, Any]) -> bool:
-    required_strings = (
-        "answer_text", "video_id", "shot_id", "keyframe_id",
-        "evidence_hash", "provenance",
-    )
-    if any(not isinstance(hypothesis.get(name), str)
-           or not str(hypothesis[name]).strip() for name in required_strings):
-        return False
-    frame_idx = hypothesis.get("evidence_frame_idx")
-    if isinstance(frame_idx, bool) or not isinstance(frame_idx, int) or frame_idx < 0:
-        return False
-    return True
+    from backend.common.qa_contract import hypothesis_supported
+    return hypothesis_supported(hypothesis)
+
 
 
 def _hypothesis_has_canonical_answer(
@@ -316,7 +308,9 @@ def assess_release_batch(
         trace = latest.get(query_id)
         if trace is None:
             continue
-        if trace.get("status") != "success" or trace.get("retryable") is True:
+        from backend.common.qa_contract import reconcile_qa_trace
+        checked = reconcile_qa_trace({**trace, "task_type": query.get("task_type")})
+        if checked.get("status") != "success" or trace.get("retryable") is True:
             reasons.append(_reason(
                 "query_not_success", f"{query_id} failed/retryable",
                 query_id=query_id, status=trace.get("status"),

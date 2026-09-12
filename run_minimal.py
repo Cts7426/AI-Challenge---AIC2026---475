@@ -85,6 +85,23 @@ def _doc_queries(path: Path) -> list[dict]:
 
 from backend.slot.allocator import allocate
 
+
+def _solve_qa(q: dict, total: int, out: Path):
+    """Đường minimal giữ trace review; không dùng answer nhập tay thay cho inference."""
+    from backend.tasks.runner import solve_query, SolveQueryError
+    from run import Checkpoint
+    try:
+        result = solve_query(q, total=total)
+    except SolveQueryError as error:
+        result = error.query_run
+    writer = Checkpoint(out / "trace.jsonl")
+    writer.mo()
+    try:
+        writer.ghi(result.to_trace_dict())
+    finally:
+        writer._f.close()
+    return result
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Orchestrator tối giản → file nộp (G2)")
     ap.add_argument("--queries", required=True, help="file JSON chứa list truy vấn")
@@ -129,19 +146,22 @@ def main() -> int:
                 hong += 1
                 rong.append(qid)
                 continue
+        elif task_type == "QA":
+            result = _solve_qa(q, args.answers, Path(args.out))
+            if result.status != "success":
+                print(f"  {qid}: {result.result_state}; giữ trace để duyệt")
+                hong += 1
+                rong.append(qid)
+                continue
+            answers = result.answers
         else:
             ket_qua = []
             try:
                 from backend.slot.allocator import ShotHit
-                if task_type == "QA":
-                    from backend.tasks.qa import qa_pipeline
-                    ket_qua, ans_txt = qa_pipeline(q["query_vi"], top_k_shots=args.answers * CANDIDATE_FACTOR, query_en=q.get("query_en"))
-                    if ans_txt: answer_text = ans_txt
-                else:
-                    ket_qua = search(
-                        q["query_vi"], query_en=q.get("query_en"),
-                        top_k=args.answers * CANDIDATE_FACTOR,
-                    )
+                ket_qua = search(
+                    q["query_vi"], query_en=q.get("query_en"),
+                    top_k=args.answers * CANDIDATE_FACTOR,
+                )
 
                 hits = [
                     h if isinstance(h, ShotHit) 

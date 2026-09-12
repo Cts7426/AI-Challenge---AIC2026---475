@@ -210,6 +210,8 @@ class QAHypothesis:
     answer_mode: str
 
     def __post_init__(self) -> None:
+        if answer_rejection_reason(self.answer_text, self.provenance, self.evidence_hash):
+            raise ValueError("QAHypothesis không được chứa answer rỗng/sentinel/placeholder/refusal")
         if not self.evidence_hash.strip():
             raise ValueError("QAHypothesis phải có evidence_hash")
         if not is_valid_qa_answer(self.answer_text, self.answer_mode):
@@ -307,6 +309,7 @@ _generation_budget_ctx: ContextVar[QAGenerationBudget | None] = ContextVar(
     "qa_generation_budget", default=None,
 )
 _qa_mode_ctx: ContextVar[str | None] = ContextVar("qa_inference_mode", default=None)
+_qa_review_ctx: ContextVar[dict | None] = ContextVar("qa_review", default=None)
 _qa_attempt_ctx: ContextVar[dict[str, object] | None] = ContextVar(
     "qa_attempt", default=None,
 )
@@ -444,27 +447,10 @@ def _route_for_answer_mode(answer_mode: str) -> tuple[str, bool]:
         raise ValueError(f"answer_mode không hợp lệ: {answer_mode!r}") from None
 
 
-def _normalize_answer(answer_text: str) -> str:
-    normalized = unicodedata.normalize("NFKC", str(answer_text))
-    normalized = " ".join(normalized.casefold().split())
-    while normalized and unicodedata.category(normalized[0]).startswith("P"):
-        normalized = normalized[1:].lstrip()
-    while normalized and unicodedata.category(normalized[-1]).startswith("P"):
-        normalized = normalized[:-1].rstrip()
-    return normalized
-
-
-def _dap_an_cho_trong(answer_mode: str | None) -> str:
-    """Đáp án chỗ trống, đủ hợp lệ để nộp nhưng nhìn là biết phải điền tay.
-
-    Phải qua được chính `is_valid_qa_answer` (câu đếm đòi chữ số) nếu không
-    `build_qa_hypothesis` sẽ trả None và ta lại rơi vào cảnh không nộp gì.
-
-    Không dùng "?" — `_normalize_answer` bỏ dấu câu nên nó thành chuỗi rỗng và
-    bị chính bộ lọc loại. "TODO" sống qua chuẩn hoá và đập vào mắt lúc soi.
-    """
-    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
-    return "0" if rule and rule.get("digit") else "TODO"
+from backend.common.qa_contract import (
+    _normalize_answer, _la_cau_tu_choi, _dung_kieu_dap_an,
+    is_valid_qa_answer, answer_rejection_reason,
+)
 
 
 def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
@@ -481,89 +467,6 @@ def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
     · hạng 100 -> -0,30. Shot sâu vẫn thắng được, nhưng phải hơn hẳn.
     """
     return confidence - QA_WINNER_RANK_PENALTY * math.log10(1 + max(0, rank_index))
-
-
-def _la_cau_tu_choi(normalized: str) -> bool:
-    """Dò câu từ chối bằng BA luật, xếp từ chặt tới rộng.
-
-    Vì sao không chỉ liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô
-    hạn. Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
-    Vì sao không chỉ dò hình dạng: lưới rộng LOẠI NHẦM đáp án thật ("Không thấy
-    mưa", "Không có người trong ảnh") — mà loại nhầm đắt hơn bỏ sót.
-
-    Hợp nhất 03/09 từ hai bản làm độc lập (Minh Hoàng ở `integrate/dot3`,
-    Thạch ở `codex/qa-last-3h`). Bản hợp nhất phải qua trọn 22 ca của
-    `tests/test_qa_hypotheses.py`: 15 chuỗi phải chặn, 7 chuỗi phải giữ.
-
-      ① ĐÍCH DANH  hai surface quan sát được thật, luật hình dạng không với tới.
-      ② NGẮN       "không biết" / "we don't know" — bóc chủ ngữ rồi khớp trọn vẹn.
-      ③ HÌNH DẠNG  phủ định ĐỨNG ĐẦU + từ nói về việc xác định/bằng chứng.
-
-    Luật ③ đòi phủ định đứng ĐẦU chứ không phải nằm đâu đó, vì đó là thứ duy
-    nhất phân biệt được câu từ chối với đáp án có chứa chữ phủ định:
-        'Biển báo ghi "Không có thông tin trong bằng chứng"'  -> GIỮ (đáp án thật)
-        "Không thể xác định từ bằng chứng"                    -> CHẶN
-    """
-    if normalized in QA_REFUSAL_EXACT_ANSWERS:          # ①
-        return True
-
-    tokens = normalized.split()
-    # Bóc chủ ngữ: "tôi không biết" và "không biết" là cùng một câu từ chối.
-    if tokens and tokens[0] in QA_REFUSAL_SUBJECT_PREFIXES:
-        tokens = tokens[1:]
-    con_lai = " ".join(tokens)
-
-    if con_lai in QA_REFUSAL_SHORT_ANSWERS:             # ②
-        return True
-
-    if len(tokens) < QA_REFUSAL_MIN_WORDS:              # ③
-        return False
-    if tokens[0] not in QA_REFUSAL_NEGATIONS:
-        return False
-    # Từ bằng chứng có thể gồm hai tiếng ("xác định") nên dò trên cả chuỗi.
-    return any(w in con_lai for w in QA_REFUSAL_EVIDENCE_WORDS)
-
-
-def _dung_kieu_dap_an(normalized: str, answer_mode: str | None) -> bool:
-    """Đáp án phải đúng DẠNG câu hỏi đòi (câu đếm phải có chữ số, v.v.).
-
-    Đo 28/08: p1-17 hỏi tên con đèo, hạng 1 là "Chồn Hương" còn "Đèo Bạch Mã"
-    nằm hạng 2 — hai bên hoà confidence 0.62 mà không có gì phá hoà theo kiểu.
-    """
-    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
-    if not rule:
-        return True
-    if rule.get("digit") and not any(c.isdigit() for c in normalized):
-        return False
-    max_words = rule.get("max_words")
-    if isinstance(max_words, int) and len(normalized.split()) > max_words:
-        return False
-    return True
-
-
-def is_valid_qa_answer(answer_text: str | None, answer_mode: str | None = None) -> bool:
-    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV.
-
-    `answer_mode` không bắt buộc để mọi caller cũ gọi được như trước; truyền vào
-    thì thêm cổng kiểm kiểu.
-    """
-    if answer_text is None:
-        return False
-    normalized = _normalize_answer(answer_text)
-    if not normalized or normalized in QA_SENTINEL_ANSWERS:
-        return False
-    for prefix in QA_SENTINEL_ANSWERS:
-        marker = prefix + " "
-        if not normalized.startswith(marker):
-            continue
-        suffix = normalized[len(marker):]
-        first_token = suffix.split(" ", 1)[0]
-        first_token = _normalize_answer(first_token)
-        if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
-            return False
-    if _la_cau_tu_choi(normalized):
-        return False
-    return _dung_kieu_dap_an(normalized, answer_mode)
 
 
 def build_qa_hypothesis(
@@ -953,6 +856,7 @@ def capture_evidence(hit: ShotHit, question_vi: str, evidence_type: str,
         attempt["evidence_hash"] = evidence_hash
         attempt["evidence_type"] = evidence_type
         attempt["evidence_stage"] = "image" if ev.frames else "text"
+        attempt.setdefault("evidence", []).append(record)
     return evidence_hash
 
 
@@ -967,9 +871,7 @@ def _capture_inference_output(
     results: list[QAResult],
 ) -> None:
     """Ghi knobs + mọi output đã parse để frozen evidence có thể replay vote."""
-    if not os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip():
-        return
-    if not ev.evidence_hash:
+    if os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip() and not ev.evidence_hash:
         raise QAEvidenceCaptureError("capture đang bật nhưng Evidence thiếu evidence_hash")
     attempt = _qa_attempt_ctx.get() or {"origin": "direct", "order": 0}
     outputs = [
@@ -1011,6 +913,7 @@ def _capture_inference_output(
         "requested_n": int(requested_n),
         "outputs": outputs,
     })
+    attempt.setdefault("inference", []).append(record)
     _append_capture_record(record)
 
 
@@ -1485,6 +1388,19 @@ def _try_shot(
     và frame nộp hoàn toàn do thứ hạng shot của allocator quyết định.
     """
     ev = collect_evidence(hit, question_vi, evidence_type, needs_images)
+    # Hash của payload rỗng không phải bằng chứng. Thử ảnh nếu route text rỗng,
+    # rồi dừng suy luận ở shot này khi cả hai nguồn đều không có nội dung.
+    def has_content(evidence: Evidence) -> bool:
+        return bool(evidence.frames or evidence.object_count is not None
+                    or str(evidence.metadata_text or "").strip()
+                    or any(str(t).strip() for t in evidence.ocr_texts + evidence.asr_texts))
+    if not has_content(ev) and not needs_images:
+        ev = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
+    if not has_content(ev):
+        attempt = _qa_attempt_ctx.get()
+        if attempt is not None:
+            attempt.update(reason="missing_evidence", evidence_hash=ev.evidence_hash)
+        return None
     attempt = _qa_attempt_ctx.get()
     if isinstance(attempt, dict) and ev.evidence_hash:
         attempt.update({
@@ -1850,12 +1766,17 @@ def _qa_pipeline_impl(
         hits = search(parts.event_vi, query_en=event_query_en,
                       top_k=top_k_shots, group_by_shot=True)
     if not hits:
-        raise RuntimeError(f"search() không trả shot nào cho sự kiện: '{parts.event_vi}'")
+        trace = {"result_state": "abstain", "hypotheses": [], "attempts": [],
+                 "event_vi": parts.event_vi, "question_vi": parts.question_vi}
+        return ([], "", trace) if return_trace else ([], "")
 
     candidate_shots = [
         ShotHit(r["shot_id"], r["score"], r["keyframe_id"])
         for r in hits if r["shot_id"] is not None
     ]
+    review = _qa_review_ctx.get()
+    if review is not None:
+        review["candidates"] = candidate_shots
     if not candidate_shots:
         raise RuntimeError(
             "search() có kết quả nhưng không shot nào có shot_id — kiểm tra clip_kf_map.parquet"
@@ -1926,6 +1847,9 @@ def _qa_pipeline_impl(
     attempt_order = 0
     budget_exhausted = False
     hypotheses: list[QAHypothesis] = []
+    review_attempts: list[dict[str, object]] = []
+    if review is not None:
+        review["attempts"] = review_attempts
     hypothesis_keys: set[tuple[str, int, str]] = set()
     for hit in thu_de_suy_luan:
         tried_shot_ids.add(hit.shot_id)
@@ -1945,9 +1869,11 @@ def _qa_pipeline_impl(
             raise
         except Exception as e:
             print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A, thử shot kế tiếp: {e}")
+            (_qa_attempt_ctx.get() or {}).update(error=f"{type(e).__name__}: {e}")
             continue
         finally:
             attempt_details = dict(_qa_attempt_ctx.get() or {})
+            review_attempts.append({"shot_id": hit.shot_id, "keyframe_id": hit.best_keyframe_id, **attempt_details})
             _qa_attempt_ctx.reset(attempt_token)
         if ket_qua is None:
             continue
@@ -2037,9 +1963,11 @@ def _qa_pipeline_impl(
                     raise
                 except Exception as e:
                     print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A: {e}")
+                    (_qa_attempt_ctx.get() or {}).update(error=f"{type(e).__name__}: {e}")
                     continue
                 finally:
                     attempt_details = dict(_qa_attempt_ctx.get() or {})
+                    review_attempts.append({"shot_id": hit.shot_id, "keyframe_id": hit.best_keyframe_id, **attempt_details})
                     _qa_attempt_ctx.reset(attempt_token)
                 if ket_qua is None:
                     continue
@@ -2079,70 +2007,22 @@ def _qa_pipeline_impl(
             if budget_exhausted:
                 break
 
-    if (best is None or not hypotheses) and candidate_shots and not budget_exhausted:
-        # THÀ ĐOÁN CÒN HƠN BỎ TRỐNG. Không có hình phạt cho câu sai, mà bỏ trống
-        # thì `finalize` chặn cả gói ZIP (đo 28/08: p1-15 và p1-3 làm hỏng toàn
-        # bộ submission). Q&A có hai cửa tử độc lập nên answer sai vẫn là 0 —
-        # nhưng video+frame đúng thì người thao tác sửa answer bằng tay được,
-        # còn không nộp gì thì không sửa được. Đáp án chỗ trống này CỐ Ý vô
-        # nghĩa để người soi thấy ngay là phải điền, không tưởng là máy trả lời.
-        fmap = load_frame_map()
-        answer = _dap_an_cho_trong(answer_mode)
-        # MỖI VIDEO MỘT DÒNG ĐẦU, theo đúng thứ tự retrieval. Không gom về một
-        # shot: người soi cần biết ĐÀO VIDEO NÀO TRƯỚC, mà bảng QA vốn xếp theo
-        # độ tự tin của đáp án — khi không có đáp án nào thì thứ tự đó vô nghĩa
-        # và thứ hạng retrieval là tín hiệu duy nhất còn lại.
-        da_co_video: set[str] = set()
-        for hit in candidate_shots:
-            if len(da_co_video) >= QA_PLACEHOLDER_VIDEOS:
-                break
-            vid = hit.shot_id.split("#", 1)[0]
-            if vid in da_co_video:
-                continue
-            frame = fmap.get(hit.best_keyframe_id)
-            if frame is None:
-                continue
-            hypothesis = build_qa_hypothesis(
-                hit,
-                answer_text=answer,
-                evidence_frame_idx=int(frame),
-                confidence=0.0,
-                # KHÔNG dùng _evidence_hash_for_attempt: hàm đó fail-closed vì
-                # mọi answer THẬT phải truy về bằng chứng. Chỗ trống thì đúng là
-                # không có bằng chứng — nên cấp digest xác định riêng, tiền tố
-                # "placeholder" để soi trace là biết ngay dòng này chưa có người
-                # trả lời, không lẫn với answer do VLM sinh.
-                evidence_hash="placeholder-" + hashlib.sha256(
-                    f"{hit.shot_id}|{frame}".encode()
-                ).hexdigest()[:16],
-                provenance=f"placeholder:no_answer:{_current_qa_mode()}",
-                answer_mode=answer_mode,
-                evidence_type=evidence_type,
-            )
-            if hypothesis is not None:
-                hypotheses.append(hypothesis)
-                da_co_video.add(vid)
-                if best is None:
-                    # Dòng hạng 1 = shot retrieval tốt nhất, không phải shot may
-                    # mắn nào đó — người soi bắt đầu đào từ đây.
-                    i = next(j for j, h in enumerate(candidate_shots)
-                             if h.shot_id == hit.shot_id)
-                    best = (i, hit, answer, int(frame), 0.0)
-        if hypotheses:
-            print(f"  [CHỖ TRỐNG] không shot nào trả lời được — nộp {len(hypotheses)} video "
-                  f"đầu bảng retrieval ({', '.join(sorted(da_co_video))}) với answer={answer!r}. "
-                  "NGƯỜI PHẢI SOI ẢNH VÀ ĐIỀN TAY.")
-
     if best is None or not hypotheses:
-        suffix = (
-            f" Đã chạm trần {QA_TWO_STAGE_MAX_GENERATIONS} generation two-stage."
-            if budget_exhausted else ""
-        )
-        raise QANoValidHypothesisError(
-            f"Thử {len(tried_shot_ids)} shot (kể cả ứng viên nhánh text và mở rộng trong video) đều "
-            "không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) "
-            f"của các shot này có rỗng không.{suffix}"
-        )
+        if review_attempts and all(attempt.get("error") for attempt in review_attempts):
+            raise RuntimeError("Mọi lần suy luận Q&A đều lỗi thực thi; xem attempts trong review payload")
+        # Không tạo answer giả. Ứng viên và mọi lần thử vẫn sẵn cho người duyệt.
+        budget = _generation_budget_ctx.get()
+        trace = {
+            "result_state": "needs_review", "hypotheses": [],
+            "event_vi": parts.event_vi, "question_vi": parts.question_vi,
+            "evidence_type": evidence_type, "answer_mode": answer_mode,
+            "planner_fallback": parts.planner_fallback, "attempts": review_attempts,
+            "qa_runtime": qa_runtime_config(),
+            "generations_used": budget.used if budget else None,
+            "generation_limit": budget.limit if budget else None,
+            "generation_limit_reached": budget_exhausted,
+        }
+        return (candidate_shots, "", trace) if return_trace else (candidate_shots, "")
 
     i, hit, answer, evidence_frame_idx, confidence = best
     if evidence_frame_idx is None:
@@ -2168,6 +2048,7 @@ def _qa_pipeline_impl(
         runtime = qa_runtime_config()
         budget = _generation_budget_ctx.get()
         return ranked_hits, answer, {
+            "result_state": "supported_answer", "attempts": review_attempts,
             "event_vi": parts.event_vi,
             "question_vi": parts.question_vi,
             "evidence_type": evidence_type,
@@ -2197,6 +2078,7 @@ def qa_pipeline(
 ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
     """Đóng băng mode và tạo generation budget riêng cho từng query Q&A."""
     mode = qa_inference_mode()
+    review_token = _qa_review_ctx.set({})
     mode_token = _qa_mode_ctx.set(mode)
     fingerprint_token = _qa_runtime_fingerprint_ctx.set(
         runtime_fingerprint or "<unset>"
@@ -2211,7 +2093,17 @@ def qa_pipeline(
         )
     try:
         return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace, anchors)
+    except Exception as error:
+        # Crash vẫn là task_failure, nhưng giữ mọi evidence/ứng viên đã thu được.
+        review = _qa_review_ctx.get() or {}
+        error.qa_review = {
+            "attempts": review.get("attempts", []),
+            "candidates": [{"shot_id": h.shot_id, "score": h.score,
+                            "keyframe_id": h.best_keyframe_id} for h in review.get("candidates", [])],
+        }
+        raise
     finally:
+        _qa_review_ctx.reset(review_token)
         if budget_token is not None:
             _generation_budget_ctx.reset(budget_token)
         _qa_full_query_hash_ctx.reset(full_query_token)

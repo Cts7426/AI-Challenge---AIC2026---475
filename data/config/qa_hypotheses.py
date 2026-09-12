@@ -15,6 +15,12 @@ ANSWER_MODES = (
     "visual_attribute",
 )
 
+# H02: không loại số 0; placeholder đếm được nhận qua provenance/hash lịch sử.
+QA_PLACEHOLDER_ANSWERS = frozenset({"todo", "no_answer", "chua_co_answer"})
+QA_PLACEHOLDER_PROVENANCE_TOKENS = frozenset({"placeholder", "no_answer"})
+QA_OPERATOR_PROVENANCE_TOKENS = frozenset({"operator_evidence", "operator_assisted", "manual_verified", "manual_override"})
+QA_AUTONOMOUS_PROVENANCE_TOKENS = frozenset({"llm", "detector", "autonomous"})
+
 # Tăng version khi prompt/schema planner hoặc prompt suy luận đổi nghĩa.
 QA_PLANNER_PROMPT_VERSION = "qa-planner-v2"
 QA_INFERENCE_PROMPT_VERSION = "qa-evidence-v2"

@@ -180,6 +180,8 @@ def build_override(
                 "evidence_frame_idx": frame_id,
                 "keyframe_id": keyframe_id,
                 "source": "operator_evidence",
+                "provenance": "operator_evidence",
+                "evidence_hash": evidence_hash,
             }
         ],
         "answer_shot_id": None,

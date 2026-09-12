@@ -1,0 +1,76 @@
+...FFF...........                                                        [100%]
+================================== FAILURES ===================================
+________________ test_exporter_rejects_known_unsupported[TODO] ________________
+
+answer = 'TODO'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000196B69F7AC0>
+
+    @pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
+    def test_exporter_rejects_known_unsupported(answer,monkeypatch):
+        from backend.export import exporter
+        monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
+        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
+>       assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000019697A2DEA0>
+
+>   assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+               ^^^^^^
+E   AttributeError: 'Issue' object has no attribute 'code'
+
+tests\test_h02_contract.py:58: AttributeError
+_ test_exporter_rejects_known_unsupported[Kh\xf4ng \u0111\u1ee7 c\u0103n c\u1ee9] _
+
+answer = 'Không đủ căn cứ'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000196B69F7F00>
+
+    @pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
+    def test_exporter_rejects_known_unsupported(answer,monkeypatch):
+        from backend.export import exporter
+        monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
+        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
+>       assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000019697A2D3F0>
+
+>   assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+               ^^^^^^
+E   AttributeError: 'Issue' object has no attribute 'code'
+
+tests\test_h02_contract.py:58: AttributeError
+_ test_exporter_rejects_known_unsupported[Kh\xf4ng th\u1ec3 x\xe1c \u0111\u1ecbnh t\u1eeb b\u1eb1ng ch\u1ee9ng] _
+
+answer = 'Không thể xác định từ bằng chứng'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000196B6A33750>
+
+    @pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
+    def test_exporter_rejects_known_unsupported(answer,monkeypatch):
+        from backend.export import exporter
+        monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
+        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
+>       assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000019697CAF8B0>
+
+>   assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+               ^^^^^^
+E   AttributeError: 'Issue' object has no attribute 'code'
+
+tests\test_h02_contract.py:58: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/test_h02_contract.py::test_exporter_rejects_known_unsupported[TODO]
+FAILED tests/test_h02_contract.py::test_exporter_rejects_known_unsupported[Kh\xf4ng \u0111\u1ee7 c\u0103n c\u1ee9]
+FAILED tests/test_h02_contract.py::test_exporter_rejects_known_unsupported[Kh\xf4ng th\u1ec3 x\xe1c \u0111\u1ecbnh t\u1eeb b\u1eb1ng ch\u1ee9ng]
+3 failed, 14 passed in 1.98s

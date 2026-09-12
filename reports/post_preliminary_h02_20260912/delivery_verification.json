@@ -1,0 +1,20 @@
+{
+  "source_commit": "4fe4f2e0447a4946734adb04a59159b823e76271",
+  "base_commit": "235414784b5ee80b9552fd7fe7ce898db1cbf35b",
+  "source_files_verified": 25,
+  "report_tools_verified": 10,
+  "locked_source_files_verified": 71,
+  "input_manifest_sha256": "c26b2dad1ec13e4d1b740f535de35afa7ac68f68365c646cc27663232533ce03",
+  "source_snapshot_sha256": "1257e62170a967adbeab2de2ee90df223f237dcf725c35fea86c888a70b48048",
+  "patch_sha256": "16ed9bb0e1aed51fb3ddb25be67ddbf8e68a2959b36b170a4b4047c0aebf4339",
+  "provider_command_audits": 12,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "history_rewritten": false,
+  "verification": "PASS",
+  "selfcheck_exit_code": 1,
+  "selfcheck_remaining_gaps": [
+    "holdout 6/13 verified",
+    "round1 0/25 GT"
+  ]
+}

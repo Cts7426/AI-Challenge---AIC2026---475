@@ -1,0 +1,11 @@
+# Ghi chú kiểm chứng và giới hạn
+
+- RED.log là run trước production H02, 17 failed. Không tạo lại RED. Các case cần module mới (zero/negative, replay, abstain) thất bại vì module chưa tồn tại; không kết luận zero/negative từng bị code cũ loại sai.
+- Test exporter ban đầu dùng `Issue.code` thay vì `Issue.rule`; khi chưa có issue thì generator rỗng khiến RED vẫn fail đúng do accepted output. Sau khi exporter sinh issue, lỗi tên field lộ ra; đã sửa assertion thành field thật. `GREEN_initial.log` giữ bằng chứng lỗi test này; không viết lại lịch sử.
+- Full initial có 4 fail do contract/fixture/schema serializer. Full sau guard có 1 fail ở fixture budget rỗng. Các lần này giữ log riêng; kết quả gate là `full_gate.log`, không thay tên log đỏ để giả xanh.
+- Tất cả test hợp lệ cuối dùng `.venv/Scripts/python.exe`. Hard guard nạp bằng sitecustomize cả subprocess; chặn external socket/DNS trước egress, ghi attempt và dùng BaseException để tránh pipeline nuốt rồi fallback. `LLM_CACHE_ONLY=1`, model do process đặt api/claude-sonnet-5; không gọi AI bên ngoài. Loopback để DB/preflight hoạt động. Replay thuần không import hoặc gọi adapter.
+- H02 chưa đo accuracy/recall/latency. `supported_answer` chỉ nghĩa có cấu trúc answer/evidence hợp lệ, không xác minh GT. `autonomous_eligible` còn cần provenance tự động; operator/unknown không thành score tự động.
+- Exporter mặc định là cổng format/assisted, nhận standalone CSV không có provenance để kiểm định dạng. Cổng `autonomous=True` đòi output_contract và ràng buộc từng row với evidence; evaluator/harness dùng cổng này. Release rehearsal kiểm evidence/cache/trace riêng. CSV lịch sử chỉ có text nên không suy placeholder zero hoặc origin từ CSV.
+- `run.py` tiếp tục hỗ trợ workflow operator đã cung cấp evidence tường minh; checkpoint/trace giữ `operator_assisted`, không gán thành tự động. `run_minimal.py` QA dùng runner chung, không lấy supplied answer làm fallback.
+- Các file implement_contract.py/implement_paths.py/implement_boundaries.py trong report là nhật ký script áp patch một lần; không chạy lại lên WIP. Các script replay/audit mới chạy từ report và chỉ ghi report.
+- Nhánh WIP/mixed history giữ nguyên. Source H02 được định danh 25 file; 15 file H01 và thay đổi H01/report/context-handoff ngoài H02 không được gộp attribution.

@@ -1,0 +1,91 @@
+........................................................................ [  7%]
+........................................................................ [ 14%]
+........................................................................ [ 22%]
+........................................................................ [ 29%]
+........................................................................ [ 36%]
+........................................................................ [ 44%]
+........................................................................ [ 51%]
+......................................................................F. [ 59%]
+........................................................................ [ 66%]
+........................................................................ [ 73%]
+........................................................................ [ 81%]
+........................................................................ [ 88%]
+........................................................................ [ 95%]
+........................................                                 [100%]
+================================== FAILURES ===================================
+___________ test_two_stage_cap_42_phu_text_main_image_va_expansion ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002155A28C980>
+fake_frame_pin = {}
+
+    def test_two_stage_cap_42_phu_text_main_image_va_expansion(monkeypatch, fake_frame_pin):
+        """Mọi origin dùng chung một budget; lượt thứ 43 bị chặn trước khi gọi llm()."""
+        monkeypatch.setenv("QA_INFERENCE_MODE", "two_stage")
+        monkeypatch.setenv("LLM_NO_CACHE", "1")
+        monkeypatch.delenv("QA_EVIDENCE_LOG_PATH", raising=False)
+        monkeypatch.setattr(
+            "backend.tasks.qa.parse_question",
+            lambda q: QuestionParts("sự kiện", "câu hỏi"),
+        )
+        monkeypatch.setattr("backend.tasks.qa.route_question", lambda q: ("default", False))
+    
+        main = [
+            {"shot_id": f"M{i}#s0001", "score": 1.0 - i / 100, "keyframe_id": f"M{i}#k0001"}
+            for i in range(5)
+        ]
+        text_hits = [ShotHit(f"T{i}#s0001", 0.5, f"T{i}#k0001") for i in range(5)]
+        monkeypatch.setattr("backend.tasks.qa.search", lambda *a, **kw: main)
+        monkeypatch.setattr("backend.tasks.qa._ung_vien_nhanh_text", lambda *a, **kw: text_hits)
+        monkeypatch.setattr(
+            "backend.tasks.qa._expand_within_video",
+            lambda video_id, *a, **kw: [
+                ShotHit(f"{video_id}#s00{j + 2:02d}", 0.1, f"{video_id}#k00{j + 2:02d}")
+                for j in range(3)
+            ],
+        )
+        def fake_collect(hit, *args, **kwargs):
+            evidence = Evidence(
+                hit.shot_id, hit.shot_id.split("#")[0], [], [], "", None, [], 10,
+                hashlib.sha256(hit.shot_id.encode("utf-8")).hexdigest(),
+            )
+            attempt = Q._qa_attempt_ctx.get()
+            assert attempt is not None
+            attempt.update({
+                "evidence_hash": evidence.evidence_hash,
+                "evidence_type": "test",
+                "evidence_stage": "text",
+            })
+            return evidence
+    
+        monkeypatch.setattr("backend.tasks.qa.collect_evidence", fake_collect)
+        raw = json.dumps({
+            "answer": "x", "answer_vi": "x", "answer_en": "x",
+            "evidence_frame_idx": 10, "confidence": 0.6,
+        })
+        llm_calls = []
+    
+        def fake_llm(*args, **kwargs):
+            llm_calls.append(kwargs["n"])
+            return raw if kwargs["n"] == 1 else [raw] * kwargs["n"]
+    
+        monkeypatch.setattr("backend.tasks.qa.llm", fake_llm)
+        _, answer, trace = qa_pipeline("câu hỏi", return_trace=True)
+>       assert answer == "x"
+E       AssertionError: assert '' == 'x'
+E         
+E         - x
+
+tests\test_qa.py:427: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\dev\aic2026\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+.venv\Lib\site-packages\google\genai\types.py:42
+  C:\dev\aic2026\.venv\Lib\site-packages\google\genai\types.py:42: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_qa.py::test_two_stage_cap_42_phu_text_main_image_va_expansion
+1 failed, 975 passed, 1 skipped, 2 warnings in 103.31s (0:01:43)

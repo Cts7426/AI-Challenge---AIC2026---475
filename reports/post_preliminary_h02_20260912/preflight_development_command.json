@@ -1,0 +1,16 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "scripts/preflight_check.py",
+    "--profile",
+    "development",
+    "--json"
+  ],
+  "exit_code": 0,
+  "seconds": 49.3,
+  "hard_guard": true,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "model_selection": "api/claude-sonnet-5",
+  "cache_only": true
+}

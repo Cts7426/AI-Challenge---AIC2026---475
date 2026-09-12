@@ -1,0 +1,208 @@
+{
+  "valid_fixtures": 9,
+  "unsupported_fixtures": 24,
+  "false_rejections": 0,
+  "false_accepts": 0,
+  "ground_truth_verified_by_agent": false,
+  "rows": [
+    {
+      "case": "0",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "Không",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "Không có người trong ảnh",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "Không thấy mưa",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "Không có thông tin liên lạc",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "No Information Technology",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "Biển báo ghi Không có thông tin trong bằng chứng",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "đỏ",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_autonomous_fixture"
+    },
+    {
+      "case": "operator zero explicit",
+      "expected": "success",
+      "actual": "success",
+      "kind": "valid_assisted_fixture",
+      "origin": "operator_assisted"
+    },
+    {
+      "case": "Không thể xác định từ bằng chứng",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "TODO",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "chưa rõ",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "do not know",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "don't know",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "i do not know",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "i don't know",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "insufficient evidence",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không biết",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không chắc",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không có cân hiển thị trong hình ảnh",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không có thông tin",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không rõ",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không thấy cân hoặc số trên cân trong hình",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không đủ căn cứ",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "không đủ thông tin",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "no information",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "not enough information",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "not sure",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "unclear",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "unknown",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "placeholder_zero",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "no_evidence",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    },
+    {
+      "case": "unknown_origin",
+      "expected": "needs_review",
+      "actual": "needs_review",
+      "kind": "registered_unsupported"
+    }
+  ]
+}

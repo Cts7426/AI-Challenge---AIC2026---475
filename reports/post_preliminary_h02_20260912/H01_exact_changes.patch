@@ -1,0 +1,1601 @@
+diff --git a/backend/common/resource_identity.py b/backend/common/resource_identity.py
+new file mode 100644
+index 0000000..acf0d90
+--- /dev/null
++++ b/backend/common/resource_identity.py
+@@ -0,0 +1,253 @@
++"""Snapshot có hash nội dung để phân biệt code, data, cache và DB của từng run."""
++from __future__ import annotations
++
++import ast
++import hashlib
++import importlib.metadata
++import json
++import os
++from pathlib import Path
++import platform
++import subprocess
++import sys
++
++from data.config import experiment as config
++
++
++def manifest_id(manifest: dict) -> str:
++    """Input JSON manifest; output SHA-256 canonical, không phụ thuộc thứ tự key."""
++    from backend.tasks.runner import _json_safe
++    raw = json.dumps(_json_safe(manifest), ensure_ascii=False, sort_keys=True,
++                     separators=(",", ":"), allow_nan=False)
++    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
++
++
++def file_identity(path: Path) -> dict:
++    """Hash streaming; file thiếu/lỗi phải giữ trạng thái, không giả hash rỗng."""
++    try:
++        before = path.stat()
++        with path.open("rb") as stream:
++            digest = hashlib.file_digest(stream, "sha256").hexdigest()
++        after = path.stat()
++        if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
++            return {"status": "changed_during_capture"}
++        return {"status": "available", "size_bytes": after.st_size, "sha256": digest}
++    except FileNotFoundError:
++        return {"status": "missing"}
++    except OSError as error:
++        return {"status": "unavailable", "error_type": type(error).__name__}
++
++
++def _files(root: Path, patterns: tuple[str, ...]) -> dict:
++    paths = {path for pattern in patterns for path in root.glob(pattern) if path.is_file()}
++    return {path.relative_to(root).as_posix(): file_identity(path) for path in sorted(paths)}
++
++
++def cache_identity(root: Path) -> dict:
++    """Chụp cache trước/sau run; không đưa timestamp/access time vào hash."""
++    paths = [Path(os.environ.get("LLM_CACHE_DIR", root / config.CACHE_DIRS[0])),
++             Path(os.environ.get("QA_HYPOTHESIS_CACHE_DIR", root / config.CACHE_DIRS[1]))]
++    return {str(path): {"exists": path.is_dir(), "files": _files(path, ("**/*.json",))}
++            for path in paths}
++
++
++def asset_identity(roots: list[Path], *, content_digests: bool) -> dict:
++    """Hash pixel asset khi được yêu cầu; chưa hash phải thành gap, không giả đủ."""
++    if not content_digests:
++        return {"status": "not_hashed", "roots": [str(root) for root in roots]}
++    entries = {str(root): _files(root, ("**/*.jpg", "**/*.jpeg", "**/*.png", "**/*.mp4"))
++               for root in roots}
++    complete = any(entries.values()) and all(
++        item["status"] == "available" for files in entries.values() for item in files.values())
++    return {"status": "available" if complete else "incomplete", "files": entries}
++
++
++def reproducibility_gaps(manifest: dict) -> list[str]:
++    """Các thiếu sót chặn nhận identity cho paired run, độc lập với hash bằng nhau."""
++    gaps = []
++    env = manifest.get("environment", {})
++    vector = str(env.get("VECTOR_BACKEND") or "clip").strip().lower()
++    if vector not in ("clip", "siglip2"):
++        gaps.append("runtime:invalid_vector_backend")
++    # H01 chỉ thu được weights CLIP hiện hành. Encoder khác phải có collector
++    # riêng trước khi nhận baseline; có file CLIP không chứng minh SigLIP2.
++    if vector not in manifest.get("model_weights_encoders", []):
++        gaps.append(f"model_weights:{vector}:not_captured")
++    if "siglip2" in manifest.get("required_vector_encoders", []) and "siglip2" not in manifest.get("model_weights_encoders", []):
++        gaps.append("model_weights:siglip2:secondary_encoder_not_captured")
++    model_key = {"api": "LLM_API_MODEL", "gemini": "LLM_GEMINI_MODEL", "local": "LLM_LOCAL_MODEL"}.get(env.get("LLM_BACKEND"))
++    if model_key is None or not str(env.get(model_key) or "").strip():
++        gaps.append("runtime:model_not_selected")
++    if manifest.get("frame_map", {}).get("status") != "available":
++        gaps.append("frame_map:unavailable")
++    for section in ("source", "config", "data", "scorer", "model_weights"):
++        files = manifest.get(section, {})
++        if not files or any(item.get("status") != "available" for item in files.values()):
++            gaps.append(f"{section}:incomplete")
++    if manifest.get("assets", {}).get("status") != "available":
++        gaps.append("assets:content_digest_missing")
++    indexes = manifest.get("indexes", {})
++    es = indexes.get("elasticsearch", {})
++    if es.get("status") != "available":
++        gaps.append("elasticsearch:unavailable")
++    for name in config.ES_INDEXES:
++        item = es.get("indexes", {}).get(name, {})
++        if item.get("status") != "available" or item.get("count", 0) <= 0:
++            gaps.append(f"elasticsearch:{name}:missing_or_empty")
++        if not item.get("content_sha256") or item.get("hashed_count") != item.get("count"):
++            gaps.append(f"elasticsearch:{name}:content_digest_incomplete")
++    milvus = indexes.get("milvus", {})
++    if milvus.get("status") != "available":
++        gaps.append("milvus:unavailable")
++    from data.config.siglip2_model import SIGLIP2_COLLECTION
++    name = SIGLIP2_COLLECTION if vector == "siglip2" else "keyframes"
++    item = milvus.get("collections", {}).get(name, {})
++    count = int(item.get("stats", {}).get("row_count", 0))
++    if item.get("status") != "available" or count <= 0:
++        gaps.append(f"milvus:{name}:missing_or_empty")
++    if not item.get("content_sha256") or item.get("hashed_count") != count:
++        gaps.append(f"milvus:{name}:content_digest_incomplete")
++    return gaps
++
++
++def require_reproducible(manifest: dict) -> None:
++    """Không cho hai manifest thiếu giống nhau vượt cổng chỉ vì hash bằng nhau."""
++    if gaps := reproducibility_gaps(manifest):
++        raise ValueError("identity chưa đủ để chạy baseline: " + "; ".join(gaps))
++
++
++def stable_resource_id(manifest: dict) -> str:
++    """Identity không gồm cache có thể append trong run; cache vẫn được hash riêng."""
++    return manifest_id({key: value for key, value in manifest.items() if key != "cache"})
++
++
++def validate_resume_identity(before: dict, current: dict) -> None:
++    """Resume chỉ nhận nguyên tài nguyên và cache append; không đổi evidence cũ."""
++    if stable_resource_id(before) != stable_resource_id(current):
++        raise ValueError("resource/code/model khác run đã khóa")
++    for root, entry in before.get("cache", {}).items():
++        now = current.get("cache", {}).get(root, {}).get("files", {})
++        for name, identity in entry.get("files", {}).items():
++            if now.get(name) != identity:
++                raise ValueError(f"cache cũ đã đổi hoặc mất: {root}/{name}")
++
++
++def _function_hashes(root: Path, files: dict) -> dict:
++    """Hash từng hàm cả prompt literal; hash toàn file vẫn khóa imports/constants."""
++    hashes = {}
++    for name in files:
++        if not name.endswith(".py"):
++            continue
++        source = (root / name).read_text(encoding="utf-8-sig")
++        tree = ast.parse(source)
++        for node in ast.walk(tree):
++            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
++                body = ast.get_source_segment(source, node) or ""
++                hashes[f"{name}:{node.lineno}:{node.name}"] = hashlib.sha256(body.encode()).hexdigest()
++    return hashes
++
++
++def index_identity(*, content_digests: bool = False) -> dict:
++    """Đọc DB qua connect tập trung; digest tùy chọn đọc toàn bộ nội dung không sửa index."""
++    from backend.tasks.runner import _json_safe
++    result = {"elasticsearch": {}, "milvus": {}}
++    try:
++        from backend.indexing.es_client import connect
++        es = connect()
++        try:
++            result["elasticsearch"]["server"] = dict(es.info())
++            indexes = {}
++            result["elasticsearch"]["indexes"] = indexes
++            for name in config.ES_INDEXES:
++                if not es.indices.exists(index=name):
++                    indexes[name] = {"status": "missing"}
++                    continue
++                entry = {"status": "available", "metadata": dict(es.indices.get(index=name)),
++                         "count": es.count(index=name)["count"]}
++                indexes[name] = entry
++                if content_digests:
++                    from elasticsearch.helpers import scan
++                    hashes = [manifest_id({"id": row["_id"], "source": row["_source"]})
++                              for row in scan(es, index=name, query={"query": {"match_all": {}}}, size=1000)]
++                    entry["content_sha256"] = manifest_id({"documents": sorted(hashes)})
++                    entry["hashed_count"] = len(hashes)
++            result["elasticsearch"]["status"] = "available"
++        finally:
++            es.close()
++    except Exception as error:
++        result["elasticsearch"].update(status="unavailable", error_type=type(error).__name__)
++    try:
++        from backend.indexing.milvus_client import connect
++        client = connect()
++        try:
++            collections = {}
++            result["milvus"]["collections"] = collections
++            for name in sorted(client.list_collections()):
++                entry = {"status": "available", "schema": client.describe_collection(name),
++                         "stats": client.get_collection_stats(name),
++                         "indexes": {}}
++                collections[name] = entry
++                for index in client.list_indexes(name):
++                    entry["indexes"][index] = client.describe_index(name, index)
++                if content_digests:
++                    iterator = client.query_iterator(name, batch_size=1000, output_fields=["*"])
++                    hashes = []
++                    try:
++                        while rows := iterator.next():
++                            hashes.extend(manifest_id(row) for row in rows)
++                    finally:
++                        iterator.close()
++                    entry["content_sha256"] = manifest_id({"entities": sorted(hashes)})
++                    entry["hashed_count"] = len(hashes)
++            result["milvus"]["status"] = "available"
++        finally:
++            client.close()
++    except Exception as error:
++        result["milvus"].update(status="unavailable", error_type=type(error).__name__)
++    return _json_safe(result)
++
++
++def capture_manifest(root: Path, live: bool, *, content_digests: bool = False) -> dict:
++    """Input repo root và chế độ read-only DB; output identity không chứa credential.
++
++    Không tự chọn model, tải weight, rebuild hay reindex. Thiếu thành phần được
++    ghi rõ; caller không được xem missing/not_probed như tài nguyên đã khóa.
++    """
++    from backend.tasks.runner import runtime_manifest
++    from data.config.frame_assets import RAW_KEYFRAMES_DIR, DERIVED_KEYFRAMES_DIR
++    from data.config.search_weights import BRANCHES
++    from data.config.siglip2_model import vector_backend
++    from backend.tasks.runner import KIS_BRANCH_OVERRIDE
++    primary_encoder = vector_backend()
++    required_encoders = [primary_encoder]
++    if BRANCHES.get("vector_siglip2") or KIS_BRANCH_OVERRIDE.get("vector_siglip2"):
++        required_encoders.append("clip" if primary_encoder == "siglip2" else "siglip2")
++    source = _files(root, config.SOURCE_GLOBS)
++    def git(*args):
++        try:
++            completed = subprocess.run(["git", "--no-optional-locks", *args], cwd=root,
++                                       capture_output=True, text=True, timeout=30)
++            return completed.stdout.strip() if completed.returncode == 0 else "unavailable"
++        except (OSError, subprocess.TimeoutExpired):
++            return "unavailable"
++    return {
++        "schema_version": 1,
++        "git": {"commit": git("rev-parse", "HEAD"), "tree": git("rev-parse", "HEAD^{tree}")},
++        "source": source, "functions": _function_hashes(root, source),
++        "config": _files(root, config.CONFIG_GLOBS),
++        "data": _files(root, config.DATA_GLOBS),
++        "frame_map": file_identity(root / "data/derived/frame_map.parquet"),
++        "assets": asset_identity([RAW_KEYFRAMES_DIR, DERIVED_KEYFRAMES_DIR], content_digests=content_digests),
++        "model_weights": _files(Path.home(), config.MODEL_GLOBS),
++        "model_weights_encoders": ["clip"],
++        "required_vector_encoders": required_encoders,
++        "runtime": {"executable": sys.executable, "python": sys.version,
++                    "platform": platform.platform(), "machine": platform.machine(),
++                    "dependencies": dict(sorted((d.metadata["Name"], d.version)
++                                                for d in importlib.metadata.distributions() if d.metadata["Name"]))},
++        "environment": {key: os.environ.get(key) for key in config.RUNTIME_ENV_KEYS},
++        "production_runtime": runtime_manifest(),
++        "scorer": _files(root, ("dev_set/tools/scorer*.py", "data/config/scoring.py", "data/config/qa_evaluation.py")),
++        "cache": cache_identity(root),
++        "indexes": index_identity(content_digests=content_digests) if live else {"status": "not_probed"},
++    }
+diff --git a/backend/common/retrieval_trace.py b/backend/common/retrieval_trace.py
+new file mode 100644
+index 0000000..fe69647
+--- /dev/null
++++ b/backend/common/retrieval_trace.py
+@@ -0,0 +1,79 @@
++"""Observer tùy chọn: trace giữ bản sao dữ liệu, không tham gia quyết định ranking."""
++from __future__ import annotations
++
++from contextlib import contextmanager
++from contextvars import ContextVar
++from copy import deepcopy
++from functools import wraps
++import inspect
++import time
++
++_calls = ContextVar("retrieval_calls", default=None)
++_active = ContextVar("retrieval_call", default=None)
++
++
++@contextmanager
++def capture_retrieval():
++    """Output list các search thật trong context; reset kể cả task ném lỗi."""
++    calls = []
++    token = _calls.set(calls)
++    try:
++        yield calls
++    finally:
++        _calls.reset(token)
++
++
++def current_call():
++    return _active.get()
++
++
++@contextmanager
++def bind_call(call):
++    """Truyền observer sang worker; không chia sẻ context giữa hai query."""
++    token = _active.set(call)
++    try:
++        yield
++    finally:
++        _active.reset(token)
++
++
++def record(stage: str, value) -> None:
++    """Snapshot khi observer bật; sửa dữ liệu về sau không được viết lại lịch sử."""
++    call = current_call()
++    if call is not None:
++        call[stage] = deepcopy(value)
++
++
++def record_error(stage: str, error: Exception) -> None:
++    call = current_call()
++    if call is not None:
++        call["errors"].append({"stage": stage, "type": type(error).__name__, "message": str(error)})
++
++
++def traced_search(fn):
++    """Bọc search thật; không bắt lỗi thay caller và không thay output."""
++    signature = inspect.signature(fn)
++    @wraps(fn)
++    def wrapped(*args, **kwargs):
++        calls = _calls.get()
++        if calls is None:
++            return fn(*args, **kwargs)
++        bound = signature.bind(*args, **kwargs)
++        bound.apply_defaults()
++        call = {"input": deepcopy(dict(bound.arguments)), "branches": {}, "errors": [],
++                "status": "running", "fused_ranking": [], "reranked_ranking": [], "final_ranking": []}
++        calls.append(call)
++        start = time.perf_counter()
++        with bind_call(call):
++            try:
++                result = fn(*args, **kwargs)
++                record("final_ranking", result)
++                call["status"] = "success"
++                return result
++            except Exception as error:
++                call["status"] = "failed"
++                call["error"] = {"type": type(error).__name__, "message": str(error)}
++                raise
++            finally:
++                call["seconds"] = time.perf_counter() - start
++    return wrapped
+diff --git a/backend/llm/adapter.py b/backend/llm/adapter.py
+index 411a227..f56ca2a 100644
+--- a/backend/llm/adapter.py
++++ b/backend/llm/adapter.py
+@@ -5,13 +5,13 @@
+ # backend chỉ sửa một dòng config, không phải lùng sửa từng chỗ gọi rải rác.
+ #
+ # ===== Cấu hình bằng biến môi trường =====
+-#   LLM_BACKEND      = "api" (mặc định) | "gemini" | "local"
+-#   LLM_API_MODEL    = model khi dùng API (mặc định claude-opus-5)
++#   LLM_BACKEND      = "api" | "gemini" | "local" — bắt buộc chọn tường minh
++#   LLM_API_MODEL    = model API do operator đặt trong process
+ #   ANTHROPIC_API_KEY= bắt buộc khi LLM_BACKEND=api
+-#   LLM_GEMINI_MODEL = model khi dùng Gemini (mặc định gemini-3.6-flash — xem
++#   LLM_GEMINI_MODEL = model Gemini do operator đặt (xem
+ #                      lý do không mặc định "pro"/"-latest" ở DEFAULT_GEMINI_MODEL)
+ #   GEMINI_API_KEY   = bắt buộc khi LLM_BACKEND=gemini, lấy tại aistudio.google.com/apikey
+-#   LLM_LOCAL_MODEL  = model Ollama khi chạy offline (mặc định qwen2.5:7b-instruct)
++#   LLM_LOCAL_MODEL  = model Ollama do operator đặt khi chạy offline
+ #   LLM_LOCAL_URL    = địa chỉ Ollama (mặc định http://localhost:11434)
+ #   LLM_CACHE_DIR    = thư mục cache (mặc định data/cache/llm)
+ #   LLM_NO_CACHE=1   → tắt cache (khi muốn đo độ trễ thật)
+@@ -99,7 +99,8 @@ GEMINI_THINKING_HEADROOM = 2048
+ 
+ _api_client = None
+ _gemini_client_singleton = None
+-_usage = {"calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "usd": 0.0}
++_usage = {"calls": 0, "cache_hits": 0, "input_tokens": 0, "output_tokens": 0, "usd": 0.0,
++          "cache_only_misses": 0}
+ 
+ 
+ # ----------------------------------------------------------------------- cache
+@@ -173,24 +174,7 @@ def print_usage() -> None:
+ # -------------------------------------------------------------------- backends
+ 
+ def _nap_dotenv() -> None:
+-    """Điền các biến còn THIẾU từ `.env` vào os.environ.
+-
+-    Hai sửa so với bản cũ (bản cũ nằm lọt trong `_anthropic_client()`):
+-
+-    1. KHÔNG ghi đè biến operator đã export. Bản cũ gán thẳng
+-       `os.environ[k] = v`, nên `.env` LUÔN thắng — operator export
+-       `LLM_API_MODEL=claude-sonnet-5` mà `.env` ghi opus thì chạy opus, im
+-       lặng, không cảnh báo. Đúng thứ `_llm_runtime_errors()` trong run.py sinh
+-       ra để chặn ("một biến bị quên không âm thầm rơi về API/Opus mặc định"),
+-       nhưng preflight kiểm os.environ TRƯỚC khi adapter nạp `.env` nên không
+-       thấy. Nay `.env` chỉ VÁ CHỖ TRỐNG, export tường minh luôn thắng.
+-
+-    2. Gọi được từ mọi backend, không riêng Anthropic. Trước đây `.env` chỉ
+-       được nạp bên trong `_anthropic_client()`, nên `LLM_BACKEND=gemini` với
+-       GEMINI_API_KEY nằm trong `.env` sẽ QUA được preflight của run.py (hàm
+-       đó có đọc `.env`) rồi mới chết ở adapter với "Thiếu GEMINI_API_KEY" —
+-       lệch hợp đồng giữa hai tầng.
+-    """
++    """Chỉ điền secret thiếu; `.env` không được chọn model/backend hoặc policy."""
+     env_path = REPO_ROOT / ".env"
+     if not env_path.is_file():
+         return
+@@ -199,10 +183,31 @@ def _nap_dotenv() -> None:
+             continue
+         k, v = line.split("=", 1)
+         k, v = k.strip(), v.strip().strip('"').strip("'")
+-        if k and v and not os.environ.get(k):
++        if k in {"ANTHROPIC_API_KEY", "GEMINI_API_KEY"} and v and not os.environ.get(k):
+             os.environ[k] = v
+ 
+ 
++class RuntimeSelectionError(ValueError):
++    """Lỗi operator chưa chọn runtime, không phải lỗi dịch để fallback sang VI."""
++
++
++class CacheOnlyMissError(RuntimeError):
++    """Thiếu phản hồi đã lưu; replay ngân sách 0 không được chạm provider."""
++
++
++def selected_runtime() -> tuple[str, str]:
++    """Đọc backend/model từ process; thiếu/sai thì ValueError, không I/O hay default."""
++    backend = os.environ.get("LLM_BACKEND", "").strip()
++    model_env = {"api": "LLM_API_MODEL", "gemini": "LLM_GEMINI_MODEL",
++                 "local": "LLM_LOCAL_MODEL"}.get(backend)
++    if model_env is None:
++        raise RuntimeSelectionError("LLM_BACKEND phải được chọn tường minh: api, gemini hoặc local")
++    model = os.environ.get(model_env, "").strip()
++    if not model:
++        raise RuntimeSelectionError(f"{model_env} phải được chọn tường minh trong process")
++    return backend, model
++
++
+ def _anthropic_client():
+     global _api_client
+     if _api_client is None:
+@@ -511,22 +516,14 @@ def llm(
+     temperature: BỊ BỎ QUA ở backend "api" (model Claude mới không nhận), CÓ
+     tác dụng ở backend "gemini" — xem đầu file.
+     """
+-    backend = os.environ.get("LLM_BACKEND", "api")
++    backend, selected_model = selected_runtime()
++    if model is not None and model != selected_model:
++        raise RuntimeSelectionError("model của lời gọi khác model operator đã chọn trong process")
++    model = selected_model
+     if backend == "api":
+-        model = model or os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL)
+         if temperature not in (None, 0):
+             print(f"[llm] bỏ qua temperature={temperature}: model {model} không nhận "
+                   "tham số này. Cần đa dạng thì dùng n>1 hoặc mô tả trong prompt.")
+-    elif backend == "gemini":
+-        model = model or os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+-        # Gemini NHẬN temperature bình thường (không như Claude) — không cảnh
+-        # báo/bỏ qua ở đây.
+-    elif backend == "local":
+-        model = model or os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL)
+-    else:
+-        raise ValueError(
+-            f"LLM_BACKEND={backend!r} không hợp lệ (chỉ 'api', 'gemini' hoặc 'local')."
+-        )
+ 
+     key = _cache_key({
+         "prompt": prompt, "schema": json_schema, "model": model, "n": n,
+@@ -556,6 +553,12 @@ def llm(
+                 return cached[0] if n == 1 else cached
+             print(f"[llm] bỏ qua cache hỏng ({ly_do}) — gọi lại thật")
+ 
++    # Guard nằm trước mọi dispatch, kể cả use_cache=False/cache bị validator loại.
++    # Counter giúp harness phát hiện caller đã nuốt lỗi rồi dùng fallback.
++    if os.environ.get("LLM_CACHE_ONLY", "0").strip() == "1":
++        _usage["cache_only_misses"] = _usage.get("cache_only_misses", 0) + 1
++        raise CacheOnlyMissError(f"cache-only: thiếu phản hồi hợp lệ cho {model}, key={key}")
++
+     ket_qua: list[str] = []
+     for _ in range(n):
+         text = _mot_lan(prompt, images, json_schema, backend, model, effort, max_tokens, temperature)
+diff --git a/backend/retrieval/search.py b/backend/retrieval/search.py
+index 5ca7ff2..e367c19 100644
+--- a/backend/retrieval/search.py
++++ b/backend/retrieval/search.py
+@@ -427,6 +427,9 @@ def _rrf(rank: int) -> float:
+ NHANH_MUC_KEYFRAME = ("vector", "vector_siglip2", "objects", "ocr", "ocr_probe")
+ 
+ 
++from backend.common.retrieval_trace import bind_call, current_call, record, record_error, traced_search
++
++
+ def _search_core(
+     query_vi: str,
+     query_en: str | None = None,
+@@ -446,10 +449,24 @@ def _search_core(
+     AGENTS.md: VLM/local nặng không nằm trong đường chạy online, trừ Q&A qua
+     `llm()` adapter).
+     """
++    # H01A: lỗi cấu hình phải lộ trước dịch/DB, kể cả khi không có ứng viên.
++    from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON, VOTE_CAP
++    try:
++        alpha = float(VP_ALPHA if video_prior_alpha is None else video_prior_alpha)
++    except (TypeError, ValueError) as e:
++        raise ValueError("video_prior_alpha phải là số trong [0,1]") from e
++    if not 0.0 <= alpha <= 1.0:
++        raise ValueError(f"video_prior_alpha phải trong [0,1], nhận {alpha}")
++    if not VP_ON:
++        alpha = 0.0
++
+     if query_en is None:
+         from backend.retrieval.text_query import translate_to_english
++        from backend.llm.adapter import RuntimeSelectionError
+         try:
+             query_en = translate_to_english(query_vi)
++        except RuntimeSelectionError:
++            raise
+         except Exception as e:
+             # LLM chết (hết credit/mất mạng/429) KHÔNG được kéo sập cả truy vấn.
+             # Trước bản vá này, bước dịch nằm NGOÀI _an_toan() nên một lỗi ở đây
+@@ -457,10 +474,14 @@ def _search_core(
+             # Rơi về query gốc: nhánh vector/objects yếu hẳn (CLIP là model tiếng
+             # Anh), nhưng metadata/OCR/ASR vẫn chạy đúng trên tiếng Việt — điểm
+             # giảm chứ không mất trắng.
++            record_error("translation", e)
+             print(f"  [cảnh báo] dịch VI→EN lỗi ({e}) — dùng nguyên query tiếng Việt")
+             query_en = query_vi
+ 
+     bat = {**BRANCHES, **(branches or {})}
++    record("executed_query", {"query_vi": query_vi, "query_en": query_en,
++                              "filter_video_id": filter_video_id})
++    call = current_call()
+     pool = top_k * (candidate_multiplier or CANDIDATE_MULTIPLIER)
+ 
+     # Nhánh vector thứ hai luôn là encoder CÒN LẠI. Không hardcode 'siglip2':
+@@ -473,13 +494,33 @@ def _search_core(
+ 
+     def _an_toan(ten: str, fn, *args) -> list[dict]:
+         """Một nhánh chết KHÔNG được kéo sập search — thi thì không có thời gian debug."""
++        start = time.perf_counter()
++        entry = {"status": "disabled", "candidates": []}
++        if call is not None:
++            call["branches"][ten] = entry
+         if not bat.get(ten, True):
+             return []
+         try:
+-            return fn(*args)
++            with bind_call(call):
++                rows = fn(*args)
++            if call is not None:
++                from copy import deepcopy
++                if entry.get("internally_disabled"):
++                    status = "disabled"
++                elif entry.get("probe_errors"):
++                    status = "partial_failure" if rows else "failed"
++                else:
++                    status = "success" if rows else "zero_hits"
++                entry.update(status=status, candidates=deepcopy(rows))
++            return rows
+         except Exception as e:
++            if call is not None:
++                entry.update(status="failed", error={"type": type(e).__name__, "message": str(e)})
+             print(f"  [cảnh báo] nhánh {ten} lỗi, bỏ qua: {e}")
+             return []
++        finally:
++            if call is not None:
++                entry["seconds"] = time.perf_counter() - start
+ 
+     # Các nhánh độc lập → bắn cùng lúc, đợi cái chậm nhất thay vì cộng dồn
+     with ThreadPoolExecutor(max_workers=7) as pool_thread:
+@@ -532,6 +573,7 @@ def _search_core(
+                     "timestamp_ms": r.get("timestamp_ms"),
+                 })
+         except Exception as e:
++            record_error("asr_nomination", e)
+             print(f"  [cảnh báo] ASR đề cử lỗi, bỏ qua: {e}")
+ 
+     if not candidates:
+@@ -540,6 +582,7 @@ def _search_core(
+     try:
+         _fill_from_milvus(candidates)
+     except Exception as e:
++        record_error("fill_frame_mapping", e)
+         print(f"  [cảnh báo] không điền được frame_idx/timestamp: {e}")
+ 
+     # --- quy mọi nhánh về hạng theo keyframe
+@@ -581,17 +624,6 @@ def _search_core(
+     # --- tiên nghiệm mức video (video_prior). Xem data/config/video_prior.py.
+     # Cộng dồn bằng chứng của MỌI nhánh theo video, chặn ở VOTE_CAP dòng đầu mỗi
+     # nhánh để video dài không thắng bằng số lượng. alpha=0 -> không đổi gì.
+-    from data.config.video_prior import ALPHA as VP_ALPHA, ENABLED as VP_ON, VOTE_CAP
+-    # Kiểm giá trị của CALLER trước, rồi mới áp cổng ENABLED: caller truyền 1.5
+-    # là một bug của caller dù tính năng đang bật hay tắt. Kiểm sau cổng thì bug
+-    # đó bị nuốt lặng và chỉ lộ ra vào ngày ai đó bật tính năng lên.
+-    if video_prior_alpha is not None and not 0.0 <= float(video_prior_alpha) <= 1.0:
+-        raise ValueError(
+-            f"video_prior_alpha phải trong [0,1], nhận {video_prior_alpha}"
+-        )
+-    alpha = VP_ALPHA if video_prior_alpha is None else float(video_prior_alpha)
+-    if not VP_ON:
+-        alpha = 0.0
+     video_vote: dict[str, float] = {}
+     if alpha > 0.0:
+         # Hai tín hiệu mức video, đo hai thứ KHÁC NHAU:
+@@ -729,14 +761,20 @@ def _branch_ocr_probe(query_vi: str, query_en: str | None, limit: int) -> list[d
+     """
+     from data.config.token_probe import ENABLED, MAX_HITS, MAX_PROBES
+ 
++    call = current_call()
++    probe_trace = call["branches"].get("ocr_probe") if call is not None else None
+     if not ENABLED:
++        if probe_trace is not None:
++            probe_trace["internally_disabled"] = "data.config.token_probe.ENABLED=False"
+         return []
+     diem: dict[str, float] = {}
+     thong_tin: dict[str, dict] = {}
+     for tok in _ung_vien_probe(query_vi, query_en)[:MAX_PROBES]:
+         try:
+             rows = _branch_ocr(tok, MAX_HITS + 1)
+-        except Exception:
++        except Exception as error:
++            if probe_trace is not None:
++                probe_trace.setdefault("probe_errors", []).append({"token": tok, "type": type(error).__name__, "message": str(error)})
+             continue
+         if not rows or len(rows) > MAX_HITS:
+             continue
+@@ -879,6 +917,7 @@ def _finalize(
+     return ket_qua[:top_k]
+ 
+ 
++@traced_search
+ def search(
+     query_vi: str,
+     query_en: str | None = None,
+@@ -906,7 +945,9 @@ def search(
+         query_vi, query_en, top_k, branches, filter_video_id, candidate_multiplier,
+         video_prior_alpha,
+     )
++    record("fused_ranking", ket_qua)
+     kq = _finalize(ket_qua, shots, top_k, group_by_shot, video_prior_alpha)
++    record("finalized_ranking", kq)
+ 
+     # Rerank chạy SAU khi gom shot và cắt top_k — nó xếp lại đúng những dòng sẽ
+     # được nộp, không phải cả pool. Mặc định đọc config (đang TẮT, chờ cổng
+@@ -914,6 +955,7 @@ def search(
+     from backend.retrieval.rerank_top50 import rerank as _rerank_top50
+ 
+     kq = _rerank_top50(kq, enabled=rerank_top50)
++    record("reranked_ranking", kq)
+ 
+     # Xếp xen kẽ theo video LẦN CUỐI, sau rerank: rerank chọn KHUNG HÌNH tốt
+     # trong mỗi shot (việc của nó), còn thứ tự nộp phải bảo đảm mỗi video được
+diff --git a/backend/tasks/runner.py b/backend/tasks/runner.py
+index bcae756..8a2613e 100644
+--- a/backend/tasks/runner.py
++++ b/backend/tasks/runner.py
+@@ -237,7 +237,7 @@ def runtime_manifest() -> dict[str, Any]:
+     được hash theo đường dẫn tương đối đã sort để thay đổi knob cache-relevant
+     luôn làm fingerprint đổi mà không đưa nội dung/credential vào trace.
+     """
+-    backend = str(os.environ.get("LLM_BACKEND") or "api").strip()
++    backend = str(os.environ.get("LLM_BACKEND") or "<unset>").strip()
+     model_env = {
+         "api": "LLM_API_MODEL",
+         "gemini": "LLM_GEMINI_MODEL",
+@@ -264,6 +264,7 @@ def runtime_manifest() -> dict[str, Any]:
+     return {
+         "schema_version": 1,
+         "llm": {"backend": backend, "model": model},
++        "llm_cache_only": os.environ.get("LLM_CACHE_ONLY", "0"),
+         "qa_inference_mode": str(os.environ.get("QA_INFERENCE_MODE") or "<unset>"),
+         "config_sha256": config_hashes,
+         "critical_sources_sha256": critical_hashes,
+diff --git a/backend/tasks/trake.py b/backend/tasks/trake.py
+index ede12c0..8130e31 100644
+--- a/backend/tasks/trake.py
++++ b/backend/tasks/trake.py
+@@ -792,7 +792,12 @@ def trake_search(
+             return []
+ 
+     with ThreadPoolExecutor(max_workers=min(n, 8)) as pool:
+-        per_event_hits = list(pool.map(_search_one, events))
++        # H01C: context riêng cho từng worker để giữ trace; thứ tự kết quả vẫn
++        # theo events như pool.map trước đây, không đổi thuật toán TRAKE.
++        from contextvars import copy_context
++        contexts = [copy_context() for _ in events]
++        per_event_hits = list(pool.map(lambda pair: pair[0].run(_search_one, pair[1]),
++                                       zip(contexts, events)))
+ 
+     topk_per_event_video = [_topk_per_video(hits, candidates_per_event) for hits in per_event_hits]
+     # Tính 1 LẦN cho cả lần gọi trake_search() này — token_weight cần nhìn
+diff --git a/data/config/experiment.py b/data/config/experiment.py
+new file mode 100644
+index 0000000..d2471bd
+--- /dev/null
++++ b/data/config/experiment.py
+@@ -0,0 +1,16 @@
++"""Phạm vi snapshot H01; chỉ thu identity, không đổi cấu hình retrieval."""
++
++SOURCE_GLOBS = ("backend/**/*.py", "scripts/*.py", "run.py", "dev_set/tools/*.py")
++CONFIG_GLOBS = ("data/config/*", "backend/requirements*.txt", "pytest.ini", "docker-compose*.yml")
++DATA_GLOBS = ("data/manifests/**/*", "data/derived/*.parquet", "data/derived/*.meta.json",
++              "data/derived/*.npy", "data/derived/*.json", "reports/BATCH1_OPERATIONAL_MANIFEST_20260821.json")
++CACHE_DIRS = ("data/cache/llm", "data/cache/qa_hypotheses")
++MODEL_GLOBS = (".cache/huggingface/hub/models--timm--vit_base_patch32_clip_224.openai/blobs/*",
++               ".cache/clip/ViT-B-32.pt")
++ES_INDEXES = ("metadata", "objects", "ocr", "asr")
++# Chỉ whitelist knob/path công khai; không thu os.environ toàn bộ hoặc secret.
++RUNTIME_ENV_KEYS = ("LLM_BACKEND", "LLM_API_MODEL", "LLM_GEMINI_MODEL", "LLM_LOCAL_MODEL",
++                    "VECTOR_BACKEND", "QA_INFERENCE_MODE", "LLM_NO_CACHE", "LLM_CACHE_ONLY", "LLM_CACHE_DIR",
++                    "QA_HYPOTHESIS_CACHE_DIR", "KEYFRAMES_DIR", "DERIVED_KEYFRAMES_DIR",
++                    "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "OMP_NUM_THREADS",
++                    "MKL_NUM_THREADS", "PYTHONHASHSEED")
+diff --git a/dev_set/tests/test_run_evaluation_runtime.py b/dev_set/tests/test_run_evaluation_runtime.py
+index fbdfec9..3e27fcf 100644
+--- a/dev_set/tests/test_run_evaluation_runtime.py
++++ b/dev_set/tests/test_run_evaluation_runtime.py
+@@ -21,6 +21,8 @@ def test_hash_json_khong_phu_thuoc_thu_tu_key():
+ 
+ 
+ def test_runtime_fingerprint_khoa_qa_mode_va_model_env_da_chon(monkeypatch):
++    # H01A không còn tự chọn api: fixture phải chỉ rõ backend đang kiểm.
++    monkeypatch.setenv("LLM_BACKEND", "api")
+     monkeypatch.setenv("QA_INFERENCE_MODE", "legacy")
+     monkeypatch.setenv("LLM_API_MODEL", "sonnet-manual-a")
+     legacy_a, configs_a, provenance_a = _runtime_snapshot("tune")
+diff --git a/scripts/preflight_check.py b/scripts/preflight_check.py
+index 6a2ebe2..dcd523a 100644
+--- a/scripts/preflight_check.py
++++ b/scripts/preflight_check.py
+@@ -95,12 +95,18 @@ class Check:
+ # ============================================================ A. MÔI TRƯỜNG
+ 
+ def _try_import(module_name: str) -> tuple[bool, str]:
++    """Kiểm dependency nhưng không để import thay đổi environment vận hành."""
+     import importlib
+ 
++    env_before = dict(os.environ)
+     try:
+         mod = importlib.import_module(module_name)
+     except Exception as e:
+         return False, f"{type(e).__name__}: {e}"
++    finally:
++        for key in set(os.environ) - set(env_before):
++            os.environ.pop(key, None)
++        os.environ.update(env_before)
+     return True, getattr(mod, "__version__", "?")
+ 
+ 
+@@ -198,26 +204,14 @@ def check_qa_runtime() -> tuple[bool | None, str]:
+     in lại giá trị resolve để người vận hành nhìn thấy sai cấu hình mà không tốn
+     thêm một network request.
+     """
+-    from backend.llm.adapter import (
+-        DEFAULT_API_MODEL,
+-        DEFAULT_GEMINI_MODEL,
+-        DEFAULT_LOCAL_MODEL,
+-    )
++    from backend.llm.adapter import selected_runtime
+     from data.config.qa_inference import qa_runtime_config
+ 
+     try:
+         qa_runtime = qa_runtime_config()
++        backend, model = selected_runtime()
+     except ValueError as e:
+         return False, str(e)
+-    backend = os.environ.get("LLM_BACKEND", "api")
+-    if backend == "api":
+-        model = os.environ.get("LLM_API_MODEL", DEFAULT_API_MODEL)
+-    elif backend == "gemini":
+-        model = os.environ.get("LLM_GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+-    elif backend == "local":
+-        model = os.environ.get("LLM_LOCAL_MODEL", DEFAULT_LOCAL_MODEL)
+-    else:
+-        return False, f"LLM_BACKEND={backend!r} không hợp lệ"
+     env_file = REPO_ROOT / ".env"
+ 
+     def has_secret(name: str) -> bool:
+diff --git a/scripts/run_reproducible_baseline.py b/scripts/run_reproducible_baseline.py
+new file mode 100644
+index 0000000..26ef5ca
+--- /dev/null
++++ b/scripts/run_reproducible_baseline.py
+@@ -0,0 +1,308 @@
++"""PP-H01: đóng identity trước output và đo qua đúng runner/exporter production.
++
++Chạy từ gốc repo bằng `python -m scripts.run_reproducible_baseline --help`.
++Manifest mới không có nghĩa là baseline đã được promotion; mọi gap vẫn hiện rõ.
++"""
++from __future__ import annotations
++
++import argparse
++from contextlib import nullcontext
++from dataclasses import asdict
++from datetime import datetime, timezone
++from functools import lru_cache
++import json
++from pathlib import Path
++import time
++
++from backend.common.resource_identity import (capture_manifest, cache_identity, file_identity, manifest_id,
++                                             reproducibility_gaps, require_reproducible,
++                                             stable_resource_id, validate_resume_identity)
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def _write_json(path: Path, value: dict) -> None:
++    from backend.tasks.runner import _json_safe
++    path.write_text(json.dumps(_json_safe(value), ensure_ascii=False, indent=2,
++                               allow_nan=False), encoding="utf-8")
++
++
++def query_identity(query: dict) -> str:
++    """Hash toàn input, kể cả anchors của Q&A; không bỏ field ảnh hưởng output."""
++    return manifest_id(query)
++
++
++def create_run_directory(path: Path) -> None:
++    """Không được ghi đè output/checkpoint của run trước."""
++    path.mkdir(parents=True, exist_ok=False)
++
++
++def read_checkpoint(out: Path, queries: list[dict], runtime_id: str, *, current_cache: dict | None = None) -> dict[str, dict]:
++    """Đọc append log, kiểm query/identity/CSV trước khi skip; không tự sửa log hỏng."""
++    expected = {query["query_id"]: query_identity(query) for query in queries}
++    records = {}
++    path = out / "queries.jsonl"
++    if not path.exists():
++        return records
++    for line in path.read_text(encoding="utf-8").splitlines():
++        if not line.strip():
++            continue
++        try:
++            row = json.loads(line)
++            query_id = row["input"]["query_id"]
++            if (row["query_sha256"] != expected.get(query_id)
++                    or row["runtime_manifest_id"] != runtime_id):
++                raise ValueError("checkpoint query/identity khác run đã khóa")
++            if current_cache is not None:
++                if "cache_after" not in row or row.get("cache_after_id") != manifest_id(row["cache_after"]):
++                    raise ValueError("checkpoint thiếu hoặc sai hash cache sau query")
++                validate_resume_identity({"cache": row["cache_after"]}, {"cache": current_cache})
++            if row["export_status"] == "written":
++                files = row.get("export_files", {})
++                if not files:
++                    raise ValueError("checkpoint thiếu identity CSV")
++                for name, identity in files.items():
++                    if Path(name).name != name or file_identity(out / "submission" / name) != identity:
++                        raise ValueError("CSV trong checkpoint đã đổi hoặc mất")
++            records[query_id] = row
++        except (KeyError, TypeError, json.JSONDecodeError) as error:
++            raise ValueError("checkpoint bị hỏng; giữ nguyên để điều tra") from error
++    return records
++
++
++@lru_cache(maxsize=1)
++def _keyframe_videos() -> dict[str, str]:
++    """Video của khóa lấy từ parquet, alias dựng từ frame_map, không suy frame từ tên."""
++    import pandas as pd
++    from backend.indexing.frame_map import FRAME_MAP_PATH
++    df = pd.read_parquet(FRAME_MAP_PATH, columns=["kf_id", "video_id", "frame_idx"])
++    result = {}
++    for key, video, frame in df.itertuples(index=False, name=None):
++        result[key] = str(video)
++        result[f"{video}_{int(frame):07d}"] = str(video)
++    return result
++
++
++def audit_mapping(answers: list) -> tuple[list[dict], int]:
++    """Đối chiếu keyframe với map thật; frame không có reference phải ghi riêng.
++
++    Không suy hậu tố, không gán provenance cho frame allocator rải/nội suy.
++    Bounds/format của mọi frame được exporter kiểm độc lập.
++    """
++    from backend.indexing.frame_map import load_frame_map
++    mapping = load_frame_map()
++    videos = _keyframe_videos()
++    rows, violations = [], 0
++    for rank, answer in enumerate(answers, 1):
++        key = answer.keyframe_id
++        mapped = mapping.get(key) if key else None
++        if not key:
++            status = "no_keyframe_reference"
++        elif mapped is None:
++            status = "missing_keyframe"
++            violations += 1
++        elif videos.get(key) != answer.video_id:
++            status = "video_mismatch"
++            violations += 1
++        elif mapped not in answer.frame_ids:
++            status = "mismatch"
++            violations += 1
++        else:
++            status = "matched"
++        rows.append({"rank": rank, "video_id": answer.video_id, "frame_ids": list(answer.frame_ids),
++                     "keyframe_id": key, "mapped_frame": mapped, "status": status})
++    return rows, violations
++
++
++def audit_candidate_mapping(task_output: dict) -> tuple[list[dict], int]:
++    """Đối chiếu từng vị trí sự kiện TRAKE; chỉ ghi nhận, không sửa nội suy/đáp án."""
++    from data.config.submit_format import Answer
++    if task_output.get("task_type") != "TRAKE":
++        return [], 0
++    records, violations = [], 0
++    for rank, candidate in enumerate(task_output.get("search_rows", []), 1):
++        keys, frames = candidate.get("keyframe_ids", []), candidate.get("frame_ids", [])
++        if len(keys) != len(frames):
++            records.append({"candidate_rank": rank, "status": "event_count_mismatch"})
++            violations += 1
++            continue
++        for index, (key, frame) in enumerate(zip(keys, frames)):
++            rows, errors = audit_mapping([Answer(candidate["video_id"], (frame,), keyframe_id=key)])
++            records.append({**rows[0], "candidate_rank": rank, "event_index": index})
++            violations += errors
++    return records, violations
++
++
++def execute_query(query: dict, out: Path, runtime_id: str, *, instrumentation: bool, qa_policy: str) -> dict:
++    """Runner/export thật; lỗi vẫn trả trace và không được tính là baseline thành công."""
++    from backend.common.retrieval_trace import capture_retrieval
++    from backend.export.exporter import QuerySubmission, validate_submission, write_submissions
++    from backend.export.qa_variants import apply_qa_submission_policy
++    from backend.llm.adapter import usage_report
++    from backend.tasks import runner
++    before_usage = usage_report()
++    started = time.perf_counter()
++    with capture_retrieval() if instrumentation else nullcontext([]) as calls:
++        try:
++            result = runner.solve_query(query, total=100, runtime_fingerprint=runtime_id)
++        except runner.SolveQueryError as error:
++            result = error.query_run
++    record = {"input": query, "query_sha256": query_identity(query), "runtime_manifest_id": runtime_id,
++              "task_output": result.to_trace_dict(), "search_calls": calls,
++              "instrumentation": instrumentation, "qa_submission_policy": qa_policy,
++              "export_status": "not_exported", "export_ranking": [], "frame_mapping": [],
++              "mapping_violations": None, "export_violations": None, "errors": [],
++              "usage_delta": {k: usage_report()[k] - v for k, v in before_usage.items()}}
++    if misses := record["usage_delta"].get("cache_only_misses", 0):
++        # Caller có thể bắt lỗi dịch/suy luận để fallback; không nhận output đó
++        # thành baseline đầy đủ evidence khi operator chỉ cho replay cache.
++        record["export_status"] = "blocked_cache_miss"
++        record["errors"] = [{"stage": "llm_cache_only", "missing_calls": misses}]
++        record["seconds"] = time.perf_counter() - started
++        return runner._json_safe(record)
++    if result.status == "success":
++        answers = (apply_qa_submission_policy(result.answers, qa_policy)
++                   if result.task_type == "QA" else result.answers)
++        record["export_ranking"] = [asdict(answer) for answer in answers]
++        try:
++            record["frame_mapping"], record["mapping_violations"] = audit_mapping(answers)
++            record["candidate_mapping"], candidate_errors = audit_candidate_mapping(record["task_output"])
++            record["mapping_violations"] += candidate_errors
++            sub = QuerySubmission(result.query_id, result.task_type, tuple(answers))
++            issues = validate_submission(sub, expected_n=result.n_trake)
++            record["export_violations"] = len(issues)
++            record["errors"] = [asdict(issue) for issue in issues]
++            if not issues:
++                files, issues = write_submissions([sub], out / "submission", expected_n={result.query_id: result.n_trake})
++                record["export_status"] = "written" if not issues else "invalid"
++                record["export_violations"] += len(issues)
++                record["errors"].extend(asdict(issue) for issue in issues)
++                record["export_files"] = {path.name: file_identity(path) for path in files}
++        except Exception as error:
++            record["errors"].append({"stage": "mapping_export", "type": type(error).__name__, "message": str(error)})
++            record["export_status"] = "failed"
++    record["seconds"] = time.perf_counter() - started
++    return runner._json_safe(record)
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--out", type=Path, required=True)
++    parser.add_argument("--queries", type=Path)
++    parser.add_argument("--capture-only", action="store_true")
++    parser.add_argument("--offline", action="store_true", help="chỉ chụp identity, không nhận baseline")
++    parser.add_argument("--content-digests", action="store_true", help="hash mọi document/entity live, chỉ đọc")
++    parser.add_argument("--instrumentation", choices=("on", "off"), default="on")
++    parser.add_argument("--qa-submission-policy", choices=("semantic", "exact", "robust"), required=True)
++    parser.add_argument("--baseline-label", choices=("PP-B0", "PP-B0-RESTORED"), required=True)
++    parser.add_argument("--expected-resource-manifest", type=Path)
++    parser.add_argument("--resume", action="store_true", help="tiếp tục đúng run; kiểm source/model/data/cache và CSV trước khi skip")
++    args = parser.parse_args()
++    if args.resume and args.capture_only:
++        parser.error("--resume chỉ dùng cho run, không ghi đè capture-only")
++    queries = []
++    if not args.capture_only:
++        from backend.llm.adapter import selected_runtime
++        from run import _doc_queries, _llm_runtime_errors
++        selected_runtime()  # trước imports DB, đọc cache hoặc sinh output
++        if args.queries is None or args.offline:
++            parser.error("run thật cần --queries và không dùng --offline")
++        queries = _doc_queries(args.queries)
++        errors = _llm_runtime_errors(queries)
++        if errors:
++            raise ValueError("; ".join(errors))
++    if not args.resume:
++        create_run_directory(args.out)
++    elif not (args.out / "runtime_manifest.json").is_file():
++        parser.error("--resume cần runtime_manifest.json của run trước")
++    identity = capture_manifest(ROOT, live=not args.offline, content_digests=args.content_digests)
++    identity_id = manifest_id(identity)
++    manifest = {"manifest_id": identity_id, "identity": identity,
++                "captured_at": datetime.now(timezone.utc).isoformat(), "baseline_label": args.baseline_label,
++                "promotion": "not_evaluated", "instrumentation": args.instrumentation,
++                "qa_submission_policy": args.qa_submission_policy,
++                "reproducibility_gaps": reproducibility_gaps(identity)}
++    if not args.resume:
++        _write_json(args.out / "runtime_manifest.json", manifest)
++    if args.capture_only:
++        print(f"identity={identity_id}; capture_only")
++        return 0
++    require_reproducible(identity)
++    # Dataset diagnostic đã dùng trước đây; GT/sealed mới không được tự suy ra.
++    query_manifest = {
++        "created_at": datetime.now(timezone.utc).isoformat(), "role": "diagnostic_regression",
++        "source": str(args.queries), "source_identity": file_identity(args.queries),
++        "queries": [{"input": query, "sha256": query_identity(query)} for query in queries],
++        "independent_accuracy_claim": False}
++    if args.resume:
++        prior = json.loads((args.out / "runtime_manifest.json").read_text(encoding="utf-8"))
++        if prior["manifest_id"] != manifest_id(prior["identity"]):
++            raise ValueError("runtime manifest không khớp checksum")
++        require_reproducible(prior["identity"])
++        validate_resume_identity(prior["identity"], identity)
++        for key in ("instrumentation", "qa_submission_policy", "baseline_label"):
++            if prior[key] != manifest[key]:
++                raise ValueError(f"resume đổi {key}")
++        frozen = json.loads((args.out / "query_manifest.json").read_text(encoding="utf-8"))
++        if frozen["queries"] != query_manifest["queries"]:
++            raise ValueError("query manifest khác run đã khóa")
++        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
++        _write_json(args.out / f"resume_{stamp}.json", manifest)
++        identity_id = prior["manifest_id"]
++    else:
++        _write_json(args.out / "query_manifest.json", query_manifest)
++    if args.expected_resource_manifest:
++        expected = json.loads(args.expected_resource_manifest.read_text(encoding="utf-8"))["identity"]
++        require_reproducible(expected)
++        # Cache/model/source cũng phải giống; warm cache không được giả làm paired lạnh.
++        if manifest_id(expected) != identity_id:
++            raise ValueError("Identity khác manifest đã khóa; chưa được chạy cặp")
++    records_by_id = read_checkpoint(args.out, queries, identity_id, current_cache=identity["cache"]) if args.resume else {}
++    with (args.out / "queries.jsonl").open("a" if args.resume else "x", encoding="utf-8") as stream:
++        for query in queries:
++            previous = records_by_id.get(query["query_id"])
++            if (previous and previous["task_output"]["status"] == "success"
++                    and previous["export_status"] == "written"
++                    and previous.get("mapping_violations") == 0 and previous.get("export_violations") == 0):
++                print(f"{query['query_id']}: checkpoint đã kiểm, skip", flush=True)
++                continue
++            record = execute_query(query, args.out, identity_id,
++                                   instrumentation=args.instrumentation == "on", qa_policy=args.qa_submission_policy)
++            # Cache sinh bởi query cũng phải được bảo vệ ở mọi lần resume sau.
++            # Ghi cùng dòng checkpoint để không thể có success mà thiếu snapshot.
++            cache_started = time.perf_counter()
++            record["cache_after"] = cache_identity(ROOT)
++            record["cache_after_id"] = manifest_id(record["cache_after"])
++            record["cache_snapshot_seconds"] = time.perf_counter() - cache_started
++            stream.write(json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n")
++            stream.flush()
++            records_by_id[query["query_id"]] = record
++            print(f"{query['query_id']}: {record['task_output']['status']} {record['seconds']:.3f}s", flush=True)
++    after = capture_manifest(ROOT, live=True, content_digests=args.content_digests)
++    _write_json(args.out / "runtime_after.json", {"manifest_id": manifest_id(after), "identity": after})
++    records = [records_by_id[query["query_id"]] for query in queries]
++    failures = sum(row["task_output"]["status"] != "success" or row["export_status"] != "written" for row in records)
++    resource_changed = stable_resource_id(identity) != stable_resource_id(after)
++    cache_changed = False
++    try:
++        validate_resume_identity(identity, after)
++        for row in records:
++            validate_resume_identity({"cache": row["cache_after"]}, {"cache": after["cache"]})
++    except ValueError:
++        cache_changed = True
++    summary = {"queries": len(records), "failures": failures,
++               "mapping_violations": sum(row["mapping_violations"] or 0 for row in records),
++               "export_violations": sum(row["export_violations"] or 0 for row in records),
++               "unknown_mapping_checks": sum(row["mapping_violations"] is None for row in records),
++               "identity_before": identity_id, "identity_after": manifest_id(after),
++               "stable_resource_changed": resource_changed,
++               "cache_integrity_changed": cache_changed,
++               "reproducibility_gaps_after": reproducibility_gaps(after),
++               "promotion": "requires_evidence_review", "independent_accuracy_claim": False}
++    _write_json(args.out / "measurements.json", summary)
++    return int(bool(failures or summary["mapping_violations"] or summary["export_violations"]
++                    or resource_changed or cache_changed or summary["reproducibility_gaps_after"]))
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/selfcheck.py b/scripts/selfcheck.py
+index e47a463..65752d2 100644
+--- a/scripts/selfcheck.py
++++ b/scripts/selfcheck.py
+@@ -22,6 +22,8 @@ from dataclasses import dataclass
+ from pathlib import Path
+ 
+ REPO = Path(__file__).resolve().parent.parent
++if str(REPO) not in sys.path:
++    sys.path.insert(0, str(REPO))
+ PY = sys.executable
+ 
+ 
+@@ -109,14 +111,18 @@ def check_llm_backend() -> Check:
+     """Bước dịch VI→EN đi qua llm(); backend chết thì KIS hỏng âm thầm, không crash."""
+     import os
+ 
+-    backend = os.environ.get("LLM_BACKEND", "api")
++    from backend.llm.adapter import selected_runtime
++    try:
++        backend, model = selected_runtime()
++    except ValueError as error:
++        return Check("LLM backend", False, str(error))
+     if backend == "api" and not os.environ.get("ANTHROPIC_API_KEY"):
+         detail = "LLM_BACKEND=api nhưng thiếu ANTHROPIC_API_KEY"
+         return Check("LLM backend", False, detail)
+     if backend == "gemini" and not os.environ.get("GEMINI_API_KEY"):
+         return Check("LLM backend", False, "LLM_BACKEND=gemini nhưng thiếu GEMINI_API_KEY")
+     # Có key không đồng nghĩa còn credit — chỉ khẳng định được cấu hình có mặt.
+-    return Check("LLM backend", True, f"LLM_BACKEND={backend} (cấu hình có mặt; credit KHÔNG kiểm ở đây)")
++    return Check("LLM backend", True, f"LLM_BACKEND={backend}, model={model} (cấu hình có mặt; credit KHÔNG kiểm ở đây)")
+ 
+ 
+ def main() -> int:
+diff --git a/tests/test_baseline_harness.py b/tests/test_baseline_harness.py
+new file mode 100644
+index 0000000..1b07c7c
+--- /dev/null
++++ b/tests/test_baseline_harness.py
+@@ -0,0 +1,152 @@
++"""Harness đi qua production runner, không được biến lỗi thành baseline hợp lệ."""
++import importlib
++import json
++
++import pytest
++
++
++def test_mapping_mismatch_is_detected_and_unmapped_frame_is_explicit(monkeypatch):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    from data.config.submit_format import Answer
++    monkeypatch.setattr(importlib.import_module("backend.indexing.frame_map"),
++                        "load_frame_map", lambda: {"V#k1": 12})
++    monkeypatch.setattr(harness, "_keyframe_videos", lambda: {"V#k1": "V"}, raising=False)
++    rows, errors = harness.audit_mapping([Answer("V", (13,), keyframe_id="V#k1"), Answer("V", (14,))])
++    assert errors == 1
++    assert rows[0]["mapped_frame"] == 12
++    assert rows[1]["status"] == "no_keyframe_reference"
++
++
++def test_mapping_checks_video_and_trake_event_position(monkeypatch):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    from data.config.submit_format import Answer
++    monkeypatch.setattr(importlib.import_module("backend.indexing.frame_map"),
++                        "load_frame_map", lambda: {"V#k1": 12, "V#k2": 24})
++    monkeypatch.setattr(harness, "_keyframe_videos", lambda: {"V#k1": "V", "V#k2": "V"}, raising=False)
++    _, errors = harness.audit_mapping([Answer("OTHER", (12,), keyframe_id="V#k1")])
++    assert errors == 1
++    records, errors = harness.audit_candidate_mapping({"task_type": "TRAKE", "search_rows": [
++        {"video_id": "V", "keyframe_ids": ["V#k1", "V#k2"], "frame_ids": [24, 12]}]})
++    assert errors == 2
++    assert [row["event_index"] for row in records] == [0, 1]
++
++
++def test_failed_production_query_still_writes_trace(tmp_path, monkeypatch):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    runner = importlib.import_module("backend.tasks.runner")
++    query = {"query_id": "failed", "task_type": "KIS", "query_vi": "q", "query_en": "q"}
++    def fail(query, **kwargs):
++        error = RuntimeError("no candidates")
++        raise runner.SolveQueryError(str(error), runner.failure_trace(query, error, failure_class="retrieval_miss"))
++    monkeypatch.setattr(runner, "solve_query", fail)
++    record = harness.execute_query(query, tmp_path, "identity", instrumentation=True, qa_policy="robust")
++    assert record["task_output"]["status"] == "failed"
++    assert record["export_status"] == "not_exported"
++    assert record["runtime_manifest_id"] == "identity"
++
++
++def test_harness_does_not_accept_output_directory_reuse(tmp_path):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    with pytest.raises(FileExistsError):
++        harness.create_run_directory(tmp_path)
++
++
++def test_harness_freezes_query_identity_including_qa_anchors():
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    query = {"query_id": "qa", "task_type": "QA", "query_vi": "q", "anchors": ["first"]}
++    first = harness.query_identity(query)
++    second = harness.query_identity({**query, "anchors": ["second"]})
++    assert first != second
++
++
++def test_real_kis_runner_allocation_export_has_same_output_with_trace(tmp_path, monkeypatch):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    search = importlib.import_module("backend.retrieval.search")
++    runner = importlib.import_module("backend.tasks.runner")
++    from backend.indexing.frame_map import load_frame_map
++    key, frame = next(iter(load_frame_map().items()))
++    video = key.split("#")[0]
++    row = {"keyframe_id": key, "video_id": video, "frame_idx": frame, "timestamp_ms": 1000, "cos": .7}
++    monkeypatch.setattr(search, "_branch_vector", lambda *args: [dict(row)])
++    monkeypatch.setattr(search, "_fill_from_milvus", lambda rows: None)
++    monkeypatch.setattr(search, "BRANCHES", {name: name == "vector" for name in search.BRANCHES})
++    monkeypatch.setattr(runner, "KIS_BRANCH_OVERRIDE", {})
++    query = {"query_id": "fixture", "task_type": "KIS", "query_vi": "xe máy", "query_en": "motorcycle"}
++    plain = harness.execute_query(query, tmp_path / "off", "fixture-identity", instrumentation=False, qa_policy="robust")
++    traced = harness.execute_query(query, tmp_path / "on", "fixture-identity", instrumentation=True, qa_policy="robust")
++    assert plain["task_output"]["status"] == traced["task_output"]["status"] == "success"
++    assert traced["export_status"] == "written"
++    assert plain["export_ranking"] == traced["export_ranking"]
++    assert len(traced["export_ranking"]) == 100
++    assert traced["mapping_violations"] == traced["export_violations"] == 0
++    assert len(traced["search_calls"]) == 1
++    # Artefact fixture dùng để soi trace; không được gọi là live accuracy baseline.
++    (tmp_path / "instrumentation_fixture.json").write_text(json.dumps(traced, ensure_ascii=False), encoding="utf-8")
++
++
++def test_resume_keeps_completed_query_but_rejects_changed_input(tmp_path):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    query = {"query_id": "q", "task_type": "KIS", "query_vi": "original"}
++    record = {"input": query, "query_sha256": harness.query_identity(query), "runtime_manifest_id": "id",
++              "task_output": {"status": "failed"}, "export_status": "not_exported"}
++    (tmp_path / "queries.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
++    assert harness.read_checkpoint(tmp_path, [query], "id")["q"] == record
++    with pytest.raises(ValueError, match="query"):
++        harness.read_checkpoint(tmp_path, [{**query, "query_vi": "changed"}], "id")
++
++
++def test_resume_rejects_changed_csv(tmp_path):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    from backend.common.resource_identity import file_identity
++    (tmp_path / "submission").mkdir()
++    csv = tmp_path / "submission/q.csv"
++    csv.write_text("original", encoding="utf-8")
++    query = {"query_id": "q"}
++    record = {"input": query, "query_sha256": harness.query_identity(query), "runtime_manifest_id": "id",
++              "task_output": {"status": "success"}, "export_status": "written", "export_files": {"q.csv": file_identity(csv)}}
++    (tmp_path / "queries.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
++    csv.write_text("changed", encoding="utf-8")
++    with pytest.raises(ValueError, match="CSV"):
++        harness.read_checkpoint(tmp_path, [query], "id")
++
++
++def test_resume_rejects_corrupt_checkpoint_without_rewriting_it(tmp_path):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    path = tmp_path / "queries.jsonl"
++    path.write_text('{"partial":', encoding="utf-8")
++    with pytest.raises(ValueError, match="checkpoint"):
++        harness.read_checkpoint(tmp_path, [], "id")
++    assert path.read_text(encoding="utf-8") == '{"partial":'
++
++
++def test_resume_protects_cache_generated_after_first_query(tmp_path):
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    from backend.common.resource_identity import manifest_id
++    query = {"query_id": "q"}
++    cache = {"cache": {"files": {"generated.json": {"sha256": "original"}}}}
++    record = {"input": query, "query_sha256": harness.query_identity(query), "runtime_manifest_id": "id",
++              "task_output": {"status": "failed"}, "export_status": "not_exported",
++              "cache_after": cache, "cache_after_id": manifest_id(cache)}
++    (tmp_path / "queries.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
++    changed = {"cache": {"files": {"generated.json": {"sha256": "replaced"}}}}
++    with pytest.raises(ValueError, match="cache"):
++        harness.read_checkpoint(tmp_path, [query], "id", current_cache=changed)
++
++
++def test_cache_miss_hidden_by_task_fallback_cannot_export_baseline(monkeypatch, tmp_path):
++    """Task success không được che việc thiếu LLM evidence trong replay miễn phí."""
++    from types import SimpleNamespace
++    from backend.llm import adapter
++    from backend.tasks import runner
++    harness = importlib.import_module("scripts.run_reproducible_baseline")
++    completed = []
++    def solve(*args, **kwargs):
++        completed.append(True)
++        return SimpleNamespace(status="success", task_type="KIS", query_id="q", answers=[], n_trake=None,
++                               to_trace_dict=lambda: {"status": "success"})
++    monkeypatch.setattr(runner, "solve_query", solve)
++    monkeypatch.setattr(adapter, "usage_report", lambda: {"cache_only_misses": int(bool(completed))})
++    monkeypatch.setattr(harness, "audit_mapping", lambda answers: pytest.fail("thiếu cache mà đã đi export"))
++    record = harness.execute_query({"query_id": "q"}, tmp_path, "id", instrumentation=False, qa_policy="robust")
++    assert record["export_status"] == "blocked_cache_miss"
++    assert record["errors"][0]["stage"] == "llm_cache_only"
+diff --git a/tests/test_h01_contracts.py b/tests/test_h01_contracts.py
+new file mode 100644
+index 0000000..1749581
+--- /dev/null
++++ b/tests/test_h01_contracts.py
+@@ -0,0 +1,130 @@
++"""H01A: lỗi lựa chọn runtime phải lộ trước cache/provider/DB I/O."""
++import importlib
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++
++import pytest
++
++
++@pytest.mark.parametrize("alpha", [-0.1, 1.5, float("nan"), float("inf"), "bad"])
++def test_invalid_alpha_fails_before_translation(monkeypatch, alpha):
++    search = importlib.import_module("backend.retrieval.search")
++    translation = importlib.import_module("backend.retrieval.text_query")
++    calls = []
++    def translate(query):
++        calls.append(query)
++        return "translated"
++    monkeypatch.setattr(translation, "translate_to_english", translate)
++    with pytest.raises(ValueError):
++        search._search_core("query", branches={name: False for name in search.BRANCHES},
++                            video_prior_alpha=alpha)
++    assert calls == [], "alpha sai phải dừng trước cả dịch query"
++
++
++def test_preflight_import_preserves_environment(tmp_path):
++    (tmp_path / ".env").write_text("LLM_BACKEND=api\nLLM_API_MODEL=not-selected\n", encoding="utf-8")
++    env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
++    env.pop("LLM_BACKEND", None)
++    env.pop("LLM_API_MODEL", None)
++    script = "import os,json; from scripts.preflight_check import check_core_libs; before=dict(os.environ); check_core_libs(); print(json.dumps(dict(os.environ)==before))"
++    result = subprocess.run([sys.executable, "-c", script], cwd=tmp_path, env=env,
++                            capture_output=True, text=True, timeout=60)
++    assert result.returncode == 0, result.stderr
++    assert json.loads(result.stdout) is True
++
++
++def test_dotenv_loads_secret_without_selecting_runtime(monkeypatch, tmp_path):
++    from backend.llm import adapter
++    monkeypatch.setattr(adapter, "REPO_ROOT", tmp_path)
++    for key in ("LLM_BACKEND", "LLM_API_MODEL", "ANTHROPIC_API_KEY"):
++        monkeypatch.delenv(key, raising=False)
++    (tmp_path / ".env").write_text("LLM_BACKEND=api\nLLM_API_MODEL=not-selected\nANTHROPIC_API_KEY=test-secret\n", encoding="utf-8")
++    adapter._nap_dotenv()
++    assert os.environ.get("LLM_BACKEND") is None
++    assert os.environ.get("LLM_API_MODEL") is None
++    assert os.environ["ANTHROPIC_API_KEY"] == "test-secret"
++
++
++@pytest.mark.parametrize("backend,model", [(None, None), ("api", None), ("api", " ")])
++def test_llm_requires_explicit_selection_before_cache(monkeypatch, backend, model):
++    from backend.llm import adapter
++    for key, value in (("LLM_BACKEND", backend), ("LLM_API_MODEL", model)):
++        if value is None:
++            monkeypatch.delenv(key, raising=False)
++        else:
++            monkeypatch.setenv(key, value)
++    def cache_must_not_run(key):
++        pytest.fail("runtime chưa chọn mà đã đọc cache")
++    monkeypatch.setattr(adapter, "_cache_get", cache_must_not_run)
++    with pytest.raises(ValueError):
++        adapter.llm("query")
++
++
++def test_preflight_reports_unselected_model(monkeypatch):
++    from scripts import preflight_check
++    monkeypatch.delenv("LLM_BACKEND", raising=False)
++    ok, detail = preflight_check.check_qa_runtime()
++    assert ok is False
++    assert "LLM_BACKEND" in detail
++
++
++def test_search_does_not_hide_unselected_runtime_as_translation_fallback(monkeypatch):
++    search = importlib.import_module("backend.retrieval.search")
++    monkeypatch.delenv("LLM_BACKEND", raising=False)
++    with pytest.raises(ValueError):
++        search.search("query", branches={name: False for name in search.BRANCHES})
++
++
++def test_selfcheck_does_not_report_default_backend_as_selected(monkeypatch):
++    from scripts import selfcheck
++    monkeypatch.delenv("LLM_BACKEND", raising=False)
++    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy-present")
++    assert selfcheck.check_llm_backend().ok is False
++
++
++def test_llm_cannot_override_operator_model_inside_run(monkeypatch):
++    from backend.llm import adapter
++    monkeypatch.setenv("LLM_BACKEND", "api")
++    monkeypatch.setenv("LLM_API_MODEL", "selected-model")
++    monkeypatch.setattr(adapter, "_cache_get", lambda key: pytest.fail("model khác chưa bị chặn trước cache"))
++    with pytest.raises(ValueError, match="model"):
++        adapter.llm("query", model="different-model")
++
++
++@pytest.mark.parametrize("use_cache,cached", [(True, None), (False, ["cached"]), (True, ["invalid"])])
++def test_cache_only_never_dispatches_provider_on_miss(monkeypatch, use_cache, cached):
++    """Cache thiếu/tắt/hỏng đều phải dừng trước API, giữ ngân sách mới bằng 0."""
++    from backend.llm import adapter
++    monkeypatch.setenv("LLM_BACKEND", "api")
++    monkeypatch.setenv("LLM_API_MODEL", "claude-sonnet-5")
++    monkeypatch.setenv("LLM_CACHE_ONLY", "1")
++    monkeypatch.setattr(adapter, "_usage", dict(adapter.usage_report()))
++    before = adapter.usage_report().get("cache_only_misses", 0)
++    monkeypatch.setattr(adapter, "_cache_get", lambda key: cached)
++    monkeypatch.setattr(adapter, "_mot_lan", lambda *a: pytest.fail("cache-only đã gọi provider"))
++    with pytest.raises(RuntimeError, match="cache-only"):
++        adapter.llm("query", use_cache=use_cache, validate=lambda text: "bad" if text == "invalid" else None)
++    assert adapter.usage_report()["cache_only_misses"] == before + 1
++
++
++def test_cache_only_returns_same_cached_output(monkeypatch):
++    from backend.llm import adapter
++    monkeypatch.setenv("LLM_BACKEND", "api")
++    monkeypatch.setenv("LLM_API_MODEL", "claude-sonnet-5")
++    monkeypatch.setenv("LLM_CACHE_ONLY", "1")
++    monkeypatch.setattr(adapter, "_cache_get", lambda key: ["original answer"])
++    monkeypatch.setattr(adapter, "_mot_lan", lambda *a: pytest.fail("cache hit đã gọi provider"))
++    assert adapter.llm("query") == "original answer"
++
++
++def test_cache_only_policy_changes_runtime_identity(monkeypatch):
++    from backend.tasks.runner import runtime_fingerprint
++    from data.config.experiment import RUNTIME_ENV_KEYS
++    monkeypatch.setenv("LLM_CACHE_ONLY", "0")
++    regular = runtime_fingerprint()
++    monkeypatch.setenv("LLM_CACHE_ONLY", "1")
++    assert runtime_fingerprint() != regular
++    assert "LLM_CACHE_ONLY" in RUNTIME_ENV_KEYS
+diff --git a/tests/test_resource_identity.py b/tests/test_resource_identity.py
+new file mode 100644
+index 0000000..393b6fd
+--- /dev/null
++++ b/tests/test_resource_identity.py
+@@ -0,0 +1,103 @@
++"""Identity phải phản ánh nội dung, không dùng timestamp hoặc chỉ số lượng file."""
++import importlib
++
++
++def test_file_identity_changes_when_bytes_change_without_size_change(tmp_path):
++    identity = importlib.import_module("backend.common.resource_identity")
++    path = tmp_path / "frame_map.parquet"
++    path.write_bytes(b"old-map")
++    before = identity.file_identity(path)
++    path.write_bytes(b"new-map")
++    after = identity.file_identity(path)
++    assert before["sha256"] != after["sha256"]
++    assert before["size_bytes"] == after["size_bytes"]
++
++
++def test_manifest_hash_is_canonical_but_detects_resource_change():
++    identity = importlib.import_module("backend.common.resource_identity")
++    assert identity.manifest_id({"b": 2, "a": 1}) == identity.manifest_id({"a": 1, "b": 2})
++    assert identity.manifest_id({"uuid": "old"}) != identity.manifest_id({"uuid": "new"})
++
++
++def test_missing_resource_is_explicit(tmp_path):
++    identity = importlib.import_module("backend.common.resource_identity")
++    assert identity.file_identity(tmp_path / "missing")["status"] == "missing"
++
++
++def test_capture_offline_has_no_credential_and_hashes_prompt(tmp_path, monkeypatch):
++    identity = importlib.import_module("backend.common.resource_identity")
++    monkeypatch.setenv("ANTHROPIC_API_KEY", "must-not-appear")
++    monkeypatch.setenv("LLM_BACKEND", "api")
++    monkeypatch.setenv("LLM_API_MODEL", "operator-model")
++    path = tmp_path / "backend" / "llm" / "adapter.py"
++    path.parent.mkdir(parents=True)
++    path.write_text('def llm(): return "prompt-one"', encoding="utf-8")
++    first = identity.capture_manifest(tmp_path, live=False)
++    path.write_text('def llm(): return "prompt-two"', encoding="utf-8")
++    second = identity.capture_manifest(tmp_path, live=False)
++    assert first["source"] != second["source"]
++    assert "must-not-appear" not in str(first)
++    assert first["indexes"]["status"] == "not_probed"
++
++
++def test_unavailable_indexes_cannot_be_accepted_as_equal_resources():
++    identity = importlib.import_module("backend.common.resource_identity")
++    with __import__("pytest").raises(ValueError, match="identity"):
++        identity.require_reproducible({"indexes": {"status": "not_probed"}})
++
++
++def test_schema_and_count_without_content_digest_are_not_paired_identity():
++    identity = importlib.import_module("backend.common.resource_identity")
++    manifest = {
++        "environment": {"LLM_BACKEND": "api", "LLM_API_MODEL": "operator"},
++        "frame_map": {"status": "available", "sha256": "map"},
++        "source": {"source": {}}, "config": {"config": {}}, "scorer": {"scorer": {}},
++        "data": {"data": {}}, "model_weights": {"weight": {"status": "available"}},
++        "indexes": {
++            "elasticsearch": {"status": "available", "indexes": {
++                name: {"status": "available", "count": 1, "metadata": {"uuid": "id"}}
++                for name in ("metadata", "objects", "ocr", "asr")}},
++            "milvus": {"status": "available", "collections": {
++                "keyframes": {"status": "available", "stats": {"row_count": 1}, "schema": {"collection_id": 1}}}},
++        },
++    }
++    gaps = identity.reproducibility_gaps(manifest)
++    assert any("content_digest" in gap for gap in gaps)
++
++
++def test_cache_identity_uses_production_qa_override(tmp_path, monkeypatch):
++    identity = importlib.import_module("backend.common.resource_identity")
++    cache = tmp_path / "custom_qa"
++    cache.mkdir()
++    (cache / "one.json").write_text('{"output":"one"}', encoding="utf-8")
++    monkeypatch.setenv("QA_HYPOTHESIS_CACHE_DIR", str(cache))
++    assert "one.json" in identity.cache_identity(tmp_path)[str(cache)]["files"]
++
++
++def test_asset_identity_detects_changed_pixels(tmp_path):
++    identity = importlib.import_module("backend.common.resource_identity")
++    image = tmp_path / "001.jpg"
++    image.write_bytes(b"old-pixels")
++    before = identity.asset_identity([tmp_path], content_digests=True)
++    image.write_bytes(b"new-pixels")
++    after = identity.asset_identity([tmp_path], content_digests=True)
++    assert before != after
++
++
++def test_resume_allows_cache_append_but_rejects_replaced_evidence():
++    identity = importlib.import_module("backend.common.resource_identity")
++    before = {"data": {"map": "fixed"}, "cache": {"cache": {"files": {"a.json": {"sha256": "a"}}}}}
++    appended = {"data": {"map": "fixed"}, "cache": {"cache": {"files": {"a.json": {"sha256": "a"}, "b.json": {"sha256": "b"}}}}}
++    identity.validate_resume_identity(before, appended)
++    appended["cache"]["cache"]["files"]["a.json"]["sha256"] = "changed"
++    with __import__("pytest").raises(ValueError, match="cache"):
++        identity.validate_resume_identity(before, appended)
++
++
++def test_siglip_cannot_use_clip_weights_for_completeness():
++    identity = importlib.import_module("backend.common.resource_identity")
++    gaps = identity.reproducibility_gaps({
++        "environment": {"VECTOR_BACKEND": "siglip2"},
++        "model_weights": {".cache/clip/ViT-B-32.pt": {"status": "available", "sha256": "clip"}},
++    })
++    assert any("siglip2" in gap and "weights" in gap for gap in gaps)
+diff --git a/tests/test_retrieval_trace.py b/tests/test_retrieval_trace.py
+new file mode 100644
+index 0000000..e67a81f
+--- /dev/null
++++ b/tests/test_retrieval_trace.py
+@@ -0,0 +1,72 @@
++"""Instrumentation phải giữ kết quả thật và phân biệt các trạng thái nhánh."""
++import importlib
++
++import pytest
++
++
++def test_search_trace_preserves_output_and_branch_states(monkeypatch):
++    trace = importlib.import_module("backend.common.retrieval_trace")
++    search = importlib.import_module("backend.retrieval.search")
++    row = {"keyframe_id": "V#k1", "video_id": "V", "frame_idx": 12,
++           "timestamp_ms": 400, "cos": .7}
++    monkeypatch.setattr(search, "_branch_vector", lambda *a: [dict(row)])
++    monkeypatch.setattr(search, "_branch_metadata", lambda *a: [])
++    def fail(*args):
++        raise ConnectionError("offline fixture")
++    monkeypatch.setattr(search, "_branch_ocr", fail)
++    monkeypatch.setattr(search, "_fill_from_milvus", lambda rows: None)
++    monkeypatch.setattr(search, "_shot_map", lambda: {})
++    branches = {name: name in ("vector", "metadata", "ocr") for name in search.BRANCHES}
++    plain = search.search("câu gốc", "actual english", branches=branches, group_by_shot=False)
++    with trace.capture_retrieval() as calls:
++        observed = search.search("câu gốc", "actual english", branches=branches, group_by_shot=False)
++    assert observed == plain
++    assert len(observed) == 1
++    call = calls[0]
++    assert call["executed_query"]["query_en"] == "actual english"
++    assert call["branches"]["vector"]["status"] == "success"
++    assert call["branches"]["metadata"]["status"] == "zero_hits"
++    assert call["branches"]["ocr"]["status"] == "failed"
++    assert call["branches"]["objects"]["status"] == "disabled"
++    assert call["branches"]["vector"]["candidates"] == [row]
++    assert call["fused_ranking"][0]["keyframe_id"] == "V#k1"
++    assert call["reranked_ranking"] == call["final_ranking"]
++    observed[0]["score"] = -99
++    assert call["final_ranking"][0]["score"] > 0
++
++
++def test_trace_keeps_invalid_query_failure_without_swallowing():
++    trace = importlib.import_module("backend.common.retrieval_trace")
++    search = importlib.import_module("backend.retrieval.search")
++    with trace.capture_retrieval() as calls:
++        with pytest.raises(ValueError):
++            search.search("q", video_prior_alpha=2)
++    assert calls[0]["error"]["type"] == "ValueError"
++    assert calls[0]["status"] == "failed"
++
++
++def test_ocr_probe_errors_are_not_reported_as_zero_hits(monkeypatch):
++    trace = importlib.import_module("backend.common.retrieval_trace")
++    search = importlib.import_module("backend.retrieval.search")
++    monkeypatch.setattr(importlib.import_module("data.config.token_probe"), "ENABLED", True)
++    def fail(*args, **kwargs):
++        raise ConnectionError("probe unavailable")
++    monkeypatch.setattr(search, "_branch_ocr", fail)
++    branches = {name: name == "ocr_probe" for name in search.BRANCHES}
++    with trace.capture_retrieval() as calls:
++        assert search.search("remember", "remember", branches=branches) == []
++    assert calls[0]["branches"]["ocr_probe"]["status"] == "failed"
++
++
++def test_trake_searches_in_workers_retain_query_trace(monkeypatch):
++    trace = importlib.import_module("backend.common.retrieval_trace")
++    trake = importlib.import_module("backend.tasks.trake")
++    @trace.traced_search
++    def fake_search(query_vi, **kwargs):
++        return []
++    monkeypatch.setattr(trake, "search", fake_search)
++    monkeypatch.setattr(trake, "TRAKE_ASR_CONTEXT_BONUS_WEIGHT", 0)
++    with trace.capture_retrieval() as calls:
++        assert trake.trake_search(["event one", "event two"]) == []
++    actual = {row["input"]["query_vi"] for row in calls}
++    assert {"event one", "event two"} <= actual

@@ -1,0 +1,237 @@
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 22%]
+........................................................................ [ 30%]
+........................................................................ [ 38%]
+................................................F....................... [ 45%]
+........................................................................ [ 53%]
+........................................................................ [ 60%]
+........................................................................ [ 68%]
+............................................................F........... [ 76%]
+......................................F................................. [ 83%]
+........................................................................ [ 91%]
+................................F....................................... [ 99%]
+.........                                                                [100%]
+================================== FAILURES ===================================
+__________________ test_apply_append_record_va_trace_day_du ___________________
+
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-26/test_apply_append_record_va_tr0')
+
+    def test_apply_append_record_va_trace_day_du(tmp_path: Path):
+        """Bắt lỗi record thiếu dòng, trùng frame hoặc mất provenance thủ công."""
+        result = _run(tmp_path, "--apply")
+    
+        assert result.returncode == 0, result.stderr + result.stdout
+        out_dir = tmp_path / "out"
+        records = [json.loads(line) for line in (out_dir / "checkpoint.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()]
+        record = records[-1]
+        assert record["query_id"] == "query-p2-19-qa"
+        assert record["answer_text"] == "Lý Thường Kiệt"
+        assert len(record["answers"]) == 100
+>       assert record["answers"][0] == {
+            "video_id": "L30_V043",
+            "frame_ids": [1818],
+            "answer_text": "Lý Thường Kiệt",
+            "keyframe_id": "L30_V043#k0029",
+        }
+E       AssertionError: assert {'video_id': ...3#k0029', ...} == {'video_id': ...0_V043#k0029'}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Left contains 2 more items:
+E         {'evidence_hash': None, 'provenance': None}
+E         Use -v to get more diff
+
+tests\test_manual_qa_override.py:129: AssertionError
+____________________ test_checkpoint_ghi_ngay_sau_moi_cau _____________________
+
+chay = <function chay.<locals>._chay at 0x0000025DE1E3DD20>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025C0E5E6120>
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-26/test_checkpoint_ghi_ngay_sau_m0')
+viet_queries = <function viet_queries.<locals>._viet at 0x0000025DE1E3E4B0>
+video = ('L21_V001', 37849)
+
+    def test_checkpoint_ghi_ngay_sau_moi_cau(chay, monkeypatch, tmp_path, viet_queries, video):
+        """Chết giữa chừng KHÔNG được mất câu đã xong — kiểm bằng cách chết thật."""
+        vid, n_frames = video
+        qs = [KIS, QA, TRAKE]
+    
+        def _gia(q, tong):
+            if q["query_id"] == "q3":
+                raise KeyboardInterrupt
+            return _answers(vid, n_frames, tong), {}
+    
+        monkeypatch.setattr(R, "giai_mot_query", _gia)
+        monkeypatch.setattr(R, "_preflight", lambda log, bo_qua: True)
+        out_dir = tmp_path / "ra"
+        monkeypatch.setattr(R.sys, "argv", [
+            "run.py", "--queries", str(viet_queries(qs)), "--out", str(out_dir),
+            "--answers", "5"])
+        R.main()
+    
+        ck = R.Checkpoint(out_dir / R.CHECKPOINT_NAME).doc()
+>       assert set(ck) == {"q1", "q2"}, "hai câu xong trước lúc chết phải còn nguyên"
+E       AssertionError: hai câu xong trước lúc chết phải còn nguyên
+E       assert {'q1'} == {'q1', 'q2'}
+E         
+E         Extra items in the right set:
+E         'q2'
+E         Use -v to get more diff
+
+tests\test_run.py:342: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 3 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-26\test_checkpoint_ghi_ngay_sau_m0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG theo yêu cầu (Ctrl-C) — tiến độ đã ghi vào checkpoint
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2, q3
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-26\test_checkpoint_ghi_ngay_sau_m0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-26\test_checkpoint_ghi_ngay_sau_m0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [█████████···················] 1/3 (33.3%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [██████████████████··········] 2/3 (66.7%)  đã 0:00 · còn ~0:00  ! q2                        
+                                                                                                    
+
+
+                                                                                                    
+
+                                                                                                    
+
+_________________ test_qa_va_trake_khong_mat_metadata_hien_co _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025C0D283D90>
+
+    def test_qa_va_trake_khong_mat_metadata_hien_co(monkeypatch):
+        """Bắt lỗi QueryRun làm mất qa_trace/n_trake khi hợp nhất interface."""
+        runner = _runner()
+        qa = importlib.import_module("backend.tasks.qa")
+        trake = importlib.import_module("backend.tasks.trake")
+        slot = importlib.import_module("backend.slot")
+        hit = ShotHit("L01_V001#s0001", 0.5, "L01_V001_001")
+        monkeypatch.setattr(
+            qa,
+            "qa_pipeline",
+            lambda *a, **kw: ([hit], "đỏ", {"answer_shot_id": hit.shot_id}),
+        )
+        monkeypatch.setattr(
+            slot,
+            "allocate",
+            lambda *a, **kw: [Answer("L01_V001", (120,), answer_text="đỏ")],
+        )
+        qa_run = runner.solve_query(
+            {"query_id": "q-qa", "task_type": "QA", "query_vi": "màu gì?"}, total=1
+        )
+        assert qa_run.qa_trace == {"answer_shot_id": hit.shot_id}
+        # Trace cũ thiếu evidence vẫn được giữ để duyệt, không tự coi là success.
+        assert qa_run.status == "needs_review"
+        assert qa_run.answer_text == ""
+>       assert qa_run.review_answer_text == "đỏ"
+E       AssertionError: assert None == 'đỏ'
+E        +  where None = QueryRun(query_id='q-qa', task_type='QA', answers=[], query_plan={'query_vi': 'màu gì?', 'query_en': None, 'event_desc...V001_001'}]}, answer_text='', qa_trace={'answer_shot_id': 'L01_V001#s0001'}, n_trake=None, error=None, retryable=False).review_answer_text
+
+tests\test_task_runner.py:375: AssertionError
+_______ test_evaluator_frozen_artifact_di_thang_den_promotion_eligible ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000025C0D2E79A0>
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-26/test_evaluator_frozen_artifact0')
+
+    def test_evaluator_frozen_artifact_di_thang_den_promotion_eligible(
+        monkeypatch, tmp_path,
+    ):
+        """Bỏ lọc manifest/hash GT ở producer sẽ làm gate cuối không còn ELIGIBLE."""
+        from dev_set.tools import run_evaluation as evaluation
+    
+        holdout, regression, gt_by_id, paths = _verified_manifests_and_gt(tmp_path)
+        holdout_manifest, holdout_gt, regression_manifest, regression_gt = paths
+        monkeypatch.setattr(evaluation, "es_connect", lambda: None)
+        monkeypatch.setattr(evaluation, "milvus_connect", lambda: None)
+        monkeypatch.setattr(evaluation, "load_frame_map", lambda: {})
+        monkeypatch.setattr(evaluation, "validate_evidence_capture", lambda *a, **kw: {
+            "evidence_records": 1, "inference_records": 1,
+        })
+        monkeypatch.setattr(evaluation, "write_submissions", lambda *a, **kw: ([], []))
+        monkeypatch.setattr(evaluation, "tqdm", lambda rows: rows)
+        monkeypatch.setattr("builtins.input", lambda _: "y")
+    
+        def solve(query, *, total, query_runtime_fingerprint):
+            gt = gt_by_id[query.query_id]
+            if query.task_type == "QA":
+                answers = [Answer(gt.video_id, (10,), "đỏ", "kf")]
+            elif query.task_type == "TRAKE":
+                answers = [Answer(gt.video_id, tuple(frame["start"] for frame in gt.frames), keyframe_id="kf")]
+            else:
+                answers = [Answer(gt.video_id, (10,), keyframe_id="kf")]
+            return QueryRun(
+                query_id=query.query_id, task_type=query.task_type, answers=answers,
+                query_plan={"query_vi": query.query_vi},
+                runtime_fingerprint=query_runtime_fingerprint,
+            )
+    
+        monkeypatch.setattr(evaluation, "_solve_for_evaluation", solve)
+    
+        def produce(out: Path, manifest: Path, gt: Path) -> dict:
+            evaluation.run_evaluation([
+                "--manifest", str(manifest), "--ground-truth", str(gt),
+                "--promotion", "--out", str(out),
+            ])
+            return json.loads((out / "scores.json").read_text(encoding="utf-8"))
+    
+        holdout_scores = produce(tmp_path / "holdout-run", holdout_manifest, holdout_gt)
+        baseline = produce(tmp_path / "baseline-run", regression_manifest, regression_gt)
+        current = produce(tmp_path / "current-run", regression_manifest, regression_gt)
+    
+        result = assess_promotion(
+            holdout_manifest=holdout, regression_manifest=regression,
+            holdout_scores=holdout_scores, regression_baseline=baseline,
+            regression_current=current,
+        )
+>       assert result.eligible is True
+E       assert False is True
+E        +  where False = PromotionGateResult(status='BLOCKED', eligible=False, reasons=({'code': 'malformed_artifact', 'message': "holdout_scor...ed_query_ids=(), missing_query_ids=(), current_runtime_fingerprint=None, scorer_policy=None, scorer_source_sha256=None).eligible
+
+dev_set\tests\test_frozen_evaluator_integration.py:149: AssertionError
+---------------------------- Captured stdout call -----------------------------
+Khởi động bộ đo trên tập 'batch1_holdout13'...
+CẢNH BÁO: Đang chạy holdout! Đã dùng 4/5 lần.
+GT verification: đủ điều kiện promotion.
+Kết nối database...
+Bắt đầu truy xuất...
+
+Đã hoàn thành! Kết quả lưu tại: C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-26\test_evaluator_frozen_artifact0\holdout-run
+Tổng query lỗi (lần chạy này): 0 / 13
+Khởi động bộ đo trên tập 'batch1_round1_queries'...
+GT verification: đủ điều kiện promotion.
+Kết nối database...
+Bắt đầu truy xuất...
+
+Đã hoàn thành! Kết quả lưu tại: C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-26\test_evaluator_frozen_artifact0\baseline-run
+Tổng query lỗi (lần chạy này): 0 / 25
+Khởi động bộ đo trên tập 'batch1_round1_queries'...
+GT verification: đủ điều kiện promotion.
+Kết nối database...
+Bắt đầu truy xuất...
+
+Đã hoàn thành! Kết quả lưu tại: C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-26\test_evaluator_frozen_artifact0\current-run
+Tổng query lỗi (lần chạy này): 0 / 25
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\dev\aic2026\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+.venv\Lib\site-packages\google\genai\types.py:42
+  C:\dev\aic2026\.venv\Lib\site-packages\google\genai\types.py:42: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_manual_qa_override.py::test_apply_append_record_va_trace_day_du
+FAILED tests/test_run.py::test_checkpoint_ghi_ngay_sau_moi_cau - AssertionErr...
+FAILED tests/test_task_runner.py::test_qa_va_trake_khong_mat_metadata_hien_co
+FAILED dev_set/tests/test_frozen_evaluator_integration.py::test_evaluator_frozen_artifact_di_thang_den_promotion_eligible
+4 failed, 941 passed, 1 skipped, 2 warnings in 83.16s (0:01:23)

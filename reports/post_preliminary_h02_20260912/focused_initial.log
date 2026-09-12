@@ -1,0 +1,548 @@
+........................FF..........................F................... [ 42%]
+.F................F..................F...FFF..F.F.F..F.................. [ 84%]
+..............FF......F....                                              [100%]
+================================== FAILURES ===================================
+____ test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel _____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7779B9860>
+
+    def test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel(monkeypatch):
+        """Hết đáp án thật thì nộp CHỖ TRỐNG — nhưng tuyệt đối không nộp câu từ chối.
+    
+        ⚠️ Test này đổi hợp đồng khi gộp hai nhánh 03/09. Bản của Thạch
+        (`codex/qa-last-3h`) đòi `QANoValidHypothesisError`; bản `integrate/dot3`
+        cố ý bỏ đường ném lỗi đó (commit 9bbee76 + 73dbf41) vì nó để CẢ CÂU trống
+        trong gói ZIP, mà BTC không phạt câu sai — bỏ trống là 0 điểm CHẮC CHẮN
+        còn nộp bừa thì vẫn còn cửa (CLAUDE.md §6 luật 1: luôn nộp đủ 100 slot).
+    
+        Giữ nguyên điều Thạch muốn bảo vệ, và đó mới là phần đáng ghim: câu từ chối
+        KHÔNG được đi tiếp thành đáp án nộp. Chỉ khác chỗ hệ quả — thay vì ném lỗi
+        thì hạ xuống chỗ trống có nhãn để người soi ảnh điền tay.
+        """
+        from backend.tasks import qa
+    
+        monkeypatch.setattr(
+            qa, "parse_question",
+            lambda query: qa.QuestionParts("sự kiện", "câu hỏi", "visual_attribute"),
+        )
+        monkeypatch.setattr(qa, "search", lambda *a, **kw: [
+            {"shot_id": "L21_V001#s1", "score": .9, "keyframe_id": "L21_V001#k10"},
+        ])
+        monkeypatch.setattr(qa, "_expand_within_video", lambda *a, **kw: [])
+        monkeypatch.setattr(qa, "load_frame_map", lambda: {"L21_V001#k10": 10})
+        monkeypatch.setattr(
+            qa,
+            "_try_shot",
+            lambda *a, **kw: _fake_inference_with_hash(qa, ("Không rõ", 10, .99)),
+        )
+    
+        _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
+    
+        # Câu từ chối không được trở thành đáp án nộp — ý gốc của phép kiểm.
+        assert qa.is_valid_qa_answer(answer) is False or answer == "TODO"
+        assert "không rõ" not in str(answer).lower()
+        # Và phải là chỗ trống có nhãn, không phải im lặng trả rỗng.
+>       assert answer == "TODO"
+E       AssertionError: assert '' == 'TODO'
+E         
+E         - TODO
+
+tests\test_qa_hypotheses.py:239: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  [cảnh báo] shot L21_V001#s1: loại sentinel answer 'Không rõ'
+_________ test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel _________
+
+    def test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel():
+        from backend.tasks.qa import QAHypothesis
+    
+        with pytest.raises(ValueError, match="evidence_hash"):
+            QAHypothesis("đỏ", "L21_V001", "L21_V001#s1", "kf", 10, .9,
+                         "", "main:llm", "visual", "visual_attribute")
+>       with pytest.raises(ValueError, match="sentinel"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'sentinel'
+E         Actual message: 'QAHypothesis không được chứa placeholder/refusal'
+
+tests\test_qa_hypotheses.py:253: AssertionError
+______________ test_refusal_surface_khong_duoc_tao_qa_hypothesis ______________
+
+    def test_refusal_surface_khong_duoc_tao_qa_hypothesis():
+        """Surface đã lọt vào CSV phải bị chặn ngay tại biên hypothesis."""
+        from backend.tasks.qa import QAHypothesis
+    
+>       with pytest.raises(ValueError, match="answer rỗng/sentinel"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'answer rỗng/sentinel'
+E         Actual message: 'QAHypothesis không được chứa placeholder/refusal'
+
+tests\test_qa_hypotheses.py:346: AssertionError
+____________ test_runner_dung_hypotheses_va_fail_missing_evidence _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7778EF4D0>
+
+    def test_runner_dung_hypotheses_va_fail_missing_evidence(monkeypatch):
+        from backend.tasks import qa, runner
+    
+        hit = ShotHit("L21_V001#s1", 0.8, "L21_V001#k10")
+        hypothesis = qa.QAHypothesis(
+            "đỏ", "L21_V001", hit.shot_id, hit.best_keyframe_id, 10,
+            0.9, "a" * 64, "main:llm", "visual", "visual_attribute",
+        )
+        trace = {"hypotheses": [hypothesis.to_dict()], "answer_mode": "visual_attribute"}
+        monkeypatch.setattr(qa, "qa_pipeline", lambda *a, **kw: ([hit], "đỏ", trace))
+        portfolio = [Answer("L21_V001", (10,), answer_text="đỏ", keyframe_id=hit.best_keyframe_id)]
+        import backend.tasks.qa_portfolio as portfolio_module
+        monkeypatch.setattr(portfolio_module, "allocate_qa_portfolio", lambda *a, **kw: portfolio)
+    
+        result = runner.solve_query(
+            {"query_id": "q", "task_type": "QA", "query_vi": "màu gì?"},
+            total=1,
+            runtime_fingerprint="fp",
+        )
+    
+        assert result.answers == portfolio
+        assert result.qa_hypotheses == [hypothesis.to_dict()]
+        assert result.query_plan["answer_mode"] == "visual_attribute"
+    
+        monkeypatch.setattr(qa, "qa_pipeline", lambda *a, **kw: ([hit], "", {"hypotheses": []}))
+>       with pytest.raises(runner.SolveQueryError) as exc:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE SolveQueryError
+
+tests\test_qa_hypotheses.py:745: Failed
+_________________ test_qa_va_trake_khong_mat_metadata_hien_co _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7789B8DE0>
+
+    def test_qa_va_trake_khong_mat_metadata_hien_co(monkeypatch):
+        """Bắt lỗi QueryRun làm mất qa_trace/n_trake khi hợp nhất interface."""
+        runner = _runner()
+        qa = importlib.import_module("backend.tasks.qa")
+        trake = importlib.import_module("backend.tasks.trake")
+        slot = importlib.import_module("backend.slot")
+        hit = ShotHit("L01_V001#s0001", 0.5, "L01_V001_001")
+        monkeypatch.setattr(
+            qa,
+            "qa_pipeline",
+            lambda *a, **kw: ([hit], "đỏ", {"answer_shot_id": hit.shot_id}),
+        )
+        monkeypatch.setattr(
+            slot,
+            "allocate",
+            lambda *a, **kw: [Answer("L01_V001", (120,), answer_text="đỏ")],
+        )
+        qa_run = runner.solve_query(
+            {"query_id": "q-qa", "task_type": "QA", "query_vi": "màu gì?"}, total=1
+        )
+        assert qa_run.qa_trace == {"answer_shot_id": hit.shot_id}
+>       assert qa_run.answer_text == "đỏ"
+E       AssertionError: assert '' == 'đỏ'
+E         
+E         - đỏ
+
+tests\test_task_runner.py:372: AssertionError
+________________________ test_chay_het_va_ghi_du_file _________________________
+
+chay = <function chay.<locals>._chay at 0x000001C75852FD70>
+
+    def test_chay_het_va_ghi_du_file(chay):
+        ma, out, goi = chay([KIS, QA, TRAKE])
+>       assert ma == 0
+E       assert 1 == 0
+
+tests\test_run.py:230: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 3 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_het_va_ghi_du_file0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_het_va_ghi_du_file0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_het_va_ghi_du_file0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [█████████···················] 1/3 (33.3%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [██████████████████··········] 2/3 (66.7%)  đã 0:00 · còn ~0:00  ! q2                        
+  [████████████████████████████] 3/3 (100.0%)  đã 0:00 · còn ~0:00  ✓ q3                        
+
+                                                                                                    
+
+                                                                                                    
+
+____________________ test_chay_lai_thi_bo_qua_cau_da_xong _____________________
+
+chay = <function chay.<locals>._chay at 0x000001C75847C250>
+
+    def test_chay_lai_thi_bo_qua_cau_da_xong(chay):
+        ma, out, goi1 = chay([KIS, QA])
+>       assert ma == 0 and goi1 == ["q1", "q2"]
+E       assert (1 == 0)
+
+tests\test_run.py:278: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 2 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_thi_bo_qua_cau_d0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_thi_bo_qua_cau_d0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_thi_bo_qua_cau_d0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [██████████████··············] 1/2 (50.0%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [████████████████████████████] 2/2 (100.0%)  đã 0:00 · còn ~0:00  ! q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+__________________ test_chay_lai_chi_lam_cau_hong_lan_truoc ___________________
+
+chay = <function chay.<locals>._chay at 0x000001C75847FB60>
+
+    def test_chay_lai_chi_lam_cau_hong_lan_truoc(chay):
+        """Câu hỏng KHÔNG vào checkpoint — lỗi thường là DB chập chờn, đáng thử lại."""
+        ma, _, _ = chay([KIS, QA], hong_qid={"q2"})
+        assert ma == 1
+        ma2, out2, goi2 = chay([KIS, QA])
+>       assert goi2 == ["q2"] and ma2 == 0
+E       AssertionError: assert (['q2'] == ['q2']
+E         
+E         Use -v to get more diff and 1 == 0)
+
+tests\test_run.py:292: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 2 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_chi_lam_cau_hong0\ra
+  ✗ q2           QA     HỎNG sau   0.0s — RuntimeError: giả vờ hỏng
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_chi_lam_cau_hong0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_chi_lam_cau_hong0\ra --only q2
+BẮT ĐẦU · 2 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_chi_lam_cau_hong0\ra
+Checkpoint: 1 câu đã xong từ lần trước → bỏ qua
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_chi_lam_cau_hong0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_chay_lai_chi_lam_cau_hong0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [██████████████··············] 1/2 (50.0%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [████████████████████████████] 2/2 (100.0%)  đã 0:00 · còn ~0:00  ✗ q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+                                                                                                    
+
+                                                                                                    
+
+                                                                                                    
+
+  [████████████████████████████] 1/1 (100.0%)  đã 0:00 · còn ~0:00  ! q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+_____________________ test_doi_de_thi_checkpoint_het_han ______________________
+
+chay = <function chay.<locals>._chay at 0x000001C75852E6C0>
+
+    def test_doi_de_thi_checkpoint_het_han(chay):
+        """Cửa tử của checkpoint: nộp câu trả lời của đề CŨ dưới query_id mới."""
+        chay([KIS, QA])
+        _, _, goi2 = chay([dict(KIS, query_vi="ĐỀ ĐÃ SỬA"), QA])
+>       assert goi2 == ["q1"], "câu bị sửa đề phải chạy lại, câu không đổi thì không"
+E       AssertionError: câu bị sửa đề phải chạy lại, câu không đổi thì không
+E       assert ['q1', 'q2'] == ['q1']
+E         
+E         Left contains one more item: 'q2'
+E         Use -v to get more diff
+
+tests\test_run.py:300: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 2 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_doi_de_thi_checkpoint_het0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_doi_de_thi_checkpoint_het0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_doi_de_thi_checkpoint_het0\ra --only q2
+BẮT ĐẦU · 2 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_doi_de_thi_checkpoint_het0\ra
+Checkpoint HẾT HẠN cho 1 câu (đề hoặc runtime đã đổi): q1 → chạy lại
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_doi_de_thi_checkpoint_het0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_doi_de_thi_checkpoint_het0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [██████████████··············] 1/2 (50.0%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [████████████████████████████] 2/2 (100.0%)  đã 0:00 · còn ~0:00  ! q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+                                                                                                    
+
+                                                                                                    
+
+  [██████████████··············] 1/2 (50.0%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [████████████████████████████] 2/2 (100.0%)  đã 0:00 · còn ~0:00  ! q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+____________________ test_checkpoint_ghi_ngay_sau_moi_cau _____________________
+
+chay = <function chay.<locals>._chay at 0x000001C75852EA30>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C7779BAAC0>
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-25/test_checkpoint_ghi_ngay_sau_m0')
+viet_queries = <function viet_queries.<locals>._viet at 0x000001C75852F110>
+video = ('L21_V001', 37849)
+
+    def test_checkpoint_ghi_ngay_sau_moi_cau(chay, monkeypatch, tmp_path, viet_queries, video):
+        """Chết giữa chừng KHÔNG được mất câu đã xong — kiểm bằng cách chết thật."""
+        vid, n_frames = video
+        qs = [KIS, QA, TRAKE]
+    
+        def _gia(q, tong):
+            if q["query_id"] == "q3":
+                raise KeyboardInterrupt
+            return _answers(vid, n_frames, tong), {}
+    
+        monkeypatch.setattr(R, "giai_mot_query", _gia)
+        monkeypatch.setattr(R, "_preflight", lambda log, bo_qua: True)
+        out_dir = tmp_path / "ra"
+        monkeypatch.setattr(R.sys, "argv", [
+            "run.py", "--queries", str(viet_queries(qs)), "--out", str(out_dir),
+            "--answers", "5"])
+        R.main()
+    
+        ck = R.Checkpoint(out_dir / R.CHECKPOINT_NAME).doc()
+>       assert set(ck) == {"q1", "q2"}, "hai câu xong trước lúc chết phải còn nguyên"
+E       AssertionError: hai câu xong trước lúc chết phải còn nguyên
+E       assert {'q1'} == {'q1', 'q2'}
+E         
+E         Extra items in the right set:
+E         'q2'
+E         Use -v to get more diff
+
+tests\test_run.py:337: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 3 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_checkpoint_ghi_ngay_sau_m0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG theo yêu cầu (Ctrl-C) — tiến độ đã ghi vào checkpoint
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2, q3
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_checkpoint_ghi_ngay_sau_m0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_checkpoint_ghi_ngay_sau_m0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [█████████···················] 1/3 (33.3%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [██████████████████··········] 2/3 (66.7%)  đã 0:00 · còn ~0:00  ! q2                        
+                                                                                                    
+
+
+                                                                                                    
+
+                                                                                                    
+
+___________________ test_checkpoint_giu_answer_text_cua_QA ____________________
+
+chay = <function chay.<locals>._chay at 0x000001C75853B3D0>
+
+    def test_checkpoint_giu_answer_text_cua_QA(chay):
+        """answer_text phải sống sót qua checkpoint — mất nó là Q&A 0 điểm."""
+        _, out, _ = chay([QA])
+>       rec = R.Checkpoint(out / R.CHECKPOINT_NAME).doc()["q2"]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'q2'
+
+tests\test_run.py:350: KeyError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 1 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_checkpoint_giu_answer_tex0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_checkpoint_giu_answer_tex0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_checkpoint_giu_answer_tex0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+                                                                                                    
+
+  [████████████████████████████] 1/1 (100.0%)  đã 0:00 · còn ~0:00  ! q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+______________ test_only_rerun_sau_full_van_zip_du_toan_bo_query ______________
+
+chay = <function chay.<locals>._chay at 0x000001C758538510>
+
+    def test_only_rerun_sau_full_van_zip_du_toan_bo_query(chay):
+        ma1, _, _ = chay([KIS, QA, TRAKE])
+>       assert ma1 == 0
+E       assert 1 == 0
+
+tests\test_run.py:371: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 3 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_only_rerun_sau_full_van_z0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_only_rerun_sau_full_van_z0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_only_rerun_sau_full_van_z0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [█████████···················] 1/3 (33.3%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [██████████████████··········] 2/3 (66.7%)  đã 0:00 · còn ~0:00  ! q2                        
+  [████████████████████████████] 3/3 (100.0%)  đã 0:00 · còn ~0:00  ✓ q3                        
+
+                                                                                                    
+
+                                                                                                    
+
+___________________________ test_zip_dung_chuan_btc ___________________________
+
+chay = <function chay.<locals>._chay at 0x000001C75847EE50>
+
+    def test_zip_dung_chuan_btc(chay):
+        ma, out, _ = chay([KIS, QA], extra_args=["--zip"])
+>       assert ma == 0
+E       assert 1 == 0
+
+tests\test_run.py:418: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 2 truy vấn · 5 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_zip_dung_chuan_btc0\ra
+  ! q2: needs_review; đã lưu ứng viên/evidence để duyệt
+
+DỪNG XUẤT GÓI: checkpoint chưa đủ toàn bộ query trong file. Không ghi ZIP/CSV subset vì có thể bị nộp nhầm như một submission đầy đủ. Thiếu: q2
+Chạy lại câu hỏng: python run.py --queries C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_zip_dung_chuan_btc0\q.json --out C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-25\test_zip_dung_chuan_btc0\ra --only q2
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [██████████████··············] 1/2 (50.0%)  đã 0:00 · còn ~0:00  ✓ q1                        
+                                                                                                    
+
+  [████████████████████████████] 2/2 (100.0%)  đã 0:00 · còn ~0:00  ! q2                        
+
+                                                                                                    
+
+                                                                                                    
+
+_____________ test_qa_search_khong_500_khi_qa_pipeline_thanh_cong _____________
+
+real_videos = [('L21_V001', 37849), ('L21_V002', 31720), ('L21_V003', 29946)]
+
+    def test_qa_search_khong_500_khi_qa_pipeline_thanh_cong(real_videos):
+        """Bằng chứng trực tiếp của bug: mock qa_pipeline() trả đúng kiểu thật nó
+        trả (list[ShotHit], str) — trước bản sửa, dòng này luôn ra 500."""
+        vid = real_videos[0][0]
+        from backend.slot.allocator import _shots
+    
+        shot_id = next(iter(_shots()))
+        fake_shots = [ShotHit(shot_id, 0.9, None)]
+    
+        with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "400g")):
+            resp = _client().post(
+                "/search",
+                json={"query": "câu hỏi bất kỳ", "task_type": "QA", "query_en": "any question"},
+            )
+>       assert resp.status_code == 200, resp.text
+E       AssertionError: {"detail":"Search thất bại: not enough values to unpack (expected 3, got 2)"}
+E       assert 503 == 200
+E        +  where 503 = <Response [503 Service Unavailable]>.status_code
+
+tests\test_api_search.py:42: AssertionError
+____________________ test_qa_search_giu_dung_thu_hang_shot ____________________
+
+real_videos = [('L21_V001', 37849), ('L21_V002', 31720), ('L21_V003', 29946)]
+
+    def test_qa_search_giu_dung_thu_hang_shot(real_videos):
+        """Thứ tự shot qa_pipeline() trả (đã đẩy shot thắng lên hạng 1, xem
+        backend/tasks/qa.py::_dua_len_dau) phải giữ nguyên tới response — người
+        thao tác chọn top-5 dựa trên thứ tự này."""
+        from backend.slot.allocator import _shots
+    
+        shot_ids = list(_shots())[:3]
+        fake_shots = [ShotHit(sid, 1.0 - i * 0.1, None) for i, sid in enumerate(shot_ids)]
+    
+        with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "câu trả lời")):
+            resp = _client().post(
+                "/search", json={"query": "q", "task_type": "QA", "query_en": "q"},
+            )
+>       assert resp.status_code == 200, resp.text
+E       AssertionError: {"detail":"Search thất bại: not enough values to unpack (expected 3, got 2)"}
+E       assert 503 == 200
+E        +  where 503 = <Response [503 Service Unavailable]>.status_code
+
+tests\test_api_search.py:65: AssertionError
+_________ test_resume_keeps_completed_query_but_rejects_changed_input _________
+
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-25/test_resume_keeps_completed_qu0')
+
+    def test_resume_keeps_completed_query_but_rejects_changed_input(tmp_path):
+        harness = importlib.import_module("scripts.run_reproducible_baseline")
+        query = {"query_id": "q", "task_type": "KIS", "query_vi": "original"}
+        record = {"input": query, "query_sha256": harness.query_identity(query), "runtime_manifest_id": "id",
+                  "task_output": {"status": "failed"}, "export_status": "not_exported"}
+        (tmp_path / "queries.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+>       assert harness.read_checkpoint(tmp_path, [query], "id")["q"] == record
+E       AssertionError: assert {'input': {'q...: 'KIS'}, ...} == {'input': {'q...failed'}, ...}
+E         
+E         Omitting 4 identical items, use -vv to show
+E         Differing items:
+E         {'task_output': {'status': 'failed', 'task_type': 'KIS'}} != {'task_output': {'status': 'failed'}}
+E         Use -v to get more diff
+
+tests\test_baseline_harness.py:93: AssertionError
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\dev\aic2026\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_qa_hypotheses.py::test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel
+FAILED tests/test_qa_hypotheses.py::test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel
+FAILED tests/test_qa_hypotheses.py::test_refusal_surface_khong_duoc_tao_qa_hypothesis
+FAILED tests/test_qa_hypotheses.py::test_runner_dung_hypotheses_va_fail_missing_evidence
+FAILED tests/test_task_runner.py::test_qa_va_trake_khong_mat_metadata_hien_co
+FAILED tests/test_run.py::test_chay_het_va_ghi_du_file - assert 1 == 0
+FAILED tests/test_run.py::test_chay_lai_thi_bo_qua_cau_da_xong - assert (1 == 0)
+FAILED tests/test_run.py::test_chay_lai_chi_lam_cau_hong_lan_truoc - Assertio...
+FAILED tests/test_run.py::test_doi_de_thi_checkpoint_het_han - AssertionError...
+FAILED tests/test_run.py::test_checkpoint_ghi_ngay_sau_moi_cau - AssertionErr...
+FAILED tests/test_run.py::test_checkpoint_giu_answer_text_cua_QA - KeyError: ...
+FAILED tests/test_run.py::test_only_rerun_sau_full_van_zip_du_toan_bo_query
+FAILED tests/test_run.py::test_zip_dung_chuan_btc - assert 1 == 0
+FAILED tests/test_api_search.py::test_qa_search_khong_500_khi_qa_pipeline_thanh_cong
+FAILED tests/test_api_search.py::test_qa_search_giu_dung_thu_hang_shot - Asse...
+FAILED tests/test_baseline_harness.py::test_resume_keeps_completed_query_but_rejects_changed_input
+16 failed, 155 passed, 1 warning in 9.20s

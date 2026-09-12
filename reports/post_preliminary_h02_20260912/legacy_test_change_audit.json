@@ -1,0 +1,245 @@
+[
+  {
+    "path": "dev_set/tests/test_frozen_evaluator_integration.py",
+    "test": "test_evaluator_frozen_artifact_di_thang_den_promotion_eligible",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_api_search.py",
+    "test": "test_qa_search_khong_500_khi_qa_pipeline_thanh_cong",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_api_search.py",
+    "test": "test_qa_search_giu_dung_thu_hang_shot",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_manual_qa_override.py",
+    "test": "test_apply_append_record_va_trace_day_du",
+    "category": "C. EXISTING BEHAVIOR THAT MUST STILL BE PRESERVED",
+    "old_expectation": "Manual override có evidence vẫn success và append đủ100 dòng.",
+    "new_expectation": "Giữ mọi assertion; thêm output_origin=operator_assisted.",
+    "reason": "Không loại workflow operator được phép; chỉ phân biệt nguồn tự động.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_qa.py",
+    "test": "test_two_stage_cap_42_phu_text_main_image_va_expansion",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Payload evidence rỗng vẫn sinh x và tiêu thụ42 generation.",
+    "new_expectation": "Fixture có text evidence; giữ nguyên x,42 generation,trần42,14 vòng [1,2].",
+    "reason": "Cô lập kiểm budget khỏi missing-evidence gate; không giảm assertion ngân sách.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_qa_hypotheses.py",
+    "test": "test_pipeline_toan_refusal_ngan_thi_needs_review_khong_nop_sentinel",
+    "category": "A. OLD CONTRACT INTENTIONALLY SUPERSEDED",
+    "old_expectation": "Mọi shot refusal vẫn phải tạo TODO hypotheses để nộp.",
+    "new_expectation": "Answer rỗng, needs_review, hypotheses rỗng, attempts còn.",
+    "reason": "User yêu cầu loại fake success; test chặt hơn ở trạng thái và evidence, RED gốc được giữ.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_qa_hypotheses.py",
+    "test": "test_runner_dung_hypotheses_va_fail_missing_evidence",
+    "category": "A. OLD CONTRACT INTENTIONALLY SUPERSEDED",
+    "old_expectation": "Thiếu answer/evidence ném SolveQueryError retryable missing_evidence.",
+    "new_expectation": "needs_review, failure_class=None, retryable=False; answers rỗng và candidate còn.",
+    "reason": "Abstention không phải crash; phần test positive portfolio giữ nguyên.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_chay_het_va_ghi_du_file",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_mot_cau_hong_thi_cac_cau_khac_van_chay",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_log_ghi_ro_cau_nao_hong_va_hong_gi",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_goi_y_lenh_chay_lai_cau_hong",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_chay_lai_thi_bo_qua_cau_da_xong",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_chay_lai_chi_lam_cau_hong_lan_truoc",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_doi_de_thi_checkpoint_het_han",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_doi_model_thi_checkpoint_het_han",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_fresh_bo_qua_checkpoint",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_checkpoint_ghi_ngay_sau_moi_cau",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "QA fixture không answer/evidence vẫn tính hoàn thành trước KeyboardInterrupt.",
+    "new_expectation": "Hai KIS success trước interrupt vẫn phải nằm bền trên đĩa; QA durability có ở tests resume QA khác.",
+    "reason": "Phép kiểm này cô lập flush/fsync; không giảm số completed query hoặc assertion mất dữ liệu.",
+    "change": "direct"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_checkpoint_giu_answer_text_cua_QA",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_only_chi_chay_cau_duoc_chon",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_only_rerun_sau_full_van_zip_du_toan_bo_query",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_only_voi_query_id_khong_ton_tai_thi_bao_loi",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_zip_dung_chuan_btc",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_release_rehearsal_tao_receipt_khi_promotion_va_batch_sach",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_release_rehearsal_promotion_blocked_khong_tao_zip",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_khong_cau_nao_thanh_cong_thi_exit_1",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_run.py",
+    "test": "test_canh_bao_khi_khong_co_bang_chung_that",
+    "category": "B. BAD/INCOMPLETE FIXTURE",
+    "old_expectation": "Fixture success QA không có hypothesis/evidence; assertion behavior còn giữ.",
+    "new_expectation": "Fixture cung cấp evidence/provenance tường minh; giữ kiểm result/order/resume/ZIP.",
+    "reason": "Gate mới kiểm support trước success; không exempt test khỏi gate và không xóa assertion cũ.",
+    "change": "shared chay fixture"
+  },
+  {
+    "path": "tests/test_task_runner.py",
+    "test": "test_qa_va_trake_khong_mat_metadata_hien_co",
+    "category": "A. OLD CONTRACT INTENTIONALLY SUPERSEDED",
+    "old_expectation": "Trace chỉ có answer_shot_id vẫn giữ answer_text như success.",
+    "new_expectation": "Trace y nguyên, needs_review, review_answer_text giữ đỏ; TRAKE metadata giữ nguyên.",
+    "reason": "Không còn giả sử legacy provenance thiếu là support; tăng kiểm dữ liệu review.",
+    "change": "direct"
+  }
+]

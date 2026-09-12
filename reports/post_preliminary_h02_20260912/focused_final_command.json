@@ -1,0 +1,24 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "tests/test_h02_contract.py",
+    "tests/test_qa_hypotheses.py",
+    "tests/test_task_runner.py",
+    "tests/test_run.py",
+    "tests/test_release_rehearsal.py",
+    "tests/test_api_search.py",
+    "tests/test_baseline_harness.py",
+    "tests/test_manual_qa_override.py",
+    "dev_set/tests/test_frozen_evaluator_integration.py",
+    "-q"
+  ],
+  "exit_code": 0,
+  "seconds": 16.089,
+  "hard_guard": true,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "model_selection": "api/claude-sonnet-5",
+  "cache_only": true
+}

@@ -1,0 +1,13 @@
+
+========================================================================
+SELFCHECK — còn thiếu gì để coi là xong
+========================================================================
+  ĐẠT    Test suite                    981 passed, 1 skipped, 2 warnings in 94.62s (0:01:34)
+  ĐẠT    Preflight (development)       ĐẠT 20 · HỎNG 0 · BỎ QUA 2
+  THIẾU  Ground truth (holdout13)      6/13 verified — còn: KIS_004, KIS_005, KIS_009, KIS_010, QA_011, QA_012, QA_013
+  THIẾU  Ground truth (round1 25 câu)  0/25 có GT — chưa điều tra đáp án đúng câu nào
+  ĐẠT    LLM backend                   LLM_BACKEND=api, model=claude-sonnet-5 (cấu hình có mặt; credit KHÔNG kiểm ở đây)
+========================================================================
+Còn 2 mục chưa xong:
+  - Ground truth (holdout13): 6/13 verified — còn: KIS_004, KIS_005, KIS_009, KIS_010, QA_011, QA_012, QA_013
+  - Ground truth (round1 25 câu): 0/25 có GT — chưa điều tra đáp án đúng câu nào

@@ -1,0 +1,508 @@
+RESUME THE EXISTING PP-H02 WORK.
+
+Do NOT restart H02 from scratch.
+Do NOT reset, checkout, discard, revert, or overwrite the current working tree.
+
+The usage limit interrupted an already-authorized H02 implementation.
+
+This message is the authoritative current authorization state and supersedes
+the stale authorization wording in PROJECT_CONTEXT_FOR_REVIEW.md.
+
+==================================================
+CURRENT AUTHORIZATION STATE
+==================================================
+
+H01:
+
+APPROVED INFRASTRUCTURE.
+PERFORMANCE BASELINE NOT PROMOTED.
+
+Paid API calls remain NOT AUTHORIZED.
+
+PP-H02:
+
+AUTHORIZED for OFFLINE / REPLAY CORRECTNESS implementation.
+
+PP-H03 / H04 / H05:
+
+NOT AUTHORIZED.
+
+Do not start them.
+
+==================================================
+FIRST — RECOVER CURRENT WIP STATE
+==================================================
+
+Before editing anything further:
+
+1. inspect current branch, HEAD and git status;
+2. inspect all current H02 diffs;
+3. read the existing:
+   - reports/post_preliminary_h02_20260912/PLAN.md
+   - tests/test_h02_contract.py
+   - backend/common/qa_contract.py
+   - H02 replay scripts/artifacts already created;
+4. identify what was completed before the usage interruption;
+5. identify what remains incomplete.
+
+Do NOT repeat work that is already implemented and verified.
+
+Do NOT regenerate RED evidence.
+
+Preserve the existing RED logs and locked replay input hashes.
+
+Create/update an H02 work ledger before continuing.
+
+==================================================
+H02 SCOPE
+==================================================
+
+H02 fixes the QA RESULT CONTRACT.
+
+It is NOT:
+
+- an accuracy experiment;
+- a retrieval improvement;
+- a latency experiment;
+- a new model experiment;
+- a reason to call a provider.
+
+The core semantic distinctions must remain explicit:
+
+A process can execute successfully while the QA answer is NOT valid.
+
+Do not conflate:
+
+PROCESS EXECUTION
+ANSWER VALIDITY
+REVIEWABILITY
+
+A result may therefore be reviewable without being autonomous success.
+
+==================================================
+REQUIRED CONTRACT SEMANTICS
+==================================================
+
+Exact enum/field names may follow the implementation already started,
+but these semantic states must be representable:
+
+1. supported autonomous answer;
+2. needs human review / insufficient evidence;
+3. abstained / unsupported;
+4. process/task failure;
+5. operator-assisted provenance where explicitly known;
+6. unknown provenance where attribution is not known.
+
+Important:
+
+NEEDS_REVIEW != autonomous success.
+
+ABSTENTION != crash.
+
+PROCESS COMPLETED != answer correct.
+
+==================================================
+PRESERVE CANDIDATES / EVIDENCE
+==================================================
+
+When QA cannot produce a supported answer:
+
+do NOT create placeholder TODO/"0" to manufacture completion.
+
+But also do NOT discard useful retrieval results.
+
+Preserve, where available:
+
+- video/frame candidate;
+- evidence payload;
+- provenance;
+- reason for needs_review/abstention.
+
+This allows assisted review without misrepresenting autonomous output.
+
+==================================================
+VALID ZERO / NEGATIVE ANSWERS
+==================================================
+
+Do not reject answers by naive string matching.
+
+Examples that may be valid:
+
+"0"
+
+and legitimate negative answers such as:
+
+"Không có người..."
+"Không thấy..."
+"Không..."
+
+depending on the question/evidence.
+
+Use contract/provenance/evidence semantics,
+not merely lexical negativity.
+
+==================================================
+SHARED CONTRACT ARCHITECTURE
+==================================================
+
+Review the new shared contract module, currently expected around:
+
+backend/common/qa_contract.py
+
+It must remain dependency-light.
+
+It must NOT require exporter/replay code to import the heavy QA/retrieval/LLM stack.
+
+Avoid circular dependencies.
+
+The same semantic predicate/contract should be reused across applicable paths rather than copied into drifting sentinel lists.
+
+Where practical, test that relevant layers use the same shared contract behavior.
+
+==================================================
+PATH COVERAGE
+==================================================
+
+Verify the contract across every applicable route:
+
+- QA legacy;
+- QA two-stage if the path shares the contract;
+- runner result;
+- API path if applicable;
+- checkpoint/resume;
+- QA hypothesis cache;
+- stale cache replay;
+- portfolio/allocation;
+- exporter;
+- release preflight;
+- rehearsal/replay tooling.
+
+Do not claim coverage for a path without a test.
+
+==================================================
+LEGACY TEST CHANGES — REQUIRED AUDIT
+==================================================
+
+Some old tests were edited because they expected TODO submission or
+`success` fixtures without evidence.
+
+For EVERY legacy test changed because of H02, classify it as:
+
+A. OLD CONTRACT INTENTIONALLY SUPERSEDED
+B. BAD/INCOMPLETE FIXTURE
+C. EXISTING BEHAVIOR THAT MUST STILL BE PRESERVED
+
+Record:
+
+- test path/name;
+- old expectation;
+- why it changed;
+- new expectation;
+- why this is not merely weakening a test to make implementation pass.
+
+Preserve the original RED evidence.
+
+Do not delete evidence showing the old behavior was faulty.
+
+==================================================
+OPERATOR_ASSISTED PROVENANCE
+==================================================
+
+The new `operator_assisted` label is allowed only when supported by explicit provenance.
+
+Do NOT infer operator assistance merely because:
+
+- an output differs from another artifact;
+- an answer matches a known manual answer;
+- the output appears after a manual workflow;
+- provenance is absent.
+
+Rules:
+
+explicit operator/manual provenance
+→ operator_assisted
+
+explicit autonomous provenance
+→ autonomous
+
+no sufficient provenance
+→ UNKNOWN
+
+Never silently map UNKNOWN to autonomous.
+
+Never silently map UNKNOWN to operator_assisted.
+
+Historical competition artifacts remain immutable.
+
+Any reclassification/annotation belongs only in NEW H02 replay output.
+
+==================================================
+OFFLINE HARD GUARD
+==================================================
+
+No paid provider call is authorized.
+
+During H02 replay/testing:
+
+- provider_call_count must remain 0;
+- no automatic provider switch;
+- no cheaper-model substitution;
+- no external AI call;
+- no hidden API fallback.
+
+Use frozen historical evidence/cache/fixtures only.
+
+If a code path unexpectedly attempts provider dispatch:
+
+FAIL the run and record the path.
+
+Do not work around it.
+
+==================================================
+LOCKED REPLAY INPUT
+==================================================
+
+The implementation already reports locking:
+
+- 129 historical records;
+- 66 historical CSVs;
+
+with SHA-256.
+
+Preserve these inputs exactly.
+
+Do not change the denominator after viewing results.
+
+Before reporting percentages/counts, distinguish:
+
+- total records;
+- unique query IDs;
+- task counts;
+- source/run counts.
+
+The same query appearing in multiple historical runs must not be presented as multiple unique queries.
+
+==================================================
+REPLAY OUTPUT
+==================================================
+
+Replay must write only to the H02 report/artifact directory.
+
+Do not overwrite:
+
+- historical checkpoint;
+- historical cache;
+- competition CSV;
+- competition ZIP;
+- old audit artifact.
+
+For each replayed item record at least:
+
+- source artifact/run;
+- query ID;
+- old status;
+- old answer/provenance;
+- new contract status;
+- preserved candidate/evidence status;
+- reason for transition;
+- operator-assisted/autonomous/unknown provenance if actually supported.
+
+==================================================
+REQUIRED STATUS-TRANSITION REPORT
+==================================================
+
+Produce transition counts such as:
+
+old success -> supported
+old success -> needs_review
+old success -> abstain/unsupported
+old success -> refusal rejected
+old failure -> unchanged failure
+operator_assisted -> preserved
+unknown provenance -> unknown
+
+Use the actual implemented names.
+
+Break results down by:
+
+- QA mode/source;
+- historical run/source;
+- unique query vs record count where relevant.
+
+Do NOT call transitions an accuracy improvement.
+
+==================================================
+FALSE-REJECTION AUDIT
+==================================================
+
+Explicitly verify:
+
+- legitimate answer "0";
+- legitimate negative statements;
+- supported answer with evidence;
+- manual/operator-assisted result where policy permits assisted review;
+- stale refusal;
+- TODO/placeholder;
+- no-evidence result.
+
+Report false rejection count.
+
+If any verified-valid fixture is rejected unexpectedly:
+
+DO NOT PROMOTE H02.
+
+==================================================
+BATCH ISOLATION
+==================================================
+
+Verify that one unsupported/needs-review QA:
+
+- does not crash unrelated queries;
+- does not silently remove them from the denominator;
+- does not convert batch failure into apparent success;
+- does not prevent reviewable candidate/evidence from being retained.
+
+==================================================
+EXPORT POLICY
+==================================================
+
+Be explicit about the distinction between:
+
+AUTONOMOUS EVALUATION
+
+and
+
+ASSISTED REVIEW WORKFLOW.
+
+For autonomous evaluation:
+
+placeholder/refusal/unsupported/needs_review must not be accepted as a valid answer submission.
+
+For assisted review:
+
+candidate/evidence may remain available for an operator,
+but that must not be represented as autonomous success.
+
+Do not change historical competition behavior retroactively.
+
+==================================================
+H01/H02 SOURCE ATTRIBUTION
+==================================================
+
+The H01 change ledger reportedly identified 15 production/test/config files.
+
+Finish and persist that ledger.
+
+Then separately identify every H02 production/test/tooling file.
+
+Do not attribute the entire mixed WIP commit 2354147 to H01 or H02.
+
+Do not discard unrelated user/report changes.
+
+After H02 passes its gate, create a clean H02 commit if safely possible using only H02-scoped paths.
+
+If clean commit separation would risk losing or rewriting unrelated work:
+
+do NOT rewrite history.
+
+Instead persist an exact source snapshot + file/hash/change ledger.
+
+Attribution is more important than a pretty Git history.
+
+==================================================
+TEST SEQUENCE
+==================================================
+
+Continue from the existing RED evidence.
+
+Do NOT recreate RED merely for ceremony.
+
+Run:
+
+1. H02 focused contract tests;
+2. affected legacy QA/export/resume/cache tests;
+3. full applicable suite;
+4. development preflight;
+5. release preflight;
+6. selfcheck.
+
+Record commands and exit codes.
+
+Do not modify GT verification merely to make selfcheck green.
+
+Existing incomplete human-GT coverage is an allowed documented gap.
+
+==================================================
+H02 ACCEPTANCE GATE
+==================================================
+
+Recommend PROMOTE H02 CORRECTNESS only if ALL hold:
+
+1. registered TODO/placeholder cases cannot become autonomous supported success;
+2. registered refusal/sentinel cases cannot become autonomous supported success;
+3. stale checkpoint/cache/replay is revalidated by the new contract;
+4. legitimate zero/negative answers remain accepted when supported;
+5. reviewable candidate/evidence is preserved;
+6. unsupported QA does not crash unrelated queries;
+7. exporter/autonomous path rejects non-supported answers appropriately;
+8. status/provenance survives resume/replay consistently;
+9. focused tests pass;
+10. full applicable suite has no unexplained regression;
+11. preflight results are recorded and no new unexplained failure is introduced;
+12. provider calls = 0;
+13. historical artifacts were not modified;
+14. replay denominator remained locked;
+15. no meaningful false rejection remains unexplained.
+
+This is a correctness promotion only.
+
+Do NOT claim:
+
+- higher accuracy;
+- higher recall;
+- better competition score;
+- lower latency.
+
+==================================================
+AFTER IMPLEMENTATION — STOP
+==================================================
+
+When H02 is complete, create:
+
+reports/post_preliminary_h02_20260912/CHECKPOINT_H02.md
+
+It must contain:
+
+A. Authorization/scope
+B. Starting source state
+C. H01 change ledger reference
+D. H02 file/change ledger
+E. RED evidence summary
+F. Shared contract design
+G. Legacy-test-change audit
+H. Replay input manifest
+I. Replay transition results
+J. Unique-query vs record denominators
+K. False-rejection audit
+L. Provider-call audit
+M. Focused tests
+N. Full suite
+O. Development/release preflight
+P. Selfcheck
+Q. Remaining gaps
+R. Semantic behavior changes
+S. Historical artifacts integrity statement
+T. Decision:
+   PROMOTE H02 CORRECTNESS
+   or
+   DO NOT PROMOTE
+
+Then STOP.
+
+Do NOT start PP-H03.
+
+Do NOT create report v2.
+
+Do NOT run a paid API.
+
+Do NOT modify the new validation/held-out dataset plan.

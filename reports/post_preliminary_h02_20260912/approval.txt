@@ -1,0 +1,302 @@
+CACHE-ONLY CHECKPOINT REVIEWED.
+
+Decision:
+
+APPROVE H01 INFRASTRUCTURE.
+DO NOT PROMOTE PP-H01-CACHE-ONLY AS A PERFORMANCE BASELINE.
+
+The zero-USD diagnostic did its job:
+it demonstrated that the guard/instrumentation works, while also showing that historical cache coverage is insufficient for a complete baseline.
+
+Do NOT spend additional API credit at this stage.
+
+==================================================
+IMPORTANT ENV CORRECTION
+==================================================
+
+The operator previously typed:
+
+LLM_BACKEND=api
+LLM_API_KEY=claude-sonnet-5
+
+Treat that as an operator wording mistake.
+
+The intended model selection is:
+
+LLM_BACKEND=api
+LLM_API_MODEL=claude-sonnet-5
+
+LLM_API_KEY must remain an actual credential and must never be set to the model name.
+
+Before any future live API run, verify this explicitly.
+
+Do not expose or log the secret key.
+
+==================================================
+H01 DECISION
+==================================================
+
+Accept the following as H01 infrastructure work:
+
+- no-side-effect runtime/model selection;
+- early parameter validation;
+- runtime/resource identity;
+- branch-state instrumentation;
+- cache-only dispatch guard;
+- cache-miss observability;
+- resume identity checks;
+- mapping/export instrumentation;
+- focused/full regression tests.
+
+However:
+
+PP-H01-CACHE-ONLY-20260912 is NOT a performance baseline.
+
+Reason:
+
+- locked set = 30 queries;
+- only 5/30 produced exportable outputs;
+- 25/30 were blocked by missing cache;
+- 132 cache misses;
+- 0 cache hits;
+- 0 provider calls.
+
+This establishes cache coverage limitations, not retrieval/QA/TRAKE performance.
+
+Do not call:
+
+task_success=30
+
+a successful baseline.
+
+Do not treat fallback outputs as valid autonomous answers.
+
+==================================================
+SOURCE HYGIENE BEFORE H02
+==================================================
+
+Current commit 235414784b5ee80b9552fd7fe7ce898db1cbf35b contains changes outside the cache-only/H01 scope.
+
+Before starting H02:
+
+1. identify every production/test file changed for H01;
+2. distinguish H01 changes from unrelated report/audit/user changes;
+3. create clean commits if practical, or an exact H01 change ledger if history makes separation unsafe;
+4. do not discard user changes;
+5. do not rewrite historical artifacts;
+6. record the source commit/tree used as the starting point for H02.
+
+Preferred structure if practical:
+
+PP-H01A — runtime/config contracts
+PP-H01B — resource/runtime identity
+PP-H01C — instrumentation/harness
+PP-H01D — cache-only safety/diagnostics
+
+Do not mechanically rewrite Git history merely to obtain this structure if doing so risks losing work.
+
+The goal is attribution, not cosmetic history.
+
+==================================================
+SELF-CHECK STATUS
+==================================================
+
+Do not force selfcheck green by changing GT status.
+
+Current selfcheck exit 1 caused by incomplete human verification is acceptable as an explicitly documented evidence gap.
+
+Keep:
+
+- holdout13 6/13 verified;
+- round1 0/25 GT in the relevant manifest;
+
+unless humans genuinely verify additional records.
+
+Do not auto-promote labels.
+
+==================================================
+API BUDGET
+==================================================
+
+Do NOT call Anthropic or another paid provider for the next step.
+
+Do not switch provider/model automatically.
+
+Do not use a cheaper model merely to complete the baseline, because that would create a different baseline resource identity.
+
+The currently selected future live model remains:
+
+api / claude-sonnet-5
+
+but no live call is authorized now.
+
+==================================================
+NEXT STEP — AUTHORIZE PP-H02 OFFLINE CORRECTNESS ONLY
+==================================================
+
+PP-H02 implementation is now authorized under a restricted OFFLINE / REPLAY scope.
+
+Goal:
+
+A missing-evidence / placeholder / refusal result must not be represented as successful autonomous output.
+
+This is a correctness/output-contract change, NOT an accuracy improvement experiment.
+
+Use:
+
+- historical traces;
+- historical CSVs;
+- frozen cache/evidence;
+- fixtures;
+- synthetic contract cases where appropriate.
+
+Do not require new provider calls.
+
+==================================================
+H02 CONTRACT
+==================================================
+
+Establish explicit result states such as:
+
+SUPPORTED_ANSWER
+NEEDS_REVIEW
+ABSTAIN / UNSUPPORTED
+TASK_FAILURE
+
+Exact naming may differ if existing architecture has a better representation.
+
+But the semantic distinction must exist.
+
+Required invariants:
+
+1. no evidence / placeholder
+   != autonomous success
+
+2. refusal/sentinel
+   != valid autonomous answer
+
+3. abstention
+   != process crash
+
+4. reviewable candidate information must not be lost merely because answer generation failed
+
+5. legitimate answers such as:
+   - "0"
+   - valid negative statements
+   must not be rejected based only on string pattern
+
+6. provenance, not just answer text, should be used when distinguishing placeholders where possible.
+
+==================================================
+PATHS THAT MUST BE COVERED
+==================================================
+
+Apply the same semantic contract across relevant paths:
+
+- live inference;
+- legacy QA;
+- two-stage QA where applicable;
+- checkpoint resume;
+- cache replay;
+- portfolio/selection;
+- exporter;
+- release/preflight/rehearsal.
+
+Do not claim a path is covered unless tests exercise it.
+
+Historical CSV/ZIP files remain immutable.
+
+==================================================
+RED TESTS FIRST
+==================================================
+
+Before implementation, create/reproduce failing tests for at least:
+
+A. TODO placeholder marked success
+B. provenance=placeholder/no_answer marked success
+C. known refusal/sentinel accepted by exporter
+D. cache/checkpoint containing stale refusal
+E. legitimate answer "0"
+F. legitimate negative answer
+G. missing evidence while candidate list remains reviewable
+H. one QA unsupported must not crash unrelated queries
+I. old trace replay must obey the new output contract
+
+Capture RED evidence.
+
+Then implement the minimum production change.
+
+==================================================
+H02 MEASUREMENT
+==================================================
+
+H02 does NOT need a live LLM quality baseline.
+
+Use structural replay on frozen evidence.
+
+Required measurements:
+
+- placeholder accepted as autonomous = 0
+- refusal/sentinel accepted as autonomous = 0
+- number of outputs moved from success → needs_review/abstain
+- valid-answer false rejection count
+- preservation of candidate/evidence payload for review
+- export behavior
+- query-level status changes
+- crash/mapping/export violations
+
+Keep the full denominator.
+
+Do not improve apparent metrics by dropping unsupported queries.
+
+Do NOT report removal of TODO/refusal as accuracy gain.
+
+==================================================
+H02 ACCEPTANCE GATE
+==================================================
+
+PROMOTE H02 correctness change only if:
+
+1. every registered placeholder/refusal case is classified correctly;
+2. legitimate zero/negative-answer fixtures remain valid;
+3. no reviewable candidate/evidence is lost unexpectedly;
+4. one unsupported QA does not crash the rest of a batch;
+5. cache/checkpoint/replay/export agree on the result contract;
+6. focused tests pass;
+7. full applicable suite has no unexplained regression;
+8. development/release preflight results are recorded;
+9. mapping/export violations do not increase;
+10. no paid provider calls were made.
+
+This gate is about correctness, not autonomous accuracy.
+
+==================================================
+DO NOT START H03
+==================================================
+
+After H02 finishes, STOP.
+
+Do not start KIS localization H03 yet.
+
+Before H03 we still need a sufficiently runnable measurement baseline and an accepted evaluation resource identity.
+
+Return:
+
+A. exact H01 source/change ledger
+B. H01 infrastructure promotion status
+C. H02 RED evidence
+D. H02 implementation
+E. H02 experiment ID / commits
+F. focused tests
+G. full-suite result
+H. preflight/selfcheck
+I. historical replay results
+J. status-transition counts
+K. false-rejection checks
+L. remaining gaps
+M. recommendation:
+   PROMOTE H02 CORRECTNESS / DO NOT PROMOTE
+
+Do not write report v2 yet.
+Do not modify historical competition artifacts.
+Do not use competition scores as autonomous metrics.

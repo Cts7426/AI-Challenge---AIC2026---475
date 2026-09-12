@@ -1,0 +1,13 @@
+{
+  "command": [
+    "C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+    "reports/post_preliminary_h02_20260912/replay_contract.py"
+  ],
+  "exit_code": 0,
+  "seconds": 8.016,
+  "hard_guard": true,
+  "external_dispatch_attempts": 0,
+  "external_provider_calls_completed": 0,
+  "model_selection": "api/claude-sonnet-5",
+  "cache_only": true
+}

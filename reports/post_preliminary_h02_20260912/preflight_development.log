@@ -1,0 +1,164 @@
+Kiểm norm trên 20 mẫu: min=1.000000 max=1.000000
+  ✓ mọi vector có |v| ≈ 1 (sai số ≤ 0.001) — cùng thang với query encoder
+{
+  "passed": 20,
+  "failed": 0,
+  "skipped": 2,
+  "profile": "development",
+  "checks": [
+    {
+      "group": "G. Cấu hình",
+      "name": "QA output contract",
+      "status": "ĐẠT",
+      "detail": "H02: sentinel/placeholder/missing evidence bị chặn; zero/negative giữ; không gọi LLM",
+      "ms": 9.901299999910407
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "interpreter Python",
+      "status": "ĐẠT",
+      "detail": "3.14.0 tại C:\\dev\\aic2026\\.venv\\Scripts\\python.exe",
+      "ms": 0.006099995516706258
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "thư viện lõi",
+      "status": "ĐẠT",
+      "detail": "đủ: pandas, pyarrow, numpy, elasticsearch, pymilvus",
+      "ms": 4279.849700003979
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "runtime Q&A",
+      "status": "ĐẠT",
+      "detail": "LLM_BACKEND=api · model=claude-sonnet-5 · QA mode=legacy · cohort=1+2 · cap=42 · SDK/key sẵn sàng",
+      "ms": 4930.69960000139
+    },
+    {
+      "group": "A. Môi trường",
+      "name": "thư viện tuỳ chọn",
+      "status": "BỎ QUA",
+      "detail": "streamlit → mất UI debug (D2.1)",
+      "ms": 21148.890900003607
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "Elasticsearch",
+      "status": "ĐẠT",
+      "detail": "metadata=873 · objects=177,321 · ocr=160,393 · asr=13,415",
+      "ms": 137.7366999950027
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "Milvus",
+      "status": "ĐẠT",
+      "detail": "keyframes: 177,321 vector",
+      "ms": 145.6347999992431
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "nhánh search có chỗ dựa",
+      "status": "ĐẠT",
+      "detail": "6/6 nhánh bật có chỗ dựa (asr, metadata, objects, ocr, ocr_probe, vector) · tắt: text_vi, vector_siglip2",
+      "ms": 109.73709999962011
+    },
+    {
+      "group": "B. Hạ tầng",
+      "name": "API /health",
+      "status": "BỎ QUA",
+      "detail": "API chưa chạy (URLError) — chỉ cần khi thao tác qua UI",
+      "ms": 4080.7225000025937
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "parquet lõi",
+      "status": "ĐẠT",
+      "detail": "video_info=873 · frame_map=177,321 · shots=100,810 · keyframes=371,702 · clip_kf_map=371,702",
+      "ms": 65.64699999580625
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "kèm .meta.json",
+      "status": "ĐẠT",
+      "detail": "đủ .meta.json cho 5 file lõi",
+      "ms": 0.9967000005417503
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "frame_map",
+      "status": "ĐẠT",
+      "detail": "354,642 khoá (177,321 dạng #k + 177,321 dạng 1fps)",
+      "ms": 1111.9174999985262
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "video_info",
+      "status": "ĐẠT",
+      "detail": "873 video, n_frames hợp lệ",
+      "ms": 52.59370000567287
+    },
+    {
+      "group": "C. Dữ liệu",
+      "name": "ảnh Q&A/UI",
+      "status": "ĐẠT",
+      "detail": "ảnh phủ đủ 873/873 video trong frame_map",
+      "ms": 1743.5017000025255
+    },
+    {
+      "group": "D. Vector",
+      "name": "encoder đang chạy",
+      "status": "ĐẠT",
+      "detail": "VECTOR_BACKEND=clip · collection=keyframes · 177,321 vector",
+      "ms": 19.381400001293514
+    },
+    {
+      "group": "D. Vector",
+      "name": "index cùng không gian",
+      "status": "ĐẠT",
+      "detail": "ViT-B-32-quickgelu / openai · 512 chiều · metric COSINE · nạp 2026-08-20T10:38:02+00:00",
+      "ms": 4.966100001183804
+    },
+    {
+      "group": "D. Vector",
+      "name": "vector đã chuẩn hoá L2",
+      "status": "ĐẠT",
+      "detail": "20 vector mẫu trong keyframes có |v| ≈ 1",
+      "ms": 17.85589999781223
+    },
+    {
+      "group": "E. Đường nộp",
+      "name": "3 dạng bài → .zip",
+      "status": "ĐẠT",
+      "detail": "3 dạng bài × 100 dòng → .zip 2 KB, validator sạch",
+      "ms": 852.6242000007187
+    },
+    {
+      "group": "F. Độ trễ",
+      "name": "1 truy vấn ≤ 30s",
+      "status": "ĐẠT",
+      "detail": "6.8s cho 100 shot (ngân sách 30s)",
+      "ms": 6779.577600005723
+    },
+    {
+      "group": "G. Cấu hình",
+      "name": "bảng slot đủ 100",
+      "status": "ĐẠT",
+      "detail": "[(50, 2)] → đủ 100 slot, phủ 50 shot",
+      "ms": 0.3254999974160455
+    },
+    {
+      "group": "G. Cấu hình",
+      "name": "công thức Final Score",
+      "status": "ĐẠT",
+      "detail": "khớp ví dụ có đáp số của BTC (0.74)",
+      "ms": 2.3075999997672625
+    },
+    {
+      "group": "G. Cấu hình",
+      "name": "hằng định dạng nộp",
+      "status": "ĐẠT",
+      "detail": "100 dòng/truy vấn · .csv · answer ≤ 100 ký tự",
+      "ms": 0.01720000000204891
+    }
+  ]
+}

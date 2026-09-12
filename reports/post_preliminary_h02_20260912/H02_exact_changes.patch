@@ -1,0 +1,1883 @@
+diff --git a/backend/api/main.py b/backend/api/main.py
+index d5fc3ef..42fc200 100644
+--- a/backend/api/main.py
++++ b/backend/api/main.py
+@@ -152,6 +152,10 @@ class SearchHit(BaseModel):
+ class SearchResponse(BaseModel):
+     hits: list[SearchHit]
+     answer_text: str | None = None
++    result_state: str | None = None
++    qa_trace: dict | None = None
++    output_origin: str | None = None
++    autonomous_eligible: bool = False
+ 
+ 
+ def _thumbnail_url(result: dict) -> str:
+@@ -177,6 +181,8 @@ def _thumbnail_url(result: dict) -> str:
+ def post_search(req: SearchRequest) -> SearchResponse:
+     try:
+         answer_text = None
++        result_state = None
++        qa_trace = None
+         if req.task_type == "QA":
+             from backend.slot.allocator import shot_bounds
+             from backend.tasks.qa import qa_pipeline
+@@ -194,7 +200,12 @@ def post_search(req: SearchRequest) -> SearchResponse:
+             # video_id/frame_idx không có sẵn trong ShotHit — tra qua
+             # shot_bounds() (allocator, API công khai) và load_frame_map()
+             # (đã lru_cache, tra lại không tốn gì).
+-            shots, answer_text = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en)
++            shots, answer_text, qa_trace = qa_pipeline(req.query, top_k_shots=req.top_k, query_en=req.query_en, return_trace=True)
++            from backend.common.qa_contract import reconcile_qa_trace
++            checked = reconcile_qa_trace({"task_type": "QA", "qa_trace": qa_trace,
++                                          "answer_text": answer_text,
++                                          "search_rows": [{"shot_id": h.shot_id} for h in shots]})
++            answer_text, result_state = checked["answer_text"], checked["result_state"]
+             fm = load_frame_map()
+             results = []
+             for h in shots:
+@@ -235,6 +246,11 @@ def post_search(req: SearchRequest) -> SearchResponse:
+         else:
+             results = fused_search(req.query, query_en=req.query_en, top_k=req.top_k)
+     except RuntimeError as e:
++        if req.task_type == "QA" and hasattr(e, "qa_review"):
++            raise HTTPException(status_code=503, detail={
++                "result_state": "task_failure", "process_status": "failed",
++                "answer_text": "", "error": str(e), "qa_trace": e.qa_review,
++            }) from e
+         # Thiếu API key khi cần dịch — lỗi phía cấu hình người dùng → 400 kèm cách khắc phục
+         raise HTTPException(
+             status_code=400,
+@@ -242,6 +258,11 @@ def post_search(req: SearchRequest) -> SearchResponse:
+         )
+     except Exception as e:
+         # Milvus/ES chết cả → 503 để frontend phân biệt "hệ thống sập" với "query sai"
++        if req.task_type == "QA" and hasattr(e, "qa_review"):
++            raise HTTPException(status_code=503, detail={
++                "result_state": "task_failure", "process_status": "failed",
++                "answer_text": "", "error": str(e), "qa_trace": e.qa_review,
++            }) from e
+         raise HTTPException(status_code=503, detail=f"Search thất bại: {e}")
+ 
+     hits = [
+@@ -259,7 +280,9 @@ def post_search(req: SearchRequest) -> SearchResponse:
+         )
+         for r in results
+     ]
+-    return SearchResponse(hits=hits, answer_text=answer_text)
++    return SearchResponse(hits=hits, answer_text=answer_text, result_state=result_state, qa_trace=qa_trace,
++                          output_origin=checked["output_origin"] if req.task_type == "QA" else None,
++                          autonomous_eligible=checked["autonomous_eligible"] if req.task_type == "QA" else False)
+ 
+ 
+ class SubmitItem(BaseModel):
+diff --git a/backend/common/qa_contract.py b/backend/common/qa_contract.py
+new file mode 100644
+index 0000000..053125d
+--- /dev/null
++++ b/backend/common/qa_contract.py
+@@ -0,0 +1,245 @@
++"""Hợp đồng Q&A dùng chung cho inference, replay và export; không gọi service.
++
++Supported chỉ xác nhận cấu trúc evidence/provenance, không xác nhận ground truth.
++"""
++from __future__ import annotations
++
++import copy
++import re
++import unicodedata
++from collections.abc import Mapping
++
++from data.config.qa_hypotheses import (
++    QA_ANSWER_MODE_RULES, QA_SENTINEL_ANSWERS, QA_SENTINEL_PREFIX_CONTINUATIONS,
++    QA_REFUSAL_EXACT_ANSWERS, QA_REFUSAL_SUBJECT_PREFIXES, QA_REFUSAL_SHORT_ANSWERS,
++    QA_REFUSAL_MIN_WORDS, QA_REFUSAL_NEGATIONS, QA_REFUSAL_EVIDENCE_WORDS,
++    QA_PLACEHOLDER_ANSWERS, QA_PLACEHOLDER_PROVENANCE_TOKENS,
++    QA_OPERATOR_PROVENANCE_TOKENS, QA_AUTONOMOUS_PROVENANCE_TOKENS,
++)
++
++def _normalize_answer(answer_text: str) -> str:
++    normalized = unicodedata.normalize("NFKC", str(answer_text))
++    normalized = " ".join(normalized.casefold().split())
++    while normalized and unicodedata.category(normalized[0]).startswith("P"):
++        normalized = normalized[1:].lstrip()
++    while normalized and unicodedata.category(normalized[-1]).startswith("P"):
++        normalized = normalized[:-1].rstrip()
++    return normalized
++
++
++def _la_cau_tu_choi(normalized: str) -> bool:
++    """Dò câu từ chối bằng BA luật, xếp từ chặt tới rộng.
++
++    Vì sao không chỉ liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô
++    hạn. Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
++    Vì sao không chỉ dò hình dạng: lưới rộng LOẠI NHẦM đáp án thật ("Không thấy
++    mưa", "Không có người trong ảnh") — mà loại nhầm đắt hơn bỏ sót.
++
++    Hợp nhất 03/09 từ hai bản làm độc lập (Minh Hoàng ở `integrate/dot3`,
++    Thạch ở `codex/qa-last-3h`). Bản hợp nhất phải qua trọn 22 ca của
++    `tests/test_qa_hypotheses.py`: 15 chuỗi phải chặn, 7 chuỗi phải giữ.
++
++      ① ĐÍCH DANH  hai surface quan sát được thật, luật hình dạng không với tới.
++      ② NGẮN       "không biết" / "we don't know" — bóc chủ ngữ rồi khớp trọn vẹn.
++      ③ HÌNH DẠNG  phủ định ĐỨNG ĐẦU + từ nói về việc xác định/bằng chứng.
++
++    Luật ③ đòi phủ định đứng ĐẦU chứ không phải nằm đâu đó, vì đó là thứ duy
++    nhất phân biệt được câu từ chối với đáp án có chứa chữ phủ định:
++        'Biển báo ghi "Không có thông tin trong bằng chứng"'  -> GIỮ (đáp án thật)
++        "Không thể xác định từ bằng chứng"                    -> CHẶN
++    """
++    if normalized in QA_REFUSAL_EXACT_ANSWERS:          # ①
++        return True
++
++    tokens = normalized.split()
++    # Bóc chủ ngữ: "tôi không biết" và "không biết" là cùng một câu từ chối.
++    if tokens and tokens[0] in QA_REFUSAL_SUBJECT_PREFIXES:
++        tokens = tokens[1:]
++    con_lai = " ".join(tokens)
++
++    if con_lai in QA_REFUSAL_SHORT_ANSWERS:             # ②
++        return True
++
++    if len(tokens) < QA_REFUSAL_MIN_WORDS:              # ③
++        return False
++    if tokens[0] not in QA_REFUSAL_NEGATIONS:
++        return False
++    # Từ bằng chứng có thể gồm hai tiếng ("xác định") nên dò trên cả chuỗi.
++    return any(w in con_lai for w in QA_REFUSAL_EVIDENCE_WORDS)
++
++
++def _dung_kieu_dap_an(normalized: str, answer_mode: str | None) -> bool:
++    """Đáp án phải đúng DẠNG câu hỏi đòi (câu đếm phải có chữ số, v.v.).
++
++    Đo 28/08: p1-17 hỏi tên con đèo, hạng 1 là "Chồn Hương" còn "Đèo Bạch Mã"
++    nằm hạng 2 — hai bên hoà confidence 0.62 mà không có gì phá hoà theo kiểu.
++    """
++    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
++    if not rule:
++        return True
++    if rule.get("digit") and not any(c.isdigit() for c in normalized):
++        return False
++    max_words = rule.get("max_words")
++    if isinstance(max_words, int) and len(normalized.split()) > max_words:
++        return False
++    return True
++
++
++def is_valid_qa_answer(answer_text: str | None, answer_mode: str | None = None) -> bool:
++    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV.
++
++    `answer_mode` không bắt buộc để mọi caller cũ gọi được như trước; truyền vào
++    thì thêm cổng kiểm kiểu.
++    """
++    if answer_text is None:
++        return False
++    normalized = _normalize_answer(answer_text)
++    if not normalized or normalized in QA_SENTINEL_ANSWERS or normalized in QA_PLACEHOLDER_ANSWERS:
++        return False
++    for prefix in QA_SENTINEL_ANSWERS:
++        marker = prefix + " "
++        if not normalized.startswith(marker):
++            continue
++        suffix = normalized[len(marker):]
++        first_token = suffix.split(" ", 1)[0]
++        first_token = _normalize_answer(first_token)
++        if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
++            return False
++    if _la_cau_tu_choi(normalized):
++        return False
++    return _dung_kieu_dap_an(normalized, answer_mode)
++
++
++def answer_rejection_reason(answer_text, provenance=None, evidence_hash=None) -> str | None:
++    """Input text và dấu vết tùy chọn; output lý do chặn, không suy GT từ nội dung."""
++    tokens = set(re.split(r"[:/\s.-]+", str(provenance or "").casefold()))
++    if tokens & QA_PLACEHOLDER_PROVENANCE_TOKENS or str(evidence_hash or "").casefold().startswith("placeholder-"):
++        return "placeholder_provenance"
++    if not isinstance(answer_text, str) or not is_valid_qa_answer(answer_text):
++        return "unsupported_answer"
++    return None
++
++
++def hypothesis_supported(hypothesis) -> bool:
++    """Kiểm hypothesis lưu trên đĩa mà không import inference/DB hoặc tự tạo evidence."""
++    if not isinstance(hypothesis, Mapping):
++        return False
++    required = ("answer_text", "video_id", "shot_id", "keyframe_id", "evidence_hash", "provenance")
++    if hypothesis.get("provenance") == "operator_evidence":
++        # Bằng chứng operator có frame canonical nhưng không nhất thiết có shot.
++        required = tuple(k for k in required if k != "shot_id")
++    if any(not isinstance(hypothesis.get(k), str) or not hypothesis[k].strip() for k in required):
++        return False
++    frame = hypothesis.get("evidence_frame_idx")
++    return (
++        isinstance(frame, int) and not isinstance(frame, bool) and frame >= 0
++        and answer_rejection_reason(hypothesis["answer_text"], hypothesis["provenance"], hypothesis["evidence_hash"]) is None
++        and is_valid_qa_answer(hypothesis["answer_text"], hypothesis.get("answer_mode"))
++    )
++
++
++def provenance_origin(values) -> str:
++    """Chỉ gán nguồn khi có marker tường minh; thiếu hoặc mơ hồ giữ unknown."""
++    origins = []
++    for value in values:
++        tokens = set(re.split(r"[:/\s.-]+", str(value or "").casefold()))
++        if tokens & QA_OPERATOR_PROVENANCE_TOKENS:
++            origins.append("operator_assisted")
++        elif tokens & QA_AUTONOMOUS_PROVENANCE_TOKENS:
++            origins.append("autonomous")
++        else:
++            origins.append("unknown")
++    if "operator_assisted" in origins:
++        return "operator_assisted"
++    return "autonomous" if origins and all(o == "autonomous" for o in origins) else "unknown"
++
++
++def reconcile_qa_trace(record: Mapping) -> dict:
++    """Input trace/checkpoint; output bản sao áp contract mới, giữ nguyên payload duyệt.
++
++    Không sửa lịch sử, không khôi phục success từ trạng thái đã bị chặn. Evidence
++    hỗ trợ answer của portfolio; kiểm frame-map vẫn thuộc allocator/release gate.
++    """
++    result = copy.deepcopy(dict(record))
++    if str(result.get("task_type", "")).upper() != "QA":
++        return result
++    extra = result.get("phu") or {}
++    extra = extra if isinstance(extra, Mapping) else {}
++    qa_trace = result.get("qa_trace") or extra.get("qa_trace") or {}
++    qa_trace = qa_trace if isinstance(qa_trace, Mapping) else {}
++    hypotheses = result.get("qa_hypotheses") or qa_trace.get("hypotheses") or []
++    if result.get("qa_hypotheses") and qa_trace.get("hypotheses"):
++        top, nested = result["qa_hypotheses"], qa_trace["hypotheses"]
++        hypotheses = top + nested if isinstance(top, list) and isinstance(nested, list) else [None]
++    answers = result.get("answers") or []
++    if not isinstance(answers, list):
++        result["review_answers"] = copy.deepcopy(answers)
++        answers = []
++    provenance_rows = hypotheses if isinstance(hypotheses, list) else []
++    provenances = [h.get("provenance", h.get("source")) for h in provenance_rows if isinstance(h, Mapping)]
++    provenances.extend(a["provenance"] for a in answers if isinstance(a, Mapping) and a.get("provenance"))
++    review_answers = result.get("review_answers") or []
++    if isinstance(review_answers, list):
++        provenances.extend(a["provenance"] for a in review_answers if isinstance(a, Mapping) and a.get("provenance"))
++    if result.get("provenance"):
++        provenances.append(result["provenance"])
++    task_metadata = result.get("task_metadata") or {}
++    if isinstance(task_metadata, Mapping) and task_metadata.get("manual_override") is True:
++        provenances.append("manual_override")
++    qa_runtime = qa_trace.get("qa_runtime") or {}
++    if isinstance(qa_runtime, Mapping) and qa_runtime.get("manual_override") is True:
++        provenances.append("manual_override")
++    result["output_origin"] = provenance_origin(provenances)
++    result["autonomous_eligible"] = False
++    result["process_status"] = "failed" if result.get("status") == "failed" else "completed"
++    if result.get("status") == "failed":
++        result["result_state"] = "task_failure"
++        if answers:
++            result["review_answers"] = answers
++            result["answers"] = []
++        return result
++    answer_text = result.get("answer_text", extra.get("answer_text"))
++    proposed = [a.get("answer_text") for a in answers if isinstance(a, Mapping)]
++    if answer_text:
++        proposed.append(answer_text)
++    valid_hypotheses = isinstance(hypotheses, list) and bool(hypotheses) and all(hypothesis_supported(h) for h in hypotheses)
++    supported_texts = {_normalize_answer(h["answer_text"]) for h in hypotheses} if valid_hypotheses else set()
++    supported = (
++        result.get("status", "success") == "success"
++        and qa_trace.get("result_state", "supported_answer") == "supported_answer"
++        and valid_hypotheses and bool(proposed)
++        and len([a for a in answers if isinstance(a, Mapping)]) == len(answers)
++        and all(answer_rejection_reason(a.get("answer_text"), a.get("provenance"), a.get("evidence_hash")) is None for a in answers)
++        and all(answer_rejection_reason(text) is None and _normalize_answer(text) in supported_texts for text in proposed)
++    )
++    if supported:
++        result.update(status="success", result_state="supported_answer", output_contract_version=1)
++        result["autonomous_eligible"] = result["output_origin"] == "autonomous"
++        return result
++    has_review = bool(answers or proposed or hypotheses or result.get("search_rows") or result.get("candidates") or result.get("review_answers") or result.get("review_answer_text") or qa_trace.get("attempts") or qa_trace.get("candidates"))
++    status = "needs_review" if has_review else "abstain"
++    if answers:
++        result["review_answers"] = answers
++    if answer_text:
++        if not result.get("review_answer_text"):
++            result["review_answer_text"] = answer_text
++    rejection_reasons = [answer_rejection_reason(h.get("answer_text"), h.get("provenance"), h.get("evidence_hash"))
++                         for h in provenance_rows if isinstance(h, Mapping)]
++    rejection_reasons += [answer_rejection_reason(text) for text in proposed]
++    reason = next((r for r in rejection_reasons if r), "unsupported_or_missing_evidence")
++    if result.get("status") in ("needs_review", "abstain") and result.get("output_contract_reason"):
++        reason = result["output_contract_reason"]
++    result.update(status=status, result_state=status, answers=[], answer_text="",
++                  failure_class=None, retryable=False, output_contract_version=1,
++                  output_contract_reason=reason)
++    return result
++
++
++def autonomous_qa_trace(record: Mapping) -> dict:
++    """Áp policy tự động; giữ nguồn assisted/unknown và payload để người duyệt."""
++    result = reconcile_qa_trace(record)
++    if result.get("task_type") == "QA" and result.get("status") == "success" and not result["autonomous_eligible"]:
++        result["status"] = "needs_review"
++        result = reconcile_qa_trace(result)
++        result["output_contract_reason"] = "non_autonomous_provenance"
++    return result
+diff --git a/backend/export/exporter.py b/backend/export/exporter.py
+index 0e1e004..9b252d8 100644
+--- a/backend/export/exporter.py
++++ b/backend/export/exporter.py
+@@ -65,6 +65,9 @@ class QuerySubmission:
+     query_id: str
+     task_type: str
+     answers: tuple[Answer, ...]
++    # Export format/assisted vẫn dùng được độc lập; autonomous bắt buộc trace.
++    autonomous: bool = False
++    output_contract: dict | None = None
+ 
+ 
+ @dataclass(frozen=True)
+@@ -271,6 +274,23 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
+                 q,
+             ))
+ 
++    if task == "QA" and sub.autonomous:
++        from backend.common.qa_contract import autonomous_qa_trace
++        checked = autonomous_qa_trace({**(sub.output_contract or {}), "task_type": "QA"})
++        if checked.get("status") != "success":
++            out.append(Issue("answer_unsupported", "Autonomous Q&A cần supported evidence và provenance tự động", q))
++        else:
++            from backend.export.qa_variants import answer_surface_forms
++            supported_rows = {
++                (answer.get("video_id"), tuple(answer.get("frame_ids", [])), answer.get("keyframe_id"),
++                 answer.get("provenance"), answer.get("evidence_hash"), form)
++                for answer in checked.get("answers", [])
++                for form in answer_surface_forms(answer.get("answer_text") or "")
++            }
++            if any((answer.video_id, answer.frame_ids, answer.keyframe_id,
++                    answer.provenance, answer.evidence_hash, answer.answer_text) not in supported_rows
++                   for answer in sub.answers):
++                out.append(Issue("answer_unsupported", "Answer xuất khác answer/evidence đã kiểm", q))
+     for i, a in enumerate(sub.answers, 1):
+         if task in ("KIS", "QA"):
+             if len(a.frame_ids) != 1:
+@@ -295,6 +315,10 @@ def _check_shape(sub: QuerySubmission, expected_n: int | None) -> list[Issue]:
+                     f"frame phải tăng dần ngặt, đang là {a.frame_ids}", q, i,
+                 ))
+ 
++        if task == "QA":
++            from backend.common.qa_contract import answer_rejection_reason
++            if answer_rejection_reason(a.answer_text, a.provenance, a.evidence_hash):
++                out.append(Issue("answer_unsupported", "Q&A placeholder/refusal không được xuất tự động", q, i))
+         if task == "QA" and not (a.answer_text or "").strip():
+             out.append(Issue(
+                 "answer_empty",
+diff --git a/backend/export/qa_variants.py b/backend/export/qa_variants.py
+index bfc5596..80bf60b 100644
+--- a/backend/export/qa_variants.py
++++ b/backend/export/qa_variants.py
+@@ -86,6 +86,9 @@ def apply_qa_submission_policy(answers: list[Answer], policy: str) -> list[Answe
+     """
+     if policy not in QA_SUBMISSION_POLICIES:
+         raise ValueError(f"policy phải là một trong {QA_SUBMISSION_POLICIES}, nhận {policy!r}")
++    from backend.common.qa_contract import answer_rejection_reason
++    if any(answer_rejection_reason(a.answer_text, a.provenance, a.evidence_hash) for a in answers):
++        raise ValueError("Q&A policy không nhận placeholder/refusal")
+     if not answers or policy == "semantic":
+         return list(answers)
+ 
+diff --git a/backend/export/release_rehearsal.py b/backend/export/release_rehearsal.py
+index e299ecf..5aff877 100644
+--- a/backend/export/release_rehearsal.py
++++ b/backend/export/release_rehearsal.py
+@@ -181,17 +181,9 @@ def _latest_trace_by_query(traces: Sequence[Mapping[str, Any]]) -> dict[str, Map
+ 
+ 
+ def _valid_hypothesis(hypothesis: Mapping[str, Any]) -> bool:
+-    required_strings = (
+-        "answer_text", "video_id", "shot_id", "keyframe_id",
+-        "evidence_hash", "provenance",
+-    )
+-    if any(not isinstance(hypothesis.get(name), str)
+-           or not str(hypothesis[name]).strip() for name in required_strings):
+-        return False
+-    frame_idx = hypothesis.get("evidence_frame_idx")
+-    if isinstance(frame_idx, bool) or not isinstance(frame_idx, int) or frame_idx < 0:
+-        return False
+-    return True
++    from backend.common.qa_contract import hypothesis_supported
++    return hypothesis_supported(hypothesis)
++
+ 
+ 
+ def _hypothesis_has_canonical_answer(
+@@ -316,7 +308,9 @@ def assess_release_batch(
+         trace = latest.get(query_id)
+         if trace is None:
+             continue
+-        if trace.get("status") != "success" or trace.get("retryable") is True:
++        from backend.common.qa_contract import reconcile_qa_trace
++        checked = reconcile_qa_trace({**trace, "task_type": query.get("task_type")})
++        if checked.get("status") != "success" or trace.get("retryable") is True:
+             reasons.append(_reason(
+                 "query_not_success", f"{query_id} failed/retryable",
+                 query_id=query_id, status=trace.get("status"),
+diff --git a/backend/tasks/qa.py b/backend/tasks/qa.py
+index 99d72cf..d25e0f3 100644
+--- a/backend/tasks/qa.py
++++ b/backend/tasks/qa.py
+@@ -210,6 +210,8 @@ class QAHypothesis:
+     answer_mode: str
+ 
+     def __post_init__(self) -> None:
++        if answer_rejection_reason(self.answer_text, self.provenance, self.evidence_hash):
++            raise ValueError("QAHypothesis không được chứa answer rỗng/sentinel/placeholder/refusal")
+         if not self.evidence_hash.strip():
+             raise ValueError("QAHypothesis phải có evidence_hash")
+         if not is_valid_qa_answer(self.answer_text, self.answer_mode):
+@@ -307,6 +309,7 @@ _generation_budget_ctx: ContextVar[QAGenerationBudget | None] = ContextVar(
+     "qa_generation_budget", default=None,
+ )
+ _qa_mode_ctx: ContextVar[str | None] = ContextVar("qa_inference_mode", default=None)
++_qa_review_ctx: ContextVar[dict | None] = ContextVar("qa_review", default=None)
+ _qa_attempt_ctx: ContextVar[dict[str, object] | None] = ContextVar(
+     "qa_attempt", default=None,
+ )
+@@ -444,27 +447,10 @@ def _route_for_answer_mode(answer_mode: str) -> tuple[str, bool]:
+         raise ValueError(f"answer_mode không hợp lệ: {answer_mode!r}") from None
+ 
+ 
+-def _normalize_answer(answer_text: str) -> str:
+-    normalized = unicodedata.normalize("NFKC", str(answer_text))
+-    normalized = " ".join(normalized.casefold().split())
+-    while normalized and unicodedata.category(normalized[0]).startswith("P"):
+-        normalized = normalized[1:].lstrip()
+-    while normalized and unicodedata.category(normalized[-1]).startswith("P"):
+-        normalized = normalized[:-1].rstrip()
+-    return normalized
+-
+-
+-def _dap_an_cho_trong(answer_mode: str | None) -> str:
+-    """Đáp án chỗ trống, đủ hợp lệ để nộp nhưng nhìn là biết phải điền tay.
+-
+-    Phải qua được chính `is_valid_qa_answer` (câu đếm đòi chữ số) nếu không
+-    `build_qa_hypothesis` sẽ trả None và ta lại rơi vào cảnh không nộp gì.
+-
+-    Không dùng "?" — `_normalize_answer` bỏ dấu câu nên nó thành chuỗi rỗng và
+-    bị chính bộ lọc loại. "TODO" sống qua chuẩn hoá và đập vào mắt lúc soi.
+-    """
+-    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
+-    return "0" if rule and rule.get("digit") else "TODO"
++from backend.common.qa_contract import (
++    _normalize_answer, _la_cau_tu_choi, _dung_kieu_dap_an,
++    is_valid_qa_answer, answer_rejection_reason,
++)
+ 
+ 
+ def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
+@@ -483,89 +469,6 @@ def _diem_co_phat_hang(confidence: float, rank_index: int) -> float:
+     return confidence - QA_WINNER_RANK_PENALTY * math.log10(1 + max(0, rank_index))
+ 
+ 
+-def _la_cau_tu_choi(normalized: str) -> bool:
+-    """Dò câu từ chối bằng BA luật, xếp từ chặt tới rộng.
+-
+-    Vì sao không chỉ liệt kê chuỗi: danh sách là ĐÓNG còn LLM đẻ biến thể vô
+-    hạn. Đo 28/08 trên đề đợt 1, danh sách 6 chuỗi chỉ bắt 1/5 câu từ chối thật.
+-    Vì sao không chỉ dò hình dạng: lưới rộng LOẠI NHẦM đáp án thật ("Không thấy
+-    mưa", "Không có người trong ảnh") — mà loại nhầm đắt hơn bỏ sót.
+-
+-    Hợp nhất 03/09 từ hai bản làm độc lập (Minh Hoàng ở `integrate/dot3`,
+-    Thạch ở `codex/qa-last-3h`). Bản hợp nhất phải qua trọn 22 ca của
+-    `tests/test_qa_hypotheses.py`: 15 chuỗi phải chặn, 7 chuỗi phải giữ.
+-
+-      ① ĐÍCH DANH  hai surface quan sát được thật, luật hình dạng không với tới.
+-      ② NGẮN       "không biết" / "we don't know" — bóc chủ ngữ rồi khớp trọn vẹn.
+-      ③ HÌNH DẠNG  phủ định ĐỨNG ĐẦU + từ nói về việc xác định/bằng chứng.
+-
+-    Luật ③ đòi phủ định đứng ĐẦU chứ không phải nằm đâu đó, vì đó là thứ duy
+-    nhất phân biệt được câu từ chối với đáp án có chứa chữ phủ định:
+-        'Biển báo ghi "Không có thông tin trong bằng chứng"'  -> GIỮ (đáp án thật)
+-        "Không thể xác định từ bằng chứng"                    -> CHẶN
+-    """
+-    if normalized in QA_REFUSAL_EXACT_ANSWERS:          # ①
+-        return True
+-
+-    tokens = normalized.split()
+-    # Bóc chủ ngữ: "tôi không biết" và "không biết" là cùng một câu từ chối.
+-    if tokens and tokens[0] in QA_REFUSAL_SUBJECT_PREFIXES:
+-        tokens = tokens[1:]
+-    con_lai = " ".join(tokens)
+-
+-    if con_lai in QA_REFUSAL_SHORT_ANSWERS:             # ②
+-        return True
+-
+-    if len(tokens) < QA_REFUSAL_MIN_WORDS:              # ③
+-        return False
+-    if tokens[0] not in QA_REFUSAL_NEGATIONS:
+-        return False
+-    # Từ bằng chứng có thể gồm hai tiếng ("xác định") nên dò trên cả chuỗi.
+-    return any(w in con_lai for w in QA_REFUSAL_EVIDENCE_WORDS)
+-
+-
+-def _dung_kieu_dap_an(normalized: str, answer_mode: str | None) -> bool:
+-    """Đáp án phải đúng DẠNG câu hỏi đòi (câu đếm phải có chữ số, v.v.).
+-
+-    Đo 28/08: p1-17 hỏi tên con đèo, hạng 1 là "Chồn Hương" còn "Đèo Bạch Mã"
+-    nằm hạng 2 — hai bên hoà confidence 0.62 mà không có gì phá hoà theo kiểu.
+-    """
+-    rule = QA_ANSWER_MODE_RULES.get(answer_mode or "")
+-    if not rule:
+-        return True
+-    if rule.get("digit") and not any(c.isdigit() for c in normalized):
+-        return False
+-    max_words = rule.get("max_words")
+-    if isinstance(max_words, int) and len(normalized.split()) > max_words:
+-        return False
+-    return True
+-
+-
+-def is_valid_qa_answer(answer_text: str | None, answer_mode: str | None = None) -> bool:
+-    """Từ chối answer rỗng/sentinel trước khi nó trở thành hypothesis/CSV.
+-
+-    `answer_mode` không bắt buộc để mọi caller cũ gọi được như trước; truyền vào
+-    thì thêm cổng kiểm kiểu.
+-    """
+-    if answer_text is None:
+-        return False
+-    normalized = _normalize_answer(answer_text)
+-    if not normalized or normalized in QA_SENTINEL_ANSWERS:
+-        return False
+-    for prefix in QA_SENTINEL_ANSWERS:
+-        marker = prefix + " "
+-        if not normalized.startswith(marker):
+-            continue
+-        suffix = normalized[len(marker):]
+-        first_token = suffix.split(" ", 1)[0]
+-        first_token = _normalize_answer(first_token)
+-        if first_token in QA_SENTINEL_PREFIX_CONTINUATIONS:
+-            return False
+-    if _la_cau_tu_choi(normalized):
+-        return False
+-    return _dung_kieu_dap_an(normalized, answer_mode)
+-
+-
+ def build_qa_hypothesis(
+     hit: ShotHit,
+     *,
+@@ -953,6 +856,7 @@ def capture_evidence(hit: ShotHit, question_vi: str, evidence_type: str,
+         attempt["evidence_hash"] = evidence_hash
+         attempt["evidence_type"] = evidence_type
+         attempt["evidence_stage"] = "image" if ev.frames else "text"
++        attempt.setdefault("evidence", []).append(record)
+     return evidence_hash
+ 
+ 
+@@ -967,9 +871,7 @@ def _capture_inference_output(
+     results: list[QAResult],
+ ) -> None:
+     """Ghi knobs + mọi output đã parse để frozen evidence có thể replay vote."""
+-    if not os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip():
+-        return
+-    if not ev.evidence_hash:
++    if os.environ.get("QA_EVIDENCE_LOG_PATH", "").strip() and not ev.evidence_hash:
+         raise QAEvidenceCaptureError("capture đang bật nhưng Evidence thiếu evidence_hash")
+     attempt = _qa_attempt_ctx.get() or {"origin": "direct", "order": 0}
+     outputs = [
+@@ -1011,6 +913,7 @@ def _capture_inference_output(
+         "requested_n": int(requested_n),
+         "outputs": outputs,
+     })
++    attempt.setdefault("inference", []).append(record)
+     _append_capture_record(record)
+ 
+ 
+@@ -1485,6 +1388,19 @@ def _try_shot(
+     và frame nộp hoàn toàn do thứ hạng shot của allocator quyết định.
+     """
+     ev = collect_evidence(hit, question_vi, evidence_type, needs_images)
++    # Hash của payload rỗng không phải bằng chứng. Thử ảnh nếu route text rỗng,
++    # rồi dừng suy luận ở shot này khi cả hai nguồn đều không có nội dung.
++    def has_content(evidence: Evidence) -> bool:
++        return bool(evidence.frames or evidence.object_count is not None
++                    or str(evidence.metadata_text or "").strip()
++                    or any(str(t).strip() for t in evidence.ocr_texts + evidence.asr_texts))
++    if not has_content(ev) and not needs_images:
++        ev = collect_evidence(hit, question_vi, evidence_type, needs_images=True)
++    if not has_content(ev):
++        attempt = _qa_attempt_ctx.get()
++        if attempt is not None:
++            attempt.update(reason="missing_evidence", evidence_hash=ev.evidence_hash)
++        return None
+     attempt = _qa_attempt_ctx.get()
+     if isinstance(attempt, dict) and ev.evidence_hash:
+         attempt.update({
+@@ -1850,12 +1766,17 @@ def _qa_pipeline_impl(
+         hits = search(parts.event_vi, query_en=event_query_en,
+                       top_k=top_k_shots, group_by_shot=True)
+     if not hits:
+-        raise RuntimeError(f"search() không trả shot nào cho sự kiện: '{parts.event_vi}'")
++        trace = {"result_state": "abstain", "hypotheses": [], "attempts": [],
++                 "event_vi": parts.event_vi, "question_vi": parts.question_vi}
++        return ([], "", trace) if return_trace else ([], "")
+ 
+     candidate_shots = [
+         ShotHit(r["shot_id"], r["score"], r["keyframe_id"])
+         for r in hits if r["shot_id"] is not None
+     ]
++    review = _qa_review_ctx.get()
++    if review is not None:
++        review["candidates"] = candidate_shots
+     if not candidate_shots:
+         raise RuntimeError(
+             "search() có kết quả nhưng không shot nào có shot_id — kiểm tra clip_kf_map.parquet"
+@@ -1926,6 +1847,9 @@ def _qa_pipeline_impl(
+     attempt_order = 0
+     budget_exhausted = False
+     hypotheses: list[QAHypothesis] = []
++    review_attempts: list[dict[str, object]] = []
++    if review is not None:
++        review["attempts"] = review_attempts
+     hypothesis_keys: set[tuple[str, int, str]] = set()
+     for hit in thu_de_suy_luan:
+         tried_shot_ids.add(hit.shot_id)
+@@ -1945,9 +1869,11 @@ def _qa_pipeline_impl(
+             raise
+         except Exception as e:
+             print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A, thử shot kế tiếp: {e}")
++            (_qa_attempt_ctx.get() or {}).update(error=f"{type(e).__name__}: {e}")
+             continue
+         finally:
+             attempt_details = dict(_qa_attempt_ctx.get() or {})
++            review_attempts.append({"shot_id": hit.shot_id, "keyframe_id": hit.best_keyframe_id, **attempt_details})
+             _qa_attempt_ctx.reset(attempt_token)
+         if ket_qua is None:
+             continue
+@@ -2037,9 +1963,11 @@ def _qa_pipeline_impl(
+                     raise
+                 except Exception as e:
+                     print(f"  [cảnh báo] shot {hit.shot_id} lỗi khi suy luận Q&A: {e}")
++                    (_qa_attempt_ctx.get() or {}).update(error=f"{type(e).__name__}: {e}")
+                     continue
+                 finally:
+                     attempt_details = dict(_qa_attempt_ctx.get() or {})
++                    review_attempts.append({"shot_id": hit.shot_id, "keyframe_id": hit.best_keyframe_id, **attempt_details})
+                     _qa_attempt_ctx.reset(attempt_token)
+                 if ket_qua is None:
+                     continue
+@@ -2079,70 +2007,22 @@ def _qa_pipeline_impl(
+             if budget_exhausted:
+                 break
+ 
+-    if (best is None or not hypotheses) and candidate_shots and not budget_exhausted:
+-        # THÀ ĐOÁN CÒN HƠN BỎ TRỐNG. Không có hình phạt cho câu sai, mà bỏ trống
+-        # thì `finalize` chặn cả gói ZIP (đo 28/08: p1-15 và p1-3 làm hỏng toàn
+-        # bộ submission). Q&A có hai cửa tử độc lập nên answer sai vẫn là 0 —
+-        # nhưng video+frame đúng thì người thao tác sửa answer bằng tay được,
+-        # còn không nộp gì thì không sửa được. Đáp án chỗ trống này CỐ Ý vô
+-        # nghĩa để người soi thấy ngay là phải điền, không tưởng là máy trả lời.
+-        fmap = load_frame_map()
+-        answer = _dap_an_cho_trong(answer_mode)
+-        # MỖI VIDEO MỘT DÒNG ĐẦU, theo đúng thứ tự retrieval. Không gom về một
+-        # shot: người soi cần biết ĐÀO VIDEO NÀO TRƯỚC, mà bảng QA vốn xếp theo
+-        # độ tự tin của đáp án — khi không có đáp án nào thì thứ tự đó vô nghĩa
+-        # và thứ hạng retrieval là tín hiệu duy nhất còn lại.
+-        da_co_video: set[str] = set()
+-        for hit in candidate_shots:
+-            if len(da_co_video) >= QA_PLACEHOLDER_VIDEOS:
+-                break
+-            vid = hit.shot_id.split("#", 1)[0]
+-            if vid in da_co_video:
+-                continue
+-            frame = fmap.get(hit.best_keyframe_id)
+-            if frame is None:
+-                continue
+-            hypothesis = build_qa_hypothesis(
+-                hit,
+-                answer_text=answer,
+-                evidence_frame_idx=int(frame),
+-                confidence=0.0,
+-                # KHÔNG dùng _evidence_hash_for_attempt: hàm đó fail-closed vì
+-                # mọi answer THẬT phải truy về bằng chứng. Chỗ trống thì đúng là
+-                # không có bằng chứng — nên cấp digest xác định riêng, tiền tố
+-                # "placeholder" để soi trace là biết ngay dòng này chưa có người
+-                # trả lời, không lẫn với answer do VLM sinh.
+-                evidence_hash="placeholder-" + hashlib.sha256(
+-                    f"{hit.shot_id}|{frame}".encode()
+-                ).hexdigest()[:16],
+-                provenance=f"placeholder:no_answer:{_current_qa_mode()}",
+-                answer_mode=answer_mode,
+-                evidence_type=evidence_type,
+-            )
+-            if hypothesis is not None:
+-                hypotheses.append(hypothesis)
+-                da_co_video.add(vid)
+-                if best is None:
+-                    # Dòng hạng 1 = shot retrieval tốt nhất, không phải shot may
+-                    # mắn nào đó — người soi bắt đầu đào từ đây.
+-                    i = next(j for j, h in enumerate(candidate_shots)
+-                             if h.shot_id == hit.shot_id)
+-                    best = (i, hit, answer, int(frame), 0.0)
+-        if hypotheses:
+-            print(f"  [CHỖ TRỐNG] không shot nào trả lời được — nộp {len(hypotheses)} video "
+-                  f"đầu bảng retrieval ({', '.join(sorted(da_co_video))}) với answer={answer!r}. "
+-                  "NGƯỜI PHẢI SOI ẢNH VÀ ĐIỀN TAY.")
+-
+     if best is None or not hypotheses:
+-        suffix = (
+-            f" Đã chạm trần {QA_TWO_STAGE_MAX_GENERATIONS} generation two-stage."
+-            if budget_exhausted else ""
+-        )
+-        raise QANoValidHypothesisError(
+-            f"Thử {len(tried_shot_ids)} shot (kể cả ứng viên nhánh text và mở rộng trong video) đều "
+-            "không suy luận được câu trả lời đủ tin cậy — kiểm tra bằng chứng (OCR/ASR/metadata) "
+-            f"của các shot này có rỗng không.{suffix}"
+-        )
++        if review_attempts and all(attempt.get("error") for attempt in review_attempts):
++            raise RuntimeError("Mọi lần suy luận Q&A đều lỗi thực thi; xem attempts trong review payload")
++        # Không tạo answer giả. Ứng viên và mọi lần thử vẫn sẵn cho người duyệt.
++        budget = _generation_budget_ctx.get()
++        trace = {
++            "result_state": "needs_review", "hypotheses": [],
++            "event_vi": parts.event_vi, "question_vi": parts.question_vi,
++            "evidence_type": evidence_type, "answer_mode": answer_mode,
++            "planner_fallback": parts.planner_fallback, "attempts": review_attempts,
++            "qa_runtime": qa_runtime_config(),
++            "generations_used": budget.used if budget else None,
++            "generation_limit": budget.limit if budget else None,
++            "generation_limit_reached": budget_exhausted,
++        }
++        return (candidate_shots, "", trace) if return_trace else (candidate_shots, "")
+ 
+     i, hit, answer, evidence_frame_idx, confidence = best
+     if evidence_frame_idx is None:
+@@ -2168,6 +2048,7 @@ def _qa_pipeline_impl(
+         runtime = qa_runtime_config()
+         budget = _generation_budget_ctx.get()
+         return ranked_hits, answer, {
++            "result_state": "supported_answer", "attempts": review_attempts,
+             "event_vi": parts.event_vi,
+             "question_vi": parts.question_vi,
+             "evidence_type": evidence_type,
+@@ -2197,6 +2078,7 @@ def qa_pipeline(
+ ) -> tuple[list[ShotHit], str] | tuple[list[ShotHit], str, dict[str, object]]:
+     """Đóng băng mode và tạo generation budget riêng cho từng query Q&A."""
+     mode = qa_inference_mode()
++    review_token = _qa_review_ctx.set({})
+     mode_token = _qa_mode_ctx.set(mode)
+     fingerprint_token = _qa_runtime_fingerprint_ctx.set(
+         runtime_fingerprint or "<unset>"
+@@ -2211,7 +2093,17 @@ def qa_pipeline(
+         )
+     try:
+         return _qa_pipeline_impl(query_vi, top_k_shots, query_en, return_trace, anchors)
++    except Exception as error:
++        # Crash vẫn là task_failure, nhưng giữ mọi evidence/ứng viên đã thu được.
++        review = _qa_review_ctx.get() or {}
++        error.qa_review = {
++            "attempts": review.get("attempts", []),
++            "candidates": [{"shot_id": h.shot_id, "score": h.score,
++                            "keyframe_id": h.best_keyframe_id} for h in review.get("candidates", [])],
++        }
++        raise
+     finally:
++        _qa_review_ctx.reset(review_token)
+         if budget_token is not None:
+             _generation_budget_ctx.reset(budget_token)
+         _qa_full_query_hash_ctx.reset(full_query_token)
+diff --git a/backend/tasks/qa_portfolio.py b/backend/tasks/qa_portfolio.py
+index 7b37821..7f9c662 100644
+--- a/backend/tasks/qa_portfolio.py
++++ b/backend/tasks/qa_portfolio.py
+@@ -2,6 +2,9 @@
+ 
+ from __future__ import annotations
+ 
++from dataclasses import replace
++from backend.common.qa_contract import hypothesis_supported
++
+ from backend.indexing.frame_map import load_frame_map
+ from backend.slot import ShotHit, allocate, shot_bounds
+ from backend.tasks.qa import QAHypothesis, is_valid_qa_answer
+@@ -55,6 +58,7 @@ def _alternative_rows(hypothesis: QAHypothesis) -> list[Answer]:
+             video_id=video_id,
+             frame_ids=(frame_idx,),
+             answer_text=hypothesis.answer_text,
++            provenance=hypothesis.provenance, evidence_hash=hypothesis.evidence_hash,
+             keyframe_id=keyframe_id,
+         )
+         for frame_idx, keyframe_id in candidates[:QA_HYPOTHESIS_ALTERNATIVES_PER_HYPOTHESIS]
+@@ -75,6 +79,8 @@ def allocate_qa_portfolio(
+     """
+     if total < 1:
+         raise ValueError("total Q&A phải là số nguyên dương")
++    if any(not hypothesis_supported(h.to_dict()) for h in hypotheses):
++        raise RuntimeError("Q&A portfolio nhận placeholder/refusal hoặc thiếu evidence")
+     ranked = _rank_hypotheses(hypotheses)
+     if not ranked:
+         raise RuntimeError("Q&A không có hypothesis hợp lệ để cấp portfolio")
+@@ -106,6 +112,7 @@ def allocate_qa_portfolio(
+             video_id=hypothesis.video_id,
+             frame_ids=(hypothesis.evidence_frame_idx,),
+             answer_text=hypothesis.answer_text,
++            provenance=hypothesis.provenance, evidence_hash=hypothesis.evidence_hash,
+             keyframe_id=hypothesis.keyframe_id,
+         ))
+     if len(rows) >= total:
+@@ -132,7 +139,7 @@ def allocate_qa_portfolio(
+             total=total - len(rows),
+         )
+         for row in tail:
+-            append(row)
++            append(replace(row, provenance=ranked[0].provenance, evidence_hash=ranked[0].evidence_hash))
+     if len(rows) != total:
+         raise RuntimeError(
+             f"Q&A portfolio chỉ tạo được {len(rows)}/{total}; từ chối partial success"
+diff --git a/backend/tasks/runner.py b/backend/tasks/runner.py
+index 8a2613e..69e2815 100644
+--- a/backend/tasks/runner.py
++++ b/backend/tasks/runner.py
+@@ -55,6 +55,7 @@ def _answer_to_dict(answer: Answer) -> dict[str, Any]:
+         "frame_ids": list(answer.frame_ids),
+         "answer_text": answer.answer_text,
+         "keyframe_id": answer.keyframe_id,
++        "provenance": answer.provenance, "evidence_hash": answer.evidence_hash,
+     }
+ 
+ 
+@@ -143,9 +144,9 @@ def _query_plan(query: object) -> dict[str, Any]:
+ class QueryRun:
+     """Kết quả một query cùng provenance đủ để scorer không search lại.
+ 
+-    `answers` chỉ có ở trạng thái success. `failure_class` chỉ có ở trạng thái
+-    failed và luôn thuộc sáu nhãn product spec; caller vẫn được quyền ném lại
+-    exception để retry, nhưng có thể ghi `to_trace_dict()` trước khi làm vậy.
++    `answers` chỉ có ở trạng thái success; QA còn phải kiểm autonomous_eligible
++    để phân biệt output tự động với assisted/unknown. `failure_class` chỉ dành
++    cho lỗi task; needs_review/abstain vẫn giữ search_rows và evidence.
+     """
+ 
+     query_id: str
+@@ -158,7 +159,14 @@ class QueryRun:
+     qa_hypotheses: list[dict[str, Any]] = field(default_factory=list)
+     timings: dict[str, float] = field(default_factory=dict, compare=False)
+     failure_class: FailureClass | None = None
+-    status: Literal["success", "failed"] = "success"
++    status: Literal["success", "needs_review", "abstain", "failed"] = "success"
++    result_state: str = "supported_answer"
++    review_answers: list[dict[str, Any]] = field(default_factory=list)
++    review_answer_text: str | None = None
++    output_contract_reason: str | None = None
++    output_origin: str | None = None
++    autonomous_eligible: bool = False
++    process_status: str = "completed"
+     runtime_fingerprint: str = ""
+     task_metadata: dict[str, Any] = field(default_factory=dict)
+     answer_text: str | None = None
+@@ -177,6 +185,25 @@ class QueryRun:
+         if self.status == "failed" and self.answers:
+             raise ValueError("QueryRun failed không được chứa partial/fake answers")
+ 
++        if self.task_type == "QA":
++            from backend.common.qa_contract import reconcile_qa_trace
++            checked = reconcile_qa_trace(self.to_trace_dict())
++            self.status = checked["status"]
++            self.result_state = checked["result_state"]
++            self.output_origin = checked.get("output_origin")
++            self.autonomous_eligible = checked["autonomous_eligible"]
++            self.process_status = checked["process_status"]
++            if self.status in ("needs_review", "abstain"):
++                self.answers = []
++                self.answer_text = ""
++                self.review_answers = checked.get("review_answers", [])
++                self.review_answer_text = checked.get("review_answer_text")
++                self.output_contract_reason = checked.get("output_contract_reason")
++                self.retryable = False
++        elif self.status == "failed":
++            self.result_state = "task_failure"
++            self.process_status = "failed"
++
+     def compatibility_metadata(self) -> dict[str, Any]:
+         """Giữ tuple contract cũ của run.py trong lúc caller chuyển dần."""
+         return {
+@@ -192,6 +219,13 @@ class QueryRun:
+             "query_id": self.query_id,
+             "task_type": self.task_type,
+             "status": self.status,
++            "result_state": self.result_state,
++            "output_origin": self.output_origin,
++            "autonomous_eligible": self.autonomous_eligible,
++            "process_status": self.process_status,
++            "review_answers": self.review_answers,
++            "review_answer_text": self.review_answer_text,
++            "output_contract_reason": self.output_contract_reason,
+             "failure_class": self.failure_class,
+             "error": self.error,
+             "retryable": self.retryable,
+@@ -254,6 +288,7 @@ def runtime_manifest() -> dict[str, Any]:
+             "backend/retrieval/multi_anchor.py",
+             "backend/retrieval/search.py",
+             "backend/common/answer_match.py",
++            "backend/common/qa_contract.py",
+             "backend/slot/allocator.py",
+             "backend/tasks/qa.py",
+             "backend/tasks/qa_portfolio.py",
+@@ -420,8 +455,6 @@ def solve_query(
+                 anchors=_query_value(query, "anchors") or None,
+             )
+             timings["qa_seconds"] = round(time.perf_counter() - stage_started, 6)
+-            if not str(answer_text or "").strip():
+-                raise RuntimeError("qa_pipeline() không suy ra được answer_text")
+             rows = [
+                 {
+                     "shot_id": hit.shot_id,
+@@ -438,6 +471,17 @@ def solve_query(
+                 )
+                 if key in qa_trace
+             })
++            # Kiểm trước allocation để placeholder không thành câu trả lời tự động.
++            probe = QueryRun(
++                query_id=str(_query_value(query, "query_id", "")), task_type="QA",
++                answers=[], query_plan=plan, search_rows=rows, timings=timings,
++                runtime_fingerprint=fingerprint, task_metadata={"hits": rows},
++                answer_text=answer_text, qa_trace=qa_trace,
++                qa_hypotheses=qa_trace.get("hypotheses") or [],
++            )
++            if probe.status != "success":
++                timings["total_seconds"] = round(time.perf_counter() - started, 6)
++                return probe
+             hypothesis_rows = qa_trace.get("hypotheses")
+             if hypothesis_rows is not None:
+                 if not isinstance(hypothesis_rows, list) or not hypothesis_rows:
+@@ -539,4 +583,13 @@ def solve_query(
+             timings=timings,
+             retryable=task_type == "QA" and not isinstance(error, ValueError),
+         )
++        if task_type == "QA":
++            payload = getattr(error, "qa_review", None)
++            if payload is not None:
++                trace.qa_trace = payload
++                trace.search_rows = payload.get("candidates", [])
++            elif "qa_trace" in locals():
++                trace.qa_trace = qa_trace
++                trace.search_rows = rows
++                trace.qa_hypotheses = qa_trace.get("hypotheses") or []
+         raise SolveQueryError(str(error), trace) from error
+diff --git a/data/config/qa_hypotheses.py b/data/config/qa_hypotheses.py
+index 21df259..9ac12c3 100644
+--- a/data/config/qa_hypotheses.py
++++ b/data/config/qa_hypotheses.py
+@@ -15,6 +15,12 @@ ANSWER_MODES = (
+     "visual_attribute",
+ )
+ 
++# H02: không loại số 0; placeholder đếm được nhận qua provenance/hash lịch sử.
++QA_PLACEHOLDER_ANSWERS = frozenset({"todo", "no_answer", "chua_co_answer"})
++QA_PLACEHOLDER_PROVENANCE_TOKENS = frozenset({"placeholder", "no_answer"})
++QA_OPERATOR_PROVENANCE_TOKENS = frozenset({"operator_evidence", "operator_assisted", "manual_verified", "manual_override"})
++QA_AUTONOMOUS_PROVENANCE_TOKENS = frozenset({"llm", "detector", "autonomous"})
++
+ # Tăng version khi prompt/schema planner hoặc prompt suy luận đổi nghĩa.
+ QA_PLANNER_PROMPT_VERSION = "qa-planner-v2"
+ QA_INFERENCE_PROMPT_VERSION = "qa-evidence-v2"
+diff --git a/data/config/submit_format.py b/data/config/submit_format.py
+index 2889bfd..d9e80c2 100644
+--- a/data/config/submit_format.py
++++ b/data/config/submit_format.py
+@@ -77,6 +77,9 @@ class Answer:
+     frame_ids: tuple[int, ...]
+     answer_text: str | None = None
+     keyframe_id: str | None = None
++    # Provenance chỉ dùng kiểm hợp đồng, không ghi thêm cột vào CSV BTC.
++    provenance: str | None = None
++    evidence_hash: str | None = None
+ 
+     def __post_init__(self) -> None:
+         """Chuẩn hoá frame_ids về tuple[int].
+diff --git a/dev_set/tests/test_frozen_evaluator_integration.py b/dev_set/tests/test_frozen_evaluator_integration.py
+index 566c2af..0f86fc3 100644
+--- a/dev_set/tests/test_frozen_evaluator_integration.py
++++ b/dev_set/tests/test_frozen_evaluator_integration.py
+@@ -126,6 +126,11 @@ def test_evaluator_frozen_artifact_di_thang_den_promotion_eligible(
+             query_id=query.query_id, task_type=query.task_type, answers=answers,
+             query_plan={"query_vi": query.query_vi},
+             runtime_fingerprint=query_runtime_fingerprint,
++            # Success QA của fixture cũng phải có evidence, không miễn contract.
++            qa_hypotheses=[{"answer_text": "đỏ", "video_id": gt.video_id,
++                "shot_id": gt.video_id + "#s1", "keyframe_id": "kf", "evidence_frame_idx": 10,
++                "confidence": .8, "evidence_hash": "fixture", "provenance": "test:llm",
++                "answer_mode": "visual_attribute"}] if query.task_type == "QA" else [],
+         )
+ 
+     monkeypatch.setattr(evaluation, "_solve_for_evaluation", solve)
+diff --git a/dev_set/tools/promotion_gate.py b/dev_set/tools/promotion_gate.py
+index 5cd33c6..5af18f2 100644
+--- a/dev_set/tools/promotion_gate.py
++++ b/dev_set/tools/promotion_gate.py
+@@ -206,7 +206,7 @@ def _parse_scores(
+             or task_type not in ("KIS", "QA", "TRAKE")
+             or isinstance(final, bool) or not isinstance(final, (int, float))
+             or not math.isfinite(float(final)) or not 0.0 <= float(final) <= 1.0
+-            or status not in ("success", "failed")
++            or status not in ("success", "needs_review", "abstain", "failed")
+         ):
+             raise ValueError(f"{label} record sai schema: {query_id!r}")
+         if query_id in parsed:
+diff --git a/dev_set/tools/run_evaluation.py b/dev_set/tools/run_evaluation.py
+index f0d2bb3..36a6963 100644
+--- a/dev_set/tools/run_evaluation.py
++++ b/dev_set/tools/run_evaluation.py
+@@ -279,6 +279,28 @@ def _record_succeeded(record: dict) -> bool:
+     return record.get("failure_class") != "F0_CRASH"
+ 
+ 
++def _resume_supported_ids(scores_path: Path, candidates_path: Path, queries) -> set[str]:
++    """Resume QA kiểm cả trace evidence; điểm cũ không đủ chứng minh output hợp lệ."""
++    from backend.common.qa_contract import autonomous_qa_trace
++    latest_scores, latest_traces = {}, {}
++    for path, dest in ((scores_path, latest_scores), (candidates_path, latest_traces)):
++        if path.exists():
++            for line in path.read_text(encoding="utf-8").splitlines():
++                if line.strip():
++                    record = json.loads(line)
++                    dest[record["query_id"]] = record
++    supported = set()
++    for query in queries:
++        if not _record_succeeded(latest_scores.get(query.query_id, {"status": "failed"})):
++            continue
++        if query.task_type == "QA":
++            trace = autonomous_qa_trace({**latest_traces.get(query.query_id, {}), "task_type": "QA"})
++            if trace["status"] != "success":
++                continue
++        supported.add(query.query_id)
++    return supported
++
++
+ def get_git_commit() -> str:
+     import subprocess
+     try:
+@@ -303,9 +325,13 @@ def _solve_for_evaluation(
+     query: object, *, total: int, query_runtime_fingerprint: str
+ ) -> QueryRun:
+     """Evaluator dùng đúng dispatch production và ghim fingerprint run hiện có."""
+-    return solve_query(
++    result = solve_query(
+         query, total=total, runtime_fingerprint=query_runtime_fingerprint,
+     )
++    if result.task_type == "QA" and result.status == "success" and not result.autonomous_eligible:
++        result.status = "needs_review"
++        result.__post_init__()
++    return result
+ 
+ 
+ def _answer_to_dict(a: Answer) -> dict:
+@@ -314,6 +340,7 @@ def _answer_to_dict(a: Answer) -> dict:
+         "frame_ids": list(a.frame_ids),
+         "answer_text": a.answer_text,
+         "keyframe_id": a.keyframe_id,
++        "provenance": a.provenance, "evidence_hash": a.evidence_hash,
+     }
+ 
+ 
+@@ -323,6 +350,7 @@ def _answer_from_dict(d: dict) -> Answer:
+         frame_ids=tuple(d["frame_ids"]),
+         answer_text=d.get("answer_text"),
+         keyframe_id=d.get("keyframe_id"),
++        provenance=d.get("provenance"), evidence_hash=d.get("evidence_hash"),
+     )
+ 
+ 
+@@ -550,14 +578,7 @@ def run_evaluation(argv: list[str] | None = None):
+ 
+     # Tiến độ cũ: CHỈ coi "đã xong" các câu THÀNH CÔNG — câu từng crash được
+     # thử lại (lỗi lần trước có thể chỉ là ES/Milvus chập chờn, không phải bug).
+-    done_qids: set[str] = set()
+-    if scores_jsonl_path.exists():
+-        for line in scores_jsonl_path.read_text(encoding="utf-8").splitlines():
+-            if not line.strip():
+-                continue
+-            rec = json.loads(line)
+-            if _record_succeeded(rec):
+-                done_qids.add(rec["query_id"])
++    done_qids = _resume_supported_ids(scores_jsonl_path, candidates_jsonl_path, queries)
+     if done_qids:
+         print(f"Đã có {len(done_qids)} câu hoàn thành từ trước, sẽ bỏ qua.")
+ 
+@@ -683,7 +704,8 @@ def run_evaluation(argv: list[str] | None = None):
+                     "r_at_100": r_100,
+                     "final": fin,
+                     "score_by_qa_policy": score_by_qa_policy,
+-                    "status": "success",
++                    "status": query_run.status,
++                    "result_state": query_run.result_state,
+                     "failure_class": fc,
+                     "ranks": best_hit_ranks,
+                     "runtime_fingerprint": query_run.runtime_fingerprint,
+@@ -833,6 +855,12 @@ def run_evaluation(argv: list[str] | None = None):
+     # `task_of` đã dựng ở bước nạp ground truth phía trên — dùng lại, không dựng
+     # bản thứ hai (hai bản của cùng một bảng tra là cách chắc nhất để chúng lệch).
+     subs: list[QuerySubmission] = []
++    export_traces = {}
++    if candidates_jsonl_path.exists():
++        for line in candidates_jsonl_path.read_text(encoding="utf-8").splitlines():
++            if line.strip():
++                trace = json.loads(line)
++                export_traces[trace["query_id"]] = trace
+     for line in answers_jsonl_path.read_text(encoding="utf-8").splitlines():
+         if not line.strip():
+             continue
+@@ -847,6 +875,7 @@ def run_evaluation(argv: list[str] | None = None):
+             query_id=qid,
+             task_type=task_of.get(qid, per_query_by_id[qid]["task_type"]),
+             answers=tuple(_answer_from_dict(d) for d in rec["answers"]),
++            autonomous=True, output_contract=export_traces.get(qid),
+         ))
+ 
+     if subs:
+diff --git a/run.py b/run.py
+index f206052..f362567 100644
+--- a/run.py
++++ b/run.py
+@@ -260,6 +260,8 @@ class Checkpoint:
+                 continue
+             try:
+                 rec = json.loads(dong)
++                from backend.common.qa_contract import reconcile_qa_trace
++                rec = reconcile_qa_trace(rec)
+                 ra[rec["query_id"]] = rec        # dòng sau đè dòng trước: lần chạy mới thắng
+             except Exception:
+                 print(f"  [cảnh báo] checkpoint dòng {so} hỏng, bỏ qua")
+@@ -289,12 +291,15 @@ class Checkpoint:
+ 
+ def _answer_to_dict(a: Answer) -> dict:
+     return {"video_id": a.video_id, "frame_ids": list(a.frame_ids),
+-            "answer_text": a.answer_text, "keyframe_id": a.keyframe_id}
++            "answer_text": a.answer_text, "keyframe_id": a.keyframe_id,
++            **({"provenance": a.provenance} if a.provenance is not None else {}),
++            **({"evidence_hash": a.evidence_hash} if a.evidence_hash is not None else {})}
+ 
+ 
+ def _answer_from_dict(d: dict) -> Answer:
+     return Answer(video_id=d["video_id"], frame_ids=tuple(d["frame_ids"]),
+-                  answer_text=d.get("answer_text"), keyframe_id=d.get("keyframe_id"))
++                  answer_text=d.get("answer_text"), keyframe_id=d.get("keyframe_id"),
++                  provenance=d.get("provenance"), evidence_hash=d.get("evidence_hash"))
+ 
+ 
+ # ================================================================ thanh tiến độ
+@@ -501,8 +506,12 @@ def main() -> int:
+         rec = cu.get(q["query_id"])
+         if not rec:
+             continue
++        from backend.common.qa_contract import reconcile_qa_trace
++        if q["task_type"] == "QA":
++            rec = reconcile_qa_trace({**rec, "task_type": "QA"})
+         if (
+-            rec.get("query_hash") != _query_hash(q)
++            rec.get("status", "success") != "success"
++            or rec.get("query_hash") != _query_hash(q)
+             or rec.get("runtime_fingerprint") != current_runtime_fingerprint
+         ):
+             het_han.append(q["query_id"])
+@@ -594,11 +603,21 @@ def main() -> int:
+                     n_trake=phu.get("n_trake"),
+                 )
+             trace_log.ghi(query_run.to_trace_dict())
++            if query_run.status != "success":
++                hong.append((qid, query_run.result_state))
++                log(f"  ! {qid}: {query_run.result_state}; đã lưu ứng viên/evidence để duyệt")
++                if bar:
++                    bar.cap_nhat(f"! {qid}")
++                continue
++            answers = query_run.answers
+             # "Thật" = có keyframe_id (bằng chứng thật), phần còn lại là dòng đệm.
+             that = sum(1 for a in answers if a.keyframe_id is not None)
+             rec = {
+                 "query_id": qid, "task_type": task, "query_hash": _query_hash(q),
+                 "runtime_fingerprint": query_run.runtime_fingerprint,
++                "status": query_run.status, "result_state": query_run.result_state,
++                "output_origin": query_run.output_origin, "process_status": query_run.process_status,
++                "autonomous_eligible": query_run.autonomous_eligible,
+                 "n_answers": len(answers), "n_real": that, "seconds": round(giay, 2),
+                 "at": datetime.now().isoformat(timespec="seconds"),
+                 "answer_text": phu.get("answer_text"),
+diff --git a/run_minimal.py b/run_minimal.py
+index 19e0a87..fcb0a26 100644
+--- a/run_minimal.py
++++ b/run_minimal.py
+@@ -85,6 +85,23 @@ def _doc_queries(path: Path) -> list[dict]:
+ 
+ from backend.slot.allocator import allocate
+ 
++
++def _solve_qa(q: dict, total: int, out: Path):
++    """Đường minimal giữ trace review; không dùng answer nhập tay thay cho inference."""
++    from backend.tasks.runner import solve_query, SolveQueryError
++    from run import Checkpoint
++    try:
++        result = solve_query(q, total=total)
++    except SolveQueryError as error:
++        result = error.query_run
++    writer = Checkpoint(out / "trace.jsonl")
++    writer.mo()
++    try:
++        writer.ghi(result.to_trace_dict())
++    finally:
++        writer._f.close()
++    return result
++
+ def main() -> int:
+     ap = argparse.ArgumentParser(description="Orchestrator tối giản → file nộp (G2)")
+     ap.add_argument("--queries", required=True, help="file JSON chứa list truy vấn")
+@@ -129,19 +146,22 @@ def main() -> int:
+                 hong += 1
+                 rong.append(qid)
+                 continue
++        elif task_type == "QA":
++            result = _solve_qa(q, args.answers, Path(args.out))
++            if result.status != "success":
++                print(f"  {qid}: {result.result_state}; giữ trace để duyệt")
++                hong += 1
++                rong.append(qid)
++                continue
++            answers = result.answers
+         else:
+             ket_qua = []
+             try:
+                 from backend.slot.allocator import ShotHit
+-                if task_type == "QA":
+-                    from backend.tasks.qa import qa_pipeline
+-                    ket_qua, ans_txt = qa_pipeline(q["query_vi"], top_k_shots=args.answers * CANDIDATE_FACTOR, query_en=q.get("query_en"))
+-                    if ans_txt: answer_text = ans_txt
+-                else:
+-                    ket_qua = search(
+-                        q["query_vi"], query_en=q.get("query_en"),
+-                        top_k=args.answers * CANDIDATE_FACTOR,
+-                    )
++                ket_qua = search(
++                    q["query_vi"], query_en=q.get("query_en"),
++                    top_k=args.answers * CANDIDATE_FACTOR,
++                )
+ 
+                 hits = [
+                     h if isinstance(h, ShotHit) 
+diff --git a/scripts/manual_qa_override.py b/scripts/manual_qa_override.py
+index 1a37580..a516edf 100644
+--- a/scripts/manual_qa_override.py
++++ b/scripts/manual_qa_override.py
+@@ -180,6 +180,8 @@ def build_override(
+                 "evidence_frame_idx": frame_id,
+                 "keyframe_id": keyframe_id,
+                 "source": "operator_evidence",
++                "provenance": "operator_evidence",
++                "evidence_hash": evidence_hash,
+             }
+         ],
+         "answer_shot_id": None,
+diff --git a/scripts/preflight_check.py b/scripts/preflight_check.py
+index dcd523a..bba4880 100644
+--- a/scripts/preflight_check.py
++++ b/scripts/preflight_check.py
+@@ -828,9 +828,21 @@ def check_submit_format() -> tuple[bool | None, str]:
+                   f"answer ≤ {submit_format.ANSWER_MAX_CHARS} ký tự")
+ 
+ 
++def check_qa_output_contract() -> tuple[bool | None, str]:
++    """Smoke offline cùng shared contract, không dò provider hoặc tạo evidence thật."""
++    from backend.common.qa_contract import answer_rejection_reason, autonomous_qa_trace
++    rejected = all(answer_rejection_reason(text) for text in ("TODO", "Không đủ căn cứ"))
++    preserved = all(answer_rejection_reason(text) is None for text in ("0", "Không có người trong ảnh", "Không thấy mưa"))
++    placeholder = answer_rejection_reason("0", "placeholder:no_answer") is not None
++    missing = autonomous_qa_trace({"task_type": "QA", "status": "success", "answer_text": "đỏ"})
++    passed = rejected and preserved and placeholder and missing["status"] == "needs_review"
++    return bool(passed), "H02: sentinel/placeholder/missing evidence bị chặn; zero/negative giữ; không gọi LLM"
++
++
+ # ============================================================ CHECKLIST
+ 
+ CHECKLIST: list[Check] = [
++    Check("G. Cấu hình", "QA output contract", check_qa_output_contract),
+     Check("A. Môi trường", "interpreter Python", check_python),
+     Check("A. Môi trường", "thư viện lõi", check_core_libs),
+     Check("A. Môi trường", "runtime Q&A", check_qa_runtime),
+diff --git a/scripts/run_reproducible_baseline.py b/scripts/run_reproducible_baseline.py
+index 26ef5ca..c6b9d54 100644
+--- a/scripts/run_reproducible_baseline.py
++++ b/scripts/run_reproducible_baseline.py
+@@ -64,6 +64,11 @@ def read_checkpoint(out: Path, queries: list[dict], runtime_id: str, *, current_
+                 for name, identity in files.items():
+                     if Path(name).name != name or file_identity(out / "submission" / name) != identity:
+                         raise ValueError("CSV trong checkpoint đã đổi hoặc mất")
++            from backend.common.qa_contract import autonomous_qa_trace
++            if "task_output" in row and row["input"].get("task_type") == "QA":
++                row["task_output"] = autonomous_qa_trace({**row["task_output"], "task_type": row["input"].get("task_type")})
++                if row["task_output"].get("status") in ("needs_review", "abstain"):
++                    row["export_status"] = "blocked_output_contract"
+             records[query_id] = row
+         except (KeyError, TypeError, json.JSONDecodeError) as error:
+             raise ValueError("checkpoint bị hỏng; giữ nguyên để điều tra") from error
+@@ -147,6 +152,9 @@ def execute_query(query: dict, out: Path, runtime_id: str, *, instrumentation: b
+             result = runner.solve_query(query, total=100, runtime_fingerprint=runtime_id)
+         except runner.SolveQueryError as error:
+             result = error.query_run
++    if result.task_type == "QA" and result.status == "success" and not result.autonomous_eligible:
++        result.status = "needs_review"
++        result.__post_init__()
+     record = {"input": query, "query_sha256": query_identity(query), "runtime_manifest_id": runtime_id,
+               "task_output": result.to_trace_dict(), "search_calls": calls,
+               "instrumentation": instrumentation, "qa_submission_policy": qa_policy,
+@@ -168,7 +176,8 @@ def execute_query(query: dict, out: Path, runtime_id: str, *, instrumentation: b
+             record["frame_mapping"], record["mapping_violations"] = audit_mapping(answers)
+             record["candidate_mapping"], candidate_errors = audit_candidate_mapping(record["task_output"])
+             record["mapping_violations"] += candidate_errors
+-            sub = QuerySubmission(result.query_id, result.task_type, tuple(answers))
++            sub = QuerySubmission(result.query_id, result.task_type, tuple(answers),
++                                  autonomous=True, output_contract=result.to_trace_dict())
+             issues = validate_submission(sub, expected_n=result.n_trake)
+             record["export_violations"] = len(issues)
+             record["errors"] = [asdict(issue) for issue in issues]
+diff --git a/tests/test_api_search.py b/tests/test_api_search.py
+index b877bff..cb7ba05 100644
+--- a/tests/test_api_search.py
++++ b/tests/test_api_search.py
+@@ -25,6 +25,14 @@ def _client() -> TestClient:
+     return TestClient(main_mod.app, raise_server_exceptions=False)
+ 
+ 
++def _supported_trace(answer):
++    """Evidence giả tường minh cho kiểm API; không xác minh GT."""
++    return {"hypotheses": [{"answer_text": answer, "video_id": "L21_V001",
++        "shot_id": "L21_V001#s1", "keyframe_id": "L21_V001#k10",
++        "evidence_frame_idx": 10, "confidence": .8, "evidence_hash": "fixture",
++        "provenance": "test:llm:legacy", "answer_mode": "visual_attribute"}]}
++
++
+ def test_qa_search_khong_500_khi_qa_pipeline_thanh_cong(real_videos):
+     """Bằng chứng trực tiếp của bug: mock qa_pipeline() trả đúng kiểu thật nó
+     trả (list[ShotHit], str) — trước bản sửa, dòng này luôn ra 500."""
+@@ -34,7 +42,7 @@ def test_qa_search_khong_500_khi_qa_pipeline_thanh_cong(real_videos):
+     shot_id = next(iter(_shots()))
+     fake_shots = [ShotHit(shot_id, 0.9, None)]
+ 
+-    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "400g")):
++    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "400g", _supported_trace("400g"))):
+         resp = _client().post(
+             "/search",
+             json={"query": "câu hỏi bất kỳ", "task_type": "QA", "query_en": "any question"},
+@@ -58,7 +66,7 @@ def test_qa_search_giu_dung_thu_hang_shot(real_videos):
+     shot_ids = list(_shots())[:3]
+     fake_shots = [ShotHit(sid, 1.0 - i * 0.1, None) for i, sid in enumerate(shot_ids)]
+ 
+-    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "câu trả lời")):
++    with patch("backend.tasks.qa.qa_pipeline", return_value=(fake_shots, "câu trả lời", _supported_trace("câu trả lời"))):
+         resp = _client().post(
+             "/search", json={"query": "q", "task_type": "QA", "query_en": "q"},
+         )
+diff --git a/tests/test_h02_contract.py b/tests/test_h02_contract.py
+new file mode 100644
+index 0000000..92bd8ee
+--- /dev/null
++++ b/tests/test_h02_contract.py
+@@ -0,0 +1,373 @@
++"""H02 RED và regression controls: không cần provider hoặc DB ngoài fixture."""
++import copy
++import importlib
++import json
++
++import pytest
++
++from backend.tasks import runner
++from backend.slot import ShotHit
++from data.config.submit_format import Answer
++
++
++def hypothesis(answer='đỏ', provenance='main:llm:legacy', evidence_hash='evidence-verified-by-pipeline'):
++    return dict(answer_text=answer, video_id='L21_V001', shot_id='L21_V001#s1',
++                keyframe_id='L21_V001#k10', evidence_frame_idx=10, confidence=.8,
++                evidence_hash=evidence_hash, provenance=provenance,
++                evidence_type='image', answer_mode='visual_attribute')
++
++
++def trace(answer='đỏ', **changes):
++    h = hypothesis(answer)
++    result = dict(query_id='qa', task_type='QA', status='success', answer_text=answer,
++                  qa_hypotheses=[h], qa_trace={'hypotheses': [h]},
++                  answers=[dict(video_id='L21_V001', frame_ids=[10], keyframe_id=h['keyframe_id'], answer_text=answer)],
++                  search_rows=[{'shot_id': h['shot_id'], 'keyframe_id': h['keyframe_id'], 'score': .8}])
++    result.update(changes)
++    return result
++
++
++@pytest.fixture(autouse=True)
++def no_provider(monkeypatch):
++    from backend.llm import adapter
++    monkeypatch.setenv('LLM_BACKEND', 'api')
++    monkeypatch.setenv('LLM_API_MODEL', 'claude-sonnet-5')
++    monkeypatch.setenv('LLM_CACHE_ONLY', '1')
++    monkeypatch.setattr(adapter, '_mot_lan', lambda *a, **kw: pytest.fail('H02 không được gọi provider'))
++
++
++@pytest.mark.parametrize('answer,provenance', [('TODO','main:llm:legacy'), ('0','placeholder:no_answer:legacy'), ('đỏ','no_answer')])
++def test_runner_does_not_accept_placeholder(monkeypatch, answer, provenance):
++    from backend.tasks import qa, qa_portfolio
++    hit=ShotHit('L21_V001#s1', .8, 'L21_V001#k10')
++    h=hypothesis(answer,provenance)
++    monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],answer,{'hypotheses':[h]}))
++    monkeypatch.setattr(qa_portfolio,'allocate_qa_portfolio',lambda *a,**kw:[Answer('L21_V001',(10,),answer_text=answer)])
++    result=runner.solve_query({'query_id':'qa','task_type':'QA','query_vi':'màu gì?'},total=1)
++    assert result.status=='needs_review'
++    assert result.answers==[]
++    assert result.search_rows[0]['shot_id']==hit.shot_id
++    assert result.qa_trace['hypotheses']==[h]
++
++
++@pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
++def test_exporter_rejects_known_unsupported(answer,monkeypatch):
++    from backend.export import exporter
++    monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
++    sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
++    assert any(i.rule=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
++
++
++@pytest.mark.parametrize('answer',['0','Không có người trong ảnh','Không thấy mưa','Không có thông tin liên lạc'])
++def test_zero_and_legitimate_negative_with_evidence_survive(answer):
++    contract=importlib.import_module('backend.common.qa_contract')
++    original=trace(answer)
++    result=contract.reconcile_qa_trace(original)
++    assert result['status']=='success'
++    assert result['answers']==original['answers']
++
++
++def test_old_trace_replay_retains_evidence_and_does_not_mutate_history():
++    contract=importlib.import_module('backend.common.qa_contract')
++    original=trace('TODO');before=copy.deepcopy(original)
++    result=contract.reconcile_qa_trace(original)
++    assert original==before
++    assert result['status']=='needs_review' and result['answers']==[]
++    assert result['review_answers']==original['answers']
++    assert result['search_rows']==original['search_rows']
++    assert result['qa_trace']==original['qa_trace']
++
++
++def test_missing_evidence_is_reviewable_not_crash(monkeypatch):
++    from backend.tasks import qa
++    hit=ShotHit('L21_V001#s1', .8, 'L21_V001#k10')
++    monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],'',{'hypotheses':[], 'attempts':[{'reason':'missing evidence'}]}))
++    result=runner.solve_query({'query_id':'qa','task_type':'QA','query_vi':'màu gì?'},total=1)
++    assert result.status=='needs_review' and result.answers==[]
++    assert result.search_rows and result.qa_trace['attempts']
++
++
++def test_no_candidates_abstains():
++    contract=importlib.import_module('backend.common.qa_contract')
++    result=contract.reconcile_qa_trace(trace('',search_rows=[],qa_hypotheses=[],qa_trace={},answers=[]))
++    assert result['status']=='abstain'
++
++
++def test_checkpoint_stale_refusal_not_success(tmp_path):
++    import run
++    record=trace('Không đủ căn cứ')
++    path=tmp_path/'checkpoint.jsonl';path.write_text(json.dumps(record,ensure_ascii=False)+'\n',encoding='utf-8')
++    restored=run.Checkpoint(path).doc()['qa']
++    assert restored['status']!='success'
++    assert restored['answers']==[]
++    assert restored['review_answers']==record['answers']
++
++
++@pytest.mark.parametrize('mode',['legacy','two_stage'])
++def test_cached_refusal_pipeline_preserves_candidates(tmp_path,monkeypatch,mode):
++    from backend.tasks import qa
++    monkeypatch.setenv('QA_INFERENCE_MODE',mode)
++    monkeypatch.setenv('QA_HYPOTHESIS_CACHE_DIR',str(tmp_path/'cache'))
++    monkeypatch.setattr(qa,'parse_question',lambda _:qa.QuestionParts('sự kiện','màu gì?','visual_attribute'))
++    monkeypatch.setattr(qa,'search',lambda *a,**kw:[dict(shot_id='L21_V001#s1',score=.8,keyframe_id='L21_V001#k10')])
++    monkeypatch.setattr(qa,'_expand_within_video',lambda *a,**kw:[])
++    monkeypatch.setattr(qa,'_shot_bu_vung_trong',lambda *a,**kw:[])
++    monkeypatch.setattr(qa,'collect_evidence',lambda *a,**kw:qa.Evidence('L21_V001#s1','L21_V001',['bằng chứng trong fixture'],[],'',None,[],10,'evidence'))
++    monkeypatch.setattr(qa,'load_frame_map',lambda:{'L21_V001#k10':10})
++    cached=json.dumps(dict(answer='Không đủ căn cứ',answer_en='insufficient evidence',confidence=.99,evidence_frame_idx=10))
++    monkeypatch.setattr(qa,'_qa_cache_get',lambda *a,**kw:[cached]*3)
++    hits,answer,payload=qa.qa_pipeline('màu gì?',return_trace=True)
++    assert hits and not answer
++    assert payload['result_state']=='needs_review'
++    assert payload['hypotheses']==[]
++    assert payload['attempts'][0]['inference'][0]['outputs'][0]['answer']=='Không đủ căn cứ'
++
++
++def test_batch_unsupported_qa_does_not_skip_next_query(tmp_path,monkeypatch):
++    import run
++    calls=[]
++    def solve(q,total):
++        calls.append(q['query_id'])
++        obj=runner.QueryRun(q['query_id'],q['task_type'],[],{},answer_text='TODO' if q['task_type']=='QA' else None)
++        if q['task_type']=='KIS':obj.answers=[Answer('L21_V001',(10,))]
++        return obj.answers,obj.compatibility_metadata()
++    monkeypatch.setattr(run,'giai_mot_query',solve)
++    monkeypatch.setattr(run,'_preflight',lambda *a:True)
++    monkeypatch.setattr(run,'_llm_runtime_errors',lambda *a:[])
++    queries=[dict(query_id='qa',task_type='QA',query_vi='màu gì?'),dict(query_id='kis',task_type='KIS',query_vi='xe',query_en='car')]
++    inp=tmp_path/'q.json';inp.write_text(json.dumps(queries),encoding='utf-8');out=tmp_path/'out'
++    monkeypatch.setattr(run.sys,'argv',['run.py','--queries',str(inp),'--out',str(out),'--answers','1','--qa-submission-policy','robust'])
++    assert run.main()==1
++    assert calls==['qa','kis']
++    rows=[json.loads(l) for l in (out/run.TRACE_NAME).read_text(encoding='utf-8').splitlines()]
++    assert rows[0]['status'] in ('needs_review','abstain')
++    assert rows[1]['status']=='success'
++    assert not list(out.glob('*.csv'))
++
++
++@pytest.mark.parametrize('mode',['legacy','two_stage'])
++@pytest.mark.parametrize('answer',['TODO','0','Không có người trong ảnh'])
++def test_mocked_live_inference_contract(tmp_path,monkeypatch,mode,answer):
++    """Chạy adapter-call site thật với llm giả, không gọi provider; cache miss thật."""
++    from backend.tasks import qa
++    monkeypatch.setenv('QA_INFERENCE_MODE',mode)
++    monkeypatch.setenv('QA_HYPOTHESIS_CACHE_DIR',str(tmp_path/'cache'))
++    monkeypatch.setattr(qa,'parse_question',lambda _:qa.QuestionParts('sự kiện','gì?','visual_attribute'))
++    monkeypatch.setattr(qa,'search',lambda *a,**kw:[dict(shot_id='L21_V001#s1',score=.8,keyframe_id='L21_V001#k10')])
++    monkeypatch.setattr(qa,'_expand_within_video',lambda *a,**kw:[])
++    monkeypatch.setattr(qa,'_shot_bu_vung_trong',lambda *a,**kw:[])
++    monkeypatch.setattr(qa,'collect_evidence',lambda *a,**kw:qa.Evidence('L21_V001#s1','L21_V001',['bằng chứng trong fixture'],[],'',None,[],10,'evidence'))
++    monkeypatch.setattr(qa,'load_frame_map',lambda:{'L21_V001#k10':10})
++    calls=[]
++    def fake_llm(*args,**kwargs):
++        calls.append(kwargs)
++        raw=json.dumps(dict(answer=answer,answer_en=answer,confidence=.99,evidence_frame_idx=10))
++        return [raw]*kwargs.get('n',1)
++    monkeypatch.setattr(qa,'llm',fake_llm)
++    first=qa.qa_pipeline('gì?',return_trace=True)
++    assert calls
++    calls.clear()
++    second=qa.qa_pipeline('gì?',return_trace=True)
++    assert not calls, 'Lần hai phải replay file cache thật'
++    assert first[1:]==second[1:]
++    assert second[2]['result_state']==('needs_review' if answer=='TODO' else 'supported_answer')
++
++
++@pytest.mark.parametrize('answer,provenance',[('TODO','main:llm'),('0','placeholder:no_answer'),('Không đủ căn cứ','main:llm')])
++def test_portfolio_and_all_policies_reject_unsupported(monkeypatch,answer,provenance):
++    from backend.tasks import qa,qa_portfolio
++    from backend.export.qa_variants import apply_qa_submission_policy
++    from backend.export import exporter
++    h=qa.QAHypothesis.from_dict(hypothesis('đỏ'))
++    # Giả lập object cũ đã deserialize trước khi contract mới có hiệu lực.
++    object.__setattr__(h,'answer_text',answer);object.__setattr__(h,'provenance',provenance)
++    with pytest.raises(RuntimeError,match='placeholder/refusal'):
++        qa_portfolio.allocate_qa_portfolio([h],[],total=1)
++    a=Answer('L21_V001',(10,),answer_text=answer,provenance=provenance)
++    for policy in ('semantic','exact','robust'):
++        with pytest.raises(ValueError,match='placeholder/refusal'):
++            apply_qa_submission_policy([a],policy)
++    monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
++    assert any(i.rule=='answer_unsupported' for i in exporter.validate_submission(exporter.QuerySubmission('qa','QA',(a,)),expect_answers=1))
++
++
++@pytest.mark.parametrize('answer',['TODO','Không đủ căn cứ','0'])
++def test_release_gate_rejects_unsupported_trace(answer):
++    from backend.export.release_rehearsal import assess_release_batch
++    from pathlib import Path
++    row=trace(answer)
++    if answer=='0':
++        row['qa_hypotheses'][0]['provenance']='placeholder:no_answer'
++    result=assess_release_batch(queries=[dict(query_id='qa',task_type='QA',query_vi='gì?')],
++        traces=[row],validator_issues=[],trace_path=Path('trace.jsonl'),cache_manifest={'entries':[]})
++    assert not result.eligible
++    assert any(reason['code']=='query_not_success' for reason in result.reasons)
++
++
++def test_harness_resume_downgrades_stale_success(tmp_path):
++    from scripts import run_reproducible_baseline as harness
++    query=dict(query_id='qa',task_type='QA',query_vi='gì?')
++    row=dict(input=query,query_sha256=harness.query_identity(query),runtime_manifest_id='fp',
++             task_output=trace('TODO'),export_status='not_exported')
++    path=tmp_path/'queries.jsonl'; original=json.dumps(row,ensure_ascii=False)+'\n';path.write_text(original,encoding='utf-8')
++    restored=harness.read_checkpoint(tmp_path,[query],'fp')['qa']
++    assert restored['task_output']['status']=='needs_review'
++    assert restored['export_status']=='blocked_output_contract'
++    assert path.read_text(encoding='utf-8')==original
++
++
++def test_evaluation_resume_requires_supported_trace(tmp_path):
++    from dev_set.tools.run_evaluation import _resume_supported_ids
++    from types import SimpleNamespace
++    queries=[SimpleNamespace(query_id=q,task_type=t) for q,t in [('qa','QA'),('kis','KIS')]]
++    scores=tmp_path/'scores.jsonl';candidates=tmp_path/'candidates.jsonl'
++    scores.write_text('\n'.join(json.dumps(dict(query_id=q.query_id,status='success')) for q in queries),encoding='utf-8')
++    candidates.write_text(json.dumps(trace('TODO')),encoding='utf-8')
++    assert _resume_supported_ids(scores,candidates,queries)=={'kis'}
++    candidates.write_text(json.dumps(trace('0')),encoding='utf-8')
++    assert _resume_supported_ids(scores,candidates,queries)=={'qa','kis'}
++
++
++def test_api_unsupported_retains_candidates(monkeypatch):
++    from backend.api import main
++    from backend.tasks import qa
++    from backend.slot import allocator
++    from fastapi.testclient import TestClient
++    h=hypothesis('TODO');payload={'hypotheses':[h],'attempts':[{'evidence_hash':'evidence'}]}
++    monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([ShotHit(h['shot_id'],.8,h['keyframe_id'])],'TODO',payload))
++    monkeypatch.setattr(allocator,'shot_bounds',lambda _:('L21_V001',0,20))
++    monkeypatch.setattr(main,'load_frame_map',lambda:{h['keyframe_id']:10})
++    monkeypatch.setattr(main,'_thumbnail_url',lambda _: '')
++    response=TestClient(main.app).post('/search',json={'query':'gì?','task_type':'QA'})
++    assert response.status_code==200
++    body=response.json()
++    assert body['result_state']=='needs_review' and not body['answer_text']
++    assert body['hits'][0]['frame_idx']==10 and body['qa_trace']==payload
++
++
++def test_task_failure_keeps_review_payload(monkeypatch):
++    from backend.tasks import qa,qa_portfolio
++    hit=ShotHit('L21_V001#s1',.8,'L21_V001#k10');payload={'hypotheses':[hypothesis('0')],'attempts':[{'evidence_hash':'evidence'}]}
++    monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],'0',payload))
++    def fail(*a,**kw):raise RuntimeError('mapping failure')
++    monkeypatch.setattr(qa_portfolio,'allocate_qa_portfolio',fail)
++    with pytest.raises(runner.SolveQueryError) as exc:
++        runner.solve_query(dict(query_id='qa',task_type='QA',query_vi='gì?'),total=1)
++    result=exc.value.query_run
++    assert result.result_state=='task_failure' and result.answers==[]
++    assert result.qa_trace==payload and result.search_rows[0]['shot_id']==hit.shot_id
++
++
++@pytest.mark.parametrize('provenance,origin',[('main:llm:legacy','autonomous'),('operator_evidence','operator_assisted'),('visual','unknown'),('', 'unknown')])
++def test_origin_and_roundtrip_are_explicit(provenance,origin):
++    from backend.common.qa_contract import reconcile_qa_trace, autonomous_qa_trace
++    row=trace('0');row['qa_hypotheses'][0]['provenance']=provenance
++    checked=reconcile_qa_trace(row)
++    assert checked['output_origin']==origin
++    assert checked['autonomous_eligible']==(origin=='autonomous')
++    assert reconcile_qa_trace(checked)==checked
++    if origin!='autonomous':assert autonomous_qa_trace(row)['status']=='needs_review'
++    if origin=='operator_assisted':assert checked['status']=='success'
++
++
++def test_manual_answer_provenance_overrides_autonomous_hypothesis():
++    from backend.common.qa_contract import reconcile_qa_trace
++    row=trace('0');row['answers'][0]['provenance']='operator_evidence'
++    result=reconcile_qa_trace(row)
++    assert result['output_origin']=='operator_assisted' and not result['autonomous_eligible']
++    from backend.common.qa_contract import autonomous_qa_trace
++    manual_review=autonomous_qa_trace(row)
++    assert reconcile_qa_trace(manual_review)==manual_review
++    review=reconcile_qa_trace(dict(task_type='QA',answer_text='TODO'))
++    assert reconcile_qa_trace(review)==review
++
++
++def test_autonomous_export_requires_supported_explicit_provenance(monkeypatch):
++    from backend.export import exporter
++    monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
++    for provenance,valid in [('main:llm:legacy',True),('operator_evidence',False),('visual',False),('',False)]:
++        row=trace('0');row['qa_hypotheses'][0]['provenance']=provenance
++        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text='0',keyframe_id='L21_V001#k10'),),autonomous=True,output_contract=row)
++        issues=exporter.validate_submission(sub,expect_answers=1)
++        assert not any(i.rule=='answer_unsupported' for i in issues) if valid else any(i.rule=='answer_unsupported' for i in issues)
++
++
++@pytest.mark.parametrize('mode',['legacy','two_stage'])
++def test_empty_evidence_stops_before_inference(monkeypatch,mode):
++    from backend.tasks import qa
++    monkeypatch.setenv('QA_INFERENCE_MODE',mode)
++    monkeypatch.setattr(qa,'collect_evidence',lambda *a,**kw:qa.Evidence('L21_V001#s1','L21_V001',[],[],'',None,[],10,'empty-hash'))
++    monkeypatch.setattr(qa,'ask_llm',lambda *a,**kw:pytest.fail('Không được infer evidence rỗng'))
++    assert qa._try_shot(ShotHit('L21_V001#s1',.8,'L21_V001#k10'),'gì?','image',True) is None
++
++
++def test_all_attempt_errors_are_task_failure_with_candidates(monkeypatch):
++    from backend.tasks import qa
++    monkeypatch.setattr(qa,'parse_question',lambda _:qa.QuestionParts('sự kiện','gì?','visual_attribute'))
++    monkeypatch.setattr(qa,'search',lambda *a,**kw:[dict(shot_id='L21_V001#s1',score=.8,keyframe_id='L21_V001#k10')])
++    monkeypatch.setattr(qa,'_expand_within_video',lambda *a,**kw:[])
++    monkeypatch.setattr(qa,'_shot_bu_vung_trong',lambda *a,**kw:[])
++    def fail(*a,**kw):raise TypeError('fixture bug')
++    monkeypatch.setattr(qa,'_try_shot',fail)
++    with pytest.raises(runner.SolveQueryError) as exc:
++        runner.solve_query(dict(query_id='qa',task_type='QA',query_vi='gì?'),total=1)
++    result=exc.value.query_run
++    assert result.result_state=='task_failure' and result.process_status=='failed'
++    assert result.search_rows and result.qa_trace['attempts'][0]['error']=='TypeError: fixture bug'
++
++
++def test_minimal_does_not_reuse_supplied_answer(tmp_path,monkeypatch):
++    import run_minimal
++    from backend.tasks import runner
++    result=runner.QueryRun('qa','QA',[],{},answer_text='TODO',search_rows=[{'shot_id':'candidate'}])
++    monkeypatch.setattr(runner,'solve_query',lambda *a,**kw:result)
++    actual=run_minimal._solve_qa(dict(query_id='qa',task_type='QA',query_vi='gì?',answer='manual-looking'),1,tmp_path)
++    assert actual.status=='needs_review' and actual.answers==[]
++    saved=json.loads((tmp_path/'trace.jsonl').read_text(encoding='utf-8'))
++    assert saved['search_rows']==result.search_rows and saved['review_answer_text']=='TODO'
++
++
++@pytest.mark.parametrize('profile',['development','release'])
++def test_preflight_exercises_shared_contract(profile):
++    from scripts import preflight_check as preflight
++    check=next(c for c in preflight.CHECKLIST if c.fn==preflight.check_qa_output_contract)
++    assert preflight.run_check(check,False,profile).status==preflight.PASS
++
++
++def test_contract_import_does_not_load_heavy_stack():
++    import subprocess,sys
++    code="import sys; import backend.common.qa_contract; assert not any(n in sys.modules for n in ('backend.tasks.qa','backend.retrieval.search','backend.llm.adapter','torch','elasticsearch','pymilvus'))"
++    result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True)
++    assert result.returncode==0,result.stderr
++
++
++def test_api_task_failure_retains_review_payload(monkeypatch):
++    from backend.api import main
++    from backend.tasks import qa
++    from fastapi.testclient import TestClient
++    payload={'candidates':[{'keyframe_id':'kf'}],'attempts':[{'evidence_hash':'evidence'}]}
++    def fail(*a,**kw):
++        error=RuntimeError('mapping failure');error.qa_review=payload;raise error
++    monkeypatch.setattr(qa,'qa_pipeline',fail)
++    response=TestClient(main.app).post('/search',json={'query':'gì?','task_type':'QA'})
++    assert response.status_code==503
++    detail=response.json()['detail']
++    assert detail['result_state']=='task_failure' and detail['qa_trace']==payload
++
++
++def test_autonomous_export_cannot_substitute_different_answer(monkeypatch):
++    from backend.export import exporter
++    monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
++    sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text='xanh'),),autonomous=True,output_contract=trace('đỏ'))
++    assert any(i.rule=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
++
++
++@pytest.mark.parametrize('changes',[{'video_id':'L21_V002'}, {'frame_ids':(20,)}, {'keyframe_id':'different'},
++                                   {'provenance':'operator_evidence'}, {'evidence_hash':'different'}])
++def test_autonomous_export_binds_full_evidence_row(monkeypatch,changes):
++    from backend.export import exporter
++    monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
++    values=dict(video_id='L21_V001',frame_ids=(10,),answer_text='0',keyframe_id='L21_V001#k10')
++    values.update(changes)
++    sub=exporter.QuerySubmission('qa','QA',(Answer(**values),),autonomous=True,output_contract=trace('0'))
++    assert any(i.rule=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+diff --git a/tests/test_manual_qa_override.py b/tests/test_manual_qa_override.py
+index 4df3130..b80c85d 100644
+--- a/tests/test_manual_qa_override.py
++++ b/tests/test_manual_qa_override.py
+@@ -138,6 +138,7 @@ def test_apply_append_record_va_trace_day_du(tmp_path: Path):
+         encoding="utf-8"
+     ).splitlines()]
+     assert traces[-1]["status"] == "success"
++    assert traces[-1]["output_origin"] == "operator_assisted"
+     assert traces[-1]["query_id"] == "query-p2-19-qa"
+ 
+ 
+diff --git a/tests/test_qa.py b/tests/test_qa.py
+index e0e27e9..396bf39 100644
+--- a/tests/test_qa.py
++++ b/tests/test_qa.py
+@@ -399,7 +399,8 @@ def test_two_stage_cap_42_phu_text_main_image_va_expansion(monkeypatch, fake_fra
+     )
+     def fake_collect(hit, *args, **kwargs):
+         evidence = Evidence(
+-            hit.shot_id, hit.shot_id.split("#")[0], [], [], "", None, [], 10,
++            # H02: kiểm budget trên evidence có nội dung; không infer payload rỗng.
++            hit.shot_id, hit.shot_id.split("#")[0], ["fixture evidence"], [], "", None, [], 10,
+             hashlib.sha256(hit.shot_id.encode("utf-8")).hexdigest(),
+         )
+         attempt = Q._qa_attempt_ctx.get()
+diff --git a/tests/test_qa_hypotheses.py b/tests/test_qa_hypotheses.py
+index 0514f71..8af1232 100644
+--- a/tests/test_qa_hypotheses.py
++++ b/tests/test_qa_hypotheses.py
+@@ -200,7 +200,7 @@ def test_pipeline_bo_refusal_ngan_va_chon_answer_hop_le_phia_sau(monkeypatch):
+     assert [item["shot_id"] for item in trace["hypotheses"]] == ["L21_V002#s2"]
+ 
+ 
+-def test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel(monkeypatch):
++def test_pipeline_toan_refusal_ngan_thi_needs_review_khong_nop_sentinel(monkeypatch):
+     """Hết đáp án thật thì nộp CHỖ TRỐNG — nhưng tuyệt đối không nộp câu từ chối.
+ 
+     ⚠️ Test này đổi hợp đồng khi gộp hai nhánh 03/09. Bản của Thạch
+@@ -232,16 +232,11 @@ def test_pipeline_toan_refusal_ngan_thi_nop_cho_trong_khong_nop_sentinel(monkeyp
+ 
+     _, answer, trace = qa.qa_pipeline("câu hỏi", return_trace=True)
+ 
+-    # Câu từ chối không được trở thành đáp án nộp — ý gốc của phép kiểm.
+-    assert qa.is_valid_qa_answer(answer) is False or answer == "TODO"
+-    assert "không rõ" not in str(answer).lower()
+-    # Và phải là chỗ trống có nhãn, không phải im lặng trả rỗng.
+-    assert answer == "TODO"
+-    # Chỗ trống vẫn sinh hypothesis để bài nộp có dòng, nhưng MỌI dòng phải là
+-    # chỗ trống — không được lẫn một dòng nào mang câu từ chối.
+-    gia_thuyet = trace.get("hypotheses") or []
+-    assert gia_thuyet, "chỗ trống vẫn phải có dòng để nộp, không được rỗng"
+-    assert all(h["answer_text"] == "TODO" for h in gia_thuyet)
++    # H02 thay hợp đồng placeholder cũ: giữ lần thử, không tạo answer giả.
++    assert not answer
++    assert trace["result_state"] == "needs_review"
++    assert trace["hypotheses"] == []
++    assert trace["attempts"]
+ 
+ 
+ def test_qahypothesis_constructor_tu_choi_hash_rong_va_sentinel():
+@@ -742,15 +737,15 @@ def test_runner_dung_hypotheses_va_fail_missing_evidence(monkeypatch):
+     assert result.query_plan["answer_mode"] == "visual_attribute"
+ 
+     monkeypatch.setattr(qa, "qa_pipeline", lambda *a, **kw: ([hit], "", {"hypotheses": []}))
+-    with pytest.raises(runner.SolveQueryError) as exc:
+-        runner.solve_query(
+-            {"query_id": "empty", "task_type": "QA", "query_vi": "gì?"},
+-            total=1,
+-            runtime_fingerprint="fp",
+-        )
+-    assert exc.value.query_run.failure_class == "missing_evidence"
+-    assert exc.value.query_run.retryable is True
+-    assert exc.value.query_run.answers == []
++    unsupported = runner.solve_query(
++        {"query_id": "empty", "task_type": "QA", "query_vi": "gì?"},
++        total=1, runtime_fingerprint="fp",
++    )
++    assert unsupported.status == "needs_review"
++    assert unsupported.failure_class is None
++    assert unsupported.retryable is False
++    assert unsupported.answers == []
++    assert unsupported.search_rows[0]["shot_id"] == hit.shot_id
+ 
+ 
+ def test_runtime_fingerprint_phu_code_qa_portfolio(monkeypatch):
+diff --git a/tests/test_run.py b/tests/test_run.py
+index 023e9c7..aed01b0 100644
+--- a/tests/test_run.py
++++ b/tests/test_run.py
+@@ -83,7 +83,12 @@ def chay(monkeypatch, tmp_path, viet_queries, video):
+                          answer_text="5" if q["task_type"] == "QA" else None,
+                          n_trake=max(n, 2) if q["task_type"] == "TRAKE" else 1),
+                 {"answer_text": "5" if q["task_type"] == "QA" else None,
+-                 "n_trake": max(n, 2) if q["task_type"] == "TRAKE" else None},
++                 "n_trake": max(n, 2) if q["task_type"] == "TRAKE" else None,
++                 # H02: fixture success phải có provenance/evidence rõ ràng.
++                 "qa_trace": {"hypotheses": [{"answer_text": "5", "video_id": vid,
++                     "shot_id": vid + "#s1", "keyframe_id": "kf0", "evidence_frame_idx": 0,
++                     "confidence": .8, "provenance": "test:llm:legacy", "evidence_hash": "fixture-evidence",
++                     "answer_mode": "visual_count", "evidence_type": "image"}]} if q["task_type"] == "QA" else None},
+             )
+ 
+         monkeypatch.setattr(R, "giai_mot_query", _gia)
+@@ -318,7 +323,8 @@ def test_fresh_bo_qua_checkpoint(chay):
+ def test_checkpoint_ghi_ngay_sau_moi_cau(chay, monkeypatch, tmp_path, viet_queries, video):
+     """Chết giữa chừng KHÔNG được mất câu đã xong — kiểm bằng cách chết thật."""
+     vid, n_frames = video
+-    qs = [KIS, QA, TRAKE]
++    # Phép kiểm durability độc lập suy luận QA: hai KIS thành công trước ngắt.
++    qs = [KIS, {**KIS, "query_id": "q2"}, TRAKE]
+ 
+     def _gia(q, tong):
+         if q["query_id"] == "q3":
+diff --git a/tests/test_task_runner.py b/tests/test_task_runner.py
+index 3629b3c..ba22100 100644
+--- a/tests/test_task_runner.py
++++ b/tests/test_task_runner.py
+@@ -369,7 +369,10 @@ def test_qa_va_trake_khong_mat_metadata_hien_co(monkeypatch):
+         {"query_id": "q-qa", "task_type": "QA", "query_vi": "màu gì?"}, total=1
+     )
+     assert qa_run.qa_trace == {"answer_shot_id": hit.shot_id}
+-    assert qa_run.answer_text == "đỏ"
++    # Trace cũ thiếu evidence vẫn được giữ để duyệt, không tự coi là success.
++    assert qa_run.status == "needs_review"
++    assert qa_run.answer_text == ""
++    assert qa_run.review_answer_text == "đỏ"
+ 
+     candidate = type(
+         "Candidate",

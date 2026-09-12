@@ -1,0 +1,380 @@
+{
+  "experiment_id": "PP-H02-OFFLINE-20260912",
+  "selection": "Toàn bộ record của bốn trace, toàn bộ CSV round2/round3; không lọc theo outcome.",
+  "groups": [
+    {
+      "name": "H01_CACHE_ONLY",
+      "source": {
+        "path": "reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/queries.jsonl",
+        "size": 84735664,
+        "sha256": "f86c3f6017ed2e40f3169dd36ba97b4672aacbb424c6a4b883726d522dad2cb3"
+      },
+      "record_count": 30
+    },
+    {
+      "name": "TUNE_LEGACY",
+      "source": {
+        "path": "dev_set/results/run_20260820_2349/candidates.jsonl",
+        "size": 301911,
+        "sha256": "b19bf3078a825b30eeb77b803e440907af9df50c8fdfdeb088560c377fdf107c"
+      },
+      "record_count": 30,
+      "answers_source": {
+        "path": "dev_set/results/run_20260820_2349/answers.jsonl",
+        "size": 315521,
+        "sha256": "68babe19b802b8a962768947785e2ed9f6b6b19255fc836e562e188b628a6752"
+      }
+    },
+    {
+      "name": "ROUND2_OPERATOR_HISTORY",
+      "source": {
+        "path": "submissions/round2/trace.jsonl",
+        "size": 1909443,
+        "sha256": "b09047c3e74016d89f34b6a35dfe540ce1457a2a266e36cabf3deba8d7b2f7ef"
+      },
+      "record_count": 33
+    },
+    {
+      "name": "ROUND3_OPERATOR_HISTORY",
+      "source": {
+        "path": "submissions/round3/trace.jsonl",
+        "size": 3284834,
+        "sha256": "d64767f4005c4dc2ea479aabcabb833c87f5adc1bd2d44f9d6e79479a767b983"
+      },
+      "record_count": 36
+    }
+  ],
+  "csv_files": [
+    {
+      "path": "submissions/round2/submission/query-p2-1-kis.csv",
+      "size": 1453,
+      "sha256": "fd22f542f9c92d51b8a4f9ef566ddc86f7e0e60487c1d4a93f432dd55801261f"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-10-kis.csv",
+      "size": 1396,
+      "sha256": "9db0dde87ca5d5c24e776b655454822d224967595c7107cb5642bdc014f2148f"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-11-kis.csv",
+      "size": 1417,
+      "sha256": "baf3bf375266126dbda95a6a17af78d4ca7bba831be84a1410235965dae4781b"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-12-qa.csv",
+      "size": 2250,
+      "sha256": "4801d2f59fc665243871fc0811e3c3f8952f99c8871ac2826c4c2487fe06dbce"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-13-kis.csv",
+      "size": 1398,
+      "sha256": "1a65f855c5ae71dcf9c0edd0e349ed1cf37c51de1dce9ef1d32e926b920207af"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-14-kis.csv",
+      "size": 1394,
+      "sha256": "f6ef59bb313271183424344f08407ad0d9ca45104cf6eb52728580b16694de60"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-15-kis.csv",
+      "size": 1410,
+      "sha256": "3d6def704019cc625161e1ca36082355df32085c86dcf303b87a1d2819a6a666"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-16-kis.csv",
+      "size": 1466,
+      "sha256": "7d8db28ca39ed64d5345690e4b609f7ea040c2c34c36ff883d9f92db711b46dd"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-17-kis.csv",
+      "size": 1438,
+      "sha256": "d4489e661b05fcffdd00a46e4fb104bb3f401578e27050f00f3497cb8d42b668"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-18-kis.csv",
+      "size": 1417,
+      "sha256": "528818b3856a871aff0adc8e64738aceb474923fc46363a349f1c8a420fff3c9"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-19-qa.csv",
+      "size": 3700,
+      "sha256": "8ba49d5aaab48b87b6b606c53497fc75a6a876d1baf85acee980a637f2077a0a"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-2-kis.csv",
+      "size": 1464,
+      "sha256": "f10c9d24c20e46d2af1d009f47a0b78e0ebdf8693976563491c065626f3d5e5d"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-20-kis.csv",
+      "size": 1443,
+      "sha256": "1e3cca089aa98aae8abd9fbedea0cc51c2a16c1a5af5beb7ecac859c8316719c"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-21-trake.csv",
+      "size": 3073,
+      "sha256": "4732fcc27c5b450b19e7056d0555c7b8b5cee318e61ec0dee672fccb06c7e3fa"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-22-kis.csv",
+      "size": 1404,
+      "sha256": "a168cf7a8043e00ae03c2717c70261c7ae3991a8ee235911e7da9082b876c40a"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-23-qa.csv",
+      "size": 2341,
+      "sha256": "5cd85c07d184d7062e98892d513b3ee7e44efbbc35aa996c4369440bf533298d"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-24-kis.csv",
+      "size": 1419,
+      "sha256": "cf990f62b585b6ac37b02ce0080f07c8f69ee168ae61156a5b02268fbf71d01b"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-25-kis.csv",
+      "size": 1435,
+      "sha256": "b426ad214dd25154c0c32c2dfdade996a185831d761e6a59012897c176d0ba2a"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-26-kis.csv",
+      "size": 1461,
+      "sha256": "054ccbb09da98d48abff276c89157afcbfe959217f08bc64c54f407e87177572"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-27-qa.csv",
+      "size": 2346,
+      "sha256": "083871bf4da802355fcf0fbfa61bf564815cd57cd6636f5fbcba0e2a29f829c4"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-28-qa.csv",
+      "size": 2271,
+      "sha256": "a7330f5706fcebb1543dd63576371cd3a16b431c128e4d367343258aa63082e8"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-29-qa.csv",
+      "size": 2116,
+      "sha256": "d6e6035167c2c57ed7e140d367e305b3e364679e021312ba78fa832ecd7c33eb"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-3-kis.csv",
+      "size": 1453,
+      "sha256": "1f17e8e89109c2600284788e896c4b4767fe572d6e5eb8d44397c5b2179ddb39"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-30-qa.csv",
+      "size": 2160,
+      "sha256": "69509da04768d8fcb6a51d328b38a4acd3d64273900836995f339700b6606295"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-4-kis.csv",
+      "size": 1430,
+      "sha256": "8810cd792c502fa77dd9211dbfe2af7955e7f31a7c3b63348000eda4f1c68271"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-5-kis.csv",
+      "size": 1414,
+      "sha256": "7f76f9f35a376fd5d5af8bd10cb300e970708731cde675d49986e0710f7e9421"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-6-kis.csv",
+      "size": 1467,
+      "sha256": "cf9241a219e15269f00944c08c5bfc8108b1ff7676c4377df2c58573d970f7bf"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-7-qa.csv",
+      "size": 1908,
+      "sha256": "50ddbc5e5b89dc9f1af1f8ce6c9ba0b664956f9543261592ac6afaf04f86ba6f"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-8-trake.csv",
+      "size": 2949,
+      "sha256": "82ba8d47a0d50bd3eadbe50c6f732a7090f1ea3477b2a58604781024e5342615"
+    },
+    {
+      "path": "submissions/round2/submission/query-p2-9-qa.csv",
+      "size": 2525,
+      "sha256": "4e4adcb8e4ba0ee6b00e6dc1d1fcb8967bc6b01a77579d4994e357a5295199c5"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-1-kis.csv",
+      "size": 1396,
+      "sha256": "5b6567b67af7c8f86236b9b9a492b11e0b2b17a9c0c78354eb98ea232fd8ba2a"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-10-kis.csv",
+      "size": 1474,
+      "sha256": "7cee7fc427999af512c41667478260c30c37c6da96797d30b0858ee7bfe1918b"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-11-kis.csv",
+      "size": 1458,
+      "sha256": "78f3b4b970f8b19a349fdcb4f3cded1919025d33f4ac8c85571dd1f190c6fbcb"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-12-kis.csv",
+      "size": 1410,
+      "sha256": "05cf72af6d12086387ef23a06f92426ecdb17e90e0f5d497bb651ad42e238b62"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-13-kis.csv",
+      "size": 1456,
+      "sha256": "065092b39fadd31a401fdb68a202d03ab52a56ff6317a1911c849a32d0ee528d"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-14-qa.csv",
+      "size": 2121,
+      "sha256": "3564632d079fab0e7b979126335590247cb18257f9595cf59f8d6eee3ec97f4c"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-15-kis.csv",
+      "size": 1412,
+      "sha256": "101f165045580823f9aff68f9a870fc155b2950b7e8b95263b512d5506b6951d"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-16-kis.csv",
+      "size": 1410,
+      "sha256": "432e58787660ae0cac6dfd1b871fe8cbde5fb9a6470463e60c7eda0f1fb84ac5"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-17-kis.csv",
+      "size": 1410,
+      "sha256": "2cb944a7bb265c5c5a3df32f48e03639b5b51d443133bd46975122b97c9838f8"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-18-qa.csv",
+      "size": 5117,
+      "sha256": "9801162ba99c56fc1119823735df1de7d34d782054ed1d6123d6f55b740c711f"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-19-kis.csv",
+      "size": 1434,
+      "sha256": "35b0acdb53b03ff81144b2ffb94c8b7cd6020f9aa0f859186c4a763912d3be9b"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-2-kis.csv",
+      "size": 1430,
+      "sha256": "21efddbd6de09ba3b9908e88494a362deba85491ebcfb35089248e542ab00db7"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-20-kis.csv",
+      "size": 1487,
+      "sha256": "7324af9e0c91311dd66ce77cfbc18a906700254871454ff3a351dda9780c1dd5"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-21-trake.csv",
+      "size": 2938,
+      "sha256": "f10b90de11fa58fd90b9d43e3411d30d0c40d714392bd4bc4bc7a5cdddfbe57a"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-22-kis.csv",
+      "size": 1462,
+      "sha256": "d71c8d7832de40f10578400832c37b9e6ce2b2976663a07ec8f086c5ccb4d3e4"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-23-kis.csv",
+      "size": 1444,
+      "sha256": "51999ee3426b09c4c4943cbf6222803bbcea0ff9bba63eec4a0aec3a5a79021a"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-24-qa.csv",
+      "size": 2065,
+      "sha256": "a614d3b84f4420289db9287e338242c35650dae5e8e08cd263bd437726db61da"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-25-kis.csv",
+      "size": 1409,
+      "sha256": "458c8a812191e5577935042d2a4d51114e59a820fa6229f89efda28575eb9472"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-26-kis.csv",
+      "size": 1462,
+      "sha256": "c9ed85956ec3b141bd357a185a14df4a27d10273a996105044169689c8d29186"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-27-qa.csv",
+      "size": 2253,
+      "sha256": "3de9ef0fe7aefba8c4cfc7bff9931fcae431bc09f26e81cf9c36ac34ee8c5785"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-28-kis.csv",
+      "size": 1432,
+      "sha256": "4730c031a63a7ccb24e51a0ffa2b61e860c5424ab81e2dfd84a58e3b0305dad3"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-29-kis.csv",
+      "size": 1408,
+      "sha256": "8bee6ef790e574c80edaab580a19fd4898580c7227c36e683ef39a083256494e"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-3-kis.csv",
+      "size": 1402,
+      "sha256": "e8a034aff3d3d7a3622aa0a661d1f1b183ba4f50c25a861e6dc221cc9d04b02c"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-30-kis.csv",
+      "size": 1410,
+      "sha256": "856df8318da63b4356c68860df55f59f621d263f9c3812994d1a85eb935f258c"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-31-kis.csv",
+      "size": 1454,
+      "sha256": "10ae08bc6c7cf387a5817b83e2eb1e6611229c5ab15acdbe5fd08cd28f951fb9"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-32-kis.csv",
+      "size": 1458,
+      "sha256": "ef594b17e6cce34f6a61ee67d8f310056545a0f151412b9d40f213c4c4494d75"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-33-kis.csv",
+      "size": 1405,
+      "sha256": "a87f80319ae2ae052314de435178bcf7d55be61d492e5594e87077042d9c17e1"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-34-trake.csv",
+      "size": 3058,
+      "sha256": "606df5c32f598d941329f780ae4f98fc96f36f838f9e697f874162cc34d33c01"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-35-qa.csv",
+      "size": 2576,
+      "sha256": "403ca42d77fe7cc410124b1c025df736bb3f43bf1de0a84acb3e72589d289155"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-36-kis.csv",
+      "size": 1470,
+      "sha256": "d441ac5156fb782c3889d8177687d80b6398e38aae9d0de69337e37d84ab7694"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-4-kis.csv",
+      "size": 1437,
+      "sha256": "1f7a70ff81649ea0224fe8e8fe1b9a5fd30c40f2d9ea902834ef8fba2f597c2a"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-5-qa.csv",
+      "size": 3437,
+      "sha256": "0e28b52fbf98847e45c4b3c8d70d6def85558b5fb75ec1b79e271c10d4d2be53"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-6-qa.csv",
+      "size": 2152,
+      "sha256": "786ab8e178c084d9f97e0f668ec8ee8896738c5ad36ac42ed26595cfd89352f4"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-7-kis.csv",
+      "size": 1450,
+      "sha256": "72c5e4889e8afdd4ca2a119c3acd6de9070d2a3cc39052d3a10d2771180b47f0"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-8-qa.csv",
+      "size": 3295,
+      "sha256": "f96d0663b151e57d6a07ef3d76f6ed0c52ce861df177fb28fd7aa60d4ffe38e9"
+    },
+    {
+      "path": "submissions/round3/submission/query-p2-9-kis.csv",
+      "size": 1380,
+      "sha256": "05ed2109a0dd38e5c3567fe54e6997177ed738ff714e2115406949a314627f2c"
+    }
+  ],
+  "paid_provider_calls_authorized": 0
+}

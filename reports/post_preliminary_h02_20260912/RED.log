@@ -1,0 +1,723 @@
+FFFFFFFFFFFFFFFFF                                                        [100%]
+================================== FAILURES ===================================
+________ test_runner_does_not_accept_placeholder[TODO-main:llm:legacy] ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F77EBDC9D0>
+answer = 'TODO', provenance = 'main:llm:legacy'
+
+    @pytest.mark.parametrize('answer,provenance', [('TODO','main:llm:legacy'), ('0','placeholder:no_answer:legacy'), ('đỏ','no_answer')])
+    def test_runner_does_not_accept_placeholder(monkeypatch, answer, provenance):
+        from backend.tasks import qa, qa_portfolio
+        hit=ShotHit('L21_V001#s1', .8, 'L21_V001#k10')
+        h=hypothesis(answer,provenance)
+        monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],answer,{'hypotheses':[h]}))
+        monkeypatch.setattr(qa_portfolio,'allocate_qa_portfolio',lambda *a,**kw:[Answer('L21_V001',(10,),answer_text=answer)])
+        result=runner.solve_query({'query_id':'qa','task_type':'QA','query_vi':'màu gì?'},total=1)
+>       assert result.status=='needs_review'
+E       AssertionError: assert 'success' == 'needs_review'
+E         
+E         - needs_review
+E         + success
+
+tests\test_h02_contract.py:47: AssertionError
+___ test_runner_does_not_accept_placeholder[0-placeholder:no_answer:legacy] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F77EBDCD60>
+answer = '0', provenance = 'placeholder:no_answer:legacy'
+
+    @pytest.mark.parametrize('answer,provenance', [('TODO','main:llm:legacy'), ('0','placeholder:no_answer:legacy'), ('đỏ','no_answer')])
+    def test_runner_does_not_accept_placeholder(monkeypatch, answer, provenance):
+        from backend.tasks import qa, qa_portfolio
+        hit=ShotHit('L21_V001#s1', .8, 'L21_V001#k10')
+        h=hypothesis(answer,provenance)
+        monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],answer,{'hypotheses':[h]}))
+        monkeypatch.setattr(qa_portfolio,'allocate_qa_portfolio',lambda *a,**kw:[Answer('L21_V001',(10,),answer_text=answer)])
+        result=runner.solve_query({'query_id':'qa','task_type':'QA','query_vi':'màu gì?'},total=1)
+>       assert result.status=='needs_review'
+E       AssertionError: assert 'success' == 'needs_review'
+E         
+E         - needs_review
+E         + success
+
+tests\test_h02_contract.py:47: AssertionError
+_______ test_runner_does_not_accept_placeholder[\u0111\u1ecf-no_answer] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A0CA8D0>
+answer = 'đỏ', provenance = 'no_answer'
+
+    @pytest.mark.parametrize('answer,provenance', [('TODO','main:llm:legacy'), ('0','placeholder:no_answer:legacy'), ('đỏ','no_answer')])
+    def test_runner_does_not_accept_placeholder(monkeypatch, answer, provenance):
+        from backend.tasks import qa, qa_portfolio
+        hit=ShotHit('L21_V001#s1', .8, 'L21_V001#k10')
+        h=hypothesis(answer,provenance)
+        monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],answer,{'hypotheses':[h]}))
+        monkeypatch.setattr(qa_portfolio,'allocate_qa_portfolio',lambda *a,**kw:[Answer('L21_V001',(10,),answer_text=answer)])
+        result=runner.solve_query({'query_id':'qa','task_type':'QA','query_vi':'màu gì?'},total=1)
+>       assert result.status=='needs_review'
+E       AssertionError: assert 'success' == 'needs_review'
+E         
+E         - needs_review
+E         + success
+
+tests\test_h02_contract.py:47: AssertionError
+________________ test_exporter_rejects_known_unsupported[TODO] ________________
+
+answer = 'TODO'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A1B8050>
+
+    @pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
+    def test_exporter_rejects_known_unsupported(answer,monkeypatch):
+        from backend.export import exporter
+        monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
+        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
+>       assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+E       assert False
+E        +  where False = any(<generator object test_exporter_rejects_known_unsupported.<locals>.<genexpr> at 0x000001F71A160A00>)
+
+tests\test_h02_contract.py:58: AssertionError
+_ test_exporter_rejects_known_unsupported[Kh\xf4ng \u0111\u1ee7 c\u0103n c\u1ee9] _
+
+answer = 'Không đủ căn cứ'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A1B86B0>
+
+    @pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
+    def test_exporter_rejects_known_unsupported(answer,monkeypatch):
+        from backend.export import exporter
+        monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
+        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
+>       assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+E       assert False
+E        +  where False = any(<generator object test_exporter_rejects_known_unsupported.<locals>.<genexpr> at 0x000001F71A162330>)
+
+tests\test_h02_contract.py:58: AssertionError
+_ test_exporter_rejects_known_unsupported[Kh\xf4ng th\u1ec3 x\xe1c \u0111\u1ecbnh t\u1eeb b\u1eb1ng ch\u1ee9ng] _
+
+answer = 'Không thể xác định từ bằng chứng'
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A1B0E50>
+
+    @pytest.mark.parametrize('answer', ['TODO','Không đủ căn cứ','Không thể xác định từ bằng chứng'])
+    def test_exporter_rejects_known_unsupported(answer,monkeypatch):
+        from backend.export import exporter
+        monkeypatch.setattr(exporter,'_check_video_and_frames',lambda sub:[])
+        sub=exporter.QuerySubmission('qa','QA',(Answer('L21_V001',(10,),answer_text=answer),))
+>       assert any(i.code=='answer_unsupported' for i in exporter.validate_submission(sub,expect_answers=1))
+E       assert False
+E        +  where False = any(<generator object test_exporter_rejects_known_unsupported.<locals>.<genexpr> at 0x000001F71A163850>)
+
+tests\test_h02_contract.py:58: AssertionError
+_________ test_zero_and_legitimate_negative_with_evidence_survive[0] __________
+
+answer = '0'
+
+    @pytest.mark.parametrize('answer',['0','Không có người trong ảnh','Không thấy mưa','Không có thông tin liên lạc'])
+    def test_zero_and_legitimate_negative_with_evidence_survive(answer):
+>       contract=importlib.import_module('backend.common.qa_contract')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'backend.common.qa_contract'
+import_ = <function _gcd_import at 0x000001F77B06BE20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'backend.common.qa_contract'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_ test_zero_and_legitimate_negative_with_evidence_survive[Kh\xf4ng c\xf3 ng\u01b0\u1eddi trong \u1ea3nh] _
+
+answer = 'Không có người trong ảnh'
+
+    @pytest.mark.parametrize('answer',['0','Không có người trong ảnh','Không thấy mưa','Không có thông tin liên lạc'])
+    def test_zero_and_legitimate_negative_with_evidence_survive(answer):
+>       contract=importlib.import_module('backend.common.qa_contract')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'backend.common.qa_contract'
+import_ = <function _gcd_import at 0x000001F77B06BE20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'backend.common.qa_contract'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_ test_zero_and_legitimate_negative_with_evidence_survive[Kh\xf4ng th\u1ea5y m\u01b0a] _
+
+answer = 'Không thấy mưa'
+
+    @pytest.mark.parametrize('answer',['0','Không có người trong ảnh','Không thấy mưa','Không có thông tin liên lạc'])
+    def test_zero_and_legitimate_negative_with_evidence_survive(answer):
+>       contract=importlib.import_module('backend.common.qa_contract')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'backend.common.qa_contract'
+import_ = <function _gcd_import at 0x000001F77B06BE20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'backend.common.qa_contract'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_ test_zero_and_legitimate_negative_with_evidence_survive[Kh\xf4ng c\xf3 th\xf4ng tin li\xean l\u1ea1c] _
+
+answer = 'Không có thông tin liên lạc'
+
+    @pytest.mark.parametrize('answer',['0','Không có người trong ảnh','Không thấy mưa','Không có thông tin liên lạc'])
+    def test_zero_and_legitimate_negative_with_evidence_survive(answer):
+>       contract=importlib.import_module('backend.common.qa_contract')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'backend.common.qa_contract'
+import_ = <function _gcd_import at 0x000001F77B06BE20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'backend.common.qa_contract'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+_____ test_old_trace_replay_retains_evidence_and_does_not_mutate_history ______
+
+    def test_old_trace_replay_retains_evidence_and_does_not_mutate_history():
+>       contract=importlib.import_module('backend.common.qa_contract')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'backend.common.qa_contract'
+import_ = <function _gcd_import at 0x000001F77B06BE20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'backend.common.qa_contract'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+________________ test_missing_evidence_is_reviewable_not_crash ________________
+
+query = {'query_id': 'qa', 'task_type': 'QA', 'query_vi': 'màu gì?'}, total = 1
+runtime_fingerprint = None
+
+    def solve_query(
+        query: object,
+        total: int = 100,
+        *,
+        runtime_fingerprint: str | None = None,
+    ) -> QueryRun:
+        """Giải KIS/Q&A/TRAKE qua đúng pipeline production và trả trace thống nhất.
+    
+        Input là mapping hoặc object có field kiểu `dev_set.tools.schema.Query`;
+        backend không import dev_set. Output thành công luôn là `QueryRun` đủ raw
+        rows/ranks cho evaluator. Lỗi được ném lại bằng `SolveQueryError` để caller
+        retry, kèm failure trace không chứa answers bán phần.
+        """
+        started = time.perf_counter()
+        task_type = str(_query_value(query, "task_type", ""))
+        fingerprint = runtime_fingerprint or globals()["runtime_fingerprint"]()
+        plan = _query_plan(query)
+        timings: dict[str, float] = {}
+    
+        try:
+            if task_type not in ("KIS", "QA", "TRAKE"):
+                raise ValueError(f"task_type không hợp lệ: {task_type!r}")
+            if isinstance(total, bool) or not isinstance(total, int) or total <= 0:
+                raise ValueError("total phải là số nguyên dương")
+    
+            if task_type == "TRAKE":
+                from backend.tasks.trake import pad_answers, parse_events, to_answers, trake_search
+    
+                events = _query_value(query, "event_descs") or parse_events(
+                    str(_query_value(query, "query_vi", ""))
+                )
+                expected_n = _query_value(query, "n_events")
+                if isinstance(expected_n, bool) or not isinstance(expected_n, int) or expected_n < 2:
+                    raise ValueError("TRAKE thiếu n_events hợp lệ")
+                if not isinstance(events, list) or len(events) != expected_n:
+                    actual_n = len(events) if isinstance(events, list) else "không phải list"
+                    raise ValueError(
+                        f"TRAKE khai báo n_events={expected_n} nhưng tách được {actual_n} sự kiện"
+                    )
+                plan["events"] = list(events)
+                stage_started = time.perf_counter()
+                candidates = trake_search(events, top_videos=total)
+                timings["retrieval_seconds"] = round(time.perf_counter() - stage_started, 6)
+                if not candidates:
+                    raise RuntimeError("trake_search() không tìm được video ứng viên nào")
+                answers = to_answers(candidates)
+                if len(answers) < total:
+                    answers = pad_answers(candidates, total)
+                rows = [
+                    {
+                        "video_id": candidate.video_id,
+                        "score": float(candidate.score),
+                        "frame_ids": list(candidate.frame_ids),
+                        "keyframe_ids": list(candidate.keyframe_ids),
+                        "n_hit_events": candidate.n_hit_events,
+                        "has_full_order": candidate.has_full_order,
+                    }
+                    for candidate in candidates
+                ]
+                timings["total_seconds"] = round(time.perf_counter() - started, 6)
+                return QueryRun(
+                    query_id=str(_query_value(query, "query_id", "")),
+                    task_type=task_type,
+                    answers=answers[:total],
+                    query_plan=plan,
+                    search_rows=rows,
+                    timings=timings,
+                    runtime_fingerprint=fingerprint,
+                    task_metadata={"events": list(events), "candidates": rows},
+                    n_trake=expected_n,
+                )
+    
+            from backend.slot import ShotHit, allocate
+    
+            if task_type == "QA":
+                from backend.tasks.qa import QAHypothesis, qa_pipeline
+                from backend.tasks.qa_portfolio import allocate_qa_portfolio
+    
+                stage_started = time.perf_counter()
+                hits, answer_text, qa_trace = qa_pipeline(
+                    str(_query_value(query, "query_vi", "")),
+                    query_en=_query_value(query, "query_en"),
+                    return_trace=True,
+                    runtime_fingerprint=fingerprint,
+                    # Anchor Q&A do Claude điền ở bước 1b (exam_plan.json) — caption
+                    # tiếng Anh ngắn tả CẢNH, bỏ phần hỏi. Không có thì pipeline vẫn
+                    # chạy như cũ bằng `event_vi`.
+                    anchors=_query_value(query, "anchors") or None,
+                )
+                timings["qa_seconds"] = round(time.perf_counter() - stage_started, 6)
+                if not str(answer_text or "").strip():
+>                   raise RuntimeError("qa_pipeline() không suy ra được answer_text")
+E                   RuntimeError: qa_pipeline() không suy ra được answer_text
+
+backend\tasks\runner.py:424: RuntimeError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F77EB11B20>
+
+    def test_missing_evidence_is_reviewable_not_crash(monkeypatch):
+        from backend.tasks import qa
+        hit=ShotHit('L21_V001#s1', .8, 'L21_V001#k10')
+        monkeypatch.setattr(qa,'qa_pipeline',lambda *a,**kw:([hit],'',{'hypotheses':[], 'attempts':[{'reason':'missing evidence'}]}))
+>       result=runner.solve_query({'query_id':'qa','task_type':'QA','query_vi':'màu gì?'},total=1)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+query = {'query_id': 'qa', 'task_type': 'QA', 'query_vi': 'màu gì?'}, total = 1
+runtime_fingerprint = None
+
+    def solve_query(
+        query: object,
+        total: int = 100,
+        *,
+        runtime_fingerprint: str | None = None,
+    ) -> QueryRun:
+        """Giải KIS/Q&A/TRAKE qua đúng pipeline production và trả trace thống nhất.
+    
+        Input là mapping hoặc object có field kiểu `dev_set.tools.schema.Query`;
+        backend không import dev_set. Output thành công luôn là `QueryRun` đủ raw
+        rows/ranks cho evaluator. Lỗi được ném lại bằng `SolveQueryError` để caller
+        retry, kèm failure trace không chứa answers bán phần.
+        """
+        started = time.perf_counter()
+        task_type = str(_query_value(query, "task_type", ""))
+        fingerprint = runtime_fingerprint or globals()["runtime_fingerprint"]()
+        plan = _query_plan(query)
+        timings: dict[str, float] = {}
+    
+        try:
+            if task_type not in ("KIS", "QA", "TRAKE"):
+                raise ValueError(f"task_type không hợp lệ: {task_type!r}")
+            if isinstance(total, bool) or not isinstance(total, int) or total <= 0:
+                raise ValueError("total phải là số nguyên dương")
+    
+            if task_type == "TRAKE":
+                from backend.tasks.trake import pad_answers, parse_events, to_answers, trake_search
+    
+                events = _query_value(query, "event_descs") or parse_events(
+                    str(_query_value(query, "query_vi", ""))
+                )
+                expected_n = _query_value(query, "n_events")
+                if isinstance(expected_n, bool) or not isinstance(expected_n, int) or expected_n < 2:
+                    raise ValueError("TRAKE thiếu n_events hợp lệ")
+                if not isinstance(events, list) or len(events) != expected_n:
+                    actual_n = len(events) if isinstance(events, list) else "không phải list"
+                    raise ValueError(
+                        f"TRAKE khai báo n_events={expected_n} nhưng tách được {actual_n} sự kiện"
+                    )
+                plan["events"] = list(events)
+                stage_started = time.perf_counter()
+                candidates = trake_search(events, top_videos=total)
+                timings["retrieval_seconds"] = round(time.perf_counter() - stage_started, 6)
+                if not candidates:
+                    raise RuntimeError("trake_search() không tìm được video ứng viên nào")
+                answers = to_answers(candidates)
+                if len(answers) < total:
+                    answers = pad_answers(candidates, total)
+                rows = [
+                    {
+                        "video_id": candidate.video_id,
+                        "score": float(candidate.score),
+                        "frame_ids": list(candidate.frame_ids),
+                        "keyframe_ids": list(candidate.keyframe_ids),
+                        "n_hit_events": candidate.n_hit_events,
+                        "has_full_order": candidate.has_full_order,
+                    }
+                    for candidate in candidates
+                ]
+                timings["total_seconds"] = round(time.perf_counter() - started, 6)
+                return QueryRun(
+                    query_id=str(_query_value(query, "query_id", "")),
+                    task_type=task_type,
+                    answers=answers[:total],
+                    query_plan=plan,
+                    search_rows=rows,
+                    timings=timings,
+                    runtime_fingerprint=fingerprint,
+                    task_metadata={"events": list(events), "candidates": rows},
+                    n_trake=expected_n,
+                )
+    
+            from backend.slot import ShotHit, allocate
+    
+            if task_type == "QA":
+                from backend.tasks.qa import QAHypothesis, qa_pipeline
+                from backend.tasks.qa_portfolio import allocate_qa_portfolio
+    
+                stage_started = time.perf_counter()
+                hits, answer_text, qa_trace = qa_pipeline(
+                    str(_query_value(query, "query_vi", "")),
+                    query_en=_query_value(query, "query_en"),
+                    return_trace=True,
+                    runtime_fingerprint=fingerprint,
+                    # Anchor Q&A do Claude điền ở bước 1b (exam_plan.json) — caption
+                    # tiếng Anh ngắn tả CẢNH, bỏ phần hỏi. Không có thì pipeline vẫn
+                    # chạy như cũ bằng `event_vi`.
+                    anchors=_query_value(query, "anchors") or None,
+                )
+                timings["qa_seconds"] = round(time.perf_counter() - stage_started, 6)
+                if not str(answer_text or "").strip():
+                    raise RuntimeError("qa_pipeline() không suy ra được answer_text")
+                rows = [
+                    {
+                        "shot_id": hit.shot_id,
+                        "score": float(hit.score),
+                        "keyframe_id": hit.best_keyframe_id,
+                    }
+                    for hit in hits
+                ]
+                plan.update({
+                    key: qa_trace.get(key)
+                    for key in (
+                        "event_vi", "question_vi", "evidence_type", "answer_mode",
+                        "planner_fallback",
+                    )
+                    if key in qa_trace
+                })
+                hypothesis_rows = qa_trace.get("hypotheses")
+                if hypothesis_rows is not None:
+                    if not isinstance(hypothesis_rows, list) or not hypothesis_rows:
+                        raise RuntimeError("qa_pipeline() không có hypothesis evidence hợp lệ")
+                    hypotheses = [
+                        QAHypothesis.from_dict(dict(item))
+                        for item in hypothesis_rows
+                        if isinstance(item, Mapping)
+                    ]
+                    if len(hypotheses) != len(hypothesis_rows):
+                        raise RuntimeError("qa_trace.hypotheses có record sai schema")
+                    answers = allocate_qa_portfolio(hypotheses, hits, total=total)
+                    serialized_hypotheses = [item.to_dict() for item in hypotheses]
+                else:
+                    # Contract trace cũ chỉ được giữ cho caller/test chuyển tiếp;
+                    # pipeline production mới luôn có khóa `hypotheses` fail-closed.
+                    answers = allocate(hits, "QA", answer_text=answer_text, total=total)
+                    serialized_hypotheses = []
+                timings["total_seconds"] = round(time.perf_counter() - started, 6)
+                return QueryRun(
+                    query_id=str(_query_value(query, "query_id", "")),
+                    task_type=task_type,
+                    answers=answers,
+                    query_plan=plan,
+                    search_rows=rows,
+                    timings=timings,
+                    runtime_fingerprint=fingerprint,
+                    task_metadata={"hits": rows},
+                    answer_text=answer_text,
+                    qa_trace=qa_trace,
+                    qa_hypotheses=serialized_hypotheses,
+                )
+    
+            from backend.retrieval.multi_anchor import plan_query, search_multi
+    
+            stage_started = time.perf_counter()
+            query_vi = str(_query_value(query, "query_vi", ""))
+            query_en = _query_value(query, "query_en")
+            kis_plan = plan_query(query_vi, query_en=query_en)
+            plan = kis_plan.to_dict()
+            if kis_plan.strategy == "single":
+                # Giữ nguyên đường hiện hành cho query ngắn/fallback: đúng một lần
+                # gọi search và giữ bản dịch EN caller đã cung cấp.
+                from backend.retrieval.search import search
+    
+                # R3.K3 — làn KIS chạy HAI nhánh vector và pool sâu riêng. Truyền
+                # tường minh tại đây chứ không đổi mặc định của search(): Q&A và
+                # TRAKE cũng gọi search(), đổi mặc định là đội chi phí hai làn khác
+                # mà không ai yêu cầu (Q&A đang 196–476 s/câu).
+                from data.config.search_weights import KIS_CANDIDATE_MULTIPLIER
+    
+                rows = search(
+                    query_vi,
+                    query_en=query_en,
+                    top_k=total,
+                    group_by_shot=True,
+                    branches=dict(KIS_BRANCH_OVERRIDE),
+                    candidate_multiplier=KIS_CANDIDATE_MULTIPLIER,
+                )
+            else:
+                rows = search_multi(kis_plan, top_k=total)
+            timings["retrieval_seconds"] = round(time.perf_counter() - stage_started, 6)
+            hits = [
+                ShotHit(row["shot_id"], row["score"], row["keyframe_id"])
+                for row in rows
+                if row.get("shot_id")
+            ]
+            if not hits:
+                raise RuntimeError("search() không trả shot nào có shot_id")
+            ranks, contributions = _trace_rows(rows)
+            answers = allocate(hits, task_type, total=total)
+            timings["total_seconds"] = round(time.perf_counter() - started, 6)
+            return QueryRun(
+                query_id=str(_query_value(query, "query_id", "")),
+                task_type=task_type,
+                answers=answers,
+                query_plan=plan,
+                search_rows=[dict(row) for row in rows],
+                source_ranks=ranks,
+                source_contributions=contributions,
+                timings=timings,
+                runtime_fingerprint=fingerprint,
+                task_metadata={"hits": [dict(row) for row in rows]},
+            )
+        except SolveQueryError:
+            raise
+        except Exception as error:
+            timings["total_seconds"] = round(time.perf_counter() - started, 6)
+            failure_class: FailureClass
+            if isinstance(error, ValueError):
+                failure_class = "format"
+            else:
+                failure_class = _default_failure_class(task_type)
+            trace = failure_trace(
+                query,
+                error,
+                failure_class=failure_class,
+                runtime_fingerprint=fingerprint,
+                timings=timings,
+                retryable=task_type == "QA" and not isinstance(error, ValueError),
+            )
+>           raise SolveQueryError(str(error), trace) from error
+E           backend.tasks.runner.SolveQueryError: qa_pipeline() không suy ra được answer_text
+
+backend\tasks\runner.py:542: SolveQueryError
+_________________________ test_no_candidates_abstains _________________________
+
+    def test_no_candidates_abstains():
+>       contract=importlib.import_module('backend.common.qa_contract')
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_h02_contract.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'backend.common.qa_contract'
+import_ = <function _gcd_import at 0x000001F77B06BE20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'backend.common.qa_contract'
+
+<frozen importlib._bootstrap>:1335: ModuleNotFoundError
+__________________ test_checkpoint_stale_refusal_not_success __________________
+
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-23/test_checkpoint_stale_refusal_0')
+
+    def test_checkpoint_stale_refusal_not_success(tmp_path):
+        import run
+        record=trace('Không đủ căn cứ')
+        path=tmp_path/'checkpoint.jsonl';path.write_text(json.dumps(record,ensure_ascii=False)+'\n',encoding='utf-8')
+        restored=run.Checkpoint(path).doc()['qa']
+>       assert restored['status']!='success'
+E       AssertionError: assert 'success' != 'success'
+
+tests\test_h02_contract.py:101: AssertionError
+__________ test_cached_refusal_pipeline_preserves_candidates[legacy] __________
+
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-23/test_cached_refusal_pipeline_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A2728E0>
+mode = 'legacy'
+
+    @pytest.mark.parametrize('mode',['legacy','two_stage'])
+    def test_cached_refusal_pipeline_preserves_candidates(tmp_path,monkeypatch,mode):
+        from backend.tasks import qa
+        monkeypatch.setenv('QA_INFERENCE_MODE',mode)
+        monkeypatch.setenv('QA_HYPOTHESIS_CACHE_DIR',str(tmp_path/'cache'))
+        monkeypatch.setattr(qa,'parse_question',lambda _:qa.QuestionParts('sự kiện','màu gì?','visual_attribute'))
+        monkeypatch.setattr(qa,'search',lambda *a,**kw:[dict(shot_id='L21_V001#s1',score=.8,keyframe_id='L21_V001#k10')])
+        monkeypatch.setattr(qa,'_expand_within_video',lambda *a,**kw:[])
+        monkeypatch.setattr(qa,'_shot_bu_vung_trong',lambda *a,**kw:[])
+        monkeypatch.setattr(qa,'collect_evidence',lambda *a,**kw:qa.Evidence('L21_V001#s1','L21_V001',[],[],'',None,[],10,'evidence'))
+        monkeypatch.setattr(qa,'load_frame_map',lambda:{'L21_V001#k10':10})
+        cached=json.dumps(dict(answer='Không đủ căn cứ',answer_en='insufficient evidence',confidence=.99,evidence_frame_idx=10))
+        monkeypatch.setattr(qa,'_qa_cache_get',lambda *a,**kw:[cached]*3)
+        hits,answer,payload=qa.qa_pipeline('màu gì?',return_trace=True)
+>       assert hits and not answer
+E       AssertionError: assert ([ShotHit(shot_id='L21_V001#s1', score=0.8, best_keyframe_id='L21_V001#k10')] and not 'TODO')
+
+tests\test_h02_contract.py:120: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  [cảnh báo] shot L21_V001#s1: loại sentinel answer 'Không đủ căn cứ'
+  [CHỖ TRỐNG] không shot nào trả lời được — nộp 1 video đầu bảng retrieval (L21_V001) với answer='TODO'. NGƯỜI PHẢI SOI ẢNH VÀ ĐIỀN TAY.
+________ test_cached_refusal_pipeline_preserves_candidates[two_stage] _________
+
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-23/test_cached_refusal_pipeline_p1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A272990>
+mode = 'two_stage'
+
+    @pytest.mark.parametrize('mode',['legacy','two_stage'])
+    def test_cached_refusal_pipeline_preserves_candidates(tmp_path,monkeypatch,mode):
+        from backend.tasks import qa
+        monkeypatch.setenv('QA_INFERENCE_MODE',mode)
+        monkeypatch.setenv('QA_HYPOTHESIS_CACHE_DIR',str(tmp_path/'cache'))
+        monkeypatch.setattr(qa,'parse_question',lambda _:qa.QuestionParts('sự kiện','màu gì?','visual_attribute'))
+        monkeypatch.setattr(qa,'search',lambda *a,**kw:[dict(shot_id='L21_V001#s1',score=.8,keyframe_id='L21_V001#k10')])
+        monkeypatch.setattr(qa,'_expand_within_video',lambda *a,**kw:[])
+        monkeypatch.setattr(qa,'_shot_bu_vung_trong',lambda *a,**kw:[])
+        monkeypatch.setattr(qa,'collect_evidence',lambda *a,**kw:qa.Evidence('L21_V001#s1','L21_V001',[],[],'',None,[],10,'evidence'))
+        monkeypatch.setattr(qa,'load_frame_map',lambda:{'L21_V001#k10':10})
+        cached=json.dumps(dict(answer='Không đủ căn cứ',answer_en='insufficient evidence',confidence=.99,evidence_frame_idx=10))
+        monkeypatch.setattr(qa,'_qa_cache_get',lambda *a,**kw:[cached]*3)
+        hits,answer,payload=qa.qa_pipeline('màu gì?',return_trace=True)
+>       assert hits and not answer
+E       AssertionError: assert ([ShotHit(shot_id='L21_V001#s1', score=0.8, best_keyframe_id='L21_V001#k10')] and not 'TODO')
+
+tests\test_h02_contract.py:120: AssertionError
+---------------------------- Captured stdout call -----------------------------
+  [CHỖ TRỐNG] không shot nào trả lời được — nộp 1 video đầu bảng retrieval (L21_V001) với answer='TODO'. NGƯỜI PHẢI SOI ẢNH VÀ ĐIỀN TAY.
+_____________ test_batch_unsupported_qa_does_not_skip_next_query ______________
+
+tmp_path = WindowsPath('C:/dev/aic2026/reports/post_preliminary_h01_20260912/runtime_tmp/pytest-of-lehon/pytest-23/test_batch_unsupported_qa_does0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001F71A0DB570>
+
+    def test_batch_unsupported_qa_does_not_skip_next_query(tmp_path,monkeypatch):
+        import run
+        calls=[]
+        def solve(q,total):
+            calls.append(q['query_id'])
+            obj=runner.QueryRun(q['query_id'],q['task_type'],[],{},answer_text='TODO' if q['task_type']=='QA' else None)
+            if q['task_type']=='KIS':obj.answers=[Answer('L21_V001',(10,))]
+            return obj.answers,obj.compatibility_metadata()
+        monkeypatch.setattr(run,'giai_mot_query',solve)
+        monkeypatch.setattr(run,'_preflight',lambda *a:True)
+        monkeypatch.setattr(run,'_llm_runtime_errors',lambda *a:[])
+        queries=[dict(query_id='qa',task_type='QA',query_vi='màu gì?'),dict(query_id='kis',task_type='KIS',query_vi='xe',query_en='car')]
+        inp=tmp_path/'q.json';inp.write_text(json.dumps(queries),encoding='utf-8');out=tmp_path/'out'
+        monkeypatch.setattr(run.sys,'argv',['run.py','--queries',str(inp),'--out',str(out),'--answers','1','--qa-submission-policy','robust'])
+        assert run.main()==1
+        assert calls==['qa','kis']
+        rows=[json.loads(l) for l in (out/run.TRACE_NAME).read_text(encoding='utf-8').splitlines()]
+>       assert rows[0]['status'] in ('needs_review','abstain')
+E       AssertionError: assert 'success' in ('needs_review', 'abstain')
+
+tests\test_h02_contract.py:142: AssertionError
+---------------------------- Captured stdout call -----------------------------
+BẮT ĐẦU · 2 truy vấn · 1 dòng/truy vấn · ra C:\dev\aic2026\reports\post_preliminary_h01_20260912\runtime_tmp\pytest-of-lehon\pytest-23\test_batch_unsupported_qa_does0\out
+
+VALIDATOR TỪ CHỐI — không ghi file nào:
+Dữ liệu không hợp lệ, KHÔNG ghi file.
+KHÔNG HỢP LỆ — 1 lỗi thuộc 1 loại:
+  [empty] 1 lỗi
+      - empty [query=qa]: không có câu trả lời nào
+(Muốn ghi ra để soi thì gọi lại với validate=False.)
+---------------------------- Captured stderr call -----------------------------
+
+                                                                                                    
+
+  [██████████████··············] 1/2 (50.0%)  đã 0:00 · còn ~0:00  ✓ qa                        
+  [████████████████████████████] 2/2 (100.0%)  đã 0:00 · còn ~0:00  ✓ kis                       
+
+                                                                                                    
+
+=========================== short test summary info ===========================
+FAILED tests/test_h02_contract.py::test_runner_does_not_accept_placeholder[TODO-main:llm:legacy]
+FAILED tests/test_h02_contract.py::test_runner_does_not_accept_placeholder[0-placeholder:no_answer:legacy]
+FAILED tests/test_h02_contract.py::test_runner_does_not_accept_placeholder[\u0111\u1ecf-no_answer]
+FAILED tests/test_h02_contract.py::test_exporter_rejects_known_unsupported[TODO]
+FAILED tests/test_h02_contract.py::test_exporter_rejects_known_unsupported[Kh\xf4ng \u0111\u1ee7 c\u0103n c\u1ee9]
+FAILED tests/test_h02_contract.py::test_exporter_rejects_known_unsupported[Kh\xf4ng th\u1ec3 x\xe1c \u0111\u1ecbnh t\u1eeb b\u1eb1ng ch\u1ee9ng]
+FAILED tests/test_h02_contract.py::test_zero_and_legitimate_negative_with_evidence_survive[0]
+FAILED tests/test_h02_contract.py::test_zero_and_legitimate_negative_with_evidence_survive[Kh\xf4ng c\xf3 ng\u01b0\u1eddi trong \u1ea3nh]
+FAILED tests/test_h02_contract.py::test_zero_and_legitimate_negative_with_evidence_survive[Kh\xf4ng th\u1ea5y m\u01b0a]
+FAILED tests/test_h02_contract.py::test_zero_and_legitimate_negative_with_evidence_survive[Kh\xf4ng c\xf3 th\xf4ng tin li\xean l\u1ea1c]
+FAILED tests/test_h02_contract.py::test_old_trace_replay_retains_evidence_and_does_not_mutate_history
+FAILED tests/test_h02_contract.py::test_missing_evidence_is_reviewable_not_crash
+FAILED tests/test_h02_contract.py::test_no_candidates_abstains - ModuleNotFou...
+FAILED tests/test_h02_contract.py::test_checkpoint_stale_refusal_not_success
+FAILED tests/test_h02_contract.py::test_cached_refusal_pipeline_preserves_candidates[legacy]
+FAILED tests/test_h02_contract.py::test_cached_refusal_pipeline_preserves_candidates[two_stage]
+FAILED tests/test_h02_contract.py::test_batch_unsupported_qa_does_not_skip_next_query
+17 failed in 2.38s

@@ -1,0 +1,172 @@
+{
+  "experiment_id": "PP-H02-OFFLINE-20260912",
+  "input_manifest_sha256": "c26b2dad1ec13e4d1b740f535de35afa7ac68f68365c646cc27663232533ce03",
+  "source_runs": 4,
+  "unique_query_ids": 80,
+  "unique_task_query_pairs": 80,
+  "task_record_counts": {
+    "KIS": 91,
+    "QA": 30,
+    "TRAKE": 8
+  },
+  "task_unique_query_counts": {
+    "TRAKE": 5,
+    "QA": 21,
+    "KIS": 54
+  },
+  "groups": [
+    {
+      "name": "H01_CACHE_ONLY",
+      "distinct_query_ids": 30,
+      "transitions": {
+        "success -> success": 25,
+        "success -> needs_review": 5
+      },
+      "counts": {
+        "records": 30,
+        "qa_records": 5,
+        "new_mapping_violations": 0,
+        "input_mapping_violations": 0,
+        "review_payloads_preserved": 5,
+        "input_unsupported_answer_rows": 500,
+        "unsupported_autonomous_answer_rows": 0,
+        "input_qa_answer_rows": 500,
+        "output_qa_answer_rows": 0
+      },
+      "task_counts": {
+        "KIS": 23,
+        "QA": 5,
+        "TRAKE": 2
+      },
+      "mode_record_counts": {
+        "unknown": 25,
+        "legacy": 5
+      },
+      "origin_transitions": {
+        "unknown -> unknown": 30
+      }
+    },
+    {
+      "name": "TUNE_LEGACY",
+      "distinct_query_ids": 30,
+      "transitions": {
+        "legacy_implicit_success -> legacy_implicit_success": 25,
+        "legacy_implicit_success -> needs_review": 5
+      },
+      "counts": {
+        "records": 30,
+        "qa_records": 5,
+        "new_mapping_violations": 0,
+        "input_mapping_violations": 0,
+        "review_payloads_preserved": 5,
+        "input_unsupported_answer_rows": 0,
+        "unsupported_autonomous_answer_rows": 0,
+        "input_qa_answer_rows": 500,
+        "output_qa_answer_rows": 0
+      },
+      "task_counts": {
+        "KIS": 23,
+        "QA": 5,
+        "TRAKE": 2
+      },
+      "mode_record_counts": {
+        "unknown": 30
+      },
+      "origin_transitions": {
+        "unknown -> unknown": 30
+      }
+    },
+    {
+      "name": "ROUND2_OPERATOR_HISTORY",
+      "distinct_query_ids": 30,
+      "transitions": {
+        "success -> success": 29,
+        "failed -> failed": 3,
+        "success -> needs_review": 1
+      },
+      "counts": {
+        "records": 33,
+        "qa_records": 12,
+        "new_mapping_violations": 0,
+        "input_mapping_violations": 0,
+        "input_unsupported_answer_rows": 0,
+        "unsupported_autonomous_answer_rows": 0,
+        "input_qa_answer_rows": 900,
+        "output_qa_answer_rows": 800,
+        "review_payloads_preserved": 1
+      },
+      "task_counts": {
+        "KIS": 19,
+        "QA": 12,
+        "TRAKE": 2
+      },
+      "mode_record_counts": {
+        "unknown": 25,
+        "legacy": 8
+      },
+      "origin_transitions": {
+        "unknown -> unknown": 24,
+        "autonomous -> autonomous": 8,
+        "operator_assisted -> operator_assisted": 1
+      }
+    },
+    {
+      "name": "ROUND3_OPERATOR_HISTORY",
+      "distinct_query_ids": 36,
+      "transitions": {
+        "success -> success": 33,
+        "success -> needs_review": 3
+      },
+      "counts": {
+        "records": 36,
+        "qa_records": 8,
+        "new_mapping_violations": 0,
+        "input_mapping_violations": 0,
+        "review_payloads_preserved": 3,
+        "input_unsupported_answer_rows": 300,
+        "unsupported_autonomous_answer_rows": 0,
+        "input_qa_answer_rows": 800,
+        "output_qa_answer_rows": 500
+      },
+      "task_counts": {
+        "KIS": 26,
+        "QA": 8,
+        "TRAKE": 2
+      },
+      "mode_record_counts": {
+        "unknown": 28,
+        "legacy": 8
+      },
+      "origin_transitions": {
+        "unknown -> unknown": 31,
+        "autonomous -> autonomous": 5
+      }
+    }
+  ],
+  "counts": {
+    "unsupported_autonomous_answer_rows": 0,
+    "output_qa_answer_rows": 1300,
+    "review_payloads_preserved": 14,
+    "records": 129,
+    "input_qa_answer_rows": 2700,
+    "new_mapping_violations": 0,
+    "input_mapping_violations": 0,
+    "input_unsupported_answer_rows": 800,
+    "qa_records": 30
+  },
+  "csv_files": 66,
+  "csv_known_unsupported_rows": 300,
+  "csv_files_blocked_by_text_gate": 3,
+  "replay_crashes": 0,
+  "paid_provider_calls": 0,
+  "historical_files_modified": 0,
+  "limitations": [
+    "Không chấm accuracy hoặc tự xác nhận GT.",
+    "Tên group ROUND*_OPERATOR_HISTORY chỉ xác định nguồn, không được dùng để suy provenance của record.",
+    "H01 task status còn success không có nghĩa exportable: cache-miss export gate vẫn độc lập và không đổi.",
+    "Trace legacy thiếu evidence/provenance phải duyệt, không có nghĩa answer sai.",
+    "CSV không có provenance; số 0 không thể phân loại placeholder chỉ từ CSV.",
+    "Mapping dùng reference keyframe có sẵn; không suy frame hoặc chạy lại retrieval.",
+    "Số đo tính mọi record, gồm cả lần chạy lại; distinct query IDs báo riêng từng nhóm."
+  ]
+}

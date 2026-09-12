@@ -1,0 +1,18 @@
+ M reports/post_preliminary_h01_20260912/CHECKPOINT_H01.md
+ M reports/post_preliminary_h01_20260912/README.md
+ M reports/post_preliminary_h01_20260912/live_api_sonnet5/COST_ESTIMATE.md
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/CACHE_ONLY_CHECKPOINT.md
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_delivery_checksums.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_delivery_verification.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off/
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_off_command.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current/
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/cache_only_diagnostic_on_current_command.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/compare_diagnostic.py
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/comparison.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/comparison_commit_note.md
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/off_comparison_protocol.json
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/run_cache_only_diagnostic_off.ps1
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/run_cache_only_diagnostic_on_current.ps1
+?? reports/post_preliminary_h01_20260912/live_api_sonnet5/source_cache_only_snapshot_manifest.json
+?? reports/post_preliminary_h02_20260912/

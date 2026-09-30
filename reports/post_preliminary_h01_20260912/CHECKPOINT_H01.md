@@ -1,3 +1,5 @@
+> **Cập nhật mới nhất:** operator đã chọn model và chuyển sang phương án 0 USD API. Xem [checkpoint cache-only](live_api_sonnet5/CACHE_ONLY_CHECKPOINT.md). Phần dưới giữ số đo tại checkpoint trước; không dùng trạng thái model unset cũ làm trạng thái hiện tại.
+
 # Checkpoint PP-H01 — chưa nhận baseline
 
 **Quyết định: DO NOT PROMOTE.** Phần mã H01 đã triển khai và suite mới nhất đạt 922 test; acceptance gate vẫn mở vì chưa có lựa chọn model/backend của operator và chưa có baseline query run cùng cặp instrumentation on/off dưới identity hoàn chỉnh. Không bắt đầu PP-H02–H05.

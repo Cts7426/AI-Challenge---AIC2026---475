@@ -1,0 +1,23 @@
+{
+  "scope": "All original 30 frozen queries; no exclusion after observing on-arm",
+  "purpose": "diagnostic on/off equivalence; not accepted complete baseline",
+  "allowed_differences": [
+    "search_calls observer present only in on",
+    "instrumentation flag",
+    "timings",
+    "usage counters",
+    "artifact paths"
+  ],
+  "required_equal": [
+    "input",
+    "query hash",
+    "resource manifest ID",
+    "task semantic output",
+    "ranking scores/order",
+    "export bytes",
+    "errors",
+    "mapping status"
+  ],
+  "provider_calls_required": 0,
+  "new_api_budget_usd": 0
+}

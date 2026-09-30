@@ -1,5 +1,7 @@
 # PP-H01 — hạ tầng đo sau sơ tuyển
 
+**Mới nhất:** [phương án 0 USD API](live_api_sonnet5/CACHE_ONLY_CHECKPOINT.md), model đã chọn, 928 test đạt; diagnostic chưa đủ cache để nhận baseline.
+
 Chỉ PP-H01 được triển khai. H02–H05 chưa được phép bắt đầu. Không cập nhật report v1 hoặc artifact nộp thi.
 
 - [Checkpoint H01 A–L](CHECKPOINT_H01.md): **DO NOT PROMOTE**, chưa mở H02.

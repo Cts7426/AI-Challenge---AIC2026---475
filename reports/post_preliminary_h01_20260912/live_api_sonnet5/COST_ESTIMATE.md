@@ -6,7 +6,7 @@ Giá xác minh ngày 2026-09-12: Sonnet 5 **$2/MTok input, $10/MTok output**. An
 
 **Lưu ý đo lường:** bảng `PRICING` trong source checkpoint hiện vẫn ghi $3/$15. Khi báo chi phí Sonnet 5, giữ số token/ước lượng gốc và ghi thêm số tính lại theo bảng giá ngày trên; không gọi trường `usage.usd` cũ là hóa đơn thực tế. Với đúng model này và công thức cache hiện hành, số ước lượng cũ nhân 2/3 cho giá mới. Không sửa source giữa khi capture identity đang chạy.
 
-Tập H01 gồm 23 KIS (chỉ 3 câu có query_en sẵn, 20 câu còn cần dịch), 5 QA và 2 TRAKE. Q&A legacy có tối đa 5 shot chính + 5 đề cử text + 3 video × 3 shot mở rộng = 19 shot mỗi câu trước khử trùng. Mỗi shot thường sinh 3 lần; fallback từ text sang ảnh có thể thêm 3 lần, ảnh evidence tối đa 8 frame/cohort. Chi phí vì vậy không bằng 30 request đơn. Parse/dịch và retry cũng cần tính.
+Tập H01 gồm 23 KIS (chỉ 5 câu có query_en sẵn, 18 câu còn cần dịch), 5 QA và 2 TRAKE. Q&A legacy có tối đa 5 shot chính + 5 đề cử text + 3 video × 3 shot mở rộng = 19 shot mỗi câu trước khử trùng. Mỗi shot thường sinh 3 lần; fallback từ text sang ảnh có thể thêm 3 lần, ảnh evidence tối đa 8 frame/cohort. Chi phí vì vậy không bằng 30 request đơn. Parse/dịch và retry cũng cần tính.
 
 Ước tính sơ bộ cho lượt tạo cache: **$5–15**, có thể **$20–30** nếu nhiều fallback/retry và output dài. Đây là dự trù từ cấu trúc gọi, chưa có token usage thực của run này, không phải upper bound được bảo đảm. Ví dụ 1 triệu input + 300.000 output là $5; 3 triệu input + 900.000 output là $15. Thuế và điều khoản riêng tài khoản chưa tính.
 

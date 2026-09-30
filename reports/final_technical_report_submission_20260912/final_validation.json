@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "pdf": "C:/dev/aic2026/output/pdf/FINAL_REPORT_SUBMISSION.pdf",
+  "sha256": "89cf95bc34c799297672622ee73d3ff6e4d1e332f3b01aad92956e0e75309676",
+  "bytes": 132594,
+  "pages": 4,
+  "page_sizes_points": [
+    [
+      595.2756,
+      841.8898
+    ],
+    [
+      595.2756,
+      841.8898
+    ],
+    [
+      595.2756,
+      841.8898
+    ],
+    [
+      595.2756,
+      841.8898
+    ]
+  ],
+  "fonts": {
+    "/Helvetica": {
+      "subtype": "/Type1",
+      "embedded": false
+    },
+    "/AAAAAA+ArialMT": {
+      "subtype": "/TrueType",
+      "embedded": true
+    },
+    "/AAAAAA+Arial-BoldMT": {
+      "subtype": "/TrueType",
+      "embedded": true
+    },
+    "/AAAAAA+Arial-ItalicMT": {
+      "subtype": "/TrueType",
+      "embedded": true
+    }
+  },
+  "summary_word_units": 192,
+  "expected_claims_present": 15,
+  "new_numeric_claims_vs_pre_upgrade": [],
+  "forbidden_internal_markers_found": [],
+  "tables": 2,
+  "architecture_figures": 1,
+  "visual_pages_reviewed": 4,
+  "submission_performed": false,
+  "deliverable_sha256": {
+    "FINAL_REPORT_SUBMISSION.md": "1688040dcc9e885352aea87d1431623804583bf32f6634d07013153875ca10ef",
+    "FINAL_REPORT_SUBMISSION.pdf": "89cf95bc34c799297672622ee73d3ff6e4d1e332f3b01aad92956e0e75309676",
+    "FINAL_BTC_CHECKLIST.md": "665254fa83ddeb291b99830e6a7a2cc145be1d1fd2e05243ef5cdd46eac57478",
+    "FINAL_CHANGELOG.md": "c5f99ff62cc4cd361ba26ecb2952f48d448193bf747d4a54ddca22b992de7e1d"
+  }
+}

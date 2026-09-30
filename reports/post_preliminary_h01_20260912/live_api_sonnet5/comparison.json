@@ -1,0 +1,392 @@
+{
+  "queries": 30,
+  "identity_equal": true,
+  "on_identity_id": "d1648b0e14002d03370c6a5ea2d2494f4a64098a50d200480575df1c4b96f0d4",
+  "off_identity_id": "d1648b0e14002d03370c6a5ea2d2494f4a64098a50d200480575df1c4b96f0d4",
+  "semantic_equal_queries": 30,
+  "csv_equal_files": 5,
+  "on": {
+    "queries": 30,
+    "task_success": 30,
+    "exported": 5,
+    "cache_blocked_queries": [
+      "K01",
+      "K02",
+      "K03",
+      "K04",
+      "K05",
+      "K06",
+      "K07",
+      "K08",
+      "K09",
+      "K10",
+      "K11",
+      "K12",
+      "K13",
+      "K14",
+      "K15",
+      "K16",
+      "K17",
+      "K18",
+      "QA01",
+      "QA02",
+      "QA03",
+      "QA04",
+      "QA05",
+      "TR01",
+      "TR02"
+    ],
+    "cache_only_misses": 132,
+    "provider_calls": 0,
+    "cache_hits": 0,
+    "api_usd": 0.0,
+    "mapping_violations": 0,
+    "export_violations": 0,
+    "unknown_mapping_queries": 25,
+    "seconds": 108.39084529999673,
+    "promotion": "DO NOT PROMOTE diagnostic only",
+    "independent_accuracy_claim": false,
+    "all_queries_have_cached_evidence": false
+  },
+  "off": {
+    "queries": 30,
+    "task_success": 30,
+    "exported": 5,
+    "cache_blocked_queries": [
+      "K01",
+      "K02",
+      "K03",
+      "K04",
+      "K05",
+      "K06",
+      "K07",
+      "K08",
+      "K09",
+      "K10",
+      "K11",
+      "K12",
+      "K13",
+      "K14",
+      "K15",
+      "K16",
+      "K17",
+      "K18",
+      "QA01",
+      "QA02",
+      "QA03",
+      "QA04",
+      "QA05",
+      "TR01",
+      "TR02"
+    ],
+    "cache_only_misses": 132,
+    "provider_calls": 0,
+    "cache_hits": 0,
+    "api_usd": 0.0,
+    "mapping_violations": 0,
+    "export_violations": 0,
+    "unknown_mapping_queries": 25,
+    "seconds": 147.99149169999873,
+    "promotion": "DO NOT PROMOTE diagnostic only",
+    "independent_accuracy_claim": false,
+    "all_queries_have_cached_evidence": false
+  },
+  "records": [
+    {
+      "query_id": "Q1",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {
+        "Q1.csv": true
+      },
+      "export_status": "written",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "Q2",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {
+        "Q2.csv": true
+      },
+      "export_status": "written",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "Q3",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {
+        "Q3.csv": true
+      },
+      "export_status": "written",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "Q4",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {
+        "Q4.csv": true
+      },
+      "export_status": "written",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "Q5",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {
+        "Q5.csv": true
+      },
+      "export_status": "written",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K01",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K02",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K03",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K04",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K05",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K06",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K07",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K08",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K09",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K10",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K11",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K12",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K13",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K14",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K15",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K16",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K17",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "K18",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "QA01",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "QA02",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "QA03",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "QA04",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "QA05",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "TR01",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    },
+    {
+      "query_id": "TR02",
+      "semantic_equal": true,
+      "different_paths": [],
+      "csv_equal": {},
+      "export_status": "blocked_cache_miss",
+      "on_provider_calls": 0,
+      "off_provider_calls": 0
+    }
+  ],
+  "excluded_semantic_fields": [
+    "task_output.timings"
+  ],
+  "observer_ignored": [
+    "search_calls",
+    "instrumentation"
+  ],
+  "measurement_fields_not_semantic": [
+    "seconds",
+    "usage_delta",
+    "cache_after",
+    "cache_after_id"
+  ],
+  "comparison_script_sha256": "c3c05d97530bfe8d92cd4de850e533bb9f994b2216adeedd057148c50fb6173d",
+  "decision": "DO NOT PROMOTE: diagnostic resource gaps and 25 queries without complete LLM cache",
+  "independent_accuracy_claim": false
+}

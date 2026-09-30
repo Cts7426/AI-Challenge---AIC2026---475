@@ -1,0 +1,311 @@
+DEADLINE MODE — FINAL TECHNICAL REPORT SUBMISSION.
+
+The submission deadline is TODAY.
+
+Immediately STOP all performance-improvement work.
+
+Do NOT continue:
+
+- E01 human annotation beyond existing artifacts;
+- H03;
+- H04;
+- H05;
+- new retrieval experiments;
+- paid API calls;
+- new model/provider trials;
+- reindexing;
+- tuning;
+- new benchmark claims.
+
+Engineering state is frozen at the current accepted checkpoints:
+
+H01:
+APPROVED INFRASTRUCTURE
+PERFORMANCE BASELINE NOT PROMOTED.
+
+H02:
+PROMOTED CORRECTNESS.
+
+E01:
+TOOLING/PROTOCOL APPROVED.
+DATASET NOT PROMOTED.
+NOT READY FOR H03A.
+
+These are the final post-preliminary engineering facts for today's report.
+
+==================================================
+PRIMARY GOAL
+==================================================
+
+Prepare the BEST DEFENSIBLE TECHNICAL REPORT FOR SUBMISSION TODAY.
+
+Use the existing technical report v1 as the base.
+
+Do NOT rewrite the report from scratch unless BTC formatting requires it.
+
+The priority is:
+
+1. factual correctness;
+2. BTC compliance;
+3. clear technical architecture;
+4. strong engineering narrative;
+5. concise transparency about human/external assistance;
+6. clean PDF;
+7. submission readiness.
+
+Do not optimize for including every experiment.
+
+==================================================
+REPORT STRATEGY
+==================================================
+
+The report remains primarily a report of the PRELIMINARY-ROUND SYSTEM
+and FINAL COMPETITION WORKFLOW.
+
+Competition scores:
+
+Round 1: 8.6/13
+Round 2: 13.6/15
+Round 3: 11.8/17
+
+remain final operator-assisted workflow results.
+
+Do NOT reinterpret them as autonomous engine scores.
+
+Do NOT attribute post-preliminary changes to those scores.
+
+==================================================
+POST-PRELIMINARY IMPROVEMENTS
+==================================================
+
+If page budget allows, add ONLY a concise subsection or paragraph:
+
+“Cải tiến sau Vòng Sơ tuyển”
+
+It may state that after the preliminary rounds the team:
+
+1. strengthened runtime/resource identity and reproducibility;
+2. added stricter cache/resume/provider guards and production-path instrumentation;
+3. corrected the Q&A result contract so unsupported/placeholder/refusal
+   outcomes are not represented as valid autonomous answers;
+4. prepared a human-verification/evaluation foundation for future
+   controlled retrieval experiments.
+
+Important:
+
+Do NOT claim these changes improved accuracy.
+
+Do NOT claim H03/KIS localization improvement.
+
+Do NOT claim an independent benchmark exists.
+
+Explicitly note, if needed:
+
+the new validation/held-out evaluation set is still under human verification
+and was not used to claim performance in this report.
+
+Keep this section SHORT.
+
+==================================================
+DO NOT INCLUDE
+==================================================
+
+Do not include in the final report:
+
+- E01 leakage-pair counts unless useful to methodology;
+- 0/44 MP4 details;
+- cache forensic counts;
+- Git hashes;
+- internal STOP gate language;
+- selfcheck exit codes;
+- working-tree state;
+- API balance;
+- forensic provenance tables;
+- internal audit vocabulary.
+
+These are engineering evidence, not report narrative.
+
+==================================================
+KEEP STRONG PARTS OF V1
+==================================================
+
+Preserve, unless BTC requirements force changes:
+
+- problem and contribution;
+- multimodal architecture;
+- Milvus + Elasticsearch;
+- CLIP/OCR/ASR/object/metadata retrieval;
+- weighted RRF;
+- frame mapping;
+- task-specific KIS/Q&A/TRAKE processing;
+- exporter/validator;
+- multi-anchor regression → rollback case;
+- human-in-the-loop workflow disclosure;
+- external ChatGPT/Claude disclosure;
+- final score interpretation;
+- limitations and roadmap.
+
+Do not weaken the architecture section merely to make room for audit details.
+
+==================================================
+H02 WORDING
+==================================================
+
+If H02 is mentioned, use wording equivalent to:
+
+“Sau sơ tuyển, đội chuẩn hóa hợp đồng kết quả Q&A để phân biệt đáp án có
+đủ bằng chứng với trường hợp cần người kiểm tra, không đủ bằng chứng hoặc
+câu từ chối. Kiểm tra được áp dụng trên các đường replay/export liên quan,
+nhưng thay đổi này không được dùng để diễn giải lại điểm của các vòng đã thi.”
+
+Do NOT call H02 an accuracy improvement.
+
+==================================================
+E01 WORDING
+==================================================
+
+If E01 is mentioned, use wording equivalent to:
+
+“Đội đồng thời xây dựng quy trình đánh giá mới với ground truth do người
+xác minh, tách validation và sealed held-out trước khi thực hiện các thử
+nghiệm retrieval tiếp theo. Tại thời điểm báo cáo, bộ đánh giá này chưa được
+hoàn tất nên không được dùng để đưa ra claim hiệu năng mới.”
+
+This is honest and enough.
+
+==================================================
+BTC REQUIREMENTS — FINAL AUDIT
+==================================================
+
+Re-read:
+
+- BTC report requirements;
+- docs/contest.md;
+- any official formatting/template instructions already collected;
+- current v1 report.
+
+Create an exact checklist:
+
+REQUIRED ITEM
+WHERE IT APPEARS
+PASS / MISSING
+FIX NEEDED
+
+Pay special attention to:
+
+- team name;
+- member names if required;
+- institution if required;
+- contact if required;
+- page limit;
+- file format;
+- filename convention;
+- required sections;
+- declaration or signature if any;
+- deadline/submission method if documented.
+
+Do not invent missing personal/team data.
+
+If a required field is missing and cannot be inferred from repository evidence,
+mark it clearly for operator insertion.
+
+==================================================
+EDITORIAL PASS
+==================================================
+
+Reduce unnecessary defensive wording.
+
+Keep caveats only where they prevent a misleading claim.
+
+The report should sound:
+
+technical
+confident
+transparent
+concise
+
+not like an internal forensic audit.
+
+Do not use marketing claims such as:
+
+“our system is state of the art”
+“deserves to enter the final round”
+“significantly improves”
+
+unless evidence explicitly supports them.
+
+==================================================
+FINAL SCORE WORDING
+==================================================
+
+Use a clean caption such as:
+
+“Kết quả các submission cuối tại ba đợt Vòng Sơ tuyển.”
+
+Then state once that these results reflect the complete competition workflow,
+including internal retrieval and operator assistance where used, and are not
+interpreted as autonomous-engine benchmarks.
+
+Do not repeat the disclaimer multiple times.
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+Before generating the final PDF:
+
+check every numerical claim against evidence.
+
+Check especially:
+
+- 873 videos;
+- 177,321 keyframes;
+- RRF/multi-anchor diagnostic values;
+- score values;
+- dates;
+- model/config descriptions;
+- timeline of post-round fixes.
+
+No new number may appear without a source.
+
+==================================================
+OUTPUTS
+==================================================
+
+Produce:
+
+1. FINAL_REPORT_SUBMISSION.md
+2. FINAL_REPORT_SUBMISSION.pdf
+3. FINAL_BTC_CHECKLIST.md
+4. FINAL_CHANGELOG.md
+
+The changelog must identify only changes from v1.
+
+Do NOT generate a “report v2 performance comparison”.
+
+Do NOT run new experiments.
+
+Do NOT submit automatically.
+
+==================================================
+FINAL STOP
+==================================================
+
+After PDF generation:
+
+STOP.
+
+Return:
+
+A. PDF path
+B. page count
+C. BTC checklist status
+D. any REQUIRED field still needing operator input
+E. five highest-risk claims checked
+F. SHA-256 of final PDF
+G. recommendation:
+   READY TO SUBMIT
+   or
+   NOT READY — exact blocking reason
+
+Do not continue engineering.

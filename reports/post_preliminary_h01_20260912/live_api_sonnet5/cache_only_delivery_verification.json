@@ -1,0 +1,15 @@
+{
+  "verified_at": "2026-09-12T08:17:53.970332+00:00",
+  "source_files": 199,
+  "historical_cache_files_unchanged": 913,
+  "work_seed_unchanged": true,
+  "all_three_diagnostics_zero_api_calls": true,
+  "paired_diagnostic_identity_equal": true,
+  "semantic_equal_queries": 30,
+  "identical_csv_files": 5,
+  "full_suite": "928 passed, 1 skipped, 2 warnings",
+  "selfcheck_exit": 1,
+  "baseline_accepted": false,
+  "decision": "DO NOT PROMOTE",
+  "h02_started": false
+}
